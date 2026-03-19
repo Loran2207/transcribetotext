@@ -5,7 +5,7 @@ import { getDarkPalette } from "./dark-palette";
 import { useLanguage } from "./language-context";
 import { Smartphone, Zap, ChevronRight, ChevronUp, Check, Info, Mic, Globe, X } from "lucide-react";
 import promoSvgPaths from "../../imports/svg-panhyaoz26";
-const imgGiftBox = "";
+const imgGiftBox = "/images/gift-box.png";
 
 /* ══════════════════════════════════════════════
    Data
@@ -50,10 +50,10 @@ function PromoCard() {
       </p>
 
       {/* Gift box image — clipped by overflow-hidden */}
-      <div className="absolute flex items-center justify-center" style={{ left: 211, top: -14, width: 113, height: 113 }}>
+      <div className="absolute flex items-center justify-center" style={{ left: 211, top: -20, width: 113, height: 113 }}>
         <div className="shrink-0 rotate-[-4.31deg]">
           <div className="relative" style={{ width: 105.378, height: 105.378 }}>
-            <img src={imgGiftBox} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+            <img src={imgGiftBox} alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
           </div>
         </div>
       </div>
