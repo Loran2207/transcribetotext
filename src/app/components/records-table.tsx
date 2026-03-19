@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import svgPaths from "../../imports/svg-jcr72uvvch";
 import { useStarred } from "./starred-context";
@@ -9,6 +9,7 @@ import { useTheme } from "./theme-context";
 import { getDarkPalette } from "./dark-palette";
 import { useFolders } from "./folder-context";
 import { useLanguage } from "./language-context";
+import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
 import { ChevronRight } from "lucide-react";
 
 /* ══════════════════════════════════════════════
@@ -33,18 +34,21 @@ const DEFAULT_COLUMN_ORDER: ColumnId[] = ["template", "lang", "duration", "date"
 function FigmaCheckbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   const { isDark } = useTheme();
   return (
-    <button onClick={onChange} className="relative size-[16px] shrink-0">
-      {checked ? (
-        <div className="absolute bg-[#2563eb] inset-[6.25%] rounded-[4px] flex items-center justify-center">
+    <button type="button" onClick={onChange} className="relative size-[16px] shrink-0">
+      <div
+        className="absolute inset-[6.25%] rounded-[4px] flex items-center justify-center"
+        style={{
+          backgroundColor: checked ? "#2563eb" : (isDark ? "#2a2a35" : "white"),
+          border: `1px solid ${checked ? "#2563eb" : (isDark ? "#4b4b5a" : "#c0c8d2")}`,
+          boxShadow: checked ? "none" : (isDark ? "none" : "0px 2px 5px 0px rgba(60,66,87,0.08),0px 1px 1px 0px rgba(0,0,0,0.12)"),
+        }}
+      >
+        {checked && (
           <svg className="size-[10px]" fill="none" viewBox="0 0 16 11">
             <path clipRule="evenodd" d={svgPaths.p2d702f80} fill="white" fillRule="evenodd" />
           </svg>
-        </div>
-      ) : (
-        <div className="absolute inset-[6.25%] rounded-[4px]" style={{ backgroundColor: isDark ? "#2a2a35" : "white" }}>
-          <div aria-hidden className="absolute border border-solid inset-[-0.5px] pointer-events-none rounded-[4.5px]" style={{ borderColor: isDark ? "#4b4b5a" : "#c0c8d2", boxShadow: isDark ? "none" : "0px 2px 5px 0px rgba(60,66,87,0.08),0px 1px 1px 0px rgba(0,0,0,0.12)" }} />
-        </div>
-      )}
+        )}
+      </div>
     </button>
   );
 }
@@ -275,8 +279,8 @@ function MultiSelectTextBtn({ icon, label, onClick, color }: { icon: React.React
   );
 }
 
-function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary, onExport }: {
-  count: number; onCancel: () => void; onMoveFolder: () => void; onTrash: () => void; onCopySummary: () => void; onExport: () => void;
+function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary, onExport, onShare }: {
+  count: number; onCancel: () => void; onMoveFolder: () => void; onTrash: () => void; onCopySummary: () => void; onExport: () => void; onShare: () => void;
 }) {
   const { isDark } = useTheme();
   const c = getDarkPalette(isDark);
@@ -289,18 +293,13 @@ function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary,
   const hoverBg = isDark ? "rgba(255,255,255,0.08)" : "#f0f2f5";
   return (
     <div className="flex items-center gap-[4px] h-[36px] px-[4px]" style={{ backgroundColor: barBg, borderBottom: `1px solid ${barBorder}` }}>
-      <button
-        onClick={() => onCancel()}
-        title="Deselect all"
-        className="w-[40px] shrink-0 flex items-center justify-center transition-opacity hover:opacity-70"
-      >
-        <div className="size-[16px] rounded-[4px] bg-[#2563eb] flex items-center justify-center">
-          <svg className="size-[10px]" fill="none" viewBox="0 0 16 11"><path clipRule="evenodd" d={svgPaths.p2d702f80} fill="white" fillRule="evenodd" /></svg>
-        </div>
-      </button>
+      <div className="w-[40px] shrink-0 flex items-center justify-center">
+        <FigmaCheckbox checked onChange={onCancel} />
+      </div>
       <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px", color: c.textPrimary }}>{count} {t("table.selected")}</span>
       <div className="h-[20px] w-px ml-[2px]" style={{ backgroundColor: barBorder }} />
       <MultiSelectTextBtn label="Summary" color={blue} onClick={() => { onCopySummary(); setCopied("s"); setTimeout(() => setCopied(null), 1500); }} icon={<svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.1" /><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" /></svg>} />
+      <MultiSelectTextBtn label="Share" color={blue} onClick={onShare} icon={<svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><circle cx="12" cy="2.667" r="1.667" stroke="currentColor" strokeWidth="1.2" /><circle cx="4" cy="8" r="1.667" stroke="currentColor" strokeWidth="1.2" /><circle cx="12" cy="13.333" r="1.667" stroke="currentColor" strokeWidth="1.2" /><path d="M5.58 6.94l4.84-2.82M10.42 11.88L5.58 9.06" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>} />
       <MultiSelectTextBtn label="Folder" color={blue} onClick={onMoveFolder} icon={<svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>} />
       <MultiSelectTextBtn label="Export" color={blue} onClick={onExport} icon={<svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M8 10V2M4.667 4.667L8 1.333l3.333 3.334" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /><path d="M2 10v2.667A1.333 1.333 0 003.333 14h9.334A1.333 1.333 0 0014 12.667V10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>} />
       <MultiSelectTextBtn label="Trash" color={red} onClick={onTrash} icon={<svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>} />
@@ -1117,6 +1116,63 @@ const records: RecordRow[] = [
   { id: "6", name: "Nexora quick guide: get transcription and AI summary", iconColor: "#EF4444", iconType: "circle", duration: "1 min 21s", dateCreated: "03/10/2026, 19:09", dateGroup: "Monday, Mar 10", template: "Summary", language: "en", source: "mp4", summary: "A walkthrough video demonstrating how to use the transcription platform to generate AI-powered summaries.", tasks: 1, screenshots: 1, time: "8:46 AM", thumbnail: "https://images.unsplash.com/photo-1721804295754-1905f69c86ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsb2dpc3RpY3MlMjB0cnVja3MlMjBmbGVldCUyMG9yYW5nZXxlbnwxfHx8fDE3NzM1MDA5NDh8MA&ixlib=rb-4.1.0&q=80&w=1080" },
 ];
 
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function formatDateForRecord(date: Date) {
+  const mm = pad2(date.getMonth() + 1);
+  const dd = pad2(date.getDate());
+  const yyyy = date.getFullYear();
+  const hh = pad2(date.getHours());
+  const min = pad2(date.getMinutes());
+  return {
+    dateCreated: `${mm}/${dd}/${yyyy}, ${hh}:${min}`,
+    dateGroup: date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
+    time: date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+  };
+}
+
+function normalizeSource(source: TranscriptionJob["source"], fileType: TranscriptionJob["fileType"]): SourceType {
+  if (source) return source;
+  return fileType === "audio" ? "mp3" : "mp4";
+}
+
+function normalizeLanguage(lang?: string, langBilingual?: string[]) {
+  const isValid = (id?: string) => !!id && id !== "auto" && languageFlags[id] !== undefined;
+  if (isValid(lang)) return lang as keyof typeof languageFlags;
+  const bilingual = (langBilingual ?? []).find(id => isValid(id));
+  if (bilingual) return bilingual as keyof typeof languageFlags;
+  return "en";
+}
+
+function mapJobToRecord(job: TranscriptionJob): RecordRow {
+  const createdDate = job.createdAt ? new Date(job.createdAt) : new Date();
+  const isDone = job.status === "done";
+  const isError = job.status === "error";
+  const dateParts = formatDateForRecord(createdDate);
+  return {
+    id: job.id,
+    name: job.name,
+    iconColor: "#3B82F6",
+    iconType: "square",
+    duration: isDone ? (job.duration ?? "—") : isError ? "Failed" : "In progress",
+    dateCreated: dateParts.dateCreated,
+    dateGroup: dateParts.dateGroup,
+    template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
+    language: normalizeLanguage(job.lang, job.langBilingual),
+    source: normalizeSource(job.source, job.fileType),
+    summary: isDone
+      ? "Transcript is ready. Open the record to view summary and action items."
+      : isError
+        ? "This transcription failed. You can retry from upload status widget."
+        : "Transcription is in progress.",
+    tasks: 0,
+    screenshots: 0,
+    time: dateParts.time,
+  };
+}
+
 /* cellTextStyle is computed inside TableRow to support dark mode */
 
 const typeFilterOptions: { id: string; label: string; sourceIcon?: SourceType }[] = [
@@ -1208,10 +1264,10 @@ export function RecordsTable() {
   const { isDark } = useTheme();
   const c = getDarkPalette(isDark);
   const { t } = useLanguage();
+  const { jobs } = useTranscriptionModals();
   const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder } = useFolders();
   const [activeTab, setActiveTab] = useState<string>("Recent");
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
-  const [allSelected, setAllSelected] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
   const [templateFilter, setTemplateFilter] = useState<Set<string>>(new Set());
@@ -1248,10 +1304,18 @@ export function RecordsTable() {
   function toggleSetItem(set: Set<string>, id: string): Set<string> { const next = new Set(set); if (next.has(id)) next.delete(id); else next.add(id); return next; }
   function toggleRow(id: string) { setSelectedRows((prev) => toggleSetItem(prev, id)); }
   function toggleAll() {
-    if (allSelected) { setSelectedRows(new Set()); setAllSelected(false); }
-    else { setSelectedRows(new Set(filteredRecords.map((r) => r.id))); setAllSelected(true); }
+    setSelectedRows(prev => {
+      const next = new Set(prev);
+      const allVisibleSelected = filteredRecords.length > 0 && filteredRecords.every(r => next.has(r.id));
+      if (allVisibleSelected) {
+        filteredRecords.forEach(r => next.delete(r.id));
+      } else {
+        filteredRecords.forEach(r => next.add(r.id));
+      }
+      return next;
+    });
   }
-  function clearSelection() { setSelectedRows(new Set()); setAllSelected(false); }
+  function clearSelection() { setSelectedRows(new Set()); }
   function clearAllFilters() { setSearchQuery(""); setTypeFilter(new Set()); setTemplateFilter(new Set()); setLangFilter(new Set()); setDateSort("newest"); }
   const hasActiveFilters = searchQuery !== "" || typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0;
   const showSaveView = (typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0) && !activeTab.startsWith("sv_");
@@ -1276,7 +1340,9 @@ export function RecordsTable() {
   function renameView(id: string, name: string) { setSavedViews((prev) => prev.map((v) => v.id === id ? { ...v, name } : v)); setEditingViewId(null); }
   function deleteView(id: string) { setSavedViews((prev) => prev.filter((v) => v.id !== id)); }
 
-  const displayRecords = records.map((r) => ({ ...r, name: getName(r.id, r.name) }));
+  const jobRecords = useMemo(() => jobs.map(mapJobToRecord), [jobs]);
+  const allRecords = useMemo(() => [...jobRecords, ...records], [jobRecords]);
+  const displayRecords = allRecords.map((r) => ({ ...r, name: getName(r.id, r.name) }));
   const activeRecords = displayRecords.filter((r) => !trashedIds.has(r.id));
   const trashRecords = displayRecords.filter((r) => trashedIds.has(r.id));
 
@@ -1286,7 +1352,7 @@ export function RecordsTable() {
   let filteredRecords = activeTab === "Trash" ? trashRecords : activeRecords;
   if (searchQuery) filteredRecords = filteredRecords.filter((r) => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
   if (activeTab === "Starred") filteredRecords = filteredRecords.filter((r) => starred.has(r.id));
-  if (activeTab === "Shared") filteredRecords = filteredRecords.filter((r) => sharedIds.has(r.id));
+  if (activeTab === "Shared") filteredRecords = filteredRecords.filter((r) => sharedIds.has(r.id) || sharedConfigs.has(r.id));
   if (activeTab !== "Trash") {
     if (typeFilter.size > 0) filteredRecords = filteredRecords.filter((r) => typeFilter.has(r.source));
     if (templateFilter.size > 0) filteredRecords = filteredRecords.filter((r) => templateFilter.has(r.template));
@@ -1294,6 +1360,8 @@ export function RecordsTable() {
   }
   if (dateSort === "newest") filteredRecords = [...filteredRecords].sort((a, b) => b.dateCreated.localeCompare(a.dateCreated));
   else filteredRecords = [...filteredRecords].sort((a, b) => a.dateCreated.localeCompare(b.dateCreated));
+
+  const allSelected = filteredRecords.length > 0 && filteredRecords.every(r => selectedRows.has(r.id));
 
   const dateGroups: { label: string; records: typeof filteredRecords }[] = [];
   if (groupByDate) {
@@ -1304,7 +1372,7 @@ export function RecordsTable() {
 
   const hasSelection = selectedRows.size > 0 && activeTab !== "Trash";
 
-  const sharedCount = activeRecords.filter((r) => sharedIds.has(r.id)).length;
+  const sharedCount = activeRecords.filter((r) => sharedIds.has(r.id) || sharedConfigs.has(r.id)).length;
 
   // Tab counts
   const recentCount = activeRecords.length;
@@ -1395,7 +1463,46 @@ export function RecordsTable() {
           <div className="w-full overflow-visible" style={{ backgroundColor: c.bgCard, borderTop: `1px solid ${c.border}`, borderBottom: `1px solid ${c.border}` }}>
             {/* Header row — replaced by MultiSelectBar when rows are selected */}
             {hasSelection ? (
-              <MultiSelectBar count={selectedRows.size} onCancel={clearSelection} onMoveFolder={() => setMoveDialogOpen(true)} onTrash={trashSelected} onCopySummary={() => { const texts = records.filter(r => selectedRows.has(r.id)).map(r => `${r.name}: ${r.summary}`).join("\n\n"); navigator.clipboard.writeText(texts); }} onExport={() => { const data = records.filter(r => selectedRows.has(r.id)).map(r => ({ name: r.name, summary: r.summary, tasks: r.tasks, duration: r.duration, date: r.dateCreated })); const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "export.json"; a.click(); URL.revokeObjectURL(url); }} />
+              <MultiSelectBar
+                count={selectedRows.size}
+                onCancel={clearSelection}
+                onMoveFolder={() => setMoveDialogOpen(true)}
+                onTrash={trashSelected}
+                onShare={() => {
+                  const selectedIds = Array.from(selectedRows);
+                  if (!selectedIds.length) return;
+                  if (selectedIds.length === 1) {
+                    setShareDialogRecord(selectedIds[0]);
+                    return;
+                  }
+                  const bulkCfg = { ...DEFAULT_SHARE_CONFIG, isPublic: true };
+                  setSharedConfigs(prev => {
+                    const next = new Map(prev);
+                    selectedIds.forEach(id => next.set(id, bulkCfg));
+                    return next;
+                  });
+                }}
+                onCopySummary={() => {
+                  const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => `${r.name}: ${r.summary}`).join("\n\n");
+                  navigator.clipboard.writeText(texts);
+                }}
+                onExport={() => {
+                  const data = displayRecords.filter(r => selectedRows.has(r.id)).map(r => ({
+                    name: r.name,
+                    summary: r.summary,
+                    tasks: r.tasks,
+                    duration: r.duration,
+                    date: r.dateCreated,
+                  }));
+                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "export.json";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              />
             ) : (
             <div className="flex items-center h-[36px]" style={{ borderBottom: `1px solid ${c.border}` }}>
               <div className="w-[40px] shrink-0 flex items-center justify-center"><FigmaCheckbox checked={allSelected} onChange={toggleAll} /></div>
