@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, CircleHelp, Settings, Globe, LogOut, Moon, Sun, PanelLeft, Zap, ChevronDown } from "lucide-react";
-const imgEllipse52 = "";
+const imgEllipse52 = "/images/avatar.png";
 import { useTheme } from "./theme-context";
 import { getDarkPalette } from "./dark-palette";
 import { useLanguage, LANGUAGES } from "./language-context";

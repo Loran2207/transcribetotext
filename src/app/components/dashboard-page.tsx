@@ -1,7 +1,7 @@
 import { useState } from "react";
 import svgPaths from "../../imports/svg-i3wf63n6gj";
 import svgCardPaths from "../../imports/svg-ckrcce85th";
-const imgMainCard = "";
+const imgMainCard = "/images/image-girl.png";
 import { imgGroup, imgGroup1 } from "../../imports/svg-rnxzz";
 import { RecordsTable } from "./records-table";
 import { RightPanel } from "./right-panel";

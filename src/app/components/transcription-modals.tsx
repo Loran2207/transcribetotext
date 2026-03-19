@@ -3,8 +3,11 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
+import { FolderPlus } from "lucide-react";
 import { useTheme } from "./theme-context";
 import { getDarkPalette } from "./dark-palette";
+import { SourceIcon } from "./source-icons";
+import { useFolders } from "./folder-context";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -24,6 +27,7 @@ export interface TranscriptionJob {
   lang?: string;
   langBilingual?: string[];
   translationLang?: string;
+  folderId?: string;
 }
 
 const ERROR_LABELS: Record<string, string> = {
@@ -37,7 +41,7 @@ interface CtxValue {
   openModal: ModalType;
   setOpenModal: (m: ModalType) => void;
   jobs: TranscriptionJob[];
-  addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string }) => void;
+  addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string }) => string;
   retryJob: (id: string) => void;
   meetingCounterRef: React.MutableRefObject<number>;
   userPlan: UserPlan;
@@ -58,6 +62,7 @@ export function useTranscriptionModals() {
 export function TranscriptionModalsProvider({
   children, userPlan = "free",
 }: { children: React.ReactNode; userPlan?: UserPlan }) {
+  const { assignToFolder } = useFolders();
   const [openModal, setOpenModal] = useState<ModalType>(null);
   const [jobs, setJobs] = useState<TranscriptionJob[]>([]);
   const meetingCounterRef = useRef(1);
@@ -83,10 +88,12 @@ export function TranscriptionModalsProvider({
     setTimeout(tick, 500);
   }
 
-  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string }) {
+  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string }) {
     const id = Math.random().toString(36).slice(2, 10);
     setJobs(prev => [{ id, name, progress: 0, status: "uploading", fileType, ...opts }, ...prev]);
+    if (opts?.folderId) assignToFolder([id], opts.folderId);
     simulateJob(id);
+    return id;
   }
 
   function retryJob(id: string) {
@@ -180,13 +187,285 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function UpgradeBadge() {
+const FOLDER_COLOR_OPTIONS = [
+  "#3B82F6", "#22C55E", "#F59E0B", "#EF4444",
+  "#8B5CF6", "#EC4899", "#06B6D4", "#6B7280",
+];
+
+function CreateFolderDialog({
+  open,
+  onClose,
+  onCreate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreate: (name: string, color: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [selectedColor, setSelectedColor] = useState(FOLDER_COLOR_OPTIONS[0]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { isDark } = useTheme();
+  const c = getDarkPalette(isDark);
+
+  useEffect(() => {
+    if (!open) return;
+    setName("");
+    setSelectedColor(FOLDER_COLOR_OPTIONS[0]);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, [open]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[180] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div
+        className="relative rounded-[20px] w-[400px] overflow-hidden"
+        style={{ backgroundColor: c.bgPopover, boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}
+      >
+        <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
+          <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "17px", color: c.textPrimary }}>Create New Folder</h2>
+          <button
+            onClick={onClose}
+            className="size-[28px] rounded-full flex items-center justify-center transition-colors"
+            style={{ backgroundColor: "transparent" }}
+          >
+            <svg className="size-[16px]" fill="none" viewBox="0 0 16 16" style={{ color: "#9ca3af" }}>
+              <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-[24px] pt-[18px] pb-[8px]">
+          <label style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary, display: "block", marginBottom: "6px" }}>
+            Folder name
+          </label>
+          <input
+            ref={inputRef}
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && name.trim()) { onCreate(name.trim(), selectedColor); onClose(); }
+              if (e.key === "Escape") onClose();
+            }}
+            placeholder="e.g. Client Meetings"
+            className="w-full h-[40px] px-[14px] rounded-full outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10 transition-all placeholder:text-[#b0b7c3]"
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 400,
+              fontSize: "14px",
+              color: c.textSecondary,
+              backgroundColor: c.bgInput,
+              borderWidth: "1px",
+              borderStyle: "solid",
+              borderColor: c.borderInput,
+            }}
+          />
+
+          <label style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary, display: "block", marginTop: "18px", marginBottom: "8px" }}>
+            Color
+          </label>
+          <div className="flex items-center gap-[8px]">
+            {FOLDER_COLOR_OPTIONS.map(color => (
+              <button
+                key={color}
+                onClick={() => setSelectedColor(color)}
+                className="size-[28px] rounded-full flex items-center justify-center transition-all"
+                style={{
+                  backgroundColor: color,
+                  boxShadow: selectedColor === color ? `0 0 0 2px ${c.bgPopover}, 0 0 0 4px ${color}` : "none",
+                  transform: selectedColor === color ? "scale(1.1)" : "scale(1)",
+                }}
+              >
+                {selectedColor === color && (
+                  <svg className="size-[14px]" fill="none" viewBox="0 0 16 16">
+                    <path d="M3 8.5L6.5 12L13 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-[10px] mt-[20px] p-[12px] rounded-[12px]" style={{ backgroundColor: c.bgSubtle, border: `1px solid ${c.border}` }}>
+            <svg className="size-[24px] shrink-0" fill="none" viewBox="0 0 16 16">
+              <path
+                d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z"
+                fill={selectedColor}
+                opacity="0.15"
+                stroke={selectedColor}
+                strokeWidth="1.1"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "14px", color: name.trim() ? c.textPrimary : "#b0b7c3" }}>
+              {name.trim() || "Folder name"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
+          <button
+            onClick={onClose}
+            className="h-[36px] px-[18px] rounded-full border transition-colors"
+            style={{ borderColor: c.borderBtn, backgroundColor: isDark ? "transparent" : "white" }}
+          >
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Cancel</span>
+          </button>
+          <button
+            onClick={() => { if (name.trim()) { onCreate(name.trim(), selectedColor); onClose(); } }}
+            disabled={!name.trim()}
+            className="h-[36px] px-[18px] rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ backgroundColor: "#2563eb", color: "white" }}
+          >
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px" }}>Create Folder</span>
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function FolderSelector({
+  value,
+  onChange,
+  label = "Save to folder",
+}: {
+  value: string | null;
+  onChange: (folderId: string | null) => void;
+  label?: string;
+}) {
+  const { folders, addFolder } = useFolders();
+  const { isDark } = useTheme();
+  const c = getDarkPalette(isDark);
+  const inp = useInputStyle();
+  const [open, setOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selectedFolder = folders.find(f => f.id === value) ?? null;
+
+  useEffect(() => {
+    function h(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  function handleCreateFolder(name: string, color: string) {
+    const created = addFolder(name, color);
+    onChange(created.id);
+  }
+
+  function openCreateDialog() {
+    setOpen(false);
+    setCreateDialogOpen(true);
+  }
+
   return (
-    <span className="inline-flex items-center gap-[3px] px-[6px] h-[17px] rounded-full"
-      style={{ backgroundColor: "#fef3c7", border: "1px solid #fde68a" }}>
-      <svg className="size-[9px]" viewBox="0 0 16 16" fill="#d97706"><path d="M8 1l2.163 4.38L15 6.18l-3.5 3.41.826 4.82L8 12l-4.326 2.41L4.5 9.59 1 6.18l4.837-.8L8 1z" /></svg>
-      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "10px", color: "#d97706" }}>Pro</span>
-    </span>
+    <div className="relative" ref={ref}>
+      <SectionLabel>{label}</SectionLabel>
+      <div className="w-full h-[40px] rounded-full flex items-center gap-[6px] pl-[12px] pr-[10px]" style={{ ...inp.base }}>
+        <button
+          onClick={() => setOpen(v => !v)}
+          className="flex items-center gap-[7px] min-w-0 flex-1"
+          type="button"
+        >
+          <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16" style={{ color: selectedFolder?.color ?? c.textMuted }}>
+            <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="truncate text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: selectedFolder ? c.textSecondary : c.textMuted }}>
+            {selectedFolder ? selectedFolder.name : "No folder selected"}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={openCreateDialog}
+          className="h-[26px] px-[9px] rounded-full flex items-center gap-[5px] transition-colors shrink-0"
+          style={{ border: `1px solid ${isDark ? "rgba(255,255,255,0.12)" : "#dbe1ea"}`, backgroundColor: "transparent" }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+        >
+          <FolderPlus className="size-[12px]" strokeWidth={1.6} style={{ color: c.textMuted }} />
+          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textMuted }}>Add Folder</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setOpen(v => !v)}
+          className="size-[20px] rounded-full flex items-center justify-center transition-colors shrink-0"
+          style={{ backgroundColor: "transparent" }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+        >
+          <svg className={`size-[10px] transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      {open && (
+        <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] rounded-[12px] overflow-hidden"
+          style={{ backgroundColor: c.bgPopover, border: `1px solid ${c.border}`, boxShadow: c.shadow }}>
+          <button
+            type="button"
+            onClick={() => { onChange(null); setOpen(false); }}
+            className="flex items-center justify-between w-full h-[34px] px-[12px] transition-colors"
+            style={{ backgroundColor: "transparent" }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+          >
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>No folder</span>
+            {!value && <svg className="size-[12px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+          </button>
+
+          {folders.map(folder => (
+            <button
+              key={folder.id}
+              type="button"
+              onClick={() => { onChange(folder.id); setOpen(false); }}
+              className="flex items-center justify-between w-full h-[34px] px-[12px] transition-colors"
+              style={{ backgroundColor: "transparent" }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+            >
+              <span className="flex items-center gap-[7px] min-w-0">
+                <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16" style={{ color: folder.color }}>
+                  <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="truncate text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>
+                  {folder.name}
+                </span>
+              </span>
+              {value === folder.id && <svg className="size-[12px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+            </button>
+          ))}
+
+          <div className="h-px" style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#edf0f5" }} />
+          <button
+            type="button"
+            onClick={openCreateDialog}
+            className="flex items-center gap-[6px] w-full h-[34px] px-[12px] transition-colors"
+            style={{ backgroundColor: "transparent" }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+          >
+            <FolderPlus className="size-[12px]" strokeWidth={1.7} style={{ color: "#2563eb" }} />
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12px", color: "#2563eb" }}>Add folder</span>
+          </button>
+        </div>
+      )}
+
+      <CreateFolderDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onCreate={handleCreateFolder}
+      />
+    </div>
   );
 }
 
@@ -224,7 +503,7 @@ function LanguageSelector({ value, onChange, label }: { value: string; onChange:
   const c = getDarkPalette(isDark);
   const inp = useInputStyle();
 
-  const selected = LANGUAGES.find(l => l.id === value) ?? LANGUAGES[1];
+  const selected = LANGUAGES.find(l => l.id === value) ?? LANGUAGES[0];
   const filtered = LANGUAGES.filter(l => l.label.toLowerCase().includes(query.toLowerCase()));
 
   useEffect(() => {
@@ -394,6 +673,48 @@ interface SharedSettingsState {
   realtimeTranslationLang: string;
 }
 
+function RealTimeTranslationControl({
+  enabled,
+  onToggle,
+  lang,
+  onLangChange,
+  withCard = true,
+}: {
+  enabled: boolean;
+  onToggle: () => void;
+  lang: string;
+  onLangChange: (v: string) => void;
+  withCard?: boolean;
+}) {
+  const { isDark } = useTheme();
+  const c = getDarkPalette(isDark);
+
+  const content = (
+    <>
+      <div className="flex items-center justify-between">
+        <div>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Real-time translation</p>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textMuted, marginTop: "1px" }}>Translate speech as it's transcribed</p>
+        </div>
+        <ToggleSw checked={enabled} onChange={onToggle} />
+      </div>
+      {enabled && (
+        <div className="mt-[12px]">
+          <LanguageSelector value={lang} onChange={onLangChange} label="Translate to" />
+        </div>
+      )}
+    </>
+  );
+
+  if (!withCard) return content;
+
+  return (
+    <div className="rounded-[12px] p-[14px]" style={{ backgroundColor: isDark ? "#111115" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
+      {content}
+    </div>
+  );
+}
+
 function MultiLanguageSelector({ values, onChange, label }: {
   values: string[]; onChange: (v: string[]) => void; label?: string;
 }) {
@@ -418,7 +739,20 @@ function MultiLanguageSelector({ values, onChange, label }: {
   useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 50); }, [open]);
 
   function toggle(id: string) {
-    onChange(values.includes(id) ? values.filter(v => v !== id) : [...values, id]);
+    if (id === "auto") {
+      onChange(["auto"]);
+      return;
+    }
+    if (values.includes("auto")) {
+      onChange([id]);
+      return;
+    }
+    if (values.includes(id)) {
+      const next = values.filter(v => v !== id);
+      onChange(next.length ? next : ["auto"]);
+      return;
+    }
+    onChange([...values, id]);
   }
 
   const selectedLangs = values.map(id => LANGUAGES.find(l => l.id === id)).filter(Boolean) as typeof LANGUAGES;
@@ -439,19 +773,19 @@ function MultiLanguageSelector({ values, onChange, label }: {
         ) : (
           selectedLangs.map(lang => (
             <span key={lang.id} className="inline-flex items-center gap-[3px] h-[24px] px-[7px] rounded-full"
-              style={{ backgroundColor: isDark ? "rgba(37,99,235,0.14)" : "#eff4ff", border: `1px solid ${isDark ? "rgba(37,99,235,0.3)" : "#bfdbfe"}` }}
+              style={{ backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#eef2f6" }}
             >
               <span className="text-[11px]">{lang.flag}</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: "#2563eb" }}>{lang.label}</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: isDark ? "#f3f4f6" : "#1f2937" }}>{lang.label}</span>
               <button
                 onClick={e => { e.stopPropagation(); toggle(lang.id); }}
                 className="ml-[2px] size-[12px] rounded-full flex items-center justify-center transition-colors"
                 style={{ backgroundColor: "transparent" }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(37,99,235,0.15)"}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.12)" : "rgba(17,24,39,0.08)"}
                 onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
               >
                 <svg className="size-[7px]" fill="none" viewBox="0 0 10 10">
-                  <path d="M2 2l6 6M8 2L2 8" stroke="#2563eb" strokeWidth="1.6" strokeLinecap="round" />
+                  <path d="M2 2l6 6M8 2L2 8" stroke={isDark ? "#e5e7eb" : "#374151"} strokeWidth="1.6" strokeLinecap="round" />
                 </svg>
               </button>
             </span>
@@ -487,7 +821,9 @@ function MultiLanguageSelector({ values, onChange, label }: {
               return (
                 <button key={lang.id} onClick={() => toggle(lang.id)}
                   className="flex items-center gap-[8px] w-full px-[12px] h-[34px] transition-colors"
-                  style={{ backgroundColor: checked ? (isDark ? "rgba(37,99,235,0.07)" : "#f0f5ff") : "transparent" }}
+                  style={{
+                    backgroundColor: checked ? (isDark ? "rgba(37,99,235,0.07)" : "#f0f5ff") : "transparent",
+                  }}
                   onMouseEnter={e => { if (!checked) e.currentTarget.style.backgroundColor = c.bgHover; }}
                   onMouseLeave={e => { if (!checked) e.currentTarget.style.backgroundColor = "transparent"; }}
                 >
@@ -520,7 +856,14 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick }: {
   const c = getDarkPalette(isDark);
   return (
     <div className="flex flex-col gap-[16px]">
-      <TranscriptionModeToggle mode={state.mode} onChange={m => onChange({ mode: m })} />
+      <TranscriptionModeToggle
+        mode={state.mode}
+        onChange={m => onChange(
+          m === "mono"
+            ? { mode: m, langPrimary: "auto" }
+            : { mode: m, langBilingual: ["auto"] }
+        )}
+      />
       {state.mode === "mono" ? (
         <LanguageSelector value={state.langPrimary} onChange={v => onChange({ langPrimary: v })} label="Transcription language" />
       ) : (
@@ -539,27 +882,18 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick }: {
           onCountChange={v => onChange({ speakerCount: v })}
         />
       </div>
-      {/* Translation card */}
-      <div className="rounded-[12px] p-[14px]" style={{ backgroundColor: isDark ? "#111115" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Real-time translation</p>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textMuted, marginTop: "1px" }}>Translate speech as it's transcribed</p>
-          </div>
-          <ToggleSw checked={state.realtimeTranslation} onChange={() => onChange({ realtimeTranslation: !state.realtimeTranslation })} />
-        </div>
-        {state.realtimeTranslation && (
-          <div className="mt-[12px]">
-            <LanguageSelector value={state.realtimeTranslationLang} onChange={v => onChange({ realtimeTranslationLang: v })} label="Translate to" />
-          </div>
-        )}
-      </div>
+      <RealTimeTranslationControl
+        enabled={state.realtimeTranslation}
+        onToggle={() => onChange({ realtimeTranslation: !state.realtimeTranslation })}
+        lang={state.realtimeTranslationLang}
+        onLangChange={v => onChange({ realtimeTranslationLang: v })}
+      />
     </div>
   );
 }
 
 const DEFAULT_SETTINGS: SharedSettingsState = {
-  mode: "mono", langPrimary: "en", langSecondary: "ru", langBilingual: ["en", "ru"],
+  mode: "mono", langPrimary: "auto", langSecondary: "auto", langBilingual: ["auto"],
   speakerEnabled: false, speakerCount: 2, realtimeTranslation: false, realtimeTranslationLang: "en",
 };
 
@@ -653,10 +987,11 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function resetForm() { setFiles([]); setDragActive(false); setSettings(DEFAULT_SETTINGS); }
+  function resetForm() { setFiles([]); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
   function handleClose() { resetForm(); onClose(); }
 
   function addFiles(newFiles: File[]) {
@@ -677,8 +1012,9 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
     if (!files.length) return;
     const opts = {
       lang: settings.mode === "mono" ? settings.langPrimary : undefined,
-      langBilingual: settings.mode === "bi" ? settings.langBilingual : undefined,
+      langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
       translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
+      folderId: selectedFolderId ?? undefined,
     };
     files.forEach(file => {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
@@ -769,6 +1105,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           )}
 
+          <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
           <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
 
           <div className="flex items-center justify-end gap-[8px]">
@@ -871,6 +1208,7 @@ function RecordAudioModal({ open, onClose }: { open: boolean; onClose: () => voi
   const [isPaused, setIsPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [stopConfirm, setStopConfirm] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
@@ -879,6 +1217,7 @@ function RecordAudioModal({ open, onClose }: { open: boolean; onClose: () => voi
     if (!open) {
       setMicStatus("idle"); setIsRecording(false); setIsPaused(false); setElapsed(0);
       setSettings(DEFAULT_SETTINGS);
+      setSelectedFolderId(null);
       streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null;
     }
   }, [open]);
@@ -903,8 +1242,9 @@ function RecordAudioModal({ open, onClose }: { open: boolean; onClose: () => voi
   function handleTranscribe() {
     addJob(`Recording ${fmt(elapsed)}.wav`, "audio", {
       lang: settings.mode === "mono" ? settings.langPrimary : undefined,
-      langBilingual: settings.mode === "bi" ? settings.langBilingual : undefined,
+      langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
       translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
+      folderId: selectedFolderId ?? undefined,
     });
     doClose();
   }
@@ -1003,6 +1343,7 @@ function RecordAudioModal({ open, onClose }: { open: boolean; onClose: () => voi
             </div>
           )}
 
+          <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
           <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
 
           <div className="flex items-center justify-end gap-[8px]">
@@ -1036,24 +1377,18 @@ function RecordAudioModal({ open, onClose }: { open: boolean; onClose: () => voi
 
 function isValidUrl(s: string) { try { new URL(s); return true; } catch { return false; } }
 
-function ServiceLogos() {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-  const services = [
-    { name: "YouTube", color: "#FF0000", icon: <svg viewBox="0 0 24 24" fill="currentColor" className="size-[13px]"><path d="M23.5 6.2s-.3-1.9-1.1-2.7c-1-.7-2.2-.7-2.7-.7C17.1 2.6 12 2.6 12 2.6s-5.1 0-7.7.2c-.5 0-1.7 0-2.7.7C.8 4.3.5 6.2.5 6.2S.2 8.4.2 10.6v2.1c0 2.2.3 4.4.3 4.4s.3 1.9 1.1 2.7c1 .7 2.4.7 3 .8C6.6 20.8 12 20.8 12 20.8s5.1 0 7.7-.2c.5-.1 1.7-.1 2.7-.8.8-.8 1.1-2.7 1.1-2.7s.3-2.2.3-4.4v-2c0-2.3-.3-4.5-.3-4.5zM9.7 14.8V8.7l7.3 3.1-7.3 3z" /></svg> },
-    { name: "Dropbox", color: "#0061FF", icon: <svg viewBox="0 0 24 24" fill="currentColor" className="size-[13px]"><path d="M7.2 2.4L.8 6.6l6.4 4.2L14 6.6 7.2 2.4zm9.6 0L10.4 6.6l6.4 4.2 6.4-4.2-6.4-4.2zM.8 15l6.4 4.2 6.4-4.2-6.4-4.2L.8 15zm15.6-4.2L10 15l6.4 4.2L22.8 15l-6.4-4.2zm-9.2 9l6.4 4.2 6.4-4.2-6.4-4.2-6.4 4.2z" /></svg> },
-    { name: "Google Drive", color: "#4285F4", icon: <svg viewBox="0 0 24 24" fill="none" className="size-[13px]"><path d="M12 2l6 10H6L12 2z" fill="#0066DA" /><path d="M2 17l4-7h16l-4 7H2z" fill="#00AC47" /><path d="M6 10l6 12H6L2 17l4-7z" fill="#EA4335" /></svg> },
-  ];
+function LinkInputIcons() {
   return (
-    <div className="flex items-center gap-[5px] mb-[10px]">
-      <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "12px", color: c.textFaint }}>Supported:</p>
-      {services.map(s => (
-        <div key={s.name} className="flex items-center gap-[4px] h-[24px] px-[8px] rounded-full"
-          style={{ backgroundColor: isDark ? "#2a2a35" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
-          <span style={{ color: s.color }}>{s.icon}</span>
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textMuted }}>{s.name}</span>
-        </div>
-      ))}
+    <div className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 flex items-center gap-[8px]">
+      <SourceIcon source="youtube" />
+      <SourceIcon source="dropbox" />
+      <span className="inline-flex items-center justify-center size-[18px]">
+        <svg viewBox="0 0 24 24" fill="none" className="size-[16px]">
+          <path d="M12 2l6 10H6L12 2z" fill="#0066DA" />
+          <path d="M2 17l4-7h16l-4 7H2z" fill="#00AC47" />
+          <path d="M6 10l6 12H6L2 17l4-7z" fill="#EA4335" />
+        </svg>
+      </span>
     </div>
   );
 }
@@ -1067,9 +1402,10 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
-  function resetForm() { setUrl(""); setUrlError(""); setSettings(DEFAULT_SETTINGS); }
+  function resetForm() { setUrl(""); setUrlError(""); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
   function handleClose() { resetForm(); onClose(); }
 
   function validateUrl(s: string) {
@@ -1082,8 +1418,9 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
     if (!isValidUrl(url)) { validateUrl(url); return; }
     addJob(url.split("/").pop() || "Link transcription", "video", {
       lang: settings.mode === "mono" ? settings.langPrimary : undefined,
-      langBilingual: settings.mode === "bi" ? settings.langBilingual : undefined,
+      langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
       translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
+      folderId: selectedFolderId ?? undefined,
     });
     handleClose();
   }
@@ -1097,7 +1434,6 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
           <div>
             <SectionLabel>Paste a link</SectionLabel>
-            <ServiceLogos />
             <div className="relative">
               <svg className="absolute left-[12px] top-1/2 -translate-y-1/2 size-[15px] pointer-events-none" fill="none" viewBox="0 0 24 24" style={{ color: c.textMuted }}>
                 <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -1105,15 +1441,17 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
               <input type="url" placeholder="Paste the link here" value={url}
                 onChange={e => { setUrl(e.target.value); if (urlError) validateUrl(e.target.value); }}
                 onBlur={() => validateUrl(url)}
-                className="w-full h-[42px] pl-[36px] pr-[14px] rounded-full outline-none transition-all"
+                className="w-full h-[42px] pl-[36px] pr-[108px] rounded-[10px] outline-none transition-all"
                 style={{ ...inp.base, borderColor: urlError ? "#ef4444" : (isDark ? "rgba(255,255,255,0.1)" : "#dde1e9") }}
                 onFocus={e => inp.focus(e.currentTarget, !!urlError)}
                 onBlurCapture={e => inp.blur(e.currentTarget, !!urlError)}
               />
+              <LinkInputIcons />
             </div>
             {urlError && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "12px", color: "#ef4444", marginTop: "5px" }}>{urlError}</p>}
           </div>
 
+          <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
           <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
 
           <div className="flex items-center justify-end gap-[8px]">
@@ -1144,16 +1482,8 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 // Modal 4 — Meeting via bot
 // ════════════════════════════════════════════════════════════
 
-const TRANSLATION_OPTIONS = [
-  { id: "off", label: "Translation: Off" },
-  { id: "en", label: "English" }, { id: "ru", label: "Russian" },
-  { id: "es", label: "Spanish" }, { id: "de", label: "German" },
-  { id: "fr", label: "French" }, { id: "ja", label: "Japanese" },
-  { id: "zh", label: "Chinese (Mandarin)" },
-];
-
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, meetingCounterRef, userPlan } = useTranscriptionModals();
+  const { addJob, meetingCounterRef } = useTranscriptionModals();
   const { isDark } = useTheme();
   const c = getDarkPalette(isDark);
   const inp = useInputStyle();
@@ -1161,30 +1491,23 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   const [meetingUrl, setMeetingUrl] = useState("");
   const [meetingUrlError, setMeetingUrlError] = useState("");
   const [meetingName, setMeetingName] = useState(`Meeting ${meetingCounterRef.current}`);
-  const [langId, setLangId] = useState("en");
+  const [langId, setLangId] = useState("auto");
   const [mode, setMode] = useState<"mono" | "bi">("mono");
-  const [langSecondary, setLangSecondary] = useState("ru");
+  const [langBilingual, setLangBilingual] = useState<string[]>(["auto"]);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [botName, setBotName] = useState("TranscribeToText Bot");
-  const [showPoster, setShowPoster] = useState(true);
-  const [translationId, setTranslationId] = useState("off");
-  const [translationOpen, setTranslationOpen] = useState(false);
+  const [realTimeTranslation, setRealTimeTranslation] = useState(false);
+  const [realTimeTranslationLang, setRealTimeTranslationLang] = useState("en");
   const [notifyParticipants, setNotifyParticipants] = useState(true);
   const [notifyMessage, setNotifyMessage] = useState("I'm recording this meeting with TranscribeToText for note-taking purposes.");
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const translationRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function h(e: MouseEvent) { if (translationRef.current && !translationRef.current.contains(e.target as Node)) setTranslationOpen(false); }
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   function resetForm() {
     setMeetingUrl(""); setMeetingUrlError(""); meetingCounterRef.current += 1;
-    setMeetingName(`Meeting ${meetingCounterRef.current}`); setLangId("en"); setMode("mono"); setLangSecondary("ru");
-    setAdvancedOpen(false); setBotName("TranscribeToText Bot"); setShowPoster(true);
-    setTranslationId("off"); setNotifyParticipants(true);
+    setMeetingName(`Meeting ${meetingCounterRef.current}`); setLangId("auto"); setMode("mono"); setLangBilingual(["auto"]);
+    setAdvancedOpen(false); setBotName("TranscribeToText Bot"); setRealTimeTranslation(false); setRealTimeTranslationLang("en");
+    setSelectedFolderId(null);
+    setNotifyParticipants(true);
     setNotifyMessage("I'm recording this meeting with TranscribeToText for note-taking purposes.");
   }
 
@@ -1198,15 +1521,12 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
     if (!isValidUrl(meetingUrl)) { validateMeetingUrl(meetingUrl); return; }
     addJob(meetingName || "Meeting", "video", {
       lang: mode === "mono" ? langId : undefined,
-      translationLang: translationId !== "off" ? translationId : undefined,
+      langBilingual: mode === "bi" ? (langBilingual.length ? langBilingual : ["auto"]) : undefined,
+      translationLang: realTimeTranslation ? realTimeTranslationLang : undefined,
+      folderId: selectedFolderId ?? undefined,
     });
     handleClose();
   }
-
-  const platforms = [
-    { name: "Zoom", bg: "#2D8CFF" }, { name: "Google Meet", bg: "#00897B" },
-    { name: "Teams", bg: "#5059C9" }, { name: "Webex", bg: "#00BEF3" },
-  ];
 
   if (!open) return null;
   const canSubmit = meetingUrl && isValidUrl(meetingUrl);
@@ -1229,31 +1549,24 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
             </p>
           </div>
 
-          {/* Platforms */}
-          <div>
-            <SectionLabel>Supported platforms</SectionLabel>
-            <div className="flex gap-[6px]">
-              {platforms.map(p => (
-                <div key={p.name} className="flex items-center gap-[5px] h-[26px] px-[9px] rounded-full"
-                  style={{ backgroundColor: isDark ? "#2a2a35" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
-                  <div className="size-[8px] rounded-full" style={{ backgroundColor: p.bg }} />
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textMuted }}>{p.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Meeting link */}
           <div>
             <SectionLabel>Meeting invite link</SectionLabel>
-            <input type="url" placeholder="Paste the meeting invite link here" value={meetingUrl}
-              onChange={e => { setMeetingUrl(e.target.value); if (meetingUrlError) validateMeetingUrl(e.target.value); }}
-              onBlur={() => validateMeetingUrl(meetingUrl)}
-              className="w-full h-[42px] px-[14px] rounded-full outline-none transition-all"
-              style={{ ...inp.base, borderColor: meetingUrlError ? "#ef4444" : (isDark ? "rgba(255,255,255,0.1)" : "#dde1e9") }}
-              onFocus={e => inp.focus(e.currentTarget, !!meetingUrlError)}
-              onBlurCapture={e => inp.blur(e.currentTarget, !!meetingUrlError)}
-            />
+            <div className="relative">
+              <input type="url" placeholder="Paste the meeting invite link here" value={meetingUrl}
+                onChange={e => { setMeetingUrl(e.target.value); if (meetingUrlError) validateMeetingUrl(e.target.value); }}
+                onBlur={() => validateMeetingUrl(meetingUrl)}
+                className="w-full h-[42px] pl-[14px] pr-[98px] rounded-[10px] outline-none transition-all"
+                style={{ ...inp.base, borderColor: meetingUrlError ? "#ef4444" : (isDark ? "rgba(255,255,255,0.1)" : "#dde1e9") }}
+                onFocus={e => inp.focus(e.currentTarget, !!meetingUrlError)}
+                onBlurCapture={e => inp.blur(e.currentTarget, !!meetingUrlError)}
+              />
+              <div className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 flex items-center gap-[8px]">
+                <SourceIcon source="zoom" />
+                <SourceIcon source="google-meet" />
+                <SourceIcon source="teams" />
+              </div>
+            </div>
             {meetingUrlError && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "12px", color: "#ef4444", marginTop: "5px" }}>{meetingUrlError}</p>}
           </div>
 
@@ -1267,36 +1580,48 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
               onBlurCapture={e => inp.blur(e.currentTarget)}
             />
           </div>
+          <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
 
           {/* Mode + language */}
-          <TranscriptionModeToggle mode={mode} onChange={setMode} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
+          <TranscriptionModeToggle
+            mode={mode}
+            onChange={m => {
+              setMode(m);
+              if (m === "mono") {
+                setLangId("auto");
+              } else {
+                setLangBilingual(["auto"]);
+              }
+            }}
+          />
           {mode === "mono" ? (
             <LanguageSelector value={langId} onChange={setLangId} label="Transcription language" />
           ) : (
-            <div className="grid grid-cols-2 gap-[10px]">
-              <LanguageSelector value={langId} onChange={setLangId} label="Primary language" />
-              <LanguageSelector value={langSecondary} onChange={setLangSecondary} label="Secondary language" />
-            </div>
+            <MultiLanguageSelector
+              values={langBilingual}
+              onChange={setLangBilingual}
+              label="Transcription languages"
+            />
           )}
 
           {/* Advanced options */}
-          <div className="rounded-[12px] overflow-hidden" style={{ border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
+          <div>
             <button onClick={() => setAdvancedOpen(v => !v)}
-              className="w-full flex items-center justify-between px-[16px] h-[44px] transition-colors"
+              className="w-full flex items-center gap-[8px] h-[30px] transition-colors"
               style={{ backgroundColor: "transparent" }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+              onMouseEnter={e => e.currentTarget.style.opacity = "0.8"}
+              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
             >
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Advanced options</span>
-              <svg className={`size-[13px] transition-transform ${advancedOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
-                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <svg className={`size-[14px] transition-transform ${advancedOpen ? "rotate-90" : ""}`} fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+                <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Advanced options</span>
             </button>
 
             {advancedOpen && (
-              <div style={{ borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#f0f1f4"}` }}>
+              <div className="mt-[10px]">
                 {/* Bot name */}
-                <div className="px-[16px] py-[14px]" style={{ borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#f0f1f4"}` }}>
+                <div className="pb-[12px]" style={{ borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e8ecf2"}` }}>
                   <SectionLabel>Bot display name</SectionLabel>
                   <input type="text" value={botName} onChange={e => setBotName(e.target.value)}
                     className="w-full h-[40px] px-[14px] rounded-full outline-none transition-all"
@@ -1306,55 +1631,19 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                   />
                 </div>
 
-                {/* Poster toggle */}
-                <div className="flex items-center justify-between px-[16px] h-[46px]" style={{ borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#f0f1f4"}` }}>
-                  <div className="flex items-center gap-[7px]">
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>Recording notification poster</span>
-                    <a href="#" style={{ fontFamily: "'Inter', sans-serif", fontSize: "11px", color: "#2563eb", textDecoration: "underline" }}>Preview</a>
-                  </div>
-                  <ToggleSw checked={showPoster} onChange={() => setShowPoster(v => !v)} />
-                </div>
-
                 {/* Real-time translation */}
-                <div className="px-[16px] py-[14px]" style={{ borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#f0f1f4"}` }} ref={translationRef}>
-                  <div className="flex items-center gap-[6px] mb-[8px]">
-                    <SectionLabel>Real-time translation</SectionLabel>
-                    <div style={{ marginBottom: "7px" }}><UpgradeBadge /></div>
-                  </div>
-                  <div className="relative">
-                    <button
-                      onClick={() => { if (userPlan === "free") { setUpgradeOpen(true); return; } setTranslationOpen(v => !v); }}
-                      className="w-full flex items-center justify-between h-[38px] px-[12px] rounded-[9px] transition-all"
-                      style={{ ...inp.base, fontSize: "13px" }}
-                    >
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>
-                        {TRANSLATION_OPTIONS.find(o => o.id === translationId)?.label ?? "Translation: Off"}
-                      </span>
-                      <svg className={`size-[12px] transition-transform ${translationOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
-                        <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </button>
-                    {translationOpen && (
-                      <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] rounded-[12px] py-[4px]"
-                        style={{ backgroundColor: c.bgPopover, border: `1px solid ${c.border}`, boxShadow: c.shadow }}>
-                        {TRANSLATION_OPTIONS.map(opt => (
-                          <button key={opt.id} onClick={() => { setTranslationId(opt.id); setTranslationOpen(false); }}
-                            className="flex items-center justify-between w-full px-[12px] h-[32px] transition-colors"
-                            style={{ backgroundColor: "transparent" }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
-                          >
-                            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: translationId === opt.id ? 500 : 400, fontSize: "13px", color: translationId === opt.id ? "#2563eb" : c.textSecondary }}>{opt.label}</span>
-                            {translationId === opt.id && <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                <div className="py-[12px]" style={{ borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e8ecf2"}` }}>
+                  <RealTimeTranslationControl
+                    enabled={realTimeTranslation}
+                    onToggle={() => setRealTimeTranslation(v => !v)}
+                    lang={realTimeTranslationLang}
+                    onLangChange={setRealTimeTranslationLang}
+                    withCard={false}
+                  />
                 </div>
 
                 {/* Notify participants */}
-                <div className="px-[16px] py-[14px]">
+                <div className="pt-[12px]">
                   <div className="flex items-center justify-between mb-[10px]">
                     <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>Notify participants</span>
                     <ToggleSw checked={notifyParticipants} onChange={() => setNotifyParticipants(v => !v)} />
@@ -1391,7 +1680,6 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
           </div>
         </div>
       </ModalShell>
-      <UpgradePrompt open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </>
   );
 }
@@ -1540,7 +1828,7 @@ export function FloatingProgressWidget() {
             <div className="w-[52px] shrink-0 text-right">
               <span style={{ fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textHeader, textTransform: "uppercase", letterSpacing: "0.34px" }}>Dur.</span>
             </div>
-            <div className="w-[86px] shrink-0 text-right">
+            <div className="w-[120px] shrink-0 text-right">
               <span style={{ fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textHeader, textTransform: "uppercase", letterSpacing: "0.34px" }}>Status</span>
             </div>
           </div>
@@ -1629,17 +1917,23 @@ export function FloatingProgressWidget() {
                     </div>
 
                     {/* Status area */}
-                    <div className="w-[86px] shrink-0 flex items-center justify-end gap-[5px]">
+                    <div className="w-[120px] shrink-0 flex items-center justify-end gap-[5px]">
                       {isActive && (
-                        <>
-                          <svg className="size-[12px] animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="9" stroke={isDark ? "#3a3a48" : "#e5e7eb"} strokeWidth="2.5" />
-                            <path d="M12 3a9 9 0 019 9" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" />
-                          </svg>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: "#2563eb" }}>
+                        <div className="flex items-center gap-[8px] w-full">
+                          <div className="h-[6px] flex-1 rounded-full overflow-hidden"
+                            style={{ backgroundColor: isDark ? "#2a2a35" : "#ebedf0" }}>
+                            <div className="h-full transition-all duration-300"
+                              style={{
+                                width: `${job.progress}%`,
+                                background: job.status === "processing"
+                                  ? "linear-gradient(90deg,#2563eb,#7c3aed)"
+                                  : "#2563eb",
+                              }} />
+                          </div>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: "#2563eb", minWidth: "30px", textAlign: "right" }}>
                             {job.progress}%
                           </span>
-                        </>
+                        </div>
                       )}
                       {isDone && (
                         <>
@@ -1677,16 +1971,6 @@ export function FloatingProgressWidget() {
                       )}
                     </div>
 
-                    {/* Progress bar — absolute at bottom of the row cell */}
-                    {(isActive || isDone || isError) && (
-                      <div className="absolute bottom-0 left-0 right-0 overflow-hidden" style={{ height: "2px", backgroundColor: isDark ? "#2a2a35" : "#ebedf0" }}>
-                        <div className="h-full transition-all duration-300"
-                          style={{
-                            width: isActive ? `${job.progress}%` : "100%",
-                            background: isDone ? "#22c55e" : isError ? "rgba(239,68,68,0.35)" : job.status === "processing" ? "linear-gradient(90deg,#2563eb,#7c3aed)" : "#2563eb"
-                          }} />
-                      </div>
-                    )}
                   </div>
                 </div>
               );
@@ -1697,3 +1981,4 @@ export function FloatingProgressWidget() {
     document.body
   );
 }
+

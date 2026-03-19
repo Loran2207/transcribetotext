@@ -5,7 +5,11 @@
       "Bash(grep -E \"^/c/Users/kutsk/transcribe2text\\(/[^/]*\\)?$\")",
       "Bash(npm install:*)",
       "Bash(timeout 20 npm run dev)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(where node:*)",
+      "Bash(where npx:*)",
+      "Bash(ssh-keygen -t ed25519 -C \"kutskrikirill@gmail.com\" -f ~/.ssh/id_ed25519 -N \"\")"
     ]
   }
 }

@@ -2,7 +2,7 @@ import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Moon, Sun, He
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import svgPaths from "../../imports/svg-i3wf63n6gj";
-const imgEllipse52 = "";
+const imgEllipse52 = "/images/avatar.png";
 import { useStarred } from "./starred-context";
 import { SourceIcon } from "./source-icons";
 import { useTheme } from "./theme-context";

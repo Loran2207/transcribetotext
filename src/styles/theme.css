@@ -30,7 +30,7 @@
   /* The default color for text or elements that appear on top of dropdowns and tooltips. */
   --popover-foreground: rgba(52, 64, 84, 1.00);
   /* The primary color used for buttons, links, and other interactive elements. */
-  --primary: rgba(127, 86, 217, 1.00);
+  --primary: rgba(37, 99, 235, 1.00);
   /* The default color for text or elements that appear on top of primary colored elements. */
   --primary-foreground: rgba(255, 255, 255, 1.00);
   /* The secondary color used for secondary(but NOT-DESTRUCTIVE) buttons and interactive elements. */
@@ -42,7 +42,7 @@
   /* The default color for text or elements that appear on top of muted colored elements. */
   --muted-foreground: rgba(102, 112, 133, 1.00);
   /* The accent color used for highlights, links, and other interactive elements. */
-  --accent: rgba(127, 86, 217, 1.00);
+  --accent: rgba(37, 99, 235, 1.00);
   /* The default color for text or elements that appear on top of accent colored elements. */
   --accent-foreground: rgba(255, 255, 255, 1.00);
   /* The color used for background in destructive actions, such as delete buttons or error messages. */
@@ -62,19 +62,19 @@
   /* The default font weight for semi-bold text. */
   --font-weight-semibold: 600;
   /* The color for focus rings, outlines, and other focus indicators. */
-  --ring: rgba(127, 86, 217, 1.00);
+  --ring: rgba(37, 99, 235, 1.00);
   /* Shadow for small elevations, such as cards or modals. */
   --elevation-sm: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
   /* The color for chart elements, such as a bar or line in a chart. */
-  --chart-1: rgba(127, 86, 217, 1.00);
+  --chart-1: rgba(37, 99, 235, 1.00);
   /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-2: rgba(105, 65, 198, 1.00);
+  --chart-2: rgba(29, 78, 216, 1.00);
   /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-3: rgba(182, 146, 246, 1.00);
+  --chart-3: rgba(147, 197, 253, 1.00);
   /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-4: rgba(233, 215, 254, 1.00);
+  --chart-4: rgba(219, 234, 254, 1.00);
   /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-5: rgba(249, 245, 255, 1.00);
+  --chart-5: rgba(239, 246, 255, 1.00);
   /* The default border radius for elements such as buttons, tooltip, and other containers. */
   --radius: 8px;
   /* The background color for sidebars, navigation menus, and other persistent elements. */
@@ -82,17 +82,17 @@
   /* The default color for text or elements that appear on top of sidebars, navigation menus, and other persistent elements. */
   --sidebar-foreground: rgba(52, 64, 84, 1.00);
   /* The primary color used for buttons, links, and other interactive elements in sidebars and navigation menus. */
-  --sidebar-primary: rgba(127, 86, 217, 1.00);
+  --sidebar-primary: rgba(37, 99, 235, 1.00);
   /* The default color for text or elements that appear on top of primary colored elements in sidebars and navigation menus. */
   --sidebar-primary-foreground: rgba(255, 255, 255, 1.00);
   /* The accent color used for highlights, links, and other interactive elements in sidebars and navigation menus. */
-  --sidebar-accent: rgba(127, 86, 217, 1.00);
+  --sidebar-accent: rgba(37, 99, 235, 1.00);
   /* The default color for text or elements that appear on top of accent colored elements in sidebars and navigation menus. */
   --sidebar-accent-foreground: rgba(255, 255, 255, 1.00);
   /* The default border color for elements in sidebars and navigation menus. */
   --sidebar-border: rgba(234, 236, 240, 1.00);
   /* The default color for focus rings, outlines, and other focus indicators in sidebars and navigation menus. */
-  --sidebar-ring: rgba(127, 86, 217, 1.00);
+  --sidebar-ring: rgba(37, 99, 235, 1.00);
 }
 
 /* Smooth theme transition on key containers */
@@ -107,36 +107,36 @@ body {
   --card-foreground: rgba(229, 231, 235, 1.00);
   --popover: rgba(30, 30, 38, 1.00);
   --popover-foreground: rgba(229, 231, 235, 1.00);
-  --primary: rgba(147, 112, 219, 1.00);
+  --primary: rgba(96, 165, 250, 1.00);
   --primary-foreground: rgba(255, 255, 255, 1.00);
   --secondary: rgba(38, 38, 46, 1.00);
   --secondary-foreground: rgba(229, 231, 235, 1.00);
   --muted: rgba(38, 38, 46, 1.00);
   --muted-foreground: rgba(156, 163, 175, 1.00);
-  --accent: rgba(147, 112, 219, 1.00);
+  --accent: rgba(96, 165, 250, 1.00);
   --accent-foreground: rgba(255, 255, 255, 1.00);
   --destructive: rgba(239, 68, 68, 1.00);
   --destructive-foreground: rgba(255, 255, 255, 1.00);
   --border: rgba(55, 55, 65, 1.00);
   --input: rgba(38, 38, 46, 1.00);
   --input-background: rgba(30, 30, 38, 1.00);
-  --ring: rgba(147, 112, 219, 1.00);
+  --ring: rgba(96, 165, 250, 1.00);
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --font-weight-semibold: 600;
-  --chart-1: rgba(182, 146, 246, 1.00);
-  --chart-2: rgba(147, 112, 219, 1.00);
-  --chart-3: rgba(105, 65, 198, 1.00);
-  --chart-4: rgba(233, 215, 254, 1.00);
-  --chart-5: rgba(249, 245, 255, 1.00);
+  --chart-1: rgba(147, 197, 253, 1.00);
+  --chart-2: rgba(96, 165, 250, 1.00);
+  --chart-3: rgba(59, 130, 246, 1.00);
+  --chart-4: rgba(219, 234, 254, 1.00);
+  --chart-5: rgba(239, 246, 255, 1.00);
   --sidebar: rgba(20, 20, 26, 1.00);
   --sidebar-foreground: rgba(229, 231, 235, 1.00);
-  --sidebar-primary: rgba(182, 146, 246, 1.00);
+  --sidebar-primary: rgba(147, 197, 253, 1.00);
   --sidebar-primary-foreground: rgba(17, 17, 21, 1.00);
   --sidebar-accent: rgba(38, 38, 46, 1.00);
   --sidebar-accent-foreground: rgba(229, 231, 235, 1.00);
   --sidebar-border: rgba(55, 55, 65, 1.00);
-  --sidebar-ring: rgba(147, 112, 219, 1.00);
+  --sidebar-ring: rgba(96, 165, 250, 1.00);
   --elevation-sm: 0px 1px 3px 0px rgba(0, 0, 0, 0.3);
 }
 
