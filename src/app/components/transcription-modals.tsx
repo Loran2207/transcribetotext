@@ -3,9 +3,11 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
+import { FolderPlus } from "lucide-react";
 import { useTheme } from "./theme-context";
 import { getDarkPalette } from "./dark-palette";
 import { SourceIcon } from "./source-icons";
+import { useFolders } from "./folder-context";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -25,6 +27,7 @@ export interface TranscriptionJob {
   lang?: string;
   langBilingual?: string[];
   translationLang?: string;
+  folderId?: string;
 }
 
 const ERROR_LABELS: Record<string, string> = {
@@ -38,7 +41,7 @@ interface CtxValue {
   openModal: ModalType;
   setOpenModal: (m: ModalType) => void;
   jobs: TranscriptionJob[];
-  addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string }) => void;
+  addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string }) => string;
   retryJob: (id: string) => void;
   meetingCounterRef: React.MutableRefObject<number>;
   userPlan: UserPlan;
@@ -59,6 +62,7 @@ export function useTranscriptionModals() {
 export function TranscriptionModalsProvider({
   children, userPlan = "free",
 }: { children: React.ReactNode; userPlan?: UserPlan }) {
+  const { assignToFolder } = useFolders();
   const [openModal, setOpenModal] = useState<ModalType>(null);
   const [jobs, setJobs] = useState<TranscriptionJob[]>([]);
   const meetingCounterRef = useRef(1);
@@ -84,10 +88,12 @@ export function TranscriptionModalsProvider({
     setTimeout(tick, 500);
   }
 
-  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string }) {
+  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string }) {
     const id = Math.random().toString(36).slice(2, 10);
     setJobs(prev => [{ id, name, progress: 0, status: "uploading", fileType, ...opts }, ...prev]);
+    if (opts?.folderId) assignToFolder([id], opts.folderId);
     simulateJob(id);
+    return id;
   }
 
   function retryJob(id: string) {
@@ -178,6 +184,288 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12px", color: c.textMuted, marginBottom: "7px" }}>
       {children}
     </p>
+  );
+}
+
+const FOLDER_COLOR_OPTIONS = [
+  "#3B82F6", "#22C55E", "#F59E0B", "#EF4444",
+  "#8B5CF6", "#EC4899", "#06B6D4", "#6B7280",
+];
+
+function CreateFolderDialog({
+  open,
+  onClose,
+  onCreate,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreate: (name: string, color: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [selectedColor, setSelectedColor] = useState(FOLDER_COLOR_OPTIONS[0]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { isDark } = useTheme();
+  const c = getDarkPalette(isDark);
+
+  useEffect(() => {
+    if (!open) return;
+    setName("");
+    setSelectedColor(FOLDER_COLOR_OPTIONS[0]);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }, [open]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[180] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div
+        className="relative rounded-[20px] w-[400px] overflow-hidden"
+        style={{ backgroundColor: c.bgPopover, boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}
+      >
+        <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
+          <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "17px", color: c.textPrimary }}>Create New Folder</h2>
+          <button
+            onClick={onClose}
+            className="size-[28px] rounded-full flex items-center justify-center transition-colors"
+            style={{ backgroundColor: "transparent" }}
+          >
+            <svg className="size-[16px]" fill="none" viewBox="0 0 16 16" style={{ color: "#9ca3af" }}>
+              <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-[24px] pt-[18px] pb-[8px]">
+          <label style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary, display: "block", marginBottom: "6px" }}>
+            Folder name
+          </label>
+          <input
+            ref={inputRef}
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && name.trim()) { onCreate(name.trim(), selectedColor); onClose(); }
+              if (e.key === "Escape") onClose();
+            }}
+            placeholder="e.g. Client Meetings"
+            className="w-full h-[40px] px-[14px] rounded-full outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10 transition-all placeholder:text-[#b0b7c3]"
+            style={{
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 400,
+              fontSize: "14px",
+              color: c.textSecondary,
+              backgroundColor: c.bgInput,
+              borderWidth: "1px",
+              borderStyle: "solid",
+              borderColor: c.borderInput,
+            }}
+          />
+
+          <label style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary, display: "block", marginTop: "18px", marginBottom: "8px" }}>
+            Color
+          </label>
+          <div className="flex items-center gap-[8px]">
+            {FOLDER_COLOR_OPTIONS.map(color => (
+              <button
+                key={color}
+                onClick={() => setSelectedColor(color)}
+                className="size-[28px] rounded-full flex items-center justify-center transition-all"
+                style={{
+                  backgroundColor: color,
+                  boxShadow: selectedColor === color ? `0 0 0 2px ${c.bgPopover}, 0 0 0 4px ${color}` : "none",
+                  transform: selectedColor === color ? "scale(1.1)" : "scale(1)",
+                }}
+              >
+                {selectedColor === color && (
+                  <svg className="size-[14px]" fill="none" viewBox="0 0 16 16">
+                    <path d="M3 8.5L6.5 12L13 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-[10px] mt-[20px] p-[12px] rounded-[12px]" style={{ backgroundColor: c.bgSubtle, border: `1px solid ${c.border}` }}>
+            <svg className="size-[24px] shrink-0" fill="none" viewBox="0 0 16 16">
+              <path
+                d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z"
+                fill={selectedColor}
+                opacity="0.15"
+                stroke={selectedColor}
+                strokeWidth="1.1"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "14px", color: name.trim() ? c.textPrimary : "#b0b7c3" }}>
+              {name.trim() || "Folder name"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
+          <button
+            onClick={onClose}
+            className="h-[36px] px-[18px] rounded-full border transition-colors"
+            style={{ borderColor: c.borderBtn, backgroundColor: isDark ? "transparent" : "white" }}
+          >
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Cancel</span>
+          </button>
+          <button
+            onClick={() => { if (name.trim()) { onCreate(name.trim(), selectedColor); onClose(); } }}
+            disabled={!name.trim()}
+            className="h-[36px] px-[18px] rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ backgroundColor: "#2563eb", color: "white" }}
+          >
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px" }}>Create Folder</span>
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function FolderSelector({
+  value,
+  onChange,
+  label = "Save to folder",
+}: {
+  value: string | null;
+  onChange: (folderId: string | null) => void;
+  label?: string;
+}) {
+  const { folders, addFolder } = useFolders();
+  const { isDark } = useTheme();
+  const c = getDarkPalette(isDark);
+  const inp = useInputStyle();
+  const [open, setOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selectedFolder = folders.find(f => f.id === value) ?? null;
+
+  useEffect(() => {
+    function h(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  function handleCreateFolder(name: string, color: string) {
+    const created = addFolder(name, color);
+    onChange(created.id);
+  }
+
+  function openCreateDialog() {
+    setOpen(false);
+    setCreateDialogOpen(true);
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <SectionLabel>{label}</SectionLabel>
+      <div className="w-full h-[40px] rounded-full flex items-center gap-[6px] pl-[12px] pr-[10px]" style={{ ...inp.base }}>
+        <button
+          onClick={() => setOpen(v => !v)}
+          className="flex items-center gap-[7px] min-w-0 flex-1"
+          type="button"
+        >
+          <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16" style={{ color: selectedFolder?.color ?? c.textMuted }}>
+            <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="truncate text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: selectedFolder ? c.textSecondary : c.textMuted }}>
+            {selectedFolder ? selectedFolder.name : "No folder selected"}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={openCreateDialog}
+          className="h-[26px] px-[9px] rounded-full flex items-center gap-[5px] transition-colors shrink-0"
+          style={{ border: `1px solid ${isDark ? "rgba(255,255,255,0.12)" : "#dbe1ea"}`, backgroundColor: "transparent" }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+        >
+          <FolderPlus className="size-[12px]" strokeWidth={1.6} style={{ color: c.textMuted }} />
+          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textMuted }}>Add Folder</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setOpen(v => !v)}
+          className="size-[20px] rounded-full flex items-center justify-center transition-colors shrink-0"
+          style={{ backgroundColor: "transparent" }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+        >
+          <svg className={`size-[10px] transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      {open && (
+        <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] rounded-[12px] overflow-hidden"
+          style={{ backgroundColor: c.bgPopover, border: `1px solid ${c.border}`, boxShadow: c.shadow }}>
+          <button
+            type="button"
+            onClick={() => { onChange(null); setOpen(false); }}
+            className="flex items-center justify-between w-full h-[34px] px-[12px] transition-colors"
+            style={{ backgroundColor: "transparent" }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+          >
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>No folder</span>
+            {!value && <svg className="size-[12px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+          </button>
+
+          {folders.map(folder => (
+            <button
+              key={folder.id}
+              type="button"
+              onClick={() => { onChange(folder.id); setOpen(false); }}
+              className="flex items-center justify-between w-full h-[34px] px-[12px] transition-colors"
+              style={{ backgroundColor: "transparent" }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+            >
+              <span className="flex items-center gap-[7px] min-w-0">
+                <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16" style={{ color: folder.color }}>
+                  <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span className="truncate text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>
+                  {folder.name}
+                </span>
+              </span>
+              {value === folder.id && <svg className="size-[12px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+            </button>
+          ))}
+
+          <div className="h-px" style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#edf0f5" }} />
+          <button
+            type="button"
+            onClick={openCreateDialog}
+            className="flex items-center gap-[6px] w-full h-[34px] px-[12px] transition-colors"
+            style={{ backgroundColor: "transparent" }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+          >
+            <FolderPlus className="size-[12px]" strokeWidth={1.7} style={{ color: "#2563eb" }} />
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12px", color: "#2563eb" }}>Add folder</span>
+          </button>
+        </div>
+      )}
+
+      <CreateFolderDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onCreate={handleCreateFolder}
+      />
+    </div>
   );
 }
 
@@ -699,10 +987,11 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function resetForm() { setFiles([]); setDragActive(false); setSettings(DEFAULT_SETTINGS); }
+  function resetForm() { setFiles([]); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
   function handleClose() { resetForm(); onClose(); }
 
   function addFiles(newFiles: File[]) {
@@ -725,6 +1014,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
       lang: settings.mode === "mono" ? settings.langPrimary : undefined,
       langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
       translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
+      folderId: selectedFolderId ?? undefined,
     };
     files.forEach(file => {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
@@ -815,6 +1105,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           )}
 
+          <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
           <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
 
           <div className="flex items-center justify-end gap-[8px]">
@@ -917,6 +1208,7 @@ function RecordAudioModal({ open, onClose }: { open: boolean; onClose: () => voi
   const [isPaused, setIsPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [stopConfirm, setStopConfirm] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
@@ -925,6 +1217,7 @@ function RecordAudioModal({ open, onClose }: { open: boolean; onClose: () => voi
     if (!open) {
       setMicStatus("idle"); setIsRecording(false); setIsPaused(false); setElapsed(0);
       setSettings(DEFAULT_SETTINGS);
+      setSelectedFolderId(null);
       streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null;
     }
   }, [open]);
@@ -951,6 +1244,7 @@ function RecordAudioModal({ open, onClose }: { open: boolean; onClose: () => voi
       lang: settings.mode === "mono" ? settings.langPrimary : undefined,
       langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
       translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
+      folderId: selectedFolderId ?? undefined,
     });
     doClose();
   }
@@ -1049,6 +1343,7 @@ function RecordAudioModal({ open, onClose }: { open: boolean; onClose: () => voi
             </div>
           )}
 
+          <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
           <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
 
           <div className="flex items-center justify-end gap-[8px]">
@@ -1107,9 +1402,10 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
-  function resetForm() { setUrl(""); setUrlError(""); setSettings(DEFAULT_SETTINGS); }
+  function resetForm() { setUrl(""); setUrlError(""); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
   function handleClose() { resetForm(); onClose(); }
 
   function validateUrl(s: string) {
@@ -1124,6 +1420,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
       lang: settings.mode === "mono" ? settings.langPrimary : undefined,
       langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
       translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
+      folderId: selectedFolderId ?? undefined,
     });
     handleClose();
   }
@@ -1154,6 +1451,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
             {urlError && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "12px", color: "#ef4444", marginTop: "5px" }}>{urlError}</p>}
           </div>
 
+          <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
           <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
 
           <div className="flex items-center justify-end gap-[8px]">
@@ -1202,11 +1500,13 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   const [realTimeTranslationLang, setRealTimeTranslationLang] = useState("en");
   const [notifyParticipants, setNotifyParticipants] = useState(true);
   const [notifyMessage, setNotifyMessage] = useState("I'm recording this meeting with TranscribeToText for note-taking purposes.");
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   function resetForm() {
     setMeetingUrl(""); setMeetingUrlError(""); meetingCounterRef.current += 1;
     setMeetingName(`Meeting ${meetingCounterRef.current}`); setLangId("auto"); setMode("mono"); setLangBilingual(["auto"]);
     setAdvancedOpen(false); setBotName("TranscribeToText Bot"); setRealTimeTranslation(false); setRealTimeTranslationLang("en");
+    setSelectedFolderId(null);
     setNotifyParticipants(true);
     setNotifyMessage("I'm recording this meeting with TranscribeToText for note-taking purposes.");
   }
@@ -1223,6 +1523,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
       lang: mode === "mono" ? langId : undefined,
       langBilingual: mode === "bi" ? (langBilingual.length ? langBilingual : ["auto"]) : undefined,
       translationLang: realTimeTranslation ? realTimeTranslationLang : undefined,
+      folderId: selectedFolderId ?? undefined,
     });
     handleClose();
   }
@@ -1279,6 +1580,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
               onBlurCapture={e => inp.blur(e.currentTarget)}
             />
           </div>
+          <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
 
           {/* Mode + language */}
           <TranscriptionModeToggle
@@ -1526,7 +1828,7 @@ export function FloatingProgressWidget() {
             <div className="w-[52px] shrink-0 text-right">
               <span style={{ fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textHeader, textTransform: "uppercase", letterSpacing: "0.34px" }}>Dur.</span>
             </div>
-            <div className="w-[86px] shrink-0 text-right">
+            <div className="w-[120px] shrink-0 text-right">
               <span style={{ fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textHeader, textTransform: "uppercase", letterSpacing: "0.34px" }}>Status</span>
             </div>
           </div>
@@ -1615,17 +1917,23 @@ export function FloatingProgressWidget() {
                     </div>
 
                     {/* Status area */}
-                    <div className="w-[86px] shrink-0 flex items-center justify-end gap-[5px]">
+                    <div className="w-[120px] shrink-0 flex items-center justify-end gap-[5px]">
                       {isActive && (
-                        <>
-                          <svg className="size-[12px] animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
-                            <circle cx="12" cy="12" r="9" stroke={isDark ? "#3a3a48" : "#e5e7eb"} strokeWidth="2.5" />
-                            <path d="M12 3a9 9 0 019 9" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" />
-                          </svg>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: "#2563eb" }}>
+                        <div className="flex items-center gap-[8px] w-full">
+                          <div className="h-[6px] flex-1 rounded-full overflow-hidden"
+                            style={{ backgroundColor: isDark ? "#2a2a35" : "#ebedf0" }}>
+                            <div className="h-full transition-all duration-300"
+                              style={{
+                                width: `${job.progress}%`,
+                                background: job.status === "processing"
+                                  ? "linear-gradient(90deg,#2563eb,#7c3aed)"
+                                  : "#2563eb",
+                              }} />
+                          </div>
+                          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: "#2563eb", minWidth: "30px", textAlign: "right" }}>
                             {job.progress}%
                           </span>
-                        </>
+                        </div>
                       )}
                       {isDone && (
                         <>
@@ -1663,16 +1971,6 @@ export function FloatingProgressWidget() {
                       )}
                     </div>
 
-                    {/* Progress bar — absolute at bottom of the row cell */}
-                    {(isActive || isDone || isError) && (
-                      <div className="absolute bottom-0 left-0 right-0 overflow-hidden" style={{ height: "2px", backgroundColor: isDark ? "#2a2a35" : "#ebedf0" }}>
-                        <div className="h-full transition-all duration-300"
-                          style={{
-                            width: isActive ? `${job.progress}%` : "100%",
-                            background: isDone ? "#22c55e" : isError ? "rgba(239,68,68,0.35)" : job.status === "processing" ? "linear-gradient(90deg,#2563eb,#7c3aed)" : "#2563eb"
-                          }} />
-                      </div>
-                    )}
                   </div>
                 </div>
               );
@@ -1683,3 +1981,4 @@ export function FloatingProgressWidget() {
     document.body
   );
 }
+
