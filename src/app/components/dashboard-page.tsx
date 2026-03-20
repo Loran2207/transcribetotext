@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import svgPaths from "../../imports/svg-i3wf63n6gj";
 import svgCardPaths from "../../imports/svg-ckrcce85th";
 const imgMainCard = "/images/image-girl.png";
@@ -378,7 +378,9 @@ function useGreeting() {
 export function DashboardPage() {
   const { isDark } = useTheme();
   const greeting = useGreeting();
-  const { setOpenModal, startInstantRecording } = useTranscriptionModals();
+  const { setOpenModal, startInstantRecording, openUploadWithFiles } = useTranscriptionModals();
+  const [dragOver, setDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
   const mainBg = isDark ? "#111115" : "white";
   const greetingColor = isDark ? "#f3f4f6" : "#02082d";
   const hotkeyBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.8)";
@@ -401,8 +403,47 @@ export function DashboardPage() {
     { card: <TranscribeFromLinkCard />, key: "4", modal: "link" as const },
   ];
 
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    if (dragCounterRef.current === 1) setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current === 0) setDragOver(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setDragOver(false);
+    const dropped = Array.from(e.dataTransfer.files);
+    if (dropped.length) openUploadWithFiles(dropped);
+  }, [openUploadWithFiles]);
+
   return (
-    <div className="flex-1 overflow-hidden flex transition-colors duration-200" style={{ backgroundColor: mainBg }}>
+    <div
+      className="flex-1 overflow-hidden flex transition-colors duration-200 relative"
+      style={{ backgroundColor: dragOver ? (isDark ? "rgba(37,99,235,0.06)" : "rgba(37,99,235,0.04)") : mainBg, transition: "background-color 0.15s ease" }}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag-over border highlight */}
+      {dragOver && (
+        <div
+          className="absolute inset-0 pointer-events-none z-40 rounded-none"
+          style={{ border: "2px dashed #2563eb", inset: "6px", borderRadius: "12px" }}
+        />
+      )}
+
       <div className="flex-1 overflow-auto min-w-0">
         <div className="px-[32px] pt-[28px]">
           <motion.p
@@ -435,6 +476,39 @@ export function DashboardPage() {
       <motion.div {...fadeUp(0.1, 70)}>
         <RightPanel />
       </motion.div>
+
+      {/* Drop zone pill — appears at bottom center while dragging */}
+      {dragOver && (
+        <div
+          className="absolute bottom-[28px] left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+          style={{
+            animation: "dropPillIn 0.22s cubic-bezier(0.16,1,0.3,1) both",
+          }}
+        >
+          <div
+            className="flex items-center gap-[12px] px-[24px] py-[14px] rounded-full"
+            style={{
+              background: "#1d4ed8",
+              boxShadow: "0 8px 32px rgba(29,78,216,0.45), 0 2px 8px rgba(0,0,0,0.18)",
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M12 16V4m0 0L8 8m4-4l4 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "14px", color: "white", letterSpacing: "-0.1px" }}>
+              Drop files to transcribe
+            </span>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes dropPillIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.92); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1);    }
+        }
+      `}</style>
     </div>
   );
 }
