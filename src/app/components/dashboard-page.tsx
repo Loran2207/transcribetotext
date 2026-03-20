@@ -378,7 +378,7 @@ function useGreeting() {
 export function DashboardPage() {
   const { isDark } = useTheme();
   const greeting = useGreeting();
-  const { setOpenModal } = useTranscriptionModals();
+  const { setOpenModal, startInstantRecording } = useTranscriptionModals();
   const mainBg = isDark ? "#111115" : "white";
   const greetingColor = isDark ? "#f3f4f6" : "#02082d";
   const hotkeyBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.8)";
@@ -417,7 +417,7 @@ export function DashboardPage() {
               <div
                 key={key}
                 className="relative flex-1 min-w-0 group cursor-pointer"
-                onClick={() => setOpenModal(modal)}
+                onClick={() => modal === "record" ? startInstantRecording() : setOpenModal(modal)}
               >
                 {card}
                 <div className="absolute top-[10px] right-[10px] flex items-center gap-[3px] backdrop-blur-sm rounded-[6px] px-[6px] h-[22px] transition-opacity duration-200 pointer-events-none z-10" style={{ backgroundColor: hotkeyBg, boxShadow: hotkeyShadow }}>

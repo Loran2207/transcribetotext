@@ -1,5 +1,5 @@
 import {
-  useState, useRef, useEffect,
+  useState, useRef, useEffect, useMemo,
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
@@ -39,6 +39,8 @@ const ERROR_LABELS: Record<string, string> = {
   network: "Network error — upload failed",
 };
 
+type RecordingPhase = "idle" | "recording" | "paused" | "review";
+
 interface CtxValue {
   openModal: ModalType;
   setOpenModal: (m: ModalType) => void;
@@ -47,6 +49,15 @@ interface CtxValue {
   retryJob: (id: string) => void;
   meetingCounterRef: React.MutableRefObject<number>;
   userPlan: UserPlan;
+  recordingPhase: RecordingPhase;
+  recordingElapsed: number;
+  audioUrl: string | null;
+  startInstantRecording: () => void;
+  pauseInstantRecording: () => void;
+  resumeInstantRecording: () => void;
+  stopInstantRecording: () => void;
+  cancelInstantRecording: () => void;
+  submitInstantRecording: (opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string }) => void;
 }
 
 const Ctx = createContext<CtxValue | null>(null);
@@ -68,6 +79,96 @@ export function TranscriptionModalsProvider({
   const [openModal, setOpenModal] = useState<ModalType>(null);
   const [jobs, setJobs] = useState<TranscriptionJob[]>([]);
   const meetingCounterRef = useRef(1);
+
+  // ── Instant recording state ────────────────────────────────
+  const [recordingPhase, setRecordingPhase] = useState<RecordingPhase>("idle");
+  const [recordingElapsed, setRecordingElapsed] = useState(0);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    if (recordingPhase !== "recording") return;
+    const id = setInterval(() => setRecordingElapsed(e => e + 1), 1000);
+    return () => clearInterval(id);
+  }, [recordingPhase]);
+
+  useEffect(() => {
+    if (recordingPhase === "idle" || recordingPhase === "review") return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [recordingPhase]);
+
+  function _startMediaRecorder(stream: MediaStream) {
+    try {
+      const recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        setAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(blob); });
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+    } catch {
+      // MediaRecorder unavailable (e.g. unsupported stream) — proceed without audio data
+      mediaRecorderRef.current = null;
+    }
+  }
+
+  function startInstantRecording() {
+    navigator.mediaDevices?.getUserMedia({ audio: true })
+      .then(stream => {
+        recordingStreamRef.current = stream;
+        audioChunksRef.current = [];
+        setAudioUrl(null);
+        setRecordingElapsed(0);
+        _startMediaRecorder(stream);
+        setRecordingPhase("recording");
+      })
+      .catch(() => { /* mic denied — silently no-op */ });
+  }
+  function pauseInstantRecording() {
+    mediaRecorderRef.current?.pause();
+    setRecordingPhase("paused");
+  }
+  function resumeInstantRecording() {
+    if (recordingPhase === "paused") {
+      mediaRecorderRef.current?.resume();
+    } else if (recordingPhase === "review" && recordingStreamRef.current) {
+      // Continue after review — start new recorder segment, keep existing chunks
+      _startMediaRecorder(recordingStreamRef.current);
+    }
+    setRecordingPhase("recording");
+  }
+  function stopInstantRecording() {
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    setRecordingPhase("review");
+  }
+  function cancelInstantRecording() {
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    audioChunksRef.current = [];
+    setAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    recordingStreamRef.current?.getTracks().forEach(t => t.stop());
+    recordingStreamRef.current = null;
+    setRecordingPhase("idle");
+    setRecordingElapsed(0);
+  }
+  function submitInstantRecording(opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string }) {
+    const name = `Recording ${fmtTime(recordingElapsed)}.wav`;
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    audioChunksRef.current = [];
+    setAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    recordingStreamRef.current?.getTracks().forEach(t => t.stop());
+    recordingStreamRef.current = null;
+    setRecordingPhase("idle");
+    setRecordingElapsed(0);
+    addJob(name, "audio", { ...opts, source: "microphone" });
+  }
 
   function simulateJob(id: string) {
     let p = 0;
@@ -105,9 +206,11 @@ export function TranscriptionModalsProvider({
   }
 
   return (
-    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, meetingCounterRef, userPlan }}>
+    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, cancelInstantRecording, submitInstantRecording }}>
       {children}
       <AllModals />
+      <RecordingPill />
+      <RecordingReviewModal />
       <FloatingProgressWidget />
     </Ctx.Provider>
   );
@@ -115,6 +218,16 @@ export function TranscriptionModalsProvider({
 
 function randomDuration() {
   return `${Math.floor(Math.random() * 44 + 1)}m ${Math.floor(Math.random() * 59)}s`;
+}
+
+function fmtTime(s: number) {
+  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function fmtDuration(s: number) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 }
 
 // ═════���══════════════════════════════════════════════════════
@@ -399,7 +512,7 @@ function FolderSelector({
             <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span className="truncate text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: selectedFolder ? c.textSecondary : c.textMuted }}>
-            {selectedFolder ? selectedFolder.name : "No folder selected"}
+            {selectedFolder ? selectedFolder.name : "Select folder"}
           </span>
         </button>
 
@@ -1245,7 +1358,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
 }
 
 // ════════════════════════════════════════════════════════════
-// Modal 2 — Record audio
+// Waveform (used in recording UI)
 // ════════════════════════════════════════════════════════════
 
 const BAR_COUNT = 32;
@@ -1307,184 +1420,6 @@ function StopConfirmDialog({ open, onCancel, onStop }: { open: boolean; onCancel
   );
 }
 
-function RecordAudioModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan } = useTranscriptionModals();
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-
-  type MicStatus = "idle" | "requesting" | "granted" | "denied";
-  const [micStatus, setMicStatus] = useState<MicStatus>("idle");
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [stopConfirm, setStopConfirm] = useState(false);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      setMicStatus("idle"); setIsRecording(false); setIsPaused(false); setElapsed(0);
-      setSettings(DEFAULT_SETTINGS);
-      setSelectedFolderId(null);
-      streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null;
-    }
-  }, [open]);
-
-  function handleStartRecording() {
-    setMicStatus("requesting");
-    navigator.mediaDevices?.getUserMedia({ audio: true })
-      .then(stream => { streamRef.current = stream; setMicStatus("granted"); setIsRecording(true); })
-      .catch(() => setMicStatus("denied"));
-  }
-
-  useEffect(() => {
-    if (!isRecording || isPaused) return;
-    const id = setInterval(() => setElapsed(e => e + 1), 1000);
-    return () => clearInterval(id);
-  }, [isRecording, isPaused]);
-
-  function fmt(s: number) { return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; }
-
-  function handleClose() { if (isRecording) { setStopConfirm(true); return; } doClose(); }
-  function doClose() { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; setStopConfirm(false); onClose(); }
-  function handleTranscribe() {
-    addJob(`Recording ${fmt(elapsed)}.wav`, "audio", {
-      lang: settings.mode === "mono" ? settings.langPrimary : undefined,
-      langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
-      translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
-      folderId: selectedFolderId ?? undefined,
-      source: "microphone",
-    });
-    doClose();
-  }
-
-  if (!open) return null;
-
-  return (
-    <>
-      <ModalShell title="Record audio" subtitle="Transcribe speech from your microphone" onClose={handleClose} onBackdropClick={handleClose}>
-        <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
-          {/* Idle — start recording prompt */}
-          {micStatus === "idle" && (
-            <div className="rounded-[14px] p-[20px] flex flex-col items-center gap-[12px]"
-              style={{ border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}`, backgroundColor: isDark ? "#111115" : "white" }}>
-              <div className="size-[48px] rounded-full flex items-center justify-center"
-                style={{ backgroundColor: isDark ? "rgba(37,99,235,0.1)" : "#eff4ff", border: `1.5px solid ${isDark ? "rgba(37,99,235,0.3)" : "#bfdbfe"}` }}>
-                <svg className="size-[22px]" fill="none" viewBox="0 0 24 24" style={{ color: "#2563eb" }}>
-                  <rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="1.5" />
-                  <path d="M5 10a7 7 0 0014 0M12 19v3M9 22h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-              <div className="text-center">
-                <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Ready to record</p>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textMuted, marginTop: "2px" }}>Press the button below to start recording from your microphone</p>
-              </div>
-              <button onClick={handleStartRecording}
-                className="h-[34px] px-[18px] rounded-full flex items-center gap-[6px] transition-colors"
-                style={{ backgroundColor: "#2563eb", color: "white" }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#1d4ed8"}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#2563eb"}
-              >
-                <span className="size-[7px] rounded-full bg-white shrink-0" />
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>Start recording</span>
-              </button>
-            </div>
-          )}
-          {/* Mic requesting */}
-          {micStatus === "requesting" && (
-            <div className="rounded-[14px] p-[20px] flex flex-col items-center gap-[10px]"
-              style={{ border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}`, backgroundColor: isDark ? "#111115" : "white" }}>
-              <svg className="size-[32px] animate-spin" fill="none" viewBox="0 0 24 24" style={{ color: "#2563eb" }}>
-                <circle cx="12" cy="12" r="9" stroke={isDark ? "#2a2a35" : "#e5e7eb"} strokeWidth="2.5" />
-                <path d="M12 3a9 9 0 019 9" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" />
-              </svg>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Requesting microphone access…</p>
-            </div>
-          )}
-          {/* Mic denied */}
-          {micStatus === "denied" && (
-            <div className="rounded-[14px] p-[16px] flex items-start gap-[12px]"
-              style={{ border: "1px solid #fecaca", backgroundColor: isDark ? "rgba(239,68,68,0.06)" : "#fff8f8" }}>
-              <svg className="size-[18px] shrink-0 mt-[1px]" fill="none" viewBox="0 0 24 24" style={{ color: "#ef4444" }}>
-                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><path d="M12 7v5M12 16v.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-              <div>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px", color: "#ef4444" }}>Microphone access denied</p>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "12px", color: isDark ? "#f87171" : "#b91c1c", marginTop: "3px", lineHeight: 1.4 }}>
-                  Please allow microphone access in your browser settings and try again.
-                </p>
-              </div>
-            </div>
-          )}
-          {/* Recording UI */}
-          {micStatus === "granted" && isRecording && (
-            <div className="rounded-[14px] p-[16px] flex flex-col items-center gap-[12px]"
-              style={{ border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}`, backgroundColor: isDark ? "#111115" : "white" }}>
-              {/* Status + timer */}
-              <div className="flex items-center gap-[10px]">
-                <span className="relative flex size-[8px]">
-                  <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${!isPaused ? "animate-ping bg-red-400" : "bg-gray-400"}`} />
-                  <span className={`relative inline-flex size-[8px] rounded-full ${!isPaused ? "bg-red-500" : "bg-gray-400"}`} />
-                </span>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "12px", color: isPaused ? c.textMuted : "#ef4444" }}>
-                  {isPaused ? "Paused" : "Recording"}
-                </span>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "18px", color: c.textPrimary, letterSpacing: "0.5px", fontVariantNumeric: "tabular-nums" }}>
-                  {fmt(elapsed)}
-                </span>
-              </div>
-              <Waveform active={isRecording && !isPaused} />
-              <button
-                onClick={() => setIsPaused(v => !v)}
-                className="h-[34px] px-[16px] rounded-full flex items-center gap-[6px] transition-colors"
-                style={{ backgroundColor: isDark ? "#2a2a35" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#dde1e9"}` }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "#333340" : "#f3f4f6"}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? "#2a2a35" : "white"}
-              >
-                {isPaused
-                  ? <svg className="size-[13px]" fill="currentColor" viewBox="0 0 24 24" style={{ color: c.textSecondary }}><polygon points="5,3 19,12 5,21" /></svg>
-                  : <svg className="size-[13px]" fill="currentColor" viewBox="0 0 24 24" style={{ color: c.textSecondary }}><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-                }
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12px", color: c.textSecondary }}>
-                  {isPaused ? "Resume" : "Pause recording"}
-                </span>
-              </button>
-            </div>
-          )}
-
-          <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
-
-          <div className="flex items-center justify-between gap-[8px]">
-            <div style={{ minWidth: 0, maxWidth: "200px" }}>
-              <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
-            </div>
-            <div className="flex items-center gap-[8px] shrink-0">
-              <button onClick={handleClose} className="h-[36px] px-[18px] rounded-full border transition-colors"
-                style={{ borderColor: c.borderBtn, backgroundColor: "transparent" }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
-              >
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Cancel</span>
-              </button>
-              <button onClick={handleTranscribe} disabled={micStatus !== "granted"}
-                className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ backgroundColor: "#2563eb", color: "white" }}
-                onMouseEnter={e => { if (micStatus === "granted") e.currentTarget.style.backgroundColor = "#1d4ed8"; }}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#2563eb"}
-              >
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>Start transcription</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </ModalShell>
-      <StopConfirmDialog open={stopConfirm} onCancel={() => setStopConfirm(false)} onStop={doClose} />
-      <UpgradePrompt open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
-    </>
-  );
-}
 
 // ════════════════════════════════════════════════════════════
 // Modal 3 — Transcribe from link
@@ -1821,6 +1756,307 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
 }
 
 // ════════════════════════════════════════════════════════════
+// Instant recording — floating pill widget
+// ════════════════════════════════════════════════════════════
+
+const MINI_BAR_COUNT = 16;
+
+function MiniWaveform({ active }: { active: boolean }) {
+  const [heights, setHeights] = useState<number[]>(() => Array(MINI_BAR_COUNT).fill(4));
+  const { isDark } = useTheme();
+  useEffect(() => {
+    if (!active) { setHeights(Array(MINI_BAR_COUNT).fill(4)); return; }
+    const id = setInterval(() => {
+      setHeights(Array.from({ length: MINI_BAR_COUNT }, () => Math.random() * 14 + 3));
+    }, 90);
+    return () => clearInterval(id);
+  }, [active]);
+  return (
+    <div className="flex items-center gap-[2px]" style={{ height: "20px" }}>
+      {heights.map((h, i) => (
+        <div key={i} className="rounded-full"
+          style={{ width: "2px", height: `${h}px`, backgroundColor: active ? "#2563eb" : (isDark ? "#3a3a48" : "#d1d5db"), opacity: active ? 0.5 + (i % 5) * 0.1 : 0.4, transition: active ? "height 0.09s ease" : "height 0.3s ease" }} />
+      ))}
+    </div>
+  );
+}
+
+function RecordingPill() {
+  const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording, stopInstantRecording } = useTranscriptionModals();
+  const { isDark } = useTheme();
+  const c = getDarkPalette(isDark);
+  const visible = recordingPhase === "recording" || recordingPhase === "paused";
+  const isPaused = recordingPhase === "paused";
+  if (!visible) return null;
+  const bg = isDark ? "#1e1e26" : "white";
+  const shadow = isDark
+    ? "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)"
+    : "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.06)";
+  return createPortal(
+    <div
+      className="fixed flex items-center gap-[10px] rounded-full px-[14px] py-[10px]"
+      style={{ bottom: "24px", right: "24px", zIndex: 9999, backgroundColor: bg, boxShadow: shadow }}
+    >
+      {/* Status dot */}
+      <span className="relative flex size-[8px] shrink-0">
+        <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${!isPaused ? "animate-ping" : ""}`}
+          style={{ backgroundColor: isPaused ? c.textMuted : "#f87171" }} />
+        <span className="relative inline-flex size-[8px] rounded-full"
+          style={{ backgroundColor: isPaused ? c.textMuted : "#ef4444" }} />
+      </span>
+      {/* Label */}
+      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "12px", color: isPaused ? c.textMuted : "#ef4444" }}>
+        {isPaused ? "Paused" : "Recording"}
+      </span>
+      {/* Timer */}
+      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "15px", color: c.textPrimary, letterSpacing: "0.5px", fontVariantNumeric: "tabular-nums", minWidth: "42px" }}>
+        {fmtTime(recordingElapsed)}
+      </span>
+      {/* Mini waveform */}
+      <MiniWaveform active={!isPaused} />
+      {/* Pause / Resume */}
+      <button
+        onClick={isPaused ? resumeInstantRecording : pauseInstantRecording}
+        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0"
+        style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#f3f4f6", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e5e7eb"}` }}
+        onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.14)" : "#e5e7eb"}
+        onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.08)" : "#f3f4f6"}
+        title={isPaused ? "Resume" : "Pause"}
+      >
+        {isPaused
+          ? <svg className="size-[12px]" fill="currentColor" viewBox="0 0 24 24" style={{ color: c.textSecondary }}><polygon points="5,3 19,12 5,21" /></svg>
+          : <svg className="size-[12px]" fill="currentColor" viewBox="0 0 24 24" style={{ color: c.textSecondary }}><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+        }
+      </button>
+      {/* Stop */}
+      <button
+        onClick={stopInstantRecording}
+        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0"
+        style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
+        onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.18)"}
+        onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.1)"}
+        title="Stop recording"
+      >
+        <svg className="size-[10px]" viewBox="0 0 12 12" fill="#ef4444"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
+      </button>
+    </div>,
+    document.body
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// Instant recording — review modal (post-stop)
+// ════════════════════════════════════════════════════════════
+
+// ── Recording review card with playback ──────────────────────
+const REVIEW_BARS = 60;
+
+function RecordingCard({ elapsed, audioUrl, onContinue, isDark, c }: {
+  elapsed: number;
+  audioUrl: string | null;
+  onContinue: () => void;
+  isDark: boolean;
+  c: ReturnType<typeof getDarkPalette>;
+}) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0); // 0–1
+
+  const bars = useMemo(() => Array.from({ length: REVIEW_BARS }, (_, i) => {
+    const pseudo = ((elapsed * 31 + i * 17 + 7) * 1664525 + 1013904223) & 0x7fffffff;
+    const envelope = 1 - Math.abs((i / (REVIEW_BARS - 1)) * 2 - 1) * 0.38;
+    return Math.round(((pseudo % 100) / 100) * 26 * envelope + 5);
+  }), [elapsed]);
+
+  function togglePlay() {
+    if (!audioRef.current) return;
+    if (isPlaying) { audioRef.current.pause(); setIsPlaying(false); }
+    else { audioRef.current.play(); setIsPlaying(true); }
+  }
+
+  function handleScrubClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!audioRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audioRef.current.currentTime = pct * (audioRef.current.duration || elapsed);
+    setProgress(pct);
+  }
+
+  const currentSec = Math.round(progress * elapsed);
+
+  return (
+    <div className="rounded-[16px] overflow-hidden"
+      style={{ backgroundColor: isDark ? "#111115" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#ebeef1"}`, boxShadow: isDark ? "none" : "0 2px 12px rgba(0,0,0,0.06)" }}>
+
+      {/* Top row: label · duration · play · continue */}
+      <div className="flex items-center justify-between px-[18px] pt-[14px] pb-[8px]">
+        <div className="flex items-center gap-[7px]">
+          <span className="size-[7px] rounded-full shrink-0" style={{ backgroundColor: "#ef4444" }} />
+          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "11px", color: c.textMuted, letterSpacing: "0.5px", textTransform: "uppercase" }}>Recording complete</span>
+        </div>
+        <div className="flex items-center gap-[7px]">
+          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "18px", color: c.textPrimary, fontVariantNumeric: "tabular-nums" }}>{fmtDuration(elapsed)}</span>
+          {audioUrl && (
+            <button onClick={togglePlay}
+              className="flex items-center justify-center size-[28px] rounded-full transition-colors shrink-0"
+              style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#f3f4f6", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e5e7eb"}` }}
+              onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.14)" : "#e5e7eb"}
+              onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.08)" : "#f3f4f6"}
+              title={isPlaying ? "Pause" : "Play back recording"}
+            >
+              {isPlaying
+                ? <svg className="size-[10px]" fill="currentColor" viewBox="0 0 12 12" style={{ color: c.textSecondary }}><rect x="2" y="2" width="3" height="8" rx="1"/><rect x="7" y="2" width="3" height="8" rx="1"/></svg>
+                : <svg className="size-[11px]" fill="currentColor" viewBox="0 0 12 12" style={{ color: c.textSecondary }}><polygon points="2,1 11,6 2,11"/></svg>
+              }
+            </button>
+          )}
+          <button onClick={onContinue}
+            className="h-[28px] px-[11px] rounded-full flex items-center gap-[5px] transition-colors shrink-0"
+            style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)" }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.15)"}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.08)"}
+            title="Continue recording"
+          >
+            <span className="size-[6px] rounded-full shrink-0 animate-pulse" style={{ backgroundColor: "#ef4444" }} />
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "11px", color: "#ef4444" }}>Continue</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Waveform scrubber */}
+      <div className="px-[18px] pb-[4px] relative cursor-pointer select-none" onClick={handleScrubClick} style={{ height: "52px" }}>
+        <div className="flex items-center absolute inset-x-[18px] inset-y-0 gap-[1.5px]">
+          {bars.map((h, i) => {
+            const barPct = i / (REVIEW_BARS - 1);
+            const played = barPct <= progress;
+            return (
+              <div key={i} className="rounded-full flex-1"
+                style={{ height: `${h}px`, backgroundColor: played ? "#ef4444" : (isDark ? "#3a3a48" : "#dde1e9"), opacity: played ? 0.65 + (i % 4) * 0.07 : 0.55 }} />
+            );
+          })}
+        </div>
+        {/* Playhead */}
+        {progress > 0 && (
+          <div className="absolute top-[6px] bottom-[6px] w-[2px] rounded-full pointer-events-none"
+            style={{ left: `calc(18px + ${progress * 100}% * (100% - 36px) / 100%)`, backgroundColor: "#ef4444", opacity: 0.9, boxShadow: "0 0 4px rgba(239,68,68,0.4)" }} />
+        )}
+      </div>
+
+      {/* Time labels */}
+      <div className="flex items-center justify-between px-[18px] pb-[12px]">
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "10px", color: c.textMuted, fontVariantNumeric: "tabular-nums" }}>{fmtTime(currentSec)}</span>
+        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "10px", color: c.textMuted, fontVariantNumeric: "tabular-nums" }}>{fmtTime(elapsed)}</span>
+      </div>
+
+      {audioUrl && (
+        <audio ref={audioRef} src={audioUrl}
+          onTimeUpdate={() => { if (audioRef.current) setProgress(audioRef.current.currentTime / (audioRef.current.duration || elapsed || 1)); }}
+          onEnded={() => { setIsPlaying(false); setProgress(0); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function RecordingReviewModal() {
+  const { recordingPhase, recordingElapsed, audioUrl, cancelInstantRecording, submitInstantRecording, resumeInstantRecording, userPlan } = useTranscriptionModals();
+  const { isDark } = useTheme();
+  const c = getDarkPalette(isDark);
+  const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [discardConfirm, setDiscardConfirm] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  useEffect(() => {
+    if (recordingPhase === "review") {
+      setSettings(DEFAULT_SETTINGS);
+      setSelectedFolderId(null);
+      setDiscardConfirm(false);
+    }
+  }, [recordingPhase]);
+
+  if (recordingPhase !== "review") return null;
+
+  function handleCancel() { setDiscardConfirm(true); }
+  function handleDiscard() { cancelInstantRecording(); setDiscardConfirm(false); }
+  function handleSubmit() {
+    submitInstantRecording({
+      lang: settings.mode === "mono" ? settings.langPrimary : undefined,
+      langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
+      translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
+      folderId: selectedFolderId ?? undefined,
+    });
+  }
+
+  return (
+    <>
+      <ModalShell title="Record audio" subtitle="Review and submit your recording" onClose={handleCancel} onBackdropClick={handleCancel}>
+        <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
+          <RecordingCard elapsed={recordingElapsed} audioUrl={audioUrl} onContinue={resumeInstantRecording} isDark={isDark} c={c} />
+
+          <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
+
+          <div className="flex items-center justify-between gap-[8px]">
+            <div style={{ minWidth: 0, maxWidth: "200px" }}>
+              <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
+            </div>
+            <div className="flex items-center gap-[8px] shrink-0">
+              <button onClick={handleCancel} className="h-[36px] px-[18px] rounded-full border transition-colors"
+                style={{ borderColor: c.borderBtn, backgroundColor: "transparent" }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+              >
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Cancel</span>
+              </button>
+<button onClick={handleSubmit}
+                className="h-[36px] px-[18px] rounded-full transition-all"
+                style={{ backgroundColor: "#2563eb", color: "white" }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#1d4ed8"}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#2563eb"}
+              >
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>Start transcription</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </ModalShell>
+
+      {/* Discard confirm */}
+      {discardConfirm && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setDiscardConfirm(false)} />
+          <div className="relative rounded-[18px] w-[340px] p-[22px] flex flex-col gap-[16px]"
+            style={{ backgroundColor: c.bgPopover, boxShadow: "0 24px 64px rgba(0,0,0,0.28)" }}>
+            <div>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "15px", color: c.textPrimary }}>Discard recording?</p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textMuted, marginTop: "6px", lineHeight: 1.5 }}>
+                Your recording will be permanently discarded and cannot be recovered.
+              </p>
+            </div>
+            <div className="flex gap-[8px]">
+              <button onClick={() => setDiscardConfirm(false)} className="flex-1 h-[38px] rounded-full transition-colors"
+                style={{ backgroundColor: isDark ? "#2a2a35" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#dde1e9"}` }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "#333340" : "#f3f4f6"}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? "#2a2a35" : "white"}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: isDark ? "#d1d5db" : "#374151" }}>Keep recording</span>
+              </button>
+              <button onClick={handleDiscard} className="flex-1 h-[38px] rounded-full transition-colors"
+                style={{ backgroundColor: "#ef4444", color: "white" }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#dc2626"}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#ef4444"}>
+                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>Discard</span>
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+      <UpgradePrompt open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
 // Modal router
 // ════════════════════════════════════════════════════════════
 
@@ -1830,7 +2066,6 @@ function AllModals() {
   return (
     <>
       <UploadFileModal open={openModal === "upload"} onClose={close} />
-      <RecordAudioModal open={openModal === "record"} onClose={close} />
       <TranscribeLinkModal open={openModal === "link"} onClose={close} />
       <MeetingBotModal open={openModal === "meeting"} onClose={close} />
     </>
