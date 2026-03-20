@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { User, Camera, Lock, Eye, EyeOff, Shield, Info, Mail } from "lucide-react";
 import { useTheme } from "./theme-context";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import { useUserProfile } from "./user-profile-context";
 
 // ── Password requirements ─────────────────────────────────────
 const PW_RULES = [
@@ -471,8 +472,7 @@ function ConfirmDialog({ title, description, confirmLabel, onConfirm, onClose, i
 
 // ── Account Tab ───────────────────────────────────────────────
 function AccountPage({ isDark }: { isDark: boolean }) {
-  const [avatarSrc,    setAvatarSrc]    = useState("/images/avatar.png");
-  const [name,         setName]         = useState("Kirill Kuts");
+  const { displayName: name, avatarSrc, setDisplayName: setName, setAvatarSrc } = useUserProfile();
   const [editingName,  setEditingName]  = useState(false);
   const [draftName,    setDraftName]    = useState(name);
   const [showSetPw,    setShowSetPw]    = useState(false);
@@ -491,6 +491,7 @@ function AccountPage({ isDark }: { isDark: boolean }) {
 
   useEffect(() => {
     if (editingName && nameRef.current) {
+      setDraftName(name);
       nameRef.current.focus();
       nameRef.current.select();
     }

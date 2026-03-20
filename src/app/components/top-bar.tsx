@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, CircleHelp, Settings, Globe, LogOut, Moon, Sun, PanelLeft, Zap, ChevronDown } from "lucide-react";
-const imgEllipse52 = "/images/avatar.png";
 import { useTheme } from "./theme-context";
 import { getDarkPalette } from "./dark-palette";
 import { useLanguage, LANGUAGES } from "./language-context";
 import { SearchModal } from "./search-modal";
+import { useUserProfile } from "./user-profile-context";
 
+// Profile and avatar synced via UserProfileContext
 interface TopBarProps {
   onNavigate: (page: string) => void;
-  isSettings?: boolean;
 }
 
 /* ── Profile Dropdown ── */
@@ -18,6 +18,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
   const ref = useRef<HTMLDivElement>(null);
   const { isDark, toggleTheme, navStyle, setNavStyle } = useTheme();
   const { lang, setLang, t } = useLanguage();
+  const { displayName, avatarSrc } = useUserProfile();
 
   useEffect(() => {
     function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setLangOpen(false); } }
@@ -53,7 +54,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
         onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
       >
         <div className="size-[28px] rounded-full overflow-hidden shrink-0">
-          <img src={imgEllipse52} alt="Avatar" className="size-full object-cover" />
+          <img src={avatarSrc} alt="Avatar" className="size-full object-cover" />
         </div>
         <div className="flex flex-col items-start">
           <span className="flex items-center gap-[4px]" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12.5px", color: triggerTextColor, whiteSpace: "nowrap" }}>
@@ -67,9 +68,9 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] w-[236px] rounded-[12px] py-[6px] z-50" style={{ backgroundColor: bg, border: `1px solid ${borderC}`, boxShadow: shadowStyle }}>
           <div className="flex items-center gap-[10px] px-[14px] py-[8px] mb-[2px]">
-            <img alt="" className="shrink-0 size-[32px] rounded-full object-cover" src={imgEllipse52} />
+            <img alt="" className="shrink-0 size-[32px] rounded-full object-cover" src={avatarSrc} />
             <div className="flex flex-col min-w-0">
-              <p className="truncate" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: textPrimary }}>Kirill Kuts</p>
+              <p className="truncate" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: textPrimary }}>{displayName}</p>
               <p className="truncate" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: textSecondary }}>{t("profile.proPlan")}</p>
             </div>
           </div>
@@ -109,7 +110,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
 }
 
 /* ── Top Bar ── */
-export function TopBar({ onNavigate, isSettings }: TopBarProps) {
+export function TopBar({ onNavigate }: TopBarProps) {
   const { isDark, navStyle } = useTheme();
   const navDk = navStyle === "dark";
   const dk = isDark;
@@ -145,26 +146,22 @@ export function TopBar({ onNavigate, isSettings }: TopBarProps) {
 
   return (
     <div className="shrink-0 flex items-center px-[16px] h-[56px] gap-[12px]" style={{ backgroundColor: barBg }}>
-      {/* Search trigger — hidden on settings page */}
-      {!isSettings && (
-        <>
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="relative flex items-center flex-1 max-w-[380px] h-[32px] rounded-full transition-all cursor-pointer"
-            style={{ backgroundColor: inputBg, border: `1px solid ${inputBorder}` }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = isDark || navDk ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)"}
-            onMouseLeave={e => e.currentTarget.style.borderColor = inputBorder}
-          >
-            <Search className="absolute left-[12px] size-[14px]" style={{ color: iconCol }} strokeWidth={1.5} />
-            <span className="pl-[32px]" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: textCol }}>Quick Find</span>
-            <div className="absolute right-[10px] flex items-center gap-[3px]">
-              <kbd className="flex items-center justify-center h-[18px] px-[5px] rounded-[3px]" style={{ backgroundColor: kbdBg, boxShadow: kbdShadow, fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: iconCol }}>Ctrl</kbd>
-              <kbd className="flex items-center justify-center size-[18px] rounded-[3px]" style={{ backgroundColor: kbdBg, boxShadow: kbdShadow, fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: iconCol }}>K</kbd>
-            </div>
-          </button>
-          <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} onNavigate={onNavigate} />
-        </>
-      )}
+      {/* Search trigger */}
+      <button
+        onClick={() => setSearchOpen(true)}
+        className="relative flex items-center flex-1 max-w-[380px] h-[32px] rounded-full transition-all cursor-pointer"
+        style={{ backgroundColor: inputBg, border: `1px solid ${inputBorder}` }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = isDark || navDk ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)"}
+        onMouseLeave={e => e.currentTarget.style.borderColor = inputBorder}
+      >
+        <Search className="absolute left-[12px] size-[14px]" style={{ color: iconCol }} strokeWidth={1.5} />
+        <span className="pl-[32px]" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: textCol }}>Quick Find</span>
+        <div className="absolute right-[10px] flex items-center gap-[3px]">
+          <kbd className="flex items-center justify-center h-[18px] px-[5px] rounded-[3px]" style={{ backgroundColor: kbdBg, boxShadow: kbdShadow, fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: iconCol }}>Ctrl</kbd>
+          <kbd className="flex items-center justify-center size-[18px] rounded-[3px]" style={{ backgroundColor: kbdBg, boxShadow: kbdShadow, fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: iconCol }}>K</kbd>
+        </div>
+      </button>
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} onNavigate={onNavigate} />
 
       {/* Spacer */}
       <div className="flex-1" />
