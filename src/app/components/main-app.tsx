@@ -44,7 +44,7 @@ export function MainApp() {
         />
       )}
       <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: navDk ? "#1a1d2e" : (isDark ? "#111115" : "#fafafa") }}>
-        <TopBar onNavigate={handleNavigate} isSettings={isSettings} />
+        <TopBar onNavigate={handleNavigate} />
         <main
           className="flex flex-1 overflow-hidden"
           style={{ backgroundColor: contentBg, borderTopLeftRadius: "14px" }}

@@ -8,7 +8,6 @@ import { SearchModal } from "./search-modal";
 
 interface TopBarProps {
   onNavigate: (page: string) => void;
-  isSettings?: boolean;
 }
 
 /* ── Profile Dropdown ── */
@@ -109,7 +108,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
 }
 
 /* ── Top Bar ── */
-export function TopBar({ onNavigate, isSettings }: TopBarProps) {
+export function TopBar({ onNavigate }: TopBarProps) {
   const { isDark, navStyle } = useTheme();
   const navDk = navStyle === "dark";
   const dk = isDark;
@@ -145,26 +144,22 @@ export function TopBar({ onNavigate, isSettings }: TopBarProps) {
 
   return (
     <div className="shrink-0 flex items-center px-[16px] h-[56px] gap-[12px]" style={{ backgroundColor: barBg }}>
-      {/* Search trigger — hidden on settings page */}
-      {!isSettings && (
-        <>
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="relative flex items-center flex-1 max-w-[380px] h-[32px] rounded-full transition-all cursor-pointer"
-            style={{ backgroundColor: inputBg, border: `1px solid ${inputBorder}` }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = isDark || navDk ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)"}
-            onMouseLeave={e => e.currentTarget.style.borderColor = inputBorder}
-          >
-            <Search className="absolute left-[12px] size-[14px]" style={{ color: iconCol }} strokeWidth={1.5} />
-            <span className="pl-[32px]" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: textCol }}>Quick Find</span>
-            <div className="absolute right-[10px] flex items-center gap-[3px]">
-              <kbd className="flex items-center justify-center h-[18px] px-[5px] rounded-[3px]" style={{ backgroundColor: kbdBg, boxShadow: kbdShadow, fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: iconCol }}>Ctrl</kbd>
-              <kbd className="flex items-center justify-center size-[18px] rounded-[3px]" style={{ backgroundColor: kbdBg, boxShadow: kbdShadow, fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: iconCol }}>K</kbd>
-            </div>
-          </button>
-          <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} onNavigate={onNavigate} />
-        </>
-      )}
+      {/* Search trigger */}
+      <button
+        onClick={() => setSearchOpen(true)}
+        className="relative flex items-center flex-1 max-w-[380px] h-[32px] rounded-full transition-all cursor-pointer"
+        style={{ backgroundColor: inputBg, border: `1px solid ${inputBorder}` }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = isDark || navDk ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.12)"}
+        onMouseLeave={e => e.currentTarget.style.borderColor = inputBorder}
+      >
+        <Search className="absolute left-[12px] size-[14px]" style={{ color: iconCol }} strokeWidth={1.5} />
+        <span className="pl-[32px]" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: textCol }}>Quick Find</span>
+        <div className="absolute right-[10px] flex items-center gap-[3px]">
+          <kbd className="flex items-center justify-center h-[18px] px-[5px] rounded-[3px]" style={{ backgroundColor: kbdBg, boxShadow: kbdShadow, fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: iconCol }}>Ctrl</kbd>
+          <kbd className="flex items-center justify-center size-[18px] rounded-[3px]" style={{ backgroundColor: kbdBg, boxShadow: kbdShadow, fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: iconCol }}>K</kbd>
+        </div>
+      </button>
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} onNavigate={onNavigate} />
 
       {/* Spacer */}
       <div className="flex-1" />
