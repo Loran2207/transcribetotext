@@ -7,6 +7,7 @@ import { useTheme } from "./theme-context";
 import { useLanguage } from "./language-context";
 import { TopBar } from "./top-bar";
 import { SettingsPage } from "./settings-modal";
+import { UserProfileProvider } from "./user-profile-context";
 
 export function MainApp() {
   const [activePage, setActivePage] = useState("dashboard");
@@ -29,6 +30,7 @@ export function MainApp() {
   const contentBg = isDark ? "#111115" : "white";
 
   return (
+    <UserProfileProvider>
     <div className="flex h-screen w-full bg-background text-foreground">
       {sidebarCollapsed ? (
         <CollapsedSidebar
@@ -60,6 +62,7 @@ export function MainApp() {
         </main>
       </div>
     </div>
+    </UserProfileProvider>
   );
 }
 

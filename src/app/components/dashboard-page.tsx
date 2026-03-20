@@ -9,6 +9,7 @@ import { motion } from "motion/react";
 import { useTheme } from "./theme-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
+import { useUserProfile } from "./user-profile-context";
 
 /* ═══════════════════════════════════════════
    Card 1: Instant Speach
@@ -369,10 +370,11 @@ function AudioVideoFilesCard() {
    ═══════════════════════════════════════════ */
 function useGreeting() {
   const { t } = useLanguage();
+  const { displayName } = useUserProfile();
+  const firstName = displayName.trim().split(" ")[0];
   const h = new Date().getHours();
-  if (h < 12) return t("dash.greeting.morning");
-  if (h < 18) return t("dash.greeting.afternoon");
-  return t("dash.greeting.evening");
+  const base = h < 12 ? t("dash.greeting.morning") : h < 18 ? t("dash.greeting.afternoon") : t("dash.greeting.evening");
+  return `${base}, ${firstName}`;
 }
 
 export function DashboardPage() {

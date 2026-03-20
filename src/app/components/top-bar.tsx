@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, CircleHelp, Settings, Globe, LogOut, Moon, Sun, PanelLeft, Zap, ChevronDown } from "lucide-react";
-const imgEllipse52 = "/images/avatar.png";
 import { useTheme } from "./theme-context";
 import { getDarkPalette } from "./dark-palette";
 import { useLanguage, LANGUAGES } from "./language-context";
 import { SearchModal } from "./search-modal";
+import { useUserProfile } from "./user-profile-context";
 
+// Profile and avatar synced via UserProfileContext
 interface TopBarProps {
   onNavigate: (page: string) => void;
 }
@@ -17,6 +18,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
   const ref = useRef<HTMLDivElement>(null);
   const { isDark, toggleTheme, navStyle, setNavStyle } = useTheme();
   const { lang, setLang, t } = useLanguage();
+  const { displayName, avatarSrc } = useUserProfile();
 
   useEffect(() => {
     function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setLangOpen(false); } }
@@ -52,7 +54,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
         onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
       >
         <div className="size-[28px] rounded-full overflow-hidden shrink-0">
-          <img src={imgEllipse52} alt="Avatar" className="size-full object-cover" />
+          <img src={avatarSrc} alt="Avatar" className="size-full object-cover" />
         </div>
         <div className="flex flex-col items-start">
           <span className="flex items-center gap-[4px]" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12.5px", color: triggerTextColor, whiteSpace: "nowrap" }}>
@@ -66,9 +68,9 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
       {open && (
         <div className="absolute right-0 top-[calc(100%+6px)] w-[236px] rounded-[12px] py-[6px] z-50" style={{ backgroundColor: bg, border: `1px solid ${borderC}`, boxShadow: shadowStyle }}>
           <div className="flex items-center gap-[10px] px-[14px] py-[8px] mb-[2px]">
-            <img alt="" className="shrink-0 size-[32px] rounded-full object-cover" src={imgEllipse52} />
+            <img alt="" className="shrink-0 size-[32px] rounded-full object-cover" src={avatarSrc} />
             <div className="flex flex-col min-w-0">
-              <p className="truncate" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: textPrimary }}>Kirill Kuts</p>
+              <p className="truncate" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: textPrimary }}>{displayName}</p>
               <p className="truncate" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: textSecondary }}>{t("profile.proPlan")}</p>
             </div>
           </div>
