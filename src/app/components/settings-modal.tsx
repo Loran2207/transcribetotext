@@ -547,9 +547,20 @@ function AccountPage({ isDark }: { isDark: boolean }) {
             </button>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
           </div>
-          <div>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "15px", color: txtPri }}>{name}</p>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "13px", color: txtSec, marginTop: "2px" }}>{EMAIL}</p>
+          <div className="flex items-center justify-between flex-1">
+            <div>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "15px", color: txtPri }}>{name}</p>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "13px", color: txtSec, marginTop: "2px" }}>{EMAIL}</p>
+            </div>
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="h-8 px-3 rounded-full text-[13px] font-medium shrink-0 transition-colors border"
+              style={{ fontFamily: "'Inter', sans-serif", backgroundColor: "transparent", color: isDark ? "rgba(255,255,255,0.55)" : "#6b7280", borderColor: isDark ? "rgba(255,255,255,0.1)" : "#e5e7eb" }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.08)" : "#f3f4f6"; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = "transparent"; }}
+            >
+              Upload image
+            </button>
           </div>
         </div>
 
@@ -649,7 +660,7 @@ function AccountPage({ isDark }: { isDark: boolean }) {
           {/* Delete account */}
           <div className="flex items-center justify-between py-3">
             <div>
-              <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif", color: "#ef4444" }}>Delete account</p>
+              <p className="text-sm font-medium" style={{ fontFamily: "'Inter', sans-serif", color: txtPri }}>Delete account</p>
               <p className="text-xs mt-0.5" style={{ fontFamily: "'Inter', sans-serif", color: txtSec }}>Permanently delete your account and all data</p>
             </div>
             <button
