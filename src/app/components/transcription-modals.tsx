@@ -58,6 +58,8 @@ interface CtxValue {
   stopInstantRecording: () => void;
   cancelInstantRecording: () => void;
   submitInstantRecording: (opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string }) => void;
+  openUploadWithFiles: (files: File[]) => void;
+  consumePreloadedFiles: () => File[];
 }
 
 const Ctx = createContext<CtxValue | null>(null);
@@ -79,6 +81,20 @@ export function TranscriptionModalsProvider({
   const [openModal, setOpenModal] = useState<ModalType>(null);
   const [jobs, setJobs] = useState<TranscriptionJob[]>([]);
   const meetingCounterRef = useRef(1);
+
+  // ── Upload preload state ───────────────────────────────────
+  const preloadedFilesRef = useRef<File[]>([]);
+
+  function openUploadWithFiles(files: File[]) {
+    preloadedFilesRef.current = files;
+    setOpenModal("upload");
+  }
+
+  function consumePreloadedFiles() {
+    const files = preloadedFilesRef.current;
+    preloadedFilesRef.current = [];
+    return files;
+  }
 
   // ── Instant recording state ────────────────────────────────
   const [recordingPhase, setRecordingPhase] = useState<RecordingPhase>("idle");
@@ -206,7 +222,7 @@ export function TranscriptionModalsProvider({
   }
 
   return (
-    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, cancelInstantRecording, submitInstantRecording }}>
+    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles }}>
       {children}
       <AllModals />
       <RecordingPill />
@@ -1184,7 +1200,7 @@ function formatBytes(b: number) {
 }
 
 function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan } = useTranscriptionModals();
+  const { addJob, userPlan, consumePreloadedFiles } = useTranscriptionModals();
   const { isDark } = useTheme();
   const c = getDarkPalette(isDark);
 
@@ -1194,6 +1210,19 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      const preloaded = consumePreloadedFiles();
+      if (preloaded.length) {
+        setFiles(prev => {
+          const existing = new Set(prev.map(f => f.name + f.size));
+          return [...prev, ...preloaded.filter(f => !existing.has(f.name + f.size))];
+        });
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function resetForm() { setFiles([]); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
   function handleClose() { resetForm(); onClose(); }
