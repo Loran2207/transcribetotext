@@ -93,7 +93,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
 export function TopBar({ onNavigate }: TopBarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
 
-  const kbdShadow = "0px 1px 2px rgba(0,0,0,0.06), 0px 0px 0px 0.5px rgba(0,0,0,0.04)";
+  const kbdClass = "flex items-center justify-center h-[18px] px-[5px] rounded-[4px] bg-background border border-border text-muted-foreground font-medium text-[10px] leading-none shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.05)]";
 
   useEffect(() => {
     function h(e: KeyboardEvent) {
@@ -113,8 +113,8 @@ export function TopBar({ onNavigate }: TopBarProps) {
         <Icon icon={Search} className="absolute left-[12px] size-[14px] text-muted-foreground" strokeWidth={1.5} />
         <span className="absolute left-[34px] font-normal text-[13px] text-muted-foreground">Quick Find</span>
         <div className="absolute right-[10px] flex items-center gap-[3px]">
-          <kbd className="flex items-center justify-center h-[18px] px-[5px] rounded-[3px] bg-popover text-muted-foreground font-medium text-[10px]" style={{ boxShadow: kbdShadow }}>Ctrl</kbd>
-          <kbd className="flex items-center justify-center size-[18px] rounded-[3px] bg-popover text-muted-foreground font-medium text-[10px]" style={{ boxShadow: kbdShadow }}>K</kbd>
+          <kbd className={kbdClass}>Ctrl</kbd>
+          <kbd className={`${kbdClass} size-[18px] px-0`}>K</kbd>
         </div>
       </Button>
       <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} onNavigate={onNavigate} />

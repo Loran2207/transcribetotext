@@ -8,7 +8,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { useFolders } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
-import { ChevronRight } from "@hugeicons/core-free-icons";
+import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
@@ -41,7 +41,7 @@ function FigmaCheckbox({ checked, onChange }: { checked: boolean; onChange: () =
         className={`absolute inset-[6.25%] rounded-[4px] flex items-center justify-center border ${
           checked
             ? "bg-primary border-primary"
-            : "bg-background border-input shadow-sm"
+            : "bg-background border-foreground/25 shadow-sm"
         }`}
       >
         {checked && (
@@ -149,7 +149,7 @@ function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "lef
 
   return (
     <div className="relative" ref={ref}>
-      <Button variant="ghost" onClick={() => setOpen(!open)} className="flex items-center gap-[3px] h-full transition-colors group">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-[3px] transition-opacity hover:opacity-70 group">
         <span className={`uppercase tracking-[0.3404px] font-medium text-[11px] ${isFiltered ? "text-primary" : "text-foreground"}`}>
           {label}
         </span>
@@ -159,7 +159,7 @@ function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "lef
         <svg className={`size-[10px] transition-transform ${open ? "rotate-180" : ""} ${isFiltered ? "text-primary" : "text-muted-foreground"}`} fill="none" viewBox="0 0 10 10">
           <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </Button>
+      </button>
       {open && (
         <div className={`absolute top-[calc(100%+4px)] w-[220px] rounded-[10px] py-[6px] z-50 bg-popover border border-border shadow-md ${align === "right" ? "right-0" : "left-0"}`}>
           {isFiltered && (
@@ -200,10 +200,10 @@ function SortHeaderDropdown({ label, options, selected, onSelect, align = "left"
   const isChanged = selected !== "newest";
   return (
     <div className="relative" ref={ref}>
-      <Button variant="ghost" onClick={() => setOpen(!open)} className="flex items-center gap-[3px] h-full transition-colors group">
+      <button onClick={() => setOpen(!open)} className="flex items-center gap-[3px] transition-opacity hover:opacity-70">
         <span className={`uppercase tracking-[0.3404px] font-medium text-[11px] ${isChanged ? "text-primary" : "text-foreground"}`}>{label}</span>
         <svg className={`size-[10px] transition-transform ${open ? "rotate-180" : ""} ${isChanged ? "text-primary" : "text-muted-foreground"}`} fill="none" viewBox="0 0 10 10"><path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
-      </Button>
+      </button>
       {open && (
         <div className={`absolute top-[calc(100%+4px)] w-[170px] rounded-[10px] py-[6px] z-50 bg-popover border border-border shadow-md ${align === "right" ? "right-0" : "left-0"}`}>
           {options.map((opt) => (
@@ -258,17 +258,15 @@ function LanguageBadge({ lang }: { lang: string }) {
    Multi-select Action Bar
    ══════════════════════════════════════════════ */
 
-function MultiSelectTextBtn({ icon, label, onClick, color }: { icon: React.ReactNode; label: string; onClick: () => void; color: string }) {
+function MultiSelectTextBtn({ icon, label, onClick, variant = "primary" }: { icon: React.ReactNode; label: string; onClick: () => void; variant?: "primary" | "destructive" }) {
   return (
-    <Button
-      variant="ghost"
+    <button
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="flex items-center gap-[5px] h-[30px] px-[8px] rounded-full transition-opacity hover:opacity-70"
-      style={{ backgroundColor: "transparent", border: "none" }}
+      className={`flex items-center gap-[5px] h-[30px] px-[8px] rounded-full transition-opacity hover:opacity-70 ${variant === "destructive" ? "text-destructive" : "text-primary"}`}
     >
-      <span style={{ color }}>{icon}</span>
-      <span className="font-medium text-[13px]" style={{ color }}>{label}</span>
-    </Button>
+      {icon}
+      <span className="font-medium text-[13px]">{label}</span>
+    </button>
   );
 }
 
@@ -277,23 +275,21 @@ function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary,
 }) {
   const { t } = useLanguage();
   const [copied, setCopied] = useState<string | null>(null);
-  const blue = "#2563eb";
-  const red = "#EF4444";
   return (
-    <div className="flex items-center gap-[4px] h-[36px] px-[4px] bg-primary/5" style={{ borderBottom: "1px solid hsl(var(--primary) / 0.2)" }}>
+    <div className="flex items-center gap-[4px] h-[36px] bg-primary/5" style={{ borderBottom: "1px solid hsl(var(--primary) / 0.2)" }}>
       <div className="w-[40px] shrink-0 flex items-center justify-center">
         <FigmaCheckbox checked onChange={onCancel} />
       </div>
       <span className="font-semibold text-[13px] text-foreground">{count} {t("table.selected")}</span>
-      <div className="h-[20px] w-px ml-[2px]" style={{ backgroundColor: "hsl(var(--primary) / 0.2)" }} />
-      <MultiSelectTextBtn label="Summary" color={blue} onClick={() => { onCopySummary(); setCopied("s"); setTimeout(() => setCopied(null), 1500); }} icon={<svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.1" /><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" /></svg>} />
-      <MultiSelectTextBtn label="Share" color={blue} onClick={onShare} icon={<svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><circle cx="12" cy="2.667" r="1.667" stroke="currentColor" strokeWidth="1.2" /><circle cx="4" cy="8" r="1.667" stroke="currentColor" strokeWidth="1.2" /><circle cx="12" cy="13.333" r="1.667" stroke="currentColor" strokeWidth="1.2" /><path d="M5.58 6.94l4.84-2.82M10.42 11.88L5.58 9.06" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>} />
-      <MultiSelectTextBtn label="Folder" color={blue} onClick={onMoveFolder} icon={<svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>} />
-      <MultiSelectTextBtn label="Export" color={blue} onClick={onExport} icon={<svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M8 10V2M4.667 4.667L8 1.333l3.333 3.334" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /><path d="M2 10v2.667A1.333 1.333 0 003.333 14h9.334A1.333 1.333 0 0014 12.667V10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>} />
-      <MultiSelectTextBtn label="Trash" color={red} onClick={onTrash} icon={<svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>} />
+      <div className="h-[20px] w-px ml-[2px] bg-primary/20" />
+      <MultiSelectTextBtn label="Summary" onClick={() => { onCopySummary(); setCopied("s"); setTimeout(() => setCopied(null), 1500); }} icon={<Icon icon={Copy} className="size-[14px]" strokeWidth={1.5} />} />
+      <MultiSelectTextBtn label="Share" onClick={onShare} icon={<Icon icon={Share} className="size-[14px]" strokeWidth={1.5} />} />
+      <MultiSelectTextBtn label="Folder" onClick={onMoveFolder} icon={<Icon icon={FolderOpen} className="size-[14px]" strokeWidth={1.5} />} />
+      <MultiSelectTextBtn label="Export" onClick={onExport} icon={<Icon icon={Upload} className="size-[14px]" strokeWidth={1.5} />} />
+      <MultiSelectTextBtn label="Trash" onClick={onTrash} variant="destructive" icon={<Icon icon={Trash} className="size-[14px]" strokeWidth={1.5} />} />
       <div className="flex-1" />
-      <Button variant="ghost" onClick={onCancel} className="h-[30px] px-[12px] rounded-full transition-colors hover:bg-accent">
-        <span className="font-medium text-[13px] text-muted-foreground">{t("common.cancel")}</span>
+      <Button variant="ghost" onClick={onCancel} className="h-[30px] px-[12px] rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent">
+        {t("common.cancel")}
       </Button>
       {copied && <CopyToast text={t("common.copied")} />}
     </div>
@@ -1329,13 +1325,13 @@ export function RecordsTable() {
       {/* Header: Title + Search + Settings + Add Folder */}
       <div className="flex items-center gap-[12px] mb-[16px]">
 
-        <p className="font-semibold text-[18px] text-foreground">{t("table.myRecords")}</p>
-        <Button variant="ghost" size="icon" className="flex items-center transition-opacity cursor-pointer ml-[3px] hover:opacity-60">
-          <Icon icon={ChevronRight} className="size-[16px] text-foreground" strokeWidth={1.5} />
-        </Button>
+        <button className="flex items-center gap-[4px] cursor-pointer group">
+          <span className="font-semibold text-[18px] text-foreground">{t("table.myRecords")}</span>
+          <Icon icon={ChevronRight} className="size-[16px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+        </button>
         <div className="flex-1" />
         <Button variant="outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-[32px] px-[14px] rounded-full transition-colors cursor-pointer bg-background hover:bg-accent">
-          <svg className="size-[14px] text-foreground" fill="none" viewBox="0 0 16 16"><path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /><path d="M8 7.333v4M6 9.333h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
           <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
         </Button>
       </div>
@@ -1363,7 +1359,7 @@ export function RecordsTable() {
                 return (
                   <TabsTrigger key={tab} value={tab} variant="line" className={activeTab === tab && isTrash ? "text-destructive data-[state=active]:text-destructive data-[state=active]:after:bg-destructive" : ""}>
                     {tab === "Recent" ? t("table.recent") : tab === "Starred" ? t("table.starred") : tab === "Shared" ? t("table.shared") : t("table.trash")}
-                    <span className="text-[12px] font-normal">{count}</span>
+                    <span className="opacity-50 font-[inherit]">{count}</span>
                   </TabsTrigger>
                 );
               })}
@@ -1397,13 +1393,12 @@ export function RecordsTable() {
           )}
 
         </div>
-        <div className="h-px bg-border" />
       </div>
 
       {/* ══════ TABLE VIEW ══════ */}
       {viewMode === "table" && (
         <div>
-          <div className="w-full overflow-visible bg-card border-y border-border">
+          <div className="w-full overflow-visible bg-card border-b border-border">
             {/* Header row — replaced by MultiSelectBar when rows are selected */}
             {hasSelection ? (
               <MultiSelectBar

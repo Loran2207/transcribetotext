@@ -12,6 +12,15 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Switch } from "./ui/switch";
 import { useFolders } from "./folder-context";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -410,6 +419,8 @@ function CreateFolderDialog({
   );
 }
 
+const FOLDER_SVG_PATH = "M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z";
+
 function FolderSelector({
   value,
   onChange,
@@ -422,135 +433,58 @@ function FolderSelector({
   compact?: boolean;
 }) {
   const { folders, addFolder } = useFolders();
-  const [open, setOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
-  const selectedFolder = folders.find(f => f.id === value) ?? null;
-
-  // Compute portal position when opening
-  function openDropdown() {
-    if (ref.current) {
-      const rect = ref.current.getBoundingClientRect();
-      // decide whether to open upward or downward
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const dropH = Math.min((folders.length + 2) * 34 + 8, 280);
-      const top = spaceBelow >= dropH || spaceBelow >= 120
-        ? rect.bottom + 4
-        : rect.top - dropH - 4;
-      setDropdownPos({ top, left: rect.left, width: rect.width });
+  function handleValueChange(val: string) {
+    if (val === "__create__") {
+      setCreateDialogOpen(true);
+      return;
     }
-    setOpen(v => !v);
+    onChange(val === "__none__" ? null : val);
   }
-
-  useEffect(() => {
-    function h(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
 
   function handleCreateFolder(name: string, color: string) {
     const created = addFolder(name, color);
     onChange(created.id);
   }
 
-  function openCreateDialog() {
-    setOpen(false);
-    setCreateDialogOpen(true);
-  }
-
   return (
-    <div className="relative" ref={ref}>
+    <div>
       {!compact && <SectionLabel>{label}</SectionLabel>}
-      <div className={`w-full ${compact ? "h-[36px]" : "h-[40px]"} rounded-full flex items-center gap-[6px] pl-[12px] pr-[10px] text-sm text-foreground bg-transparent border border-input`}>
-        <Button variant="ghost"
-          onClick={openDropdown}
-          className="flex items-center gap-[7px] min-w-0 flex-1 p-0 h-auto"
-          type="button"
+      <Select value={value ?? "__none__"} onValueChange={handleValueChange}>
+        <SelectTrigger
+          className={`w-full rounded-full border-input bg-transparent px-[12px] gap-[8px] ${compact ? "h-[36px]" : "h-[40px]"}`}
         >
-          <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16" style={{ color: selectedFolder?.color ?? undefined }}>
-            <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className={`truncate text-left text-[13px] ${selectedFolder ? "text-foreground" : "text-muted-foreground"}`}>
-            {selectedFolder ? selectedFolder.name : "Select folder"}
-          </span>
-        </Button>
-
-        <Button variant="ghost" size="icon"
-          type="button"
-          onClick={openCreateDialog}
-          title="Add folder"
-          className="size-[24px] rounded-full flex items-center justify-center transition-colors shrink-0 hover:bg-accent"
-        >
-          <Icon icon={FolderPlus} className="size-[13px] text-muted-foreground" strokeWidth={1.6} />
-        </Button>
-
-        <Button variant="ghost" size="icon"
-          type="button"
-          onClick={openDropdown}
-          className="size-[20px] rounded-full flex items-center justify-center transition-colors shrink-0 hover:bg-accent"
-        >
-          <svg className={`size-[10px] transition-transform text-muted-foreground ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16">
-            <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Button>
-      </div>
-
-      {open && dropdownPos && createPortal(
-        <div
-          className="fixed rounded-[12px] overflow-hidden bg-popover border border-border shadow-md"
-          style={{
-            top: dropdownPos.top,
-            left: dropdownPos.left,
-            width: dropdownPos.width,
-            zIndex: 9999,
-          }}
-        >
-          <Button variant="ghost"
-            type="button"
-            onClick={() => { onChange(null); setOpen(false); }}
-            className="flex items-center justify-between w-full h-[34px] px-[12px] transition-colors hover:bg-accent rounded-none"
-          >
-            <span className="text-[13px] text-foreground">No folder</span>
-            {!value && <svg className="size-[12px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-          </Button>
-
+          <SelectValue placeholder="Select folder" className="text-[13px]" />
+        </SelectTrigger>
+        <SelectContent className="z-[300]">
+          <SelectItem value="__none__" className="text-[13px]">
+            <span className="flex items-center gap-[7px]">
+              <svg className="size-[13px] shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16">
+                <path d={FOLDER_SVG_PATH} fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              No folder
+            </span>
+          </SelectItem>
           {folders.map(folder => (
-            <Button variant="ghost"
-              key={folder.id}
-              type="button"
-              onClick={() => { onChange(folder.id); setOpen(false); }}
-              className="flex items-center justify-between w-full h-[34px] px-[12px] transition-colors hover:bg-accent rounded-none"
-            >
-              <span className="flex items-center gap-[7px] min-w-0">
+            <SelectItem key={folder.id} value={folder.id} className="text-[13px]">
+              <span className="flex items-center gap-[7px]">
                 <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16" style={{ color: folder.color }}>
-                  <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d={FOLDER_SVG_PATH} fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <span className="truncate text-left text-[13px] text-foreground">
-                  {folder.name}
-                </span>
+                {folder.name}
               </span>
-              {value === folder.id && <svg className="size-[12px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-            </Button>
+            </SelectItem>
           ))}
-
-          <div className="h-px bg-border" />
-          <Button variant="ghost"
-            type="button"
-            onClick={openCreateDialog}
-            className="flex items-center gap-[6px] w-full h-[34px] px-[12px] transition-colors hover:bg-accent rounded-none"
-          >
-            <Icon icon={FolderPlus} className="size-[12px] text-primary" strokeWidth={1.7} />
-            <span className="font-medium text-xs text-primary">Add folder</span>
-          </Button>
-        </div>,
-        document.body
-      )}
+          <SelectSeparator />
+          <SelectItem value="__create__" className="text-[13px] text-primary focus:text-primary">
+            <span className="flex items-center gap-[6px]">
+              <Icon icon={FolderPlus} className="size-[12px] text-primary" strokeWidth={1.7} />
+              Add folder
+            </span>
+          </SelectItem>
+        </SelectContent>
+      </Select>
 
       <CreateFolderDialog
         open={createDialogOpen}
@@ -653,22 +587,22 @@ function TranscriptionModeToggle({ mode, onChange, compact = false }: {
 }) {
   if (compact) {
     return (
-      <div
-        className="flex rounded-full p-[3px] shrink-0 h-[40px] bg-muted border border-border"
-      >
+      <div className="flex items-center rounded-full p-[3px] shrink-0 bg-muted">
         {(["mono", "bi"] as const).map(m => {
           const isActive = mode === m;
           return (
-            <Button variant="ghost"
+            <button
               key={m}
               type="button"
               onClick={() => onChange(m)}
-              className={`flex items-center justify-center rounded-full transition-all px-[10px] ${isActive ? "bg-background shadow-sm" : ""}`}
+              className={`flex items-center justify-center rounded-full px-[14px] py-[5px] text-[12px] font-medium transition-all whitespace-nowrap ${
+                isActive
+                  ? "bg-background shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <span className={`text-xs whitespace-nowrap ${isActive ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-                {m === "mono" ? "Mono" : "Bi"}
-              </span>
-            </Button>
+              {m === "mono" ? "Mono" : "Bi"}
+            </button>
           );
         })}
       </div>
@@ -1644,7 +1578,7 @@ function RecordingPill() {
       {/* Pause / Resume */}
       <Button variant="ghost" size="icon"
         onClick={isPaused ? resumeInstantRecording : pauseInstantRecording}
-        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0 bg-muted border border-border hover:bg-accent"
+        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0 bg-muted hover:bg-accent"
         title={isPaused ? "Resume" : "Pause"}
       >
         {isPaused
@@ -1653,13 +1587,12 @@ function RecordingPill() {
         }
       </Button>
       {/* Stop */}
-      <Button variant="destructive" size="icon"
+      <Button variant="ghost" size="icon"
         onClick={stopInstantRecording}
-        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0 hover:bg-destructive/20"
-        style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
+        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0 bg-destructive/10 hover:bg-destructive/20"
         title="Stop recording"
       >
-        <svg className="size-[10px]" viewBox="0 0 12 12" fill="hsl(var(--destructive))"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
+        <svg className="size-[10px] text-destructive" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
       </Button>
     </div>,
     document.body
@@ -1717,7 +1650,7 @@ function RecordingCard({ elapsed, audioUrl, onContinue }: {
           <span className="font-bold text-[18px] text-foreground tabular-nums">{fmtDuration(elapsed)}</span>
           {audioUrl && (
             <Button variant="ghost" size="icon" onClick={togglePlay}
-              className="flex items-center justify-center size-[28px] rounded-full transition-colors shrink-0 bg-muted border border-border hover:bg-accent"
+              className="flex items-center justify-center size-[28px] rounded-full transition-colors shrink-0 bg-muted hover:bg-accent"
               title={isPlaying ? "Pause" : "Play back recording"}
             >
               {isPlaying
@@ -1727,8 +1660,7 @@ function RecordingCard({ elapsed, audioUrl, onContinue }: {
             </Button>
           )}
           <Button variant="ghost" onClick={onContinue}
-            className="h-[28px] px-[11px] rounded-full flex items-center gap-[5px] transition-colors shrink-0 hover:bg-destructive/15"
-            style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)" }}
+            className="h-[28px] px-[11px] rounded-full flex items-center gap-[5px] transition-colors shrink-0 bg-destructive/10 hover:bg-destructive/15"
             title="Continue recording"
           >
             <span className="size-[6px] rounded-full shrink-0 animate-pulse bg-destructive" />

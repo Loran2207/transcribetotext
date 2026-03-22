@@ -434,7 +434,7 @@ function Text4() {
 
 function Container32() {
   return (
-    <div className="absolute bg-[rgba(255,255,255,0.8)] content-stretch flex gap-[3px] h-[22px] items-center left-[137.77px] pl-[6px] rounded-[6px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.08),0px_0px_0px_0px_rgba(0,0,0,0.06)] top-[10px] w-[31.979px]" data-name="Container">
+    <div className="absolute bg-white border border-black/[0.08] content-stretch flex gap-[3px] h-[22px] items-center left-[137.77px] pl-[6px] rounded-[6px] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.05)] top-[10px] w-[31.979px]" data-name="Container">
       <Text3 />
       <Text4 />
     </div>
@@ -739,7 +739,7 @@ function Text6() {
 
 function Container42() {
   return (
-    <div className="absolute bg-[rgba(255,255,255,0.8)] content-stretch flex gap-[3px] h-[22px] items-center left-[135.56px] pl-[6px] rounded-[6px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.08),0px_0px_0px_0px_rgba(0,0,0,0.06)] top-[10px] w-[34.188px]" data-name="Container">
+    <div className="absolute bg-white border border-black/[0.08] content-stretch flex gap-[3px] h-[22px] items-center left-[135.56px] pl-[6px] rounded-[6px] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.05)] top-[10px] w-[34.188px]" data-name="Container">
       <Text5 />
       <Text6 />
     </div>
@@ -944,7 +944,7 @@ function Text8() {
 
 function Container55() {
   return (
-    <div className="absolute bg-[rgba(255,255,255,0.8)] content-stretch flex gap-[3px] h-[22px] items-center left-[135.44px] pl-[6px] rounded-[6px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.08),0px_0px_0px_0px_rgba(0,0,0,0.06)] top-[10px] w-[34.313px]" data-name="Container">
+    <div className="absolute bg-white border border-black/[0.08] content-stretch flex gap-[3px] h-[22px] items-center left-[135.44px] pl-[6px] rounded-[6px] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.05)] top-[10px] w-[34.313px]" data-name="Container">
       <Text7 />
       <Text8 />
     </div>
@@ -1239,7 +1239,7 @@ function Text10() {
 
 function Container64() {
   return (
-    <div className="absolute bg-[rgba(255,255,255,0.8)] content-stretch flex gap-[3px] h-[22px] items-center left-[135.11px] pl-[6px] rounded-[6px] shadow-[0px_1px_3px_0px_rgba(0,0,0,0.08),0px_0px_0px_0px_rgba(0,0,0,0.06)] top-[10px] w-[34.635px]" data-name="Container">
+    <div className="absolute bg-white border border-black/[0.08] content-stretch flex gap-[3px] h-[22px] items-center left-[135.11px] pl-[6px] rounded-[6px] shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.05)] top-[10px] w-[34.635px]" data-name="Container">
       <Text9 />
       <Text10 />
     </div>

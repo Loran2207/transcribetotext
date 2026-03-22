@@ -417,10 +417,10 @@ export function DashboardPage() {
                 onClick={() => modal === "record" ? startInstantRecording() : setOpenModal(modal)}
               >
                 {card}
-                <div className="absolute top-[10px] right-[10px] flex items-center gap-[3px] backdrop-blur-sm rounded-[6px] px-[6px] h-[22px] transition-opacity duration-200 pointer-events-none z-10" style={{ backgroundColor: "rgba(255,255,255,0.8)", boxShadow: "0px 1px 3px 0px rgba(0,0,0,0.08), 0px 0px 0px 0.5px rgba(0,0,0,0.06)" }}>
-                  <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "11px", letterSpacing: "0.2px" }}>&#x2318;</span>
-                  <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "11px", letterSpacing: "0.2px" }}>{key}</span>
-                </div>
+                <kbd className="absolute top-[10px] right-[10px] flex items-center gap-[3px] rounded-[4px] px-[6px] h-[20px] pointer-events-none z-10 bg-background border border-black/[0.08] text-muted-foreground font-medium leading-none" style={{ fontSize: "11px", boxShadow: "0 1px 2px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.05)" }}>
+                  <span>&#x2318;</span>
+                  <span>{key}</span>
+                </kbd>
               </div>
             ))}
           </motion.div>

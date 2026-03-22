@@ -25,11 +25,11 @@ export function MainApp() {
 
   return (
     <UserProfileProvider>
-      <SidebarProvider className="h-screen !min-h-0 overflow-hidden">
+      <SidebarProvider className="h-screen !min-h-0 overflow-hidden bg-sidebar">
         <AppSidebar activePage={activePage} onNavigate={handleNavigate} />
-        <SidebarInset className="overflow-hidden">
+        <SidebarInset className="overflow-hidden bg-sidebar">
           <TopBar onNavigate={handleNavigate} />
-          <main className="flex flex-1 overflow-hidden">
+          <main className="flex flex-1 overflow-hidden rounded-tl-[32px] bg-background">
             {isSettings && (
               <SettingsPage onClose={() => handleNavigate(prevPageRef.current || "dashboard")} />
             )}
