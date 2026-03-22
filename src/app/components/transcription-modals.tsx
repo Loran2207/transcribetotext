@@ -3,10 +3,14 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus } from "lucide-react";
-import { useTheme } from "./theme-context";
-import { getDarkPalette } from "./dark-palette";
+import { FolderPlus } from "@hugeicons/core-free-icons";
+import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { Switch } from "./ui/switch";
 import { useFolders } from "./folder-context";
 
 // ════════════════════════════════════════════════════════════
@@ -246,74 +250,36 @@ function fmtDuration(s: number) {
   return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 }
 
-// ═════���══════════════════════════════════════════════════════
-// Design tokens helper
 // ════════════════════════════════════════════════════════════
-
-/** Consistent input/select/textarea base style */
-function useInputStyle() {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-  return {
-    base: {
-      fontFamily: "'Inter', sans-serif" as const,
-      fontSize: "14px",
-      color: c.textSecondary,
-      backgroundColor: isDark ? "#111115" : "white",
-      border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#dde1e9"}`,
-    },
-    focus(el: HTMLElement, error = false) {
-      el.style.borderColor = error ? "#ef4444" : "#2563eb";
-      el.style.boxShadow = error ? "0 0 0 3px rgba(239,68,68,0.08)" : "0 0 0 3px rgba(37,99,235,0.08)";
-    },
-    blur(el: HTMLElement, error = false) {
-      el.style.borderColor = error ? "#ef4444" : (isDark ? "rgba(255,255,255,0.1)" : "#dde1e9");
-      el.style.boxShadow = "none";
-    },
-  };
-}
-
-// ══════════════════════════════════════════════════════════�����═
 // Shared atoms
 // ════════════════════════════════════════════════════════════
 
 function ToggleSw({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
-    <button
-      onClick={e => { e.stopPropagation(); onChange(); }}
-      role="switch" aria-checked={checked}
-      className="relative inline-flex shrink-0 h-[22px] w-[40px] rounded-full transition-colors duration-200 focus:outline-none"
-      style={{ backgroundColor: checked ? "#2563eb" : "#d1d5db" }}
-    >
-      <span className="absolute size-[18px] rounded-full bg-white shadow transition-transform duration-200"
-        style={{ transform: checked ? "translateX(20px)" : "translateX(2px)", top: "2px" }} />
-    </button>
+    <Switch
+      checked={checked}
+      onCheckedChange={() => onChange()}
+      onClick={e => e.stopPropagation()}
+    />
   );
 }
 
 function XBtn({ onClick }: { onClick: () => void }) {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
   return (
-    <button onClick={onClick} aria-label="Close"
-      className="size-[28px] rounded-full flex items-center justify-center transition-colors flex-shrink-0"
-      style={{ backgroundColor: "transparent" }}
-      onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.07)" : "#f0f1f4"}
-      onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+    <Button variant="ghost" size="icon" onClick={onClick} aria-label="Close"
+      className="size-[28px] rounded-full flex items-center justify-center transition-colors flex-shrink-0 hover:bg-accent"
     >
-      <svg className="size-[13px]" fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+      <svg className="size-[13px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
         <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
       </svg>
-    </button>
+    </Button>
   );
 }
 
 /** Clean, non-uppercase section label */
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
   return (
-    <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12px", color: c.textMuted, marginBottom: "7px" }}>
+    <p className="font-medium text-xs text-muted-foreground mb-[7px]">
       {children}
     </p>
   );
@@ -336,8 +302,6 @@ function CreateFolderDialog({
   const [name, setName] = useState("");
   const [selectedColor, setSelectedColor] = useState(FOLDER_COLOR_OPTIONS[0]);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
 
   useEffect(() => {
     if (!open) return;
@@ -352,26 +316,25 @@ function CreateFolderDialog({
     <div className="fixed inset-0 z-[180] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
       <div
-        className="relative rounded-[20px] w-[400px] overflow-hidden"
-        style={{ backgroundColor: c.bgPopover, boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}
+        className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover"
+        style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}
       >
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
-          <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "17px", color: c.textPrimary }}>Create New Folder</h2>
-          <button
+          <h2 className="font-semibold text-[17px] text-foreground">Create New Folder</h2>
+          <Button variant="ghost" size="icon"
             onClick={onClose}
             className="size-[28px] rounded-full flex items-center justify-center transition-colors"
-            style={{ backgroundColor: "transparent" }}
           >
-            <svg className="size-[16px]" fill="none" viewBox="0 0 16 16" style={{ color: "#9ca3af" }}>
+            <svg className="size-[16px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
               <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
-          </button>
+          </Button>
         </div>
         <div className="px-[24px] pt-[18px] pb-[8px]">
-          <label style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary, display: "block", marginBottom: "6px" }}>
+          <Label className="font-medium text-[13px] text-foreground block mb-[6px]">
             Folder name
-          </label>
-          <input
+          </Label>
+          <Input
             ref={inputRef}
             value={name}
             onChange={e => setName(e.target.value)}
@@ -380,31 +343,22 @@ function CreateFolderDialog({
               if (e.key === "Escape") onClose();
             }}
             placeholder="e.g. Client Meetings"
-            className="w-full h-[40px] px-[14px] rounded-full outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10 transition-all placeholder:text-[#b0b7c3]"
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontWeight: 400,
-              fontSize: "14px",
-              color: c.textSecondary,
-              backgroundColor: c.bgInput,
-              borderWidth: "1px",
-              borderStyle: "solid",
-              borderColor: c.borderInput,
-            }}
+            className="w-full h-[40px] px-[14px] rounded-full text-sm"
           />
 
-          <label style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary, display: "block", marginTop: "18px", marginBottom: "8px" }}>
+          <Label className="font-medium text-[13px] text-foreground block mt-[18px] mb-[8px]">
             Color
-          </label>
+          </Label>
           <div className="flex items-center gap-[8px]">
             {FOLDER_COLOR_OPTIONS.map(color => (
-              <button
+              <Button
+                variant="ghost" size="icon"
                 key={color}
                 onClick={() => setSelectedColor(color)}
-                className="size-[28px] rounded-full flex items-center justify-center transition-all"
+                className="size-[28px] rounded-full flex items-center justify-center transition-all p-0"
                 style={{
                   backgroundColor: color,
-                  boxShadow: selectedColor === color ? `0 0 0 2px ${c.bgPopover}, 0 0 0 4px ${color}` : "none",
+                  boxShadow: selectedColor === color ? `0 0 0 2px var(--popover), 0 0 0 4px ${color}` : "none",
                   transform: selectedColor === color ? "scale(1.1)" : "scale(1)",
                 }}
               >
@@ -413,11 +367,11 @@ function CreateFolderDialog({
                     <path d="M3 8.5L6.5 12L13 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
-              </button>
+              </Button>
             ))}
           </div>
 
-          <div className="flex items-center gap-[10px] mt-[20px] p-[12px] rounded-[12px]" style={{ backgroundColor: c.bgSubtle, border: `1px solid ${c.border}` }}>
+          <div className="flex items-center gap-[10px] mt-[20px] p-[12px] rounded-[12px] bg-secondary border border-border">
             <svg className="size-[24px] shrink-0" fill="none" viewBox="0 0 16 16">
               <path
                 d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z"
@@ -429,28 +383,26 @@ function CreateFolderDialog({
                 strokeLinejoin="round"
               />
             </svg>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "14px", color: name.trim() ? c.textPrimary : "#b0b7c3" }}>
+            <span className={`font-medium text-sm ${name.trim() ? "text-foreground" : "text-muted-foreground"}`}>
               {name.trim() || "Folder name"}
             </span>
           </div>
         </div>
 
         <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
-          <button
+          <Button variant="outline"
             onClick={onClose}
-            className="h-[36px] px-[18px] rounded-full border transition-colors"
-            style={{ borderColor: c.borderBtn, backgroundColor: isDark ? "transparent" : "white" }}
+            className="h-[36px] px-[18px] rounded-full bg-background transition-colors hover:bg-accent"
           >
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Cancel</span>
-          </button>
-          <button
+            <span className="font-medium text-[13px] text-foreground">Cancel</span>
+          </Button>
+          <Button
             onClick={() => { if (name.trim()) { onCreate(name.trim(), selectedColor); onClose(); } }}
             disabled={!name.trim()}
-            className="h-[36px] px-[18px] rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ backgroundColor: "#2563eb", color: "white" }}
+            className="h-[36px] px-[18px] rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px" }}>Create Folder</span>
-          </button>
+            <span className="font-medium text-[13px]">Create Folder</span>
+          </Button>
         </div>
       </div>
     </div>,
@@ -470,9 +422,6 @@ function FolderSelector({
   compact?: boolean;
 }) {
   const { folders, addFolder } = useFolders();
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-  const inp = useInputStyle();
   const [open, setOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -518,107 +467,87 @@ function FolderSelector({
   return (
     <div className="relative" ref={ref}>
       {!compact && <SectionLabel>{label}</SectionLabel>}
-      <div className={`w-full ${compact ? "h-[36px]" : "h-[40px]"} rounded-full flex items-center gap-[6px] pl-[12px] pr-[10px]`} style={{ ...inp.base }}>
-        <button
+      <div className={`w-full ${compact ? "h-[36px]" : "h-[40px]"} rounded-full flex items-center gap-[6px] pl-[12px] pr-[10px] text-sm text-foreground bg-transparent border border-input`}>
+        <Button variant="ghost"
           onClick={openDropdown}
-          className="flex items-center gap-[7px] min-w-0 flex-1"
+          className="flex items-center gap-[7px] min-w-0 flex-1 p-0 h-auto"
           type="button"
         >
-          <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16" style={{ color: selectedFolder?.color ?? c.textMuted }}>
+          <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16" style={{ color: selectedFolder?.color ?? undefined }}>
             <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span className="truncate text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: selectedFolder ? c.textSecondary : c.textMuted }}>
+          <span className={`truncate text-left text-[13px] ${selectedFolder ? "text-foreground" : "text-muted-foreground"}`}>
             {selectedFolder ? selectedFolder.name : "Select folder"}
           </span>
-        </button>
+        </Button>
 
-        <button
+        <Button variant="ghost" size="icon"
           type="button"
           onClick={openCreateDialog}
           title="Add folder"
-          className="size-[24px] rounded-full flex items-center justify-center transition-colors shrink-0"
-          style={{ backgroundColor: "transparent" }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+          className="size-[24px] rounded-full flex items-center justify-center transition-colors shrink-0 hover:bg-accent"
         >
-          <FolderPlus className="size-[13px]" strokeWidth={1.6} style={{ color: c.textMuted }} />
-        </button>
+          <Icon icon={FolderPlus} className="size-[13px] text-muted-foreground" strokeWidth={1.6} />
+        </Button>
 
-        <button
+        <Button variant="ghost" size="icon"
           type="button"
           onClick={openDropdown}
-          className="size-[20px] rounded-full flex items-center justify-center transition-colors shrink-0"
-          style={{ backgroundColor: "transparent" }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+          className="size-[20px] rounded-full flex items-center justify-center transition-colors shrink-0 hover:bg-accent"
         >
-          <svg className={`size-[10px] transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+          <svg className={`size-[10px] transition-transform text-muted-foreground ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16">
             <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </button>
+        </Button>
       </div>
 
       {open && dropdownPos && createPortal(
         <div
+          className="fixed rounded-[12px] overflow-hidden bg-popover border border-border shadow-md"
           style={{
-            position: "fixed",
             top: dropdownPos.top,
             left: dropdownPos.left,
             width: dropdownPos.width,
             zIndex: 9999,
-            borderRadius: "12px",
-            overflow: "hidden",
-            backgroundColor: c.bgPopover,
-            border: `1px solid ${c.border}`,
-            boxShadow: c.shadow,
           }}
         >
-          <button
+          <Button variant="ghost"
             type="button"
             onClick={() => { onChange(null); setOpen(false); }}
-            className="flex items-center justify-between w-full h-[34px] px-[12px] transition-colors"
-            style={{ backgroundColor: "transparent" }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+            className="flex items-center justify-between w-full h-[34px] px-[12px] transition-colors hover:bg-accent rounded-none"
           >
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>No folder</span>
-            {!value && <svg className="size-[12px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-          </button>
+            <span className="text-[13px] text-foreground">No folder</span>
+            {!value && <svg className="size-[12px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+          </Button>
 
           {folders.map(folder => (
-            <button
+            <Button variant="ghost"
               key={folder.id}
               type="button"
               onClick={() => { onChange(folder.id); setOpen(false); }}
-              className="flex items-center justify-between w-full h-[34px] px-[12px] transition-colors"
-              style={{ backgroundColor: "transparent" }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+              className="flex items-center justify-between w-full h-[34px] px-[12px] transition-colors hover:bg-accent rounded-none"
             >
               <span className="flex items-center gap-[7px] min-w-0">
                 <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16" style={{ color: folder.color }}>
                   <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <span className="truncate text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>
+                <span className="truncate text-left text-[13px] text-foreground">
                   {folder.name}
                 </span>
               </span>
-              {value === folder.id && <svg className="size-[12px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-            </button>
+              {value === folder.id && <svg className="size-[12px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+            </Button>
           ))}
 
-          <div className="h-px" style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#edf0f5" }} />
-          <button
+          <div className="h-px bg-border" />
+          <Button variant="ghost"
             type="button"
             onClick={openCreateDialog}
-            className="flex items-center gap-[6px] w-full h-[34px] px-[12px] transition-colors"
-            style={{ backgroundColor: "transparent" }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+            className="flex items-center gap-[6px] w-full h-[34px] px-[12px] transition-colors hover:bg-accent rounded-none"
           >
-            <FolderPlus className="size-[12px]" strokeWidth={1.7} style={{ color: "#2563eb" }} />
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12px", color: "#2563eb" }}>Add folder</span>
-          </button>
+            <Icon icon={FolderPlus} className="size-[12px] text-primary" strokeWidth={1.7} />
+            <span className="font-medium text-xs text-primary">Add folder</span>
+          </Button>
         </div>,
         document.body
       )}
@@ -662,9 +591,6 @@ function LanguageSelector({ value, onChange, label }: { value: string; onChange:
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-  const inp = useInputStyle();
 
   const selected = LANGUAGES.find(l => l.id === value) ?? LANGUAGES[0];
   const filtered = LANGUAGES.filter(l => l.label.toLowerCase().includes(query.toLowerCase()));
@@ -680,44 +606,38 @@ function LanguageSelector({ value, onChange, label }: { value: string; onChange:
   return (
     <div className="relative" ref={ref}>
       {label && <SectionLabel>{label}</SectionLabel>}
-      <button
+      <Button variant="ghost"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-[8px] h-[40px] px-[14px] rounded-full transition-all"
-        style={{ ...inp.base }}
+        className="w-full flex items-center gap-[8px] h-[40px] px-[14px] rounded-full transition-all text-sm text-foreground bg-transparent border border-input"
       >
         <span className="text-[15px]">{selected.flag}</span>
-        <span className="flex-1 text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "14px", color: c.textSecondary }}>{selected.label}</span>
-        <svg className={`size-[12px] transition-transform shrink-0 ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+        <span className="flex-1 text-left text-sm text-foreground">{selected.label}</span>
+        <svg className={`size-[12px] transition-transform shrink-0 text-muted-foreground ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16">
           <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-      </button>
+      </Button>
       {open && (
-        <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] rounded-[12px] overflow-hidden"
-          style={{ backgroundColor: c.bgPopover, border: `1px solid ${c.border}`, boxShadow: c.shadow }}>
+        <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] rounded-[12px] overflow-hidden bg-popover border border-border shadow-md">
           <div className="p-[8px] pb-[4px]">
             <div className="relative">
-              <svg className="absolute left-[9px] top-1/2 -translate-y-1/2 size-[13px]" fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+              <svg className="absolute left-[9px] top-1/2 -translate-y-1/2 size-[13px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
                 <path d="M7 12A5 5 0 107 2a5 5 0 000 10zM13 13l-2.5-2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-              <input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search language…"
-                className="w-full h-[32px] pl-[28px] pr-[8px] rounded-[7px] outline-none"
-                style={{ fontFamily: "'Inter', sans-serif", fontSize: "13px", color: c.textSecondary, backgroundColor: isDark ? "#0e0e12" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#dde1e9"}` }} />
+              <Input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search language…"
+                className="w-full h-[32px] pl-[28px] pr-[8px] rounded-[7px] text-[13px]" />
             </div>
           </div>
           <div className="overflow-y-auto" style={{ maxHeight: "180px" }}>
-            {filtered.length === 0 && <p className="text-center py-[16px]" style={{ fontSize: "13px", color: c.textMuted }}>No results</p>}
+            {filtered.length === 0 && <p className="text-center py-[16px] text-[13px] text-muted-foreground">No results</p>}
             {filtered.map(lang => (
-              <button key={lang.id}
+              <Button variant="ghost" key={lang.id}
                 onClick={() => { onChange(lang.id); setOpen(false); setQuery(""); }}
-                className="flex items-center gap-[8px] w-full px-[12px] h-[34px] transition-colors"
-                style={{ backgroundColor: lang.id === value ? (isDark ? "rgba(37,99,235,0.1)" : "#eff4ff") : "transparent" }}
-                onMouseEnter={e => { if (lang.id !== value) e.currentTarget.style.backgroundColor = c.bgHover; }}
-                onMouseLeave={e => { if (lang.id !== value) e.currentTarget.style.backgroundColor = "transparent"; }}
+                className={`flex items-center gap-[8px] w-full px-[12px] h-[34px] transition-colors rounded-none ${lang.id === value ? "bg-primary/5" : "hover:bg-accent"}`}
               >
                 <span className="text-[14px] w-[20px] text-center">{lang.flag}</span>
-                <span className="flex-1 text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: lang.id === value ? 500 : 400, fontSize: "13px", color: lang.id === value ? "#2563eb" : c.textSecondary }}>{lang.label}</span>
-                {lang.id === value && <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-              </button>
+                <span className={`flex-1 text-left text-[13px] ${lang.id === value ? "font-medium text-primary" : "text-foreground"}`}>{lang.label}</span>
+                {lang.id === value && <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              </Button>
             ))}
           </div>
         </div>
@@ -731,37 +651,24 @@ function LanguageSelector({ value, onChange, label }: { value: string; onChange:
 function TranscriptionModeToggle({ mode, onChange, compact = false }: {
   mode: "mono" | "bi"; onChange: (m: "mono" | "bi") => void; compact?: boolean;
 }) {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-
   if (compact) {
     return (
       <div
-        className="flex rounded-full p-[3px] shrink-0"
-        style={{
-          height: "40px",
-          backgroundColor: isDark ? "rgba(0,0,0,0.25)" : "#f0f2f5",
-          border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}`,
-        }}
+        className="flex rounded-full p-[3px] shrink-0 h-[40px] bg-muted border border-border"
       >
         {(["mono", "bi"] as const).map(m => {
           const isActive = mode === m;
           return (
-            <button
+            <Button variant="ghost"
               key={m}
               type="button"
               onClick={() => onChange(m)}
-              className="flex items-center justify-center rounded-full transition-all"
-              style={{
-                paddingLeft: "10px", paddingRight: "10px",
-                backgroundColor: isActive ? (isDark ? "#2a2a35" : "white") : "transparent",
-                boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
-              }}
+              className={`flex items-center justify-center rounded-full transition-all px-[10px] ${isActive ? "bg-background shadow-sm" : ""}`}
             >
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: isActive ? 600 : 400, fontSize: "12px", color: isActive ? c.textPrimary : c.textMuted, whiteSpace: "nowrap" }}>
+              <span className={`text-xs whitespace-nowrap ${isActive ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
                 {m === "mono" ? "Mono" : "Bi"}
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -770,19 +677,18 @@ function TranscriptionModeToggle({ mode, onChange, compact = false }: {
 
   return (
     <div>
-      <div className="flex rounded-[10px] p-[3px]" style={{ backgroundColor: isDark ? "rgba(0,0,0,0.3)" : "#f0f2f5", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
+      <div className="flex rounded-[10px] p-[3px] bg-muted border border-border">
         {(["mono", "bi"] as const).map(m => {
           const isActive = mode === m;
           return (
-            <button key={m}
+            <Button variant="ghost" key={m}
               onClick={() => onChange(m)}
-              className="flex-1 flex items-center justify-center gap-[6px] h-[32px] rounded-[8px] transition-all"
-              style={{ backgroundColor: isActive ? (isDark ? "#2a2a35" : "white") : "transparent", boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.08)" : "none" }}
+              className={`flex-1 flex items-center justify-center gap-[6px] h-[32px] rounded-[8px] transition-all ${isActive ? "bg-background shadow-sm" : ""}`}
             >
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: isActive ? 500 : 400, fontSize: "13px", color: isActive ? c.textPrimary : c.textMuted }}>
+              <span className={`text-[13px] ${isActive ? "font-medium text-foreground" : "text-muted-foreground"}`}>
                 {m === "bi" ? "Bilingual" : "Monolingual"}
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -795,9 +701,6 @@ function TranscriptionModeToggle({ mode, onChange, compact = false }: {
 function SpeakerSection({ enabled, onToggle, count, onCountChange }: {
   enabled: boolean; onToggle: () => void; count: number | "auto"; onCountChange: (v: number | "auto") => void;
 }) {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-  const inp = useInputStyle();
   const [dropOpen, setDropOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -814,40 +717,35 @@ function SpeakerSection({ enabled, onToggle, count, onCountChange }: {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Speaker identification</p>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textMuted, marginTop: "1px" }}>Identify different speakers</p>
+          <p className="font-medium text-[13px] text-foreground">Speaker identification</p>
+          <p className="text-[11px] text-muted-foreground mt-[1px]">Identify different speakers</p>
         </div>
         <ToggleSw checked={enabled} onChange={onToggle} />
       </div>
       {enabled && (
         <div className="mt-[10px] relative" ref={ref}>
-          <button
+          <Button variant="ghost"
             onClick={() => setDropOpen(v => !v)}
-            className="w-full flex items-center justify-between h-[40px] px-[14px] rounded-full transition-all"
-            style={{ ...inp.base, fontSize: "13px" }}
+            className="w-full flex items-center justify-between h-[40px] px-[14px] rounded-full transition-all text-[13px] text-foreground bg-transparent border border-input"
           >
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>{countLabel}</span>
-            <svg className={`size-[12px] transition-transform ${dropOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+            <span className="text-[13px] text-foreground">{countLabel}</span>
+            <svg className={`size-[12px] transition-transform text-muted-foreground ${dropOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16">
               <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </button>
+          </Button>
           {dropOpen && (
-            <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] rounded-[12px] py-[4px]"
-              style={{ backgroundColor: c.bgPopover, border: `1px solid ${c.border}`, boxShadow: c.shadow }}>
+            <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] rounded-[12px] py-[4px] bg-popover border border-border shadow-md">
               {options.map(opt => {
                 const lbl = opt === "auto" ? "Auto-detect" : `${opt} speaker${opt > 1 ? "s" : ""}`;
                 const active = count === opt;
                 return (
-                  <button key={String(opt)}
+                  <Button variant="ghost" key={String(opt)}
                     onClick={() => { onCountChange(opt); setDropOpen(false); }}
-                    className="flex items-center justify-between w-full px-[12px] h-[32px] transition-colors"
-                    style={{ backgroundColor: "transparent" }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+                    className="flex items-center justify-between w-full px-[12px] h-[32px] transition-colors hover:bg-accent rounded-none"
                   >
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: active ? 500 : 400, fontSize: "13px", color: active ? "#2563eb" : c.textSecondary }}>{lbl}</span>
-                    {active && <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                  </button>
+                    <span className={`text-[13px] ${active ? "font-medium text-primary" : "text-foreground"}`}>{lbl}</span>
+                    {active && <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                  </Button>
                 );
               })}
             </div>
@@ -884,15 +782,12 @@ function RealTimeTranslationControl({
   onLangChange: (v: string) => void;
   withCard?: boolean;
 }) {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-
   const content = (
     <>
       <div className="flex items-center justify-between">
         <div>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Real-time translation</p>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textMuted, marginTop: "1px" }}>Translate speech as it's transcribed</p>
+          <p className="font-medium text-[13px] text-foreground">Real-time translation</p>
+          <p className="text-[11px] text-muted-foreground mt-[1px]">Translate speech as it's transcribed</p>
         </div>
         <ToggleSw checked={enabled} onChange={onToggle} />
       </div>
@@ -907,7 +802,7 @@ function RealTimeTranslationControl({
   if (!withCard) return content;
 
   return (
-    <div className="rounded-[12px] p-[14px]" style={{ backgroundColor: isDark ? "#111115" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
+    <div className="rounded-[12px] p-[14px] bg-card border border-border">
       {content}
     </div>
   );
@@ -920,9 +815,6 @@ function MultiLanguageSelector({ values, onChange, label }: {
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-  const inp = useInputStyle();
 
   const filtered = LANGUAGES.filter(l => l.label.toLowerCase().includes(query.toLowerCase()));
 
@@ -961,73 +853,59 @@ function MultiLanguageSelector({ values, onChange, label }: {
       {/* Trigger — looks like a single-select input, chips render inside */}
       <div
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center flex-wrap gap-[5px] min-h-[40px] pl-[12px] pr-[36px] py-[6px] rounded-full cursor-pointer transition-all relative"
-        style={{ ...inp.base }}
+        className="w-full flex items-center flex-wrap gap-[5px] min-h-[40px] pl-[12px] pr-[36px] py-[6px] rounded-full cursor-pointer transition-all relative text-sm text-foreground bg-transparent border border-input"
       >
         {selectedLangs.length === 0 ? (
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textMuted }}>
+          <span className="text-[13px] text-muted-foreground">
             Select languages…
           </span>
         ) : (
           selectedLangs.map(lang => (
-            <span key={lang.id} className="inline-flex items-center gap-[3px] h-[24px] px-[7px] rounded-full"
-              style={{ backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "#eef2f6" }}
-            >
+            <span key={lang.id} className="inline-flex items-center gap-[3px] h-[24px] px-[7px] rounded-full bg-muted">
               <span className="text-[11px]">{lang.flag}</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: isDark ? "#f3f4f6" : "#1f2937" }}>{lang.label}</span>
-              <button
+              <span className="font-medium text-[11px] text-foreground">{lang.label}</span>
+              <Button variant="ghost" size="icon"
                 onClick={e => { e.stopPropagation(); toggle(lang.id); }}
-                className="ml-[2px] size-[12px] rounded-full flex items-center justify-center transition-colors"
-                style={{ backgroundColor: "transparent" }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.12)" : "rgba(17,24,39,0.08)"}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+                className="ml-[2px] size-[12px] rounded-full flex items-center justify-center transition-colors hover:bg-accent p-0"
               >
                 <svg className="size-[7px]" fill="none" viewBox="0 0 10 10">
-                  <path d="M2 2l6 6M8 2L2 8" stroke={isDark ? "#e5e7eb" : "#374151"} strokeWidth="1.6" strokeLinecap="round" />
+                  <path d="M2 2l6 6M8 2L2 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
                 </svg>
-              </button>
+              </Button>
             </span>
           ))
         )}
         {/* Chevron */}
         <span className="absolute right-[12px] top-1/2 -translate-y-1/2 pointer-events-none">
-          <svg className={`size-[12px] transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+          <svg className={`size-[12px] transition-transform text-muted-foreground ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16">
             <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
       </div>
       {/* Dropdown with checkboxes */}
       {open && (
-        <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] rounded-[12px] overflow-hidden"
-          style={{ backgroundColor: c.bgPopover, border: `1px solid ${c.border}`, boxShadow: c.shadow }}>
+        <div className="absolute z-50 left-0 right-0 top-[calc(100%+4px)] rounded-[12px] overflow-hidden bg-popover border border-border shadow-md">
           <div className="p-[8px] pb-[4px]">
             <div className="relative">
-              <svg className="absolute left-[9px] top-1/2 -translate-y-1/2 size-[13px]" fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+              <svg className="absolute left-[9px] top-1/2 -translate-y-1/2 size-[13px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
                 <path d="M7 12A5 5 0 107 2a5 5 0 000 10zM13 13l-2.5-2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-              <input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search language…"
-                className="w-full h-[32px] pl-[28px] pr-[8px] rounded-[7px] outline-none"
-                style={{ fontFamily: "'Inter', sans-serif", fontSize: "13px", color: c.textSecondary, backgroundColor: isDark ? "#0e0e12" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#dde1e9"}` }} />
+              <Input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search language…"
+                className="w-full h-[32px] pl-[28px] pr-[8px] rounded-[7px] text-[13px]" />
             </div>
           </div>
           <div className="overflow-y-auto" style={{ maxHeight: "168px" }}>
             {filtered.length === 0 && (
-              <p className="text-center py-[14px]" style={{ fontSize: "13px", color: c.textMuted }}>No results</p>
+              <p className="text-center py-[14px] text-[13px] text-muted-foreground">No results</p>
             )}
             {filtered.map(lang => {
               const checked = values.includes(lang.id);
               return (
-                <button key={lang.id} onClick={() => toggle(lang.id)}
-                  className="flex items-center gap-[8px] w-full px-[12px] h-[34px] transition-colors"
-                  style={{
-                    backgroundColor: checked ? (isDark ? "rgba(37,99,235,0.07)" : "#f0f5ff") : "transparent",
-                  }}
-                  onMouseEnter={e => { if (!checked) e.currentTarget.style.backgroundColor = c.bgHover; }}
-                  onMouseLeave={e => { if (!checked) e.currentTarget.style.backgroundColor = "transparent"; }}
+                <Button variant="ghost" key={lang.id} onClick={() => toggle(lang.id)}
+                  className={`flex items-center gap-[8px] w-full px-[12px] h-[34px] transition-colors rounded-none ${checked ? "bg-primary/5" : "hover:bg-accent"}`}
                 >
                   {/* Checkbox */}
-                  <span className="size-[15px] rounded-[4px] flex items-center justify-center shrink-0 transition-colors"
-                    style={{ backgroundColor: checked ? "#2563eb" : "transparent", border: checked ? "none" : `1.5px solid ${isDark ? "rgba(255,255,255,0.22)" : "#d1d5db"}` }}>
+                  <span className={`size-[15px] rounded-[4px] flex items-center justify-center shrink-0 transition-colors ${checked ? "bg-primary" : "border-[1.5px] border-border"}`}>
                     {checked && (
                       <svg className="size-[9px]" fill="none" viewBox="0 0 10 8">
                         <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -1035,8 +913,8 @@ function MultiLanguageSelector({ values, onChange, label }: {
                     )}
                   </span>
                   <span className="text-[13px] w-[20px] text-center">{lang.flag}</span>
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: checked ? 500 : 400, fontSize: "13px", color: checked ? "#2563eb" : c.textSecondary }}>{lang.label}</span>
-                </button>
+                  <span className={`text-[13px] ${checked ? "font-medium text-primary" : "text-foreground"}`}>{lang.label}</span>
+                </Button>
               );
             })}
           </div>
@@ -1050,8 +928,6 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick }: {
   state: SharedSettingsState; onChange: (patch: Partial<SharedSettingsState>) => void;
   userPlan: UserPlan; onUpgradeClick: () => void;
 }) {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
   const handleModeChange = (m: "mono" | "bi") => onChange(
     m === "mono" ? { mode: m, langPrimary: "auto" } : { mode: m, langBilingual: ["auto"] }
   );
@@ -1074,7 +950,7 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick }: {
         <TranscriptionModeToggle mode={state.mode} onChange={handleModeChange} compact />
       </div>
       <AdvancedSection>
-        <div className="rounded-[12px] p-[14px]" style={{ backgroundColor: isDark ? "#111115" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
+        <div className="rounded-[12px] p-[14px] bg-card border border-border">
           <SpeakerSection
             enabled={state.speakerEnabled}
             onToggle={() => onChange({ speakerEnabled: !state.speakerEnabled })}
@@ -1089,22 +965,17 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick }: {
 
 function AdvancedSection({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
   return (
     <div>
-      <button
+      <Button variant="ghost"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-[8px] h-[30px] transition-opacity"
-        style={{ backgroundColor: "transparent" }}
-        onMouseEnter={e => e.currentTarget.style.opacity = "0.8"}
-        onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+        className="w-full flex items-center gap-[8px] h-[30px] transition-opacity hover:opacity-80 p-0 justify-start"
       >
-        <svg className={`size-[14px] transition-transform ${open ? "rotate-90" : ""}`} fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+        <svg className={`size-[14px] transition-transform text-muted-foreground ${open ? "rotate-90" : ""}`} fill="none" viewBox="0 0 16 16">
           <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Advanced options</span>
-      </button>
+        <span className="font-medium text-[13px] text-foreground">Advanced options</span>
+      </Button>
       {open && (
         <div className="mt-[10px]">{children}</div>
       )}
@@ -1120,30 +991,26 @@ const DEFAULT_SETTINGS: SharedSettingsState = {
 // ── Upgrade prompt ─────────────────────────────────────────
 
 function UpgradePrompt({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[360px] p-[28px] flex flex-col items-center text-center gap-[16px]"
-        style={{ backgroundColor: c.bgPopover, boxShadow: "0 24px 64px rgba(0,0,0,0.22)" }}>
+      <div className="relative rounded-[20px] w-[360px] p-[28px] flex flex-col items-center text-center gap-[16px] bg-popover"
+        style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.22)" }}>
         <div className="absolute top-[14px] right-[14px]"><XBtn onClick={onClose} /></div>
         <div className="size-[52px] rounded-full flex items-center justify-center" style={{ background: "linear-gradient(135deg, #fef3c7, #fde68a)" }}>
           <svg className="size-[26px]" fill="#d97706" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
         </div>
         <div>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "16px", color: c.textPrimary }}>Upgrade to Pro</p>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textMuted, marginTop: "6px", lineHeight: 1.5 }}>
+          <p className="font-bold text-[16px] text-foreground">Upgrade to Pro</p>
+          <p className="text-[13px] text-muted-foreground mt-[6px] leading-relaxed">
             This feature is available on the Pro plan. Unlock bilingual transcription, real-time translation, and more.
           </p>
         </div>
-        <button onClick={onClose} className="w-full h-[42px] rounded-full transition-colors" style={{ backgroundColor: "#2563eb", color: "white" }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = "#1d4ed8"}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = "#2563eb"}>
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "14px" }}>View Pro plans</span>
-        </button>
-        <button onClick={onClose} style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textMuted }}>Maybe later</button>
+        <Button onClick={onClose} className="w-full h-[42px] rounded-full transition-colors bg-primary text-primary-foreground hover:bg-primary/90">
+          <span className="font-semibold text-sm">View Pro plans</span>
+        </Button>
+        <Button variant="ghost" onClick={onClose} className="text-[13px] text-muted-foreground">Maybe later</Button>
       </div>
     </div>,
     document.body
@@ -1156,9 +1023,6 @@ function ModalShell({ title, subtitle, onClose, onBackdropClick, children, width
   title: string; subtitle?: string; onClose: () => void; onBackdropClick: () => void;
   children: React.ReactNode; width?: number;
 }) {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-
   useEffect(() => {
     function h(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
     document.addEventListener("keydown", h);
@@ -1168,13 +1032,13 @@ function ModalShell({ title, subtitle, onClose, onBackdropClick, children, width
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[3px]" onClick={onBackdropClick} />
-      <div className="relative rounded-[20px] flex flex-col overflow-hidden"
-        style={{ width: `min(${width}px, calc(100vw - 32px))`, maxHeight: "calc(100vh - 40px)", backgroundColor: c.bgPopover, boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="relative rounded-[20px] flex flex-col overflow-hidden bg-popover"
+        style={{ width: `min(${width}px, calc(100vw - 32px))`, maxHeight: "calc(100vh - 40px)", boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         {/* Header */}
         <div className="flex items-center justify-between px-[22px] pt-[18px] pb-[16px] shrink-0">
           <div>
-            <h2 style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "17px", color: c.textPrimary, lineHeight: 1.2 }}>{title}</h2>
-            {subtitle && <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "12px", color: c.textMuted, marginTop: "2px" }}>{subtitle}</p>}
+            <h2 className="font-bold text-[17px] text-foreground leading-tight">{title}</h2>
+            {subtitle && <p className="text-xs text-muted-foreground mt-[2px]">{subtitle}</p>}
           </div>
           <XBtn onClick={onClose} />
         </div>
@@ -1201,8 +1065,6 @@ function formatBytes(b: number) {
 
 function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addJob, userPlan, consumePreloadedFiles } = useTranscriptionModals();
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
 
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -1274,27 +1136,24 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
             onDragLeave={() => setDragActive(false)}
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
-            className="rounded-[14px] flex flex-col items-center justify-center cursor-pointer select-none"
+            className={`rounded-[14px] flex flex-col items-center justify-center cursor-pointer select-none border-2 border-dashed transition-all ${dragActive ? "border-primary bg-primary/5" : "border-border"}`}
             style={{
               height: files.length > 0 ? "88px" : "220px",
               transition: "height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-              border: `2px dashed ${dragActive ? "#2563eb" : (isDark ? "rgba(255,255,255,0.1)" : "#dce0e8")}`,
-              backgroundColor: dragActive ? (isDark ? "rgba(37,99,235,0.06)" : "#eff6ff") : "transparent",
             }}
           >
             <input ref={fileRef} type="file" multiple accept={ACCEPTED} className="hidden"
               onChange={e => { const f = Array.from(e.target.files ?? []); if (f.length) addFiles(f); e.target.value = ""; }} />
-            <div className="size-[34px] rounded-full flex items-center justify-center mb-[7px]"
-              style={{ backgroundColor: dragActive ? (isDark ? "rgba(37,99,235,0.15)" : "#dbeafe") : (isDark ? "#2a2a35" : "#f0f4ff") }}>
-              <svg className="size-[16px]" fill="none" viewBox="0 0 24 24" style={{ color: "#2563eb" }}>
+            <div className={`size-[34px] rounded-full flex items-center justify-center mb-[7px] ${dragActive ? "bg-primary/15" : "bg-primary/5"}`}>
+              <svg className="size-[16px] text-primary" fill="none" viewBox="0 0 24 24">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>
-              Drop files here or <span style={{ color: "#2563eb" }}>browse</span>
+            <p className="font-medium text-[13px] text-foreground">
+              Drop files here or <span className="text-primary">browse</span>
             </p>
             {files.length === 0 && (
-              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textFaint, marginTop: "3px" }}>
+              <p className="text-[11px] text-muted-foreground mt-[3px]">
                 MP3, MP4, M4A, MOV, WAV, OGG · Max 1 GB audio / 10 GB video
               </p>
             )}
@@ -1315,12 +1174,10 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
                     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
                     const isAudio = AUDIO_EXTS.includes(ext);
                     return (
-                      <div key={i} className="flex items-center gap-[10px] h-[48px] px-[12px] rounded-full"
-                        style={{ border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}`, backgroundColor: isDark ? "#111115" : "white" }}>
-                        <div className="size-[30px] rounded-[8px] flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: isAudio ? (isDark ? "rgba(37,99,235,0.12)" : "#eff4ff") : (isDark ? "rgba(124,58,237,0.12)" : "#f3effff") }}>
+                      <div key={i} className="flex items-center gap-[10px] h-[48px] px-[12px] rounded-full border border-border bg-card">
+                        <div className={`size-[30px] rounded-[8px] flex items-center justify-center shrink-0 ${isAudio ? "bg-primary/5" : "bg-violet-500/5"}`}>
                           {isAudio ? (
-                            <svg className="size-[14px]" fill="none" viewBox="0 0 24 24" style={{ color: "#2563eb" }}>
+                            <svg className="size-[14px] text-primary" fill="none" viewBox="0 0 24 24">
                               <path d="M9 18V5l12-2v13M9 18a3 3 0 11-3-3 3 3 0 013 3zM21 16a3 3 0 11-3-3 3 3 0 013 3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                           ) : (
@@ -1330,20 +1187,17 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="truncate" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>{file.name}</p>
-                          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textMuted }}>{formatBytes(file.size)}</p>
+                          <p className="truncate font-medium text-[13px] text-foreground">{file.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</p>
                         </div>
-                        <button
+                        <Button variant="ghost" size="icon"
                           onClick={e => { e.stopPropagation(); setFiles(prev => prev.filter((_, idx) => idx !== i)); }}
-                          className="size-[26px] rounded-full flex items-center justify-center transition-colors shrink-0"
-                          style={{ backgroundColor: "transparent" }}
-                          onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-                          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+                          className="size-[26px] rounded-full flex items-center justify-center transition-colors shrink-0 hover:bg-accent"
                         >
-                          <svg className="size-[11px]" fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+                          <svg className="size-[11px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
                             <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                           </svg>
-                        </button>
+                        </Button>
                       </div>
                     );
                   })}
@@ -1360,23 +1214,16 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
             <div className="flex items-center gap-[8px] shrink-0">
-              <button onClick={handleClose} className="h-[36px] px-[18px] rounded-full border transition-colors"
-                style={{ borderColor: c.borderBtn, backgroundColor: "transparent" }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+              <Button variant="outline" onClick={handleClose} className="h-[36px] px-[18px] rounded-full transition-colors hover:bg-accent">
+                <span className="font-medium text-[13px] text-foreground">Cancel</span>
+              </Button>
+              <Button onClick={handleSubmit} disabled={!files.length}
+                className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Cancel</span>
-              </button>
-              <button onClick={handleSubmit} disabled={!files.length}
-                className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ backgroundColor: "#2563eb", color: "white" }}
-                onMouseEnter={e => { if (files.length) e.currentTarget.style.backgroundColor = "#1d4ed8"; }}
-                onMouseLeave={e => { if (files.length) e.currentTarget.style.backgroundColor = "#2563eb"; }}
-              >
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>
+                <span className="font-semibold text-[13px]">
                   {files.length > 1 ? `Start transcription · ${files.length} files` : "Start transcription"}
                 </span>
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -1394,7 +1241,6 @@ const BAR_COUNT = 32;
 
 function Waveform({ active }: { active: boolean }) {
   const [heights, setHeights] = useState<number[]>(() => Array(BAR_COUNT).fill(5));
-  const { isDark } = useTheme();
 
   useEffect(() => {
     if (!active) { setHeights(Array(BAR_COUNT).fill(5)); return; }
@@ -1408,40 +1254,32 @@ function Waveform({ active }: { active: boolean }) {
     <div className="flex items-center justify-center gap-[3px]" style={{ height: "52px" }}>
       {heights.map((h, i) => (
         <div key={i} className="rounded-full"
-          style={{ width: "3px", height: `${h}px`, backgroundColor: active ? "#2563eb" : (isDark ? "#3a3a48" : "#d1d5db"), opacity: active ? 0.5 + (i % 5) * 0.1 : 0.4, transition: active ? "height 0.09s ease" : "height 0.3s ease" }} />
+          style={{ width: "3px", height: `${h}px`, backgroundColor: active ? "var(--primary)" : "#d1d5db", opacity: active ? 0.5 + (i % 5) * 0.1 : 0.4, transition: active ? "height 0.09s ease" : "height 0.3s ease" }} />
       ))}
     </div>
   );
 }
 
 function StopConfirmDialog({ open, onCancel, onStop }: { open: boolean; onCancel: () => void; onStop: () => void }) {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
-      <div className="relative rounded-[18px] w-[340px] p-[22px] flex flex-col gap-[16px]"
-        style={{ backgroundColor: c.bgPopover, boxShadow: "0 24px 64px rgba(0,0,0,0.28)" }}>
+      <div className="relative rounded-[18px] w-[340px] p-[22px] flex flex-col gap-[16px] bg-popover"
+        style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.28)" }}>
         <div>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "15px", color: c.textPrimary }}>Recording in progress</p>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textMuted, marginTop: "6px", lineHeight: 1.5 }}>
+          <p className="font-bold text-[15px] text-foreground">Recording in progress</p>
+          <p className="text-[13px] text-muted-foreground mt-[6px] leading-relaxed">
             Recording is still in progress. Are you sure you want to close this window?
           </p>
         </div>
         <div className="flex gap-[8px]">
-          <button onClick={onCancel} className="flex-1 h-[38px] rounded-full transition-colors"
-            style={{ backgroundColor: isDark ? "#2a2a35" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#dde1e9"}` }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "#333340" : "#f3f4f6"}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? "#2a2a35" : "white"}>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: isDark ? "#d1d5db" : "#374151" }}>Cancel</span>
-          </button>
-          <button onClick={onStop} className="flex-1 h-[38px] rounded-full transition-colors"
-            style={{ backgroundColor: "#ef4444", color: "white" }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = "#dc2626"}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = "#ef4444"}>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>Stop & close</span>
-          </button>
+          <Button variant="outline" onClick={onCancel} className="flex-1 h-[38px] rounded-full transition-colors bg-background hover:bg-accent">
+            <span className="font-medium text-[13px] text-foreground">Cancel</span>
+          </Button>
+          <Button variant="destructive" onClick={onStop} className="flex-1 h-[38px] rounded-full transition-colors">
+            <span className="font-semibold text-[13px]">Stop & close</span>
+          </Button>
         </div>
       </div>
     </div>,
@@ -1498,9 +1336,6 @@ function LinkInputIcons() {
 
 function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addJob, userPlan } = useTranscriptionModals();
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-  const inp = useInputStyle();
 
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
@@ -1539,20 +1374,17 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
           <div>
             <SectionLabel>Paste a link</SectionLabel>
             <div className="relative">
-              <svg className="absolute left-[12px] top-1/2 -translate-y-1/2 size-[15px] pointer-events-none" fill="none" viewBox="0 0 24 24" style={{ color: c.textMuted }}>
+              <svg className="absolute left-[12px] top-1/2 -translate-y-1/2 size-[15px] pointer-events-none text-muted-foreground" fill="none" viewBox="0 0 24 24">
                 <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <input type="url" placeholder="Paste the link here" value={url}
+              <Input type="url" placeholder="Paste the link here" value={url}
                 onChange={e => { setUrl(e.target.value); if (urlError) validateUrl(e.target.value); }}
                 onBlur={() => validateUrl(url)}
-                className="w-full h-[42px] pl-[36px] pr-[108px] rounded-full outline-none transition-all"
-                style={{ ...inp.base, borderColor: urlError ? "#ef4444" : (isDark ? "rgba(255,255,255,0.1)" : "#dde1e9") }}
-                onFocus={e => inp.focus(e.currentTarget, !!urlError)}
-                onBlurCapture={e => inp.blur(e.currentTarget, !!urlError)}
+                className={`w-full h-[42px] pl-[36px] pr-[108px] rounded-full text-sm ${urlError ? "border-destructive" : ""}`}
               />
               <LinkInputIcons />
             </div>
-            {urlError && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "12px", color: "#ef4444", marginTop: "5px" }}>{urlError}</p>}
+            {urlError && <p className="text-xs text-destructive mt-[5px]">{urlError}</p>}
           </div>
 
           {/* Settings — revealed smoothly after URL is typed */}
@@ -1574,21 +1406,14 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
             <div className="flex items-center gap-[8px] shrink-0">
-              <button onClick={handleClose} className="h-[36px] px-[18px] rounded-full border transition-colors"
-                style={{ borderColor: c.borderBtn, backgroundColor: "transparent" }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+              <Button variant="outline" onClick={handleClose} className="h-[36px] px-[18px] rounded-full transition-colors hover:bg-accent">
+                <span className="font-medium text-[13px] text-foreground">Cancel</span>
+              </Button>
+              <Button onClick={handleSubmit} disabled={!canSubmit}
+                className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Cancel</span>
-              </button>
-              <button onClick={handleSubmit} disabled={!canSubmit}
-                className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ backgroundColor: "#2563eb", color: "white" }}
-                onMouseEnter={e => { if (canSubmit) e.currentTarget.style.backgroundColor = "#1d4ed8"; }}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#2563eb"}
-              >
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>Start transcription</span>
-              </button>
+                <span className="font-semibold text-[13px]">Start transcription</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -1604,9 +1429,6 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addJob, meetingCounterRef } = useTranscriptionModals();
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
-  const inp = useInputStyle();
 
   const [meetingUrl, setMeetingUrl] = useState("");
   const [meetingUrlError, setMeetingUrlError] = useState("");
@@ -1659,12 +1481,11 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
       <ModalShell title="Record meeting" subtitle="A bot will join and transcribe your meeting" onClose={handleClose} onBackdropClick={handleClose} width={520}>
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
           {/* Intro banner */}
-          <div className="rounded-[12px] p-[14px] flex gap-[11px]"
-            style={{ backgroundColor: isDark ? "rgba(37,99,235,0.06)" : "#f0f5ff", border: `1px solid ${isDark ? "rgba(37,99,235,0.15)" : "#c7d9ff"}` }}>
-            <svg className="size-[16px] shrink-0 mt-[2px]" fill="none" viewBox="0 0 24 24" style={{ color: "#2563eb" }}>
+          <div className="rounded-[12px] p-[14px] flex gap-[11px] bg-primary/5 border border-primary/15">
+            <svg className="size-[16px] shrink-0 mt-[2px] text-primary" fill="none" viewBox="0 0 24 24">
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><path d="M12 8v4M12 16v.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             </svg>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: isDark ? "#93b4ff" : "#1d4ed8", lineHeight: 1.55 }}>
+            <p className="text-[13px] text-primary leading-relaxed">
               The bot will wait up to <strong>5 minutes</strong> for host approval.{" "}
               <a href="#" target="_blank" rel="noopener" style={{ textDecoration: "underline" }}>Tutorial</a>
               {" · "}
@@ -1676,13 +1497,10 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
           <div>
             <SectionLabel>Meeting invite link</SectionLabel>
             <div className="relative">
-              <input type="url" placeholder="Paste the meeting invite link here" value={meetingUrl}
+              <Input type="url" placeholder="Paste the meeting invite link here" value={meetingUrl}
                 onChange={e => { setMeetingUrl(e.target.value); if (meetingUrlError) validateMeetingUrl(e.target.value); }}
                 onBlur={() => validateMeetingUrl(meetingUrl)}
-                className="w-full h-[42px] pl-[14px] pr-[98px] rounded-full outline-none transition-all"
-                style={{ ...inp.base, borderColor: meetingUrlError ? "#ef4444" : (isDark ? "rgba(255,255,255,0.1)" : "#dde1e9") }}
-                onFocus={e => inp.focus(e.currentTarget, !!meetingUrlError)}
-                onBlurCapture={e => inp.blur(e.currentTarget, !!meetingUrlError)}
+                className={`w-full h-[42px] pl-[14px] pr-[98px] rounded-full text-sm ${meetingUrlError ? "border-destructive" : ""}`}
               />
               <div className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 flex items-center gap-[8px]">
                 <SourceIcon source="zoom" />
@@ -1690,7 +1508,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                 <SourceIcon source="teams" />
               </div>
             </div>
-            {meetingUrlError && <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "12px", color: "#ef4444", marginTop: "5px" }}>{meetingUrlError}</p>}
+            {meetingUrlError && <p className="text-xs text-destructive mt-[5px]">{meetingUrlError}</p>}
           </div>
 
           {/* Language + Advanced options — revealed after URL is typed */}
@@ -1718,16 +1536,13 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                 {/* Advanced options */}
                 <AdvancedSection>
                   <div className="flex flex-col gap-[8px]">
-                    <div className="rounded-[12px] p-[14px]" style={{ backgroundColor: isDark ? "#111115" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
+                    <div className="rounded-[12px] p-[14px] bg-card border border-border">
                       <SpeakerSection enabled={speakerEnabled} onToggle={() => setSpeakerEnabled(v => !v)} count={speakerCount} onCountChange={setSpeakerCount} />
                     </div>
-                    <div className="rounded-[12px] p-[14px]" style={{ backgroundColor: isDark ? "#111115" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
+                    <div className="rounded-[12px] p-[14px] bg-card border border-border">
                       <SectionLabel>Bot display name</SectionLabel>
-                      <input type="text" value={botName} onChange={e => setBotName(e.target.value)}
-                        className="w-full h-[40px] px-[14px] rounded-full outline-none transition-all"
-                        style={{ ...inp.base, fontSize: "13px" }}
-                        onFocus={e => inp.focus(e.currentTarget)}
-                        onBlurCapture={e => inp.blur(e.currentTarget)}
+                      <Input type="text" value={botName} onChange={e => setBotName(e.target.value)}
+                        className="w-full h-[40px] px-[14px] rounded-full text-[13px]"
                       />
                     </div>
                     <RealTimeTranslationControl
@@ -1736,17 +1551,14 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                       lang={realTimeTranslationLang}
                       onLangChange={setRealTimeTranslationLang}
                     />
-                    <div className="rounded-[12px] p-[14px]" style={{ backgroundColor: isDark ? "#111115" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e5ea"}` }}>
+                    <div className="rounded-[12px] p-[14px] bg-card border border-border">
                       <div className="flex items-center justify-between">
-                        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Notify participants</span>
+                        <span className="font-medium text-[13px] text-foreground">Notify participants</span>
                         <ToggleSw checked={notifyParticipants} onChange={() => setNotifyParticipants(v => !v)} />
                       </div>
                       {notifyParticipants && (
-                        <textarea value={notifyMessage} onChange={e => setNotifyMessage(e.target.value)} rows={3}
-                          className="w-full px-[12px] py-[10px] rounded-[9px] outline-none resize-none transition-all mt-[10px]"
-                          style={{ ...inp.base, fontSize: "13px", lineHeight: "1.5" }}
-                          onFocus={e => inp.focus(e.currentTarget)}
-                          onBlurCapture={e => inp.blur(e.currentTarget)}
+                        <Textarea value={notifyMessage} onChange={e => setNotifyMessage(e.target.value)} rows={3}
+                          className="w-full px-[12px] py-[10px] rounded-[9px] resize-none transition-all mt-[10px] text-[13px] leading-relaxed text-foreground bg-transparent border border-input"
                         />
                       )}
                     </div>
@@ -1761,21 +1573,14 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
             <div className="flex items-center gap-[8px] shrink-0">
-              <button onClick={handleClose} className="h-[36px] px-[18px] rounded-full border transition-colors"
-                style={{ borderColor: c.borderBtn, backgroundColor: "transparent" }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+              <Button variant="outline" onClick={handleClose} className="h-[36px] px-[18px] rounded-full transition-colors hover:bg-accent">
+                <span className="font-medium text-[13px] text-foreground">Cancel</span>
+              </Button>
+              <Button onClick={handleSubmit} disabled={!canSubmit}
+                className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Cancel</span>
-              </button>
-              <button onClick={handleSubmit} disabled={!canSubmit}
-                className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ backgroundColor: "#2563eb", color: "white" }}
-                onMouseEnter={e => { if (canSubmit) e.currentTarget.style.backgroundColor = "#1d4ed8"; }}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#2563eb"}
-              >
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>Transcribe now</span>
-              </button>
+                <span className="font-semibold text-[13px]">Transcribe now</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -1792,7 +1597,6 @@ const MINI_BAR_COUNT = 16;
 
 function MiniWaveform({ active }: { active: boolean }) {
   const [heights, setHeights] = useState<number[]>(() => Array(MINI_BAR_COUNT).fill(4));
-  const { isDark } = useTheme();
   useEffect(() => {
     if (!active) { setHeights(Array(MINI_BAR_COUNT).fill(4)); return; }
     const id = setInterval(() => {
@@ -1804,7 +1608,7 @@ function MiniWaveform({ active }: { active: boolean }) {
     <div className="flex items-center gap-[2px]" style={{ height: "20px" }}>
       {heights.map((h, i) => (
         <div key={i} className="rounded-full"
-          style={{ width: "2px", height: `${h}px`, backgroundColor: active ? "#2563eb" : (isDark ? "#3a3a48" : "#d1d5db"), opacity: active ? 0.5 + (i % 5) * 0.1 : 0.4, transition: active ? "height 0.09s ease" : "height 0.3s ease" }} />
+          style={{ width: "2px", height: `${h}px`, backgroundColor: active ? "var(--primary)" : "#d1d5db", opacity: active ? 0.5 + (i % 5) * 0.1 : 0.4, transition: active ? "height 0.09s ease" : "height 0.3s ease" }} />
       ))}
     </div>
   );
@@ -1812,62 +1616,51 @@ function MiniWaveform({ active }: { active: boolean }) {
 
 function RecordingPill() {
   const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording, stopInstantRecording } = useTranscriptionModals();
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
   const visible = recordingPhase === "recording" || recordingPhase === "paused";
   const isPaused = recordingPhase === "paused";
   if (!visible) return null;
-  const bg = isDark ? "#1e1e26" : "white";
-  const shadow = isDark
-    ? "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.06)"
-    : "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.06)";
   return createPortal(
     <div
-      className="fixed flex items-center gap-[10px] rounded-full px-[14px] py-[10px]"
-      style={{ bottom: "24px", right: "24px", zIndex: 9999, backgroundColor: bg, boxShadow: shadow }}
+      className="fixed flex items-center gap-[10px] rounded-full px-[14px] py-[10px] bg-background shadow-lg border border-border"
+      style={{ bottom: "24px", right: "24px", zIndex: 9999 }}
     >
       {/* Status dot */}
       <span className="relative flex size-[8px] shrink-0">
         <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${!isPaused ? "animate-ping" : ""}`}
-          style={{ backgroundColor: isPaused ? c.textMuted : "#f87171" }} />
-        <span className="relative inline-flex size-[8px] rounded-full"
-          style={{ backgroundColor: isPaused ? c.textMuted : "#ef4444" }} />
+          style={{ backgroundColor: isPaused ? undefined : "#f87171" }} />
+        <span className={`relative inline-flex size-[8px] rounded-full ${isPaused ? "bg-muted-foreground" : ""}`}
+          style={{ backgroundColor: isPaused ? undefined : "#ef4444" }} />
       </span>
       {/* Label */}
-      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "12px", color: isPaused ? c.textMuted : "#ef4444" }}>
+      <span className={`font-semibold text-xs ${isPaused ? "text-muted-foreground" : "text-destructive"}`}>
         {isPaused ? "Paused" : "Recording"}
       </span>
       {/* Timer */}
-      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "15px", color: c.textPrimary, letterSpacing: "0.5px", fontVariantNumeric: "tabular-nums", minWidth: "42px" }}>
+      <span className="font-bold text-[15px] text-foreground tracking-wide tabular-nums min-w-[42px]">
         {fmtTime(recordingElapsed)}
       </span>
       {/* Mini waveform */}
       <MiniWaveform active={!isPaused} />
       {/* Pause / Resume */}
-      <button
+      <Button variant="ghost" size="icon"
         onClick={isPaused ? resumeInstantRecording : pauseInstantRecording}
-        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0"
-        style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#f3f4f6", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e5e7eb"}` }}
-        onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.14)" : "#e5e7eb"}
-        onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.08)" : "#f3f4f6"}
+        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0 bg-muted border border-border hover:bg-accent"
         title={isPaused ? "Resume" : "Pause"}
       >
         {isPaused
-          ? <svg className="size-[12px]" fill="currentColor" viewBox="0 0 24 24" style={{ color: c.textSecondary }}><polygon points="5,3 19,12 5,21" /></svg>
-          : <svg className="size-[12px]" fill="currentColor" viewBox="0 0 24 24" style={{ color: c.textSecondary }}><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+          ? <svg className="size-[12px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
+          : <svg className="size-[12px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
         }
-      </button>
+      </Button>
       {/* Stop */}
-      <button
+      <Button variant="destructive" size="icon"
         onClick={stopInstantRecording}
-        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0"
+        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0 hover:bg-destructive/20"
         style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
-        onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.18)"}
-        onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.1)"}
         title="Stop recording"
       >
-        <svg className="size-[10px]" viewBox="0 0 12 12" fill="#ef4444"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
-      </button>
+        <svg className="size-[10px]" viewBox="0 0 12 12" fill="hsl(var(--destructive))"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
+      </Button>
     </div>,
     document.body
   );
@@ -1880,12 +1673,10 @@ function RecordingPill() {
 // ── Recording review card with playback ──────────────────────
 const REVIEW_BARS = 60;
 
-function RecordingCard({ elapsed, audioUrl, onContinue, isDark, c }: {
+function RecordingCard({ elapsed, audioUrl, onContinue }: {
   elapsed: number;
   audioUrl: string | null;
   onContinue: () => void;
-  isDark: boolean;
-  c: ReturnType<typeof getDarkPalette>;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -1914,41 +1705,35 @@ function RecordingCard({ elapsed, audioUrl, onContinue, isDark, c }: {
   const currentSec = Math.round(progress * elapsed);
 
   return (
-    <div className="rounded-[16px] overflow-hidden"
-      style={{ backgroundColor: isDark ? "#111115" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#ebeef1"}`, boxShadow: isDark ? "none" : "0 2px 12px rgba(0,0,0,0.06)" }}>
+    <div className="rounded-[16px] overflow-hidden bg-card border border-border shadow-sm">
 
       {/* Top row: label · duration · play · continue */}
       <div className="flex items-center justify-between px-[18px] pt-[14px] pb-[8px]">
         <div className="flex items-center gap-[7px]">
-          <span className="size-[7px] rounded-full shrink-0" style={{ backgroundColor: "#ef4444" }} />
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "11px", color: c.textMuted, letterSpacing: "0.5px", textTransform: "uppercase" }}>Recording complete</span>
+          <span className="size-[7px] rounded-full shrink-0 bg-destructive" />
+          <span className="font-semibold text-[11px] text-muted-foreground tracking-wide uppercase">Recording complete</span>
         </div>
         <div className="flex items-center gap-[7px]">
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "18px", color: c.textPrimary, fontVariantNumeric: "tabular-nums" }}>{fmtDuration(elapsed)}</span>
+          <span className="font-bold text-[18px] text-foreground tabular-nums">{fmtDuration(elapsed)}</span>
           {audioUrl && (
-            <button onClick={togglePlay}
-              className="flex items-center justify-center size-[28px] rounded-full transition-colors shrink-0"
-              style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#f3f4f6", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e5e7eb"}` }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.14)" : "#e5e7eb"}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(255,255,255,0.08)" : "#f3f4f6"}
+            <Button variant="ghost" size="icon" onClick={togglePlay}
+              className="flex items-center justify-center size-[28px] rounded-full transition-colors shrink-0 bg-muted border border-border hover:bg-accent"
               title={isPlaying ? "Pause" : "Play back recording"}
             >
               {isPlaying
-                ? <svg className="size-[10px]" fill="currentColor" viewBox="0 0 12 12" style={{ color: c.textSecondary }}><rect x="2" y="2" width="3" height="8" rx="1"/><rect x="7" y="2" width="3" height="8" rx="1"/></svg>
-                : <svg className="size-[11px]" fill="currentColor" viewBox="0 0 12 12" style={{ color: c.textSecondary }}><polygon points="2,1 11,6 2,11"/></svg>
+                ? <svg className="size-[10px] text-foreground" fill="currentColor" viewBox="0 0 12 12"><rect x="2" y="2" width="3" height="8" rx="1"/><rect x="7" y="2" width="3" height="8" rx="1"/></svg>
+                : <svg className="size-[11px] text-foreground" fill="currentColor" viewBox="0 0 12 12"><polygon points="2,1 11,6 2,11"/></svg>
               }
-            </button>
+            </Button>
           )}
-          <button onClick={onContinue}
-            className="h-[28px] px-[11px] rounded-full flex items-center gap-[5px] transition-colors shrink-0"
+          <Button variant="ghost" onClick={onContinue}
+            className="h-[28px] px-[11px] rounded-full flex items-center gap-[5px] transition-colors shrink-0 hover:bg-destructive/15"
             style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.18)" }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.15)"}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = "rgba(239,68,68,0.08)"}
             title="Continue recording"
           >
-            <span className="size-[6px] rounded-full shrink-0 animate-pulse" style={{ backgroundColor: "#ef4444" }} />
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "11px", color: "#ef4444" }}>Continue</span>
-          </button>
+            <span className="size-[6px] rounded-full shrink-0 animate-pulse bg-destructive" />
+            <span className="font-semibold text-[11px] text-destructive">Continue</span>
+          </Button>
         </div>
       </div>
 
@@ -1960,7 +1745,7 @@ function RecordingCard({ elapsed, audioUrl, onContinue, isDark, c }: {
             const played = barPct <= progress;
             return (
               <div key={i} className="rounded-full flex-1"
-                style={{ height: `${h}px`, backgroundColor: played ? "#ef4444" : (isDark ? "#3a3a48" : "#dde1e9"), opacity: played ? 0.65 + (i % 4) * 0.07 : 0.55 }} />
+                style={{ height: `${h}px`, backgroundColor: played ? "#ef4444" : "#dde1e9", opacity: played ? 0.65 + (i % 4) * 0.07 : 0.55 }} />
             );
           })}
         </div>
@@ -1973,8 +1758,8 @@ function RecordingCard({ elapsed, audioUrl, onContinue, isDark, c }: {
 
       {/* Time labels */}
       <div className="flex items-center justify-between px-[18px] pb-[12px]">
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "10px", color: c.textMuted, fontVariantNumeric: "tabular-nums" }}>{fmtTime(currentSec)}</span>
-        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "10px", color: c.textMuted, fontVariantNumeric: "tabular-nums" }}>{fmtTime(elapsed)}</span>
+        <span className="text-[10px] text-muted-foreground tabular-nums">{fmtTime(currentSec)}</span>
+        <span className="text-[10px] text-muted-foreground tabular-nums">{fmtTime(elapsed)}</span>
       </div>
 
       {audioUrl && (
@@ -1989,8 +1774,6 @@ function RecordingCard({ elapsed, audioUrl, onContinue, isDark, c }: {
 
 function RecordingReviewModal() {
   const { recordingPhase, recordingElapsed, audioUrl, cancelInstantRecording, submitInstantRecording, resumeInstantRecording, userPlan } = useTranscriptionModals();
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [discardConfirm, setDiscardConfirm] = useState(false);
@@ -2021,7 +1804,7 @@ function RecordingReviewModal() {
     <>
       <ModalShell title="Record audio" subtitle="Review and submit your recording" onClose={handleCancel} onBackdropClick={handleCancel}>
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
-          <RecordingCard elapsed={recordingElapsed} audioUrl={audioUrl} onContinue={resumeInstantRecording} isDark={isDark} c={c} />
+          <RecordingCard elapsed={recordingElapsed} audioUrl={audioUrl} onContinue={resumeInstantRecording} />
 
           <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
 
@@ -2030,21 +1813,14 @@ function RecordingReviewModal() {
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
             <div className="flex items-center gap-[8px] shrink-0">
-              <button onClick={handleCancel} className="h-[36px] px-[18px] rounded-full border transition-colors"
-                style={{ borderColor: c.borderBtn, backgroundColor: "transparent" }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+              <Button variant="outline" onClick={handleCancel} className="h-[36px] px-[18px] rounded-full transition-colors hover:bg-accent">
+                <span className="font-medium text-[13px] text-foreground">Cancel</span>
+              </Button>
+<Button onClick={handleSubmit}
+                className="h-[36px] px-[18px] rounded-full transition-all bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>Cancel</span>
-              </button>
-<button onClick={handleSubmit}
-                className="h-[36px] px-[18px] rounded-full transition-all"
-                style={{ backgroundColor: "#2563eb", color: "white" }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#1d4ed8"}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#2563eb"}
-              >
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>Start transcription</span>
-              </button>
+                <span className="font-semibold text-[13px]">Start transcription</span>
+              </Button>
             </div>
           </div>
         </div>
@@ -2054,27 +1830,21 @@ function RecordingReviewModal() {
       {discardConfirm && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setDiscardConfirm(false)} />
-          <div className="relative rounded-[18px] w-[340px] p-[22px] flex flex-col gap-[16px]"
-            style={{ backgroundColor: c.bgPopover, boxShadow: "0 24px 64px rgba(0,0,0,0.28)" }}>
+          <div className="relative rounded-[18px] w-[340px] p-[22px] flex flex-col gap-[16px] bg-popover"
+            style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.28)" }}>
             <div>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "15px", color: c.textPrimary }}>Discard recording?</p>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textMuted, marginTop: "6px", lineHeight: 1.5 }}>
+              <p className="font-bold text-[15px] text-foreground">Discard recording?</p>
+              <p className="text-[13px] text-muted-foreground mt-[6px] leading-relaxed">
                 Your recording will be permanently discarded and cannot be recovered.
               </p>
             </div>
             <div className="flex gap-[8px]">
-              <button onClick={() => setDiscardConfirm(false)} className="flex-1 h-[38px] rounded-full transition-colors"
-                style={{ backgroundColor: isDark ? "#2a2a35" : "white", border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#dde1e9"}` }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "#333340" : "#f3f4f6"}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = isDark ? "#2a2a35" : "white"}>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: isDark ? "#d1d5db" : "#374151" }}>Keep recording</span>
-              </button>
-              <button onClick={handleDiscard} className="flex-1 h-[38px] rounded-full transition-colors"
-                style={{ backgroundColor: "#ef4444", color: "white" }}
-                onMouseEnter={e => e.currentTarget.style.backgroundColor = "#dc2626"}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = "#ef4444"}>
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>Discard</span>
-              </button>
+              <Button variant="outline" onClick={() => setDiscardConfirm(false)} className="flex-1 h-[38px] rounded-full transition-colors bg-background hover:bg-accent">
+                <span className="font-medium text-[13px] text-foreground">Keep recording</span>
+              </Button>
+              <Button variant="destructive" onClick={handleDiscard} className="flex-1 h-[38px] rounded-full transition-colors">
+                <span className="font-semibold text-[13px]">Discard</span>
+              </Button>
             </div>
           </div>
         </div>,
@@ -2101,14 +1871,12 @@ function AllModals() {
   );
 }
 
-// ══════════════════════════════════���═════════════════════════
+// ════════════════════════════════════════════════════════════
 // Floating Progress Widget
-// ════════��═══════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
 
 export function FloatingProgressWidget() {
   const { jobs, retryJob } = useTranscriptionModals();
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
   const [expanded, setExpanded] = useState(false); // false = collapsed pill, true = full widget
   const [dismissed, setDismissed] = useState(false);
 
@@ -2122,7 +1890,7 @@ export function FloatingProgressWidget() {
 
   if (!hasJobs || dismissed) return null;
 
-  const rowBorder = `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "#f0f1f4"}`;
+  const rowBorder = "1px solid var(--border)";
 
   // ── Collapsed pill ──
   const pillLabel = allDone
@@ -2132,18 +1900,16 @@ export function FloatingProgressWidget() {
     : `Uploading… (${doneCount}/${jobs.length})`;
 
   const pillBg = allDone
-    ? errorCount > 0 ? "#f59e0b" : "#2563eb"
-    : "#2563eb";
+    ? errorCount > 0 ? "#f59e0b" : undefined
+    : undefined;
 
   if (!expanded) {
     return createPortal(
       <div className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col items-end gap-[0px]">
-        <button
+        <Button
           onClick={() => setExpanded(true)}
-          className="flex items-center gap-[8px] h-[40px] px-[16px] rounded-full shadow-lg transition-all"
-          style={{ backgroundColor: pillBg, color: "white", boxShadow: "0 4px 20px rgba(37,99,235,0.35)" }}
-          onMouseEnter={e => e.currentTarget.style.opacity = "0.92"}
-          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+          className="flex items-center gap-[8px] h-[40px] px-[16px] rounded-full shadow-lg transition-all bg-primary text-primary-foreground hover:opacity-90"
+          style={{ backgroundColor: pillBg ?? undefined, boxShadow: "0 4px 20px rgba(37,99,235,0.35)" }}
         >
           {/* Status icon */}
           {allDone ? (
@@ -2156,12 +1922,12 @@ export function FloatingProgressWidget() {
               <path d="M12 3a9 9 0 019 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           )}
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px" }}>{pillLabel}</span>
+          <span className="font-semibold text-[13px]">{pillLabel}</span>
           {/* Chevron up */}
           <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16">
             <path d="M4 10l4-4 4 4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </button>
+        </Button>
       </div>,
       document.body
     );
@@ -2170,45 +1936,37 @@ export function FloatingProgressWidget() {
   // ── Full expanded widget ──
   return createPortal(
     <div
-      className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col rounded-[16px] overflow-hidden"
-      style={{ width: "480px", backgroundColor: c.bgPopover, border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e5ea"}`, boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
+      className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col rounded-[16px] overflow-hidden bg-popover border border-border"
+      style={{ width: "480px", boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
     >
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-[16px] h-[42px] shrink-0"
-        style={{ borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.07)" : "#ebedf0"}` }}>
+      <div className="flex items-center justify-between px-[16px] h-[42px] shrink-0 border-b border-border">
         <div className="flex items-center gap-[7px]">
-          <svg className="size-[13px]" fill="none" viewBox="0 0 24 24" style={{ color: "#2563eb" }}>
+          <svg className="size-[13px] text-primary" fill="none" viewBox="0 0 24 24">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "12px", color: c.textPrimary }}>Uploaded records</span>
+          <span className="font-semibold text-xs text-foreground">Uploaded records</span>
           {activeCount > 0 && (
-            <span className="inline-flex items-center justify-center px-[5px] h-[15px] rounded-full text-white min-w-[15px]"
-              style={{ backgroundColor: "#2563eb", fontSize: "9px", fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>
+            <span className="inline-flex items-center justify-center px-[5px] h-[15px] rounded-full text-white min-w-[15px] bg-primary text-[9px] font-bold">
               {activeCount}
             </span>
           )}
         </div>
         <div className="flex items-center gap-[1px]">
           {/* Collapse to pill */}
-          <button onClick={() => setExpanded(false)} title="Collapse"
-            className="size-[24px] rounded-full flex items-center justify-center transition-colors"
-            style={{ backgroundColor: "transparent" }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}>
-            <svg className="size-[11px]" fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+          <Button variant="ghost" size="icon" onClick={() => setExpanded(false)} title="Collapse"
+            className="size-[24px] rounded-full flex items-center justify-center transition-colors hover:bg-accent">
+            <svg className="size-[11px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
               <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </button>
+          </Button>
           {/* Dismiss */}
-          <button onClick={() => setDismissed(true)} title="Dismiss"
-            className="size-[24px] rounded-full flex items-center justify-center transition-colors"
-            style={{ backgroundColor: "transparent" }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}>
-            <svg className="size-[11px]" fill="none" viewBox="0 0 16 16" style={{ color: c.textMuted }}>
+          <Button variant="ghost" size="icon" onClick={() => setDismissed(true)} title="Dismiss"
+            className="size-[24px] rounded-full flex items-center justify-center transition-colors hover:bg-accent">
+            <svg className="size-[11px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
               <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -2217,19 +1975,19 @@ export function FloatingProgressWidget() {
           <div className="flex items-center px-[14px] h-[32px] shrink-0"
             style={{ borderBottom: rowBorder }}>
             <div className="flex-1 min-w-0">
-              <span style={{ fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textHeader, textTransform: "uppercase", letterSpacing: "0.34px" }}>File</span>
+              <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">File</span>
             </div>
             <div className="w-[44px] shrink-0 text-center">
-              <span style={{ fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textHeader, textTransform: "uppercase", letterSpacing: "0.34px" }}>Lang</span>
+              <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Lang</span>
             </div>
             <div className="w-[52px] shrink-0 text-center">
-              <span style={{ fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textHeader, textTransform: "uppercase", letterSpacing: "0.34px" }}>Transl.</span>
+              <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Transl.</span>
             </div>
             <div className="w-[52px] shrink-0 text-right">
-              <span style={{ fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textHeader, textTransform: "uppercase", letterSpacing: "0.34px" }}>Dur.</span>
+              <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Dur.</span>
             </div>
             <div className="w-[120px] shrink-0 text-right">
-              <span style={{ fontFamily: "'SF Pro Text', 'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textHeader, textTransform: "uppercase", letterSpacing: "0.34px" }}>Status</span>
+              <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Status</span>
             </div>
           </div>
 
@@ -2244,13 +2002,11 @@ export function FloatingProgressWidget() {
               return (
                 <div key={job.id} className="relative" style={{ borderTop: idx > 0 ? rowBorder : "none" }}>
                   {/* Main row */}
-                  <div className="flex items-center gap-[8px] px-[14px] pt-[9px] pb-[10px]"
-                    style={{ backgroundColor: isError ? (isDark ? "rgba(239,68,68,0.04)" : "#fff8f8") : "transparent" }}>
+                  <div className={`flex items-center gap-[8px] px-[14px] pt-[9px] pb-[10px] ${isError ? "bg-destructive/5" : ""}`}>
                     {/* File type icon */}
-                    <div className="size-[26px] rounded-[7px] flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: isDark ? "#2a2a35" : (job.fileType === "audio" ? "#eff4ff" : "#f5f3ff") }}>
+                    <div className={`size-[26px] rounded-[7px] flex items-center justify-center shrink-0 ${job.fileType === "audio" ? "bg-primary/5" : "bg-violet-500/5"}`}>
                       {job.fileType === "audio" ? (
-                        <svg className="size-[12px]" fill="none" viewBox="0 0 24 24" style={{ color: "#2563eb" }}>
+                        <svg className="size-[12px] text-primary" fill="none" viewBox="0 0 24 24">
                           <path d="M9 18V5l12-2v13M9 18a3 3 0 11-3-3 3 3 0 013 3zM21 16a3 3 0 11-3-3 3 3 0 013 3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       ) : (
@@ -2262,17 +2018,16 @@ export function FloatingProgressWidget() {
 
                     {/* Name */}
                     <div className="flex-1 min-w-0">
-                      <p className="truncate" title={job.name}
-                        style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12px", color: isError ? "#ef4444" : c.textSecondary }}>
+                      <p className={`truncate font-medium text-xs ${isError ? "text-destructive" : "text-foreground"}`} title={job.name}>
                         {job.name}
                       </p>
                       {isActive && (
-                        <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "10px", color: c.textFaint, marginTop: "1px" }}>
+                        <p className="text-[10px] text-muted-foreground mt-[1px]">
                           {job.status === "uploading" ? "Uploading…" : "Processing…"}
                         </p>
                       )}
                       {isError && (
-                        <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "10px", color: "#ef4444", marginTop: "1px" }}>
+                        <p className="text-[10px] text-destructive mt-[1px]">
                           {errLabel}
                         </p>
                       )}
@@ -2290,10 +2045,10 @@ export function FloatingProgressWidget() {
                       ) : job.lang ? (
                         <div className="flex items-center gap-[2px]">
                           <span className="text-[12px]">{LANGUAGES.find(l => l.id === job.lang)?.flag ?? ""}</span>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: c.textMuted }}>{job.lang === "auto" ? "Auto" : job.lang.toUpperCase()}</span>
+                          <span className="font-medium text-[10px] text-muted-foreground">{job.lang === "auto" ? "Auto" : job.lang.toUpperCase()}</span>
                         </div>
                       ) : (
-                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "11px", color: c.textFaint }}>—</span>
+                        <span className="text-[11px] text-muted-foreground">—</span>
                       )}
                     </div>
 
@@ -2302,16 +2057,16 @@ export function FloatingProgressWidget() {
                       {job.translationLang ? (
                         <div className="flex items-center gap-[2px]">
                           <span className="text-[12px]">{LANGUAGES.find(l => l.id === job.translationLang)?.flag ?? ""}</span>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: c.textMuted }}>{job.translationLang.toUpperCase()}</span>
+                          <span className="font-medium text-[10px] text-muted-foreground">{job.translationLang.toUpperCase()}</span>
                         </div>
                       ) : (
-                        <span style={{ fontFamily: "'Inter', sans-serif", fontSize: "11px", color: c.textFaint }}>—</span>
+                        <span className="text-[11px] text-muted-foreground">—</span>
                       )}
                     </div>
 
                     {/* Duration */}
                     <div className="w-[52px] shrink-0 text-right">
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textMuted }}>
+                      <span className="text-[11px] text-muted-foreground">
                         {job.duration ?? (isDone || isError ? "—" : "")}
                       </span>
                     </div>
@@ -2320,17 +2075,16 @@ export function FloatingProgressWidget() {
                     <div className="w-[120px] shrink-0 flex items-center justify-end gap-[5px]">
                       {isActive && (
                         <div className="flex items-center gap-[8px] w-full">
-                          <div className="h-[6px] flex-1 rounded-full overflow-hidden"
-                            style={{ backgroundColor: isDark ? "#2a2a35" : "#ebedf0" }}>
+                          <div className="h-[6px] flex-1 rounded-full overflow-hidden bg-muted">
                             <div className="h-full transition-all duration-300"
                               style={{
                                 width: `${job.progress}%`,
                                 background: job.status === "processing"
                                   ? "linear-gradient(90deg,#2563eb,#7c3aed)"
-                                  : "#2563eb",
+                                  : "var(--primary)",
                               }} />
                           </div>
-                          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: "#2563eb", minWidth: "30px", textAlign: "right" }}>
+                          <span className="font-medium text-[11px] text-primary min-w-[30px] text-right">
                             {job.progress}%
                           </span>
                         </div>
@@ -2341,15 +2095,12 @@ export function FloatingProgressWidget() {
                             <circle cx="12" cy="12" r="9" fill="#dcfce7" stroke="#22c55e" strokeWidth="1.4" />
                             <path d="M8 12.5l2.5 2.5 5-5" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
-                          <button
+                          <Button variant="ghost"
                             onClick={() => {}}
-                            className="transition-colors"
-                            style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "11px", color: "#2563eb" }}
-                            onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
-                            onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}
+                            className="transition-colors font-semibold text-[11px] text-primary hover:underline p-0 h-auto"
                           >
                             Open
-                          </button>
+                          </Button>
                         </>
                       )}
                       {isError && (
@@ -2358,15 +2109,12 @@ export function FloatingProgressWidget() {
                             <circle cx="12" cy="12" r="9" fill="#fee2e2" stroke="#ef4444" strokeWidth="1.4" />
                             <path d="M9 9l6 6M15 9l-6 6" stroke="#ef4444" strokeWidth="1.7" strokeLinecap="round" />
                           </svg>
-                          <button
+                          <Button variant="ghost"
                             onClick={() => retryJob(job.id)}
-                            className="transition-colors"
-                            style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "11px", color: "#ef4444" }}
-                            onMouseEnter={e => e.currentTarget.style.textDecoration = "underline"}
-                            onMouseLeave={e => e.currentTarget.style.textDecoration = "none"}
+                            className="transition-colors font-semibold text-[11px] text-destructive hover:underline p-0 h-auto"
                           >
                             Retry
-                          </button>
+                          </Button>
                         </>
                       )}
                     </div>
@@ -2381,4 +2129,3 @@ export function FloatingProgressWidget() {
     document.body
   );
 }
-
