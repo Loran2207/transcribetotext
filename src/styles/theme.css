@@ -1,4 +1,4 @@
-@custom-variant dark (&:is(.dark *));
+@import "@fontsource-variable/inter";
 
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(4px); }
@@ -11,50 +11,44 @@
 }
 
 :root {
-  --font-size: 16px;
-  --text-2xl: 36px;
-  --text-xl: 24px;
-  --text-lg: 16px;
-  --text-base: 16px;
-  --text-sm: 14px;
   /* The default background color for the application. */
-  --background: rgba(255, 255, 255, 1.00);
+  --background: oklch(1 0 0);
   /* The default color for elements or text that appears on top of the background. */
-  --foreground: rgba(52, 64, 84, 1.00);
+  --foreground: oklch(0.141 0.005 285.823);
   /* The background color for cards, modals, and other containers. */
-  --card: rgba(255, 255, 255, 1.00);
+  --card: oklch(1 0 0);
   /* The default color for text or elements that appear on top of cards, modals and other background containers. */
-  --card-foreground: rgba(52, 64, 84, 1.00);
+  --card-foreground: oklch(0.141 0.005 285.823);
   /* The background color for dropdowns and tooltips. */
-  --popover: rgba(255, 255, 255, 1.00);
+  --popover: oklch(1 0 0);
   /* The default color for text or elements that appear on top of dropdowns and tooltips. */
-  --popover-foreground: rgba(52, 64, 84, 1.00);
+  --popover-foreground: oklch(0.141 0.005 285.823);
   /* The primary color used for buttons, links, and other interactive elements. */
-  --primary: rgba(37, 99, 235, 1.00);
+  --primary: oklch(0.488 0.243 264.376);
   /* The default color for text or elements that appear on top of primary colored elements. */
-  --primary-foreground: rgba(255, 255, 255, 1.00);
+  --primary-foreground: oklch(0.97 0.014 254.604);
   /* The secondary color used for secondary(but NOT-DESTRUCTIVE) buttons and interactive elements. */
-  --secondary: rgba(249, 250, 251, 1.00);
+  --secondary: oklch(0.967 0.001 286.375);
   /* The default color for text or elements that appear on top of secondary colored elements. */
-  --secondary-foreground: rgba(52, 64, 84, 1.00);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
   /* The muted color used for less prominent elements, such as disabled buttons or disabled text. */
-  --muted: rgba(242, 244, 247, 1.00);
+  --muted: oklch(0.967 0.001 286.375);
   /* The default color for text or elements that appear on top of muted colored elements. */
-  --muted-foreground: rgba(102, 112, 133, 1.00);
+  --muted-foreground: oklch(0.552 0.016 285.938);
   /* The accent color used for highlights, links, and other interactive elements. */
-  --accent: rgba(37, 99, 235, 1.00);
+  --accent: oklch(0.967 0.001 286.375);
   /* The default color for text or elements that appear on top of accent colored elements. */
-  --accent-foreground: rgba(255, 255, 255, 1.00);
+  --accent-foreground: oklch(0.21 0.006 285.885);
   /* The color used for background in destructive actions, such as delete buttons or error messages. */
-  --destructive: rgba(217, 45, 32, 1.00);
+  --destructive: #EE1A1A;
   /* The default color for text or elements that appear on top of destructive colored elements. */
-  --destructive-foreground: rgba(255, 255, 255, 1.00);
+  --destructive-foreground: oklch(0.97 0.014 254.604);
   /* The default border color for elements such as inputs, buttons, and other containers. */
-  --border: rgba(234, 236, 240, 1.00);
+  --border: oklch(0.92 0.004 286.32);
   /* The default background color for input fields once the text has been filled. Should be either transparent or match the input-background. */
-  --input: rgba(255, 255, 255, 1.00);
+  --input: oklch(0.92 0.004 286.32);
   /* The default background color for input fields, text areas, and other input elements. */
-  --input-background: rgba(255, 255, 255, 1.00);
+  --input-background: oklch(1 0 0);
   /* The default font weight for medium text. */
   --font-weight-medium: 500;
   /* The default font weight for normal text. */
@@ -62,85 +56,44 @@
   /* The default font weight for semi-bold text. */
   --font-weight-semibold: 600;
   /* The color for focus rings, outlines, and other focus indicators. */
-  --ring: rgba(37, 99, 235, 1.00);
+  --ring: oklch(0.705 0.015 286.067);
   /* Shadow for small elevations, such as cards or modals. */
   --elevation-sm: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  /* Shadow for medium elevations, such as modals, popovers, and dropdowns. */
+  --elevation-md: 0px 8px 24px rgba(0, 0, 0, 0.08), 0px 2px 8px rgba(0, 0, 0, 0.04);
   /* The color for chart elements, such as a bar or line in a chart. */
-  --chart-1: rgba(37, 99, 235, 1.00);
+  --chart-1: oklch(0.871 0.006 286.286);
   /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-2: rgba(29, 78, 216, 1.00);
+  --chart-2: oklch(0.552 0.016 285.938);
   /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-3: rgba(147, 197, 253, 1.00);
+  --chart-3: oklch(0.442 0.017 285.786);
   /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-4: rgba(219, 234, 254, 1.00);
+  --chart-4: oklch(0.37 0.013 285.805);
   /* The color for another chart element, such as a bar or line in a chart. */
-  --chart-5: rgba(239, 246, 255, 1.00);
+  --chart-5: oklch(0.274 0.006 286.033);
   /* The default border radius for elements such as buttons, tooltip, and other containers. */
-  --radius: 8px;
+  --radius: 0.625rem;
   /* The background color for sidebars, navigation menus, and other persistent elements. */
-  --sidebar: rgba(255, 255, 255, 1.00);
+  --sidebar: oklch(0.985 0 0);
   /* The default color for text or elements that appear on top of sidebars, navigation menus, and other persistent elements. */
-  --sidebar-foreground: rgba(52, 64, 84, 1.00);
+  --sidebar-foreground: oklch(0.141 0.005 285.823);
   /* The primary color used for buttons, links, and other interactive elements in sidebars and navigation menus. */
-  --sidebar-primary: rgba(37, 99, 235, 1.00);
+  --sidebar-primary: oklch(0.546 0.245 262.881);
   /* The default color for text or elements that appear on top of primary colored elements in sidebars and navigation menus. */
-  --sidebar-primary-foreground: rgba(255, 255, 255, 1.00);
+  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
   /* The accent color used for highlights, links, and other interactive elements in sidebars and navigation menus. */
-  --sidebar-accent: rgba(37, 99, 235, 1.00);
+  --sidebar-accent: oklch(0.967 0.001 286.375);
   /* The default color for text or elements that appear on top of accent colored elements in sidebars and navigation menus. */
-  --sidebar-accent-foreground: rgba(255, 255, 255, 1.00);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   /* The default border color for elements in sidebars and navigation menus. */
-  --sidebar-border: rgba(234, 236, 240, 1.00);
+  --sidebar-border: oklch(0.92 0.004 286.32);
   /* The default color for focus rings, outlines, and other focus indicators in sidebars and navigation menus. */
-  --sidebar-ring: rgba(37, 99, 235, 1.00);
-}
-
-/* Smooth theme transition on key containers */
-body {
-  transition: background-color 0.25s ease, color 0.2s ease;
-}
-
-.dark {
-  --background: rgba(17, 17, 21, 1.00);
-  --foreground: rgba(229, 231, 235, 1.00);
-  --card: rgba(24, 24, 30, 1.00);
-  --card-foreground: rgba(229, 231, 235, 1.00);
-  --popover: rgba(30, 30, 38, 1.00);
-  --popover-foreground: rgba(229, 231, 235, 1.00);
-  --primary: rgba(96, 165, 250, 1.00);
-  --primary-foreground: rgba(255, 255, 255, 1.00);
-  --secondary: rgba(38, 38, 46, 1.00);
-  --secondary-foreground: rgba(229, 231, 235, 1.00);
-  --muted: rgba(38, 38, 46, 1.00);
-  --muted-foreground: rgba(156, 163, 175, 1.00);
-  --accent: rgba(96, 165, 250, 1.00);
-  --accent-foreground: rgba(255, 255, 255, 1.00);
-  --destructive: rgba(239, 68, 68, 1.00);
-  --destructive-foreground: rgba(255, 255, 255, 1.00);
-  --border: rgba(55, 55, 65, 1.00);
-  --input: rgba(38, 38, 46, 1.00);
-  --input-background: rgba(30, 30, 38, 1.00);
-  --ring: rgba(96, 165, 250, 1.00);
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --font-weight-semibold: 600;
-  --chart-1: rgba(147, 197, 253, 1.00);
-  --chart-2: rgba(96, 165, 250, 1.00);
-  --chart-3: rgba(59, 130, 246, 1.00);
-  --chart-4: rgba(219, 234, 254, 1.00);
-  --chart-5: rgba(239, 246, 255, 1.00);
-  --sidebar: rgba(20, 20, 26, 1.00);
-  --sidebar-foreground: rgba(229, 231, 235, 1.00);
-  --sidebar-primary: rgba(147, 197, 253, 1.00);
-  --sidebar-primary-foreground: rgba(17, 17, 21, 1.00);
-  --sidebar-accent: rgba(38, 38, 46, 1.00);
-  --sidebar-accent-foreground: rgba(229, 231, 235, 1.00);
-  --sidebar-border: rgba(55, 55, 65, 1.00);
-  --sidebar-ring: rgba(96, 165, 250, 1.00);
-  --elevation-sm: 0px 1px 3px 0px rgba(0, 0, 0, 0.3);
+  --sidebar-ring: oklch(0.705 0.015 286.067);
 }
 
 @theme inline {
+  --font-sans: 'Inter Variable', sans-serif;
+  --font-heading: 'Inter Variable', sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -166,11 +119,15 @@ body {
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
   --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -188,73 +145,21 @@ body {
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
   }
-}
 
-/**
- * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
- */
-@layer base {
-  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
-    h1 {
-      font-family: 'Inter', sans-serif;
-      font-size: var(--text-2xl);
-      font-weight: var(--font-weight-semibold);
-      line-height: 1.5;
-    }
-
-    h2 {
-      font-family: 'Inter', sans-serif;
-      font-size: var(--text-xl);
-      font-weight: var(--font-weight-semibold);
-      line-height: 1.5;
-    }
-
-    h3 {
-      font-family: 'Inter', sans-serif;
-      font-size: var(--text-lg);
-      font-weight: var(--font-weight-semibold);
-      line-height: 1.5;
-    }
-
-    h4 {
-      font-family: 'Inter', sans-serif;
-      font-size: var(--text-sm);
-      font-weight: var(--font-weight-medium);
-      line-height: 1.5;
-    }
-
-    p {
-      font-family: 'Inter', sans-serif;
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-normal);
-      line-height: 1.5;
-    }
-
-    label {
-      font-family: 'Inter', sans-serif;
-      font-size: var(--text-sm);
-      font-weight: var(--font-weight-normal);
-      line-height: 1.5;
-    }
-
-    button {
-      font-family: 'Inter', sans-serif;
-      font-size: var(--text-sm);
-      font-weight: var(--font-weight-semibold);
-      line-height: 1.5;
-    }
-
-    input {
-      font-family: 'Inter', sans-serif;
-      font-size: var(--text-base);
-      font-weight: var(--font-weight-normal);
-      line-height: 1.5;
-    }
+  html {
+    @apply font-sans;
   }
-}
 
-html {
-  font-size: var(--font-size);
+  h1, h2, h3 {
+    font-family: var(--font-heading);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.2;
+  }
+
+  h4 {
+    font-family: var(--font-heading);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.3;
+  }
 }

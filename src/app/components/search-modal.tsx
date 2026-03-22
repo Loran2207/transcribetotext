@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { Search, X, Calendar, FolderOpen, FileText, ChevronLeft, ChevronRight, Clock, Zap, ChevronDown, User } from "lucide-react";
-import { useTheme } from "./theme-context";
-import { getDarkPalette } from "./dark-palette";
+import { Search, X, Calendar, FolderOpen, FileText, ChevronLeft, ChevronRight, Clock, Zap, ChevronDown, User } from "@hugeicons/core-free-icons";
+import { Icon } from "./ui/icon";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import { useFolders } from "./folder-context";
 import { SourceIcon, type SourceType } from "./source-icons";
 
@@ -82,7 +83,7 @@ function getCalendarDays(year: number, month: number) {
 }
 
 /* ── Highlight matching text ── */
-function HighlightText({ text, query, color }: { text: string; query: string; color: string }) {
+function HighlightText({ text, query }: { text: string; query: string }) {
   if (!query.trim()) return <span>{text}</span>;
   const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
   const parts = text.split(regex);
@@ -90,7 +91,7 @@ function HighlightText({ text, query, color }: { text: string; query: string; co
     <span>
       {parts.map((part, i) =>
         regex.test(part) ? (
-          <span key={i} style={{ color: "#2563eb", fontWeight: 600 }}>{part}</span>
+          <span key={i} className="text-primary font-semibold">{part}</span>
         ) : (
           <span key={i}>{part}</span>
         )
@@ -100,39 +101,36 @@ function HighlightText({ text, query, color }: { text: string; query: string; co
 }
 
 /* ── Filter Chip with chevron ── */
-function FilterChip({ label, icon, active, count, onClick, hasChevron, c }: {
+function FilterChip({ label, icon, active, count, onClick, hasChevron }: {
   label: string; icon: React.ReactNode; active: boolean; count?: number; onClick: () => void; hasChevron?: boolean;
-  c: ReturnType<typeof getDarkPalette>;
 }) {
   return (
-    <button
+    <Button
+      variant="outline"
+      size="sm"
       onClick={onClick}
-      className="flex items-center gap-[5px] h-[28px] px-[10px] rounded-full transition-all shrink-0"
-      style={{
-        backgroundColor: active ? "rgba(37,99,235,0.08)" : "transparent",
-        border: `1px solid ${active ? "#2563eb" : c.border}`,
-      }}
+      className={`flex items-center gap-[5px] h-[28px] px-[10px] rounded-full shrink-0 ${active ? "bg-primary/[0.08] border-primary" : "bg-transparent"}`}
     >
       {icon}
-      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12px", color: active ? "#2563eb" : c.textMuted }}>
+      <span className={`font-medium text-[12px] ${active ? "text-primary" : "text-muted-foreground"}`}>
         {label}
       </span>
       {count !== undefined && count > 0 && (
-        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "12px", color: "#2563eb" }}>
+        <span className="font-semibold text-[12px] text-primary">
           {count}
         </span>
       )}
-      {hasChevron && <ChevronDown className="size-[10px]" style={{ color: active ? "#2563eb" : c.textFaint }} strokeWidth={2} />}
-    </button>
+      {hasChevron && <Icon icon={ChevronDown} className={`size-[10px] ${active ? "text-primary" : "text-muted-foreground"}`} strokeWidth={2} />}
+    </Button>
   );
 }
 
 /* ── Dropdown Panel ── */
-function FilterDropdown({ children, c, width }: { children: React.ReactNode; c: ReturnType<typeof getDarkPalette>; width?: number }) {
+function FilterDropdown({ children, width }: { children: React.ReactNode; width?: number }) {
   return (
     <div
-      className="absolute top-[calc(100%+6px)] left-0 rounded-[12px] py-[6px] z-10 overflow-hidden"
-      style={{ width: width || 260, backgroundColor: c.bgPopover, border: `1px solid ${c.border}`, boxShadow: c.shadow }}
+      className="absolute top-[calc(100%+6px)] left-0 rounded-[12px] py-[6px] z-10 overflow-hidden bg-popover border border-border shadow-md"
+      style={{ width: width || 260 }}
     >
       {children}
     </div>
@@ -140,10 +138,9 @@ function FilterDropdown({ children, c, width }: { children: React.ReactNode; c: 
 }
 
 /* ── Date Filter Panel ── */
-function DateFilterPanel({ selectedPreset, selectedDate, onSelectPreset, onSelectDate, onClear, c, isDark }: {
+function DateFilterPanel({ selectedPreset, selectedDate, onSelectPreset, onSelectDate, onClear }: {
   selectedPreset: string | null; selectedDate: Date | null;
   onSelectPreset: (id: string) => void; onSelectDate: (d: Date) => void; onClear: () => void;
-  c: ReturnType<typeof getDarkPalette>; isDark: boolean;
 }) {
   const today = new Date(2026, 2, 16);
   const [calYear, setCalYear] = useState(today.getFullYear());
@@ -155,42 +152,40 @@ function DateFilterPanel({ selectedPreset, selectedDate, onSelectPreset, onSelec
   const isSelected = (d: Date) => selectedDate && d.getDate() === selectedDate.getDate() && d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
 
   return (
-    <div className="absolute top-[calc(100%+6px)] left-0 w-[300px] rounded-[12px] z-10 overflow-hidden" style={{ backgroundColor: c.bgPopover, border: `1px solid ${c.border}`, boxShadow: c.shadow }}>
+    <div className="absolute top-[calc(100%+6px)] left-0 w-[300px] rounded-[12px] z-10 overflow-hidden bg-popover border border-border shadow-md">
       <div className="flex items-center justify-between px-[14px] pt-[12px] pb-[4px]">
-        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12px", color: c.textFaint, textTransform: "uppercase", letterSpacing: "0.5px" }}>Created</span>
-        <button onClick={onClear} className="transition-opacity hover:opacity-70">
-          <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "12px", color: "#2563eb" }}>Clear</span>
-        </button>
+        <span className="font-medium text-[12px] text-muted-foreground uppercase tracking-[0.5px]">Created</span>
+        <Button variant="link" onClick={onClear} className="h-auto p-0 font-medium text-[12px]">Clear</Button>
       </div>
       <div className="px-[6px] py-[4px]">
         {DATE_PRESETS.map((p) => (
-          <button key={p.id} onClick={() => onSelectPreset(p.id)} className="flex items-center gap-[8px] w-full h-[34px] px-[10px] rounded-[8px] transition-colors" style={{ backgroundColor: selectedPreset === p.id ? (isDark ? "rgba(37,99,235,0.12)" : "#f0f4ff") : "transparent" }} onMouseEnter={e => { if (selectedPreset !== p.id) e.currentTarget.style.backgroundColor = c.bgHover; }} onMouseLeave={e => { if (selectedPreset !== p.id) e.currentTarget.style.backgroundColor = "transparent"; }}>
-            <Calendar className="size-[13px]" style={{ color: selectedPreset === p.id ? "#2563eb" : c.textMuted }} strokeWidth={1.5} />
-            <span className="flex-1 text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: selectedPreset === p.id ? 500 : 400, fontSize: "13px", color: selectedPreset === p.id ? "#2563eb" : c.textSecondary }}>{p.label}</span>
-            {p.pro && <Zap className="size-[11px]" style={{ color: "#2563eb" }} strokeWidth={2} fill="#2563eb" />}
-          </button>
+          <Button variant="ghost" key={p.id} onClick={() => onSelectPreset(p.id)} className={`flex items-center gap-[8px] w-full h-[34px] px-[10px] rounded-[8px] justify-start ${selectedPreset === p.id ? "bg-primary/5" : ""}`}>
+            <Icon icon={Calendar} className={`size-[13px] ${selectedPreset === p.id ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />
+            <span className={`flex-1 text-left text-[13px] ${selectedPreset === p.id ? "font-medium text-primary" : "font-normal text-foreground"}`}>{p.label}</span>
+            {p.pro && <Icon icon={Zap} className="size-[11px] text-primary" strokeWidth={2} fill="var(--primary)" />}
+          </Button>
         ))}
       </div>
-      <div className="h-px mx-[10px]" style={{ backgroundColor: c.border }} />
+      <div className="h-px mx-[10px] bg-border" />
       <div className="flex items-center justify-between px-[14px] pt-[10px] pb-[6px]">
-        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "13px", color: c.textPrimary }}>{MONTHS[calMonth].slice(0, 3)} {calYear}</span>
+        <span className="font-semibold text-[13px] text-foreground">{MONTHS[calMonth].slice(0, 3)} {calYear}</span>
         <div className="flex items-center gap-[2px]">
-          <button onClick={prevMonth} className="size-[26px] rounded-full flex items-center justify-center transition-colors" onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover} onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}><ChevronLeft className="size-[13px]" style={{ color: c.textMuted }} strokeWidth={1.5} /></button>
-          <button onClick={nextMonth} className="size-[26px] rounded-full flex items-center justify-center transition-colors" onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover} onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}><ChevronRight className="size-[13px]" style={{ color: c.textMuted }} strokeWidth={1.5} /></button>
+          <Button variant="ghost" size="icon" onClick={prevMonth} className="size-[26px] rounded-full"><Icon icon={ChevronLeft} className="size-[13px] text-muted-foreground" strokeWidth={1.5} /></Button>
+          <Button variant="ghost" size="icon" onClick={nextMonth} className="size-[26px] rounded-full"><Icon icon={ChevronRight} className="size-[13px] text-muted-foreground" strokeWidth={1.5} /></Button>
         </div>
       </div>
       <div className="grid grid-cols-7 px-[10px]">
-        {DAYS.map((d) => (<div key={d} className="flex items-center justify-center h-[24px]"><span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: "9px", color: c.textFaint, letterSpacing: "0.5px" }}>{d}</span></div>))}
+        {DAYS.map((d) => (<div key={d} className="flex items-center justify-center h-[24px]"><span className="font-semibold text-[9px] text-muted-foreground tracking-[0.5px]">{d}</span></div>))}
       </div>
       <div className="grid grid-cols-7 px-[10px] pb-[12px]">
         {days.map((d, i) => {
           const sel = isSelected(d.date);
           const tod = isToday(d.date);
           return (
-            <button key={i} onClick={() => onSelectDate(d.date)} className="flex flex-col items-center justify-center h-[32px] rounded-full transition-colors" style={{ backgroundColor: sel ? "#2563eb" : "transparent", opacity: d.current ? 1 : 0.3 }} onMouseEnter={e => { if (!sel) e.currentTarget.style.backgroundColor = c.bgHover; }} onMouseLeave={e => { if (!sel) e.currentTarget.style.backgroundColor = "transparent"; }}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: tod || sel ? 600 : 400, fontSize: "12px", color: sel ? "white" : (tod ? "#2563eb" : c.textSecondary) }}>{d.day}</span>
-              {tod && !sel && <div className="size-[3px] rounded-full -mt-[1px]" style={{ backgroundColor: "#2563eb" }} />}
-            </button>
+            <Button variant={sel ? "default" : "ghost"} key={i} onClick={() => onSelectDate(d.date)} className={`flex flex-col items-center justify-center h-[32px] rounded-full p-0 ${sel ? "bg-primary" : ""}`} style={{ opacity: d.current ? 1 : 0.3 }}>
+              <span className={`text-[12px] ${tod || sel ? "font-semibold" : "font-normal"} ${sel ? "text-primary-foreground" : tod ? "text-primary" : "text-foreground"}`}>{d.day}</span>
+              {tod && !sel && <div className="size-[3px] rounded-full -mt-[1px] bg-primary" />}
+            </Button>
           );
         })}
       </div>
@@ -199,7 +194,7 @@ function DateFilterPanel({ selectedPreset, selectedDate, onSelectPreset, onSelec
 }
 
 /* ── Scope Selector (Recordings / Folders) ── */
-function ScopeSelector({ scope, onChange, c, isDark }: { scope: "recordings" | "folders"; onChange: (s: "recordings" | "folders") => void; c: ReturnType<typeof getDarkPalette>; isDark: boolean }) {
+function ScopeSelector({ scope, onChange }: { scope: "recordings" | "folders"; onChange: (s: "recordings" | "folders") => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -210,28 +205,25 @@ function ScopeSelector({ scope, onChange, c, isDark }: { scope: "recordings" | "
 
   return (
     <div className="relative shrink-0" ref={ref}>
-      <button
+      <Button variant="outline"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-[6px] h-[30px] pl-[10px] pr-[6px] rounded-[8px] transition-colors shrink-0"
-        style={{ backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "#f3f4f6", border: `1px solid ${c.border}` }}
-        onMouseEnter={e => e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.15)" : "#d1d5db"}
-        onMouseLeave={e => e.currentTarget.style.borderColor = c.border}
+        className="flex items-center gap-[6px] h-[30px] pl-[10px] pr-[6px] rounded-[8px] shrink-0 bg-muted"
       >
-        <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "13px", color: c.textSecondary }}>
+        <span className="font-medium text-[13px] text-foreground">
           {scope === "recordings" ? "Recordings" : "Folders"}
         </span>
-        <ChevronDown className="size-[12px]" style={{ color: c.textMuted }} strokeWidth={2} />
-      </button>
+        <Icon icon={ChevronDown} className="size-[12px] text-muted-foreground" strokeWidth={2} />
+      </Button>
       {open && (
-        <div className="absolute top-[calc(100%+4px)] left-0 w-[160px] rounded-[10px] py-[4px] z-20" style={{ backgroundColor: c.bgPopover, border: `1px solid ${c.border}`, boxShadow: c.shadow }}>
-          <button onClick={() => { onChange("recordings"); setOpen(false); }} className="flex items-center gap-[8px] w-full h-[34px] px-[12px] transition-colors" style={{ backgroundColor: scope === "recordings" ? (isDark ? "rgba(37,99,235,0.12)" : "#f0f4ff") : "transparent" }} onMouseEnter={e => { if (scope !== "recordings") e.currentTarget.style.backgroundColor = c.bgHover; }} onMouseLeave={e => { if (scope !== "recordings") e.currentTarget.style.backgroundColor = "transparent"; }}>
-            <FileText className="size-[14px]" style={{ color: scope === "recordings" ? "#2563eb" : c.textMuted }} strokeWidth={1.5} />
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: scope === "recordings" ? 500 : 400, fontSize: "13px", color: scope === "recordings" ? "#2563eb" : c.textSecondary }}>Recordings</span>
-          </button>
-          <button onClick={() => { onChange("folders"); setOpen(false); }} className="flex items-center gap-[8px] w-full h-[34px] px-[12px] transition-colors" style={{ backgroundColor: scope === "folders" ? (isDark ? "rgba(37,99,235,0.12)" : "#f0f4ff") : "transparent" }} onMouseEnter={e => { if (scope !== "folders") e.currentTarget.style.backgroundColor = c.bgHover; }} onMouseLeave={e => { if (scope !== "folders") e.currentTarget.style.backgroundColor = "transparent"; }}>
-            <FolderOpen className="size-[14px]" style={{ color: scope === "folders" ? "#2563eb" : c.textMuted }} strokeWidth={1.5} />
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: scope === "folders" ? 500 : 400, fontSize: "13px", color: scope === "folders" ? "#2563eb" : c.textSecondary }}>Folders</span>
-          </button>
+        <div className="absolute top-[calc(100%+4px)] left-0 w-[160px] rounded-[10px] py-[4px] z-20 bg-popover border border-border shadow-md">
+          <Button variant="ghost" onClick={() => { onChange("recordings"); setOpen(false); }} className={`flex items-center gap-[8px] w-full h-[34px] px-[12px] rounded-none justify-start ${scope === "recordings" ? "bg-primary/5" : ""}`}>
+            <Icon icon={FileText} className={`size-[14px] ${scope === "recordings" ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />
+            <span className={`text-[13px] ${scope === "recordings" ? "font-medium text-primary" : "font-normal text-foreground"}`}>Recordings</span>
+          </Button>
+          <Button variant="ghost" onClick={() => { onChange("folders"); setOpen(false); }} className={`flex items-center gap-[8px] w-full h-[34px] px-[12px] rounded-none justify-start ${scope === "folders" ? "bg-primary/5" : ""}`}>
+            <Icon icon={FolderOpen} className={`size-[14px] ${scope === "folders" ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />
+            <span className={`text-[13px] ${scope === "folders" ? "font-medium text-primary" : "font-normal text-foreground"}`}>Folders</span>
+          </Button>
         </div>
       )}
     </div>
@@ -244,8 +236,6 @@ function ScopeSelector({ scope, onChange, c, isDark }: { scope: "recordings" | "
 interface SearchModalProps { open: boolean; onClose: () => void; onNavigate?: (page: string) => void; }
 
 export function SearchModal({ open, onClose }: SearchModalProps) {
-  const { isDark } = useTheme();
-  const c = getDarkPalette(isDark);
   const { folders: userFolders } = useFolders();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -319,64 +309,60 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[3px]" onClick={() => { closeDropdowns(); onClose(); }} />
 
       <div
-        className="relative w-[640px] rounded-[16px] overflow-visible flex flex-col"
+        className="relative w-[640px] rounded-[16px] overflow-visible flex flex-col bg-popover"
         style={{
-          backgroundColor: c.bgPopover,
-          boxShadow: isDark
-            ? "0px 24px 64px rgba(0,0,0,0.6), 0px 8px 24px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.06)"
-            : "0px 24px 64px rgba(0,0,0,0.12), 0px 8px 24px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
+          boxShadow: "0px 24px 64px rgba(0,0,0,0.12), 0px 8px 24px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
           maxHeight: "70vh",
         }}
         onClick={() => closeDropdowns()}
       >
         {/* ─── Search Header ─── */}
-        <div className="flex items-center gap-[8px] px-[14px] h-[52px] shrink-0" style={{ borderBottom: `1px solid ${c.border}` }}>
-          <ScopeSelector scope={scope} onChange={setScope} c={c} isDark={isDark} />
+        <div className="flex items-center gap-[8px] px-[14px] h-[52px] shrink-0 border-b border-border">
+          <ScopeSelector scope={scope} onChange={setScope} />
           <div className="flex items-center gap-[8px] flex-1 min-w-0" onClick={e => e.stopPropagation()}>
-            <Search className="size-[15px] shrink-0" style={{ color: c.textMuted }} strokeWidth={1.5} />
-            <input
+            <Icon icon={Search} className="size-[15px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
+            <Input
               ref={inputRef}
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder={scope === "recordings" ? "Search recordings..." : "Search folders..."}
-              className="flex-1 h-full bg-transparent outline-none min-w-0 placeholder:text-[#9ca3af]"
-              style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "14px", color: c.textPrimary }}
+              className="flex-1 h-full bg-transparent border-0 shadow-none focus-visible:ring-0 min-w-0 text-[14px] font-normal px-0 rounded-none"
             />
           </div>
           <div className="flex items-center gap-[6px] shrink-0">
             {hasQuery && (
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textFaint }}>
+              <span className="font-normal text-[11px] text-muted-foreground">
                 Enter ↵
               </span>
             )}
-            <button onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center transition-colors" style={{ backgroundColor: "transparent" }} onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover} onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}>
-              <X className="size-[15px]" style={{ color: c.textMuted }} strokeWidth={1.5} />
-            </button>
+            <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full">
+              <Icon icon={X} className="size-[15px] text-muted-foreground" strokeWidth={1.5} />
+            </Button>
           </div>
         </div>
 
         {/* ─── Filter Chips ─── */}
-        <div className="flex items-center gap-[6px] px-[14px] py-[8px] shrink-0 flex-wrap" style={{ borderBottom: `1px solid ${c.border}` }}>
+        <div className="flex items-center gap-[6px] px-[14px] py-[8px] shrink-0 flex-wrap border-b border-border">
           {/* Folders */}
           {scope === "recordings" && (
             <div className="relative" onClick={e => e.stopPropagation()}>
               <FilterChip
                 label="Folders" hasChevron
-                icon={<FolderOpen className="size-[12px]" style={{ color: selectedFolders.size > 0 ? "#2563eb" : c.textMuted }} strokeWidth={1.5} />}
+                icon={<Icon icon={FolderOpen} className={`size-[12px] ${selectedFolders.size > 0 ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />}
                 active={selectedFolders.size > 0} count={selectedFolders.size}
-                onClick={() => setActiveDropdown(activeDropdown === "folders" ? null : "folders")} c={c}
+                onClick={() => setActiveDropdown(activeDropdown === "folders" ? null : "folders")}
               />
               {activeDropdown === "folders" && (
-                <FilterDropdown c={c}>
+                <FilterDropdown>
                   <div className="px-[10px] pt-[4px] pb-[2px]">
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: c.textFaint, letterSpacing: "0.5px", textTransform: "uppercase" }}>Folders</span>
+                    <span className="font-medium text-[10px] text-muted-foreground tracking-[0.5px] uppercase">Folders</span>
                   </div>
                   {folders.map(f => (
-                    <button key={f.id} onClick={() => toggleSet(setSelectedFolders, f.id)} className="flex items-center gap-[8px] w-full h-[32px] px-[10px] rounded-[8px] mx-[4px] transition-colors" style={{ width: "calc(100% - 8px)", backgroundColor: selectedFolders.has(f.id) ? (isDark ? "rgba(37,99,235,0.12)" : "#f0f4ff") : "transparent" }} onMouseEnter={e => { if (!selectedFolders.has(f.id)) e.currentTarget.style.backgroundColor = c.bgHover; }} onMouseLeave={e => { if (!selectedFolders.has(f.id)) e.currentTarget.style.backgroundColor = "transparent"; }}>
+                    <Button variant="ghost" key={f.id} onClick={() => toggleSet(setSelectedFolders, f.id)} className={`flex items-center gap-[8px] w-[calc(100%-8px)] h-[32px] px-[10px] rounded-[8px] mx-[4px] justify-start ${selectedFolders.has(f.id) ? "bg-primary/5" : ""}`}>
                       <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={FOLDER_PATH} fill={f.color} /></svg>
-                      <span className="flex-1 text-left truncate" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>{f.name}</span>
-                      {selectedFolders.has(f.id) && <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                    </button>
+                      <span className="flex-1 text-left truncate font-normal text-[13px] text-foreground">{f.name}</span>
+                      {selectedFolders.has(f.id) && <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                    </Button>
                   ))}
                 </FilterDropdown>
               )}
@@ -387,9 +373,9 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {scope === "recordings" && (
             <FilterChip
               label="Title only"
-              icon={<span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: "11px", color: titleOnly ? "#2563eb" : c.textMuted }}>Aa</span>}
+              icon={<span className={`font-bold text-[11px] ${titleOnly ? "text-primary" : "text-muted-foreground"}`}>Aa</span>}
               active={titleOnly}
-              onClick={() => setTitleOnly(!titleOnly)} c={c}
+              onClick={() => setTitleOnly(!titleOnly)}
             />
           )}
 
@@ -398,21 +384,21 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
             <div className="relative" onClick={e => e.stopPropagation()}>
               <FilterChip
                 label="Type" hasChevron
-                icon={<svg className="size-[12px]" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="3" height="10" rx="1.5" fill={selectedTypes.size > 0 ? "#2563eb" : (c.textMuted)} opacity="0.6" /><rect x="6.5" y="1" width="3" height="14" rx="1.5" fill={selectedTypes.size > 0 ? "#2563eb" : (c.textMuted)} /><rect x="12" y="5" width="3" height="6" rx="1.5" fill={selectedTypes.size > 0 ? "#2563eb" : (c.textMuted)} opacity="0.4" /></svg>}
+                icon={<svg className="size-[12px]" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="3" height="10" rx="1.5" fill={selectedTypes.size > 0 ? "var(--primary)" : "var(--muted-foreground)"} opacity="0.6" /><rect x="6.5" y="1" width="3" height="14" rx="1.5" fill={selectedTypes.size > 0 ? "var(--primary)" : "var(--muted-foreground)"} /><rect x="12" y="5" width="3" height="6" rx="1.5" fill={selectedTypes.size > 0 ? "var(--primary)" : "var(--muted-foreground)"} opacity="0.4" /></svg>}
                 active={selectedTypes.size > 0} count={selectedTypes.size}
-                onClick={() => setActiveDropdown(activeDropdown === "types" ? null : "types")} c={c}
+                onClick={() => setActiveDropdown(activeDropdown === "types" ? null : "types")}
               />
               {activeDropdown === "types" && (
-                <FilterDropdown c={c}>
+                <FilterDropdown>
                   <div className="px-[10px] pt-[4px] pb-[2px]">
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "10px", color: c.textFaint, letterSpacing: "0.5px", textTransform: "uppercase" }}>Source</span>
+                    <span className="font-medium text-[10px] text-muted-foreground tracking-[0.5px] uppercase">Source</span>
                   </div>
                   {DOC_TYPES.map(dt => (
-                    <button key={dt.id} onClick={() => toggleSet(setSelectedTypes, dt.id)} className="flex items-center gap-[8px] w-full h-[32px] px-[10px] rounded-[8px] mx-[4px] transition-colors" style={{ width: "calc(100% - 8px)", backgroundColor: selectedTypes.has(dt.id) ? (isDark ? "rgba(37,99,235,0.12)" : "#f0f4ff") : "transparent" }} onMouseEnter={e => { if (!selectedTypes.has(dt.id)) e.currentTarget.style.backgroundColor = c.bgHover; }} onMouseLeave={e => { if (!selectedTypes.has(dt.id)) e.currentTarget.style.backgroundColor = "transparent"; }}>
+                    <Button variant="ghost" key={dt.id} onClick={() => toggleSet(setSelectedTypes, dt.id)} className={`flex items-center gap-[8px] w-[calc(100%-8px)] h-[32px] px-[10px] rounded-[8px] mx-[4px] justify-start ${selectedTypes.has(dt.id) ? "bg-primary/5" : ""}`}>
                       <div className="shrink-0"><SourceIcon source={dt.source} /></div>
-                      <span className="flex-1 text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>{dt.label}</span>
-                      {selectedTypes.has(dt.id) && <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                    </button>
+                      <span className="flex-1 text-left font-normal text-[13px] text-foreground">{dt.label}</span>
+                      {selectedTypes.has(dt.id) && <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                    </Button>
                   ))}
                 </FilterDropdown>
               )}
@@ -424,18 +410,18 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
             <div className="relative" onClick={e => e.stopPropagation()}>
               <FilterChip
                 label="Creator" hasChevron
-                icon={<User className="size-[12px]" style={{ color: selectedCreators.size > 0 ? "#2563eb" : c.textMuted }} strokeWidth={1.5} />}
+                icon={<Icon icon={User} className={`size-[12px] ${selectedCreators.size > 0 ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />}
                 active={selectedCreators.size > 0} count={selectedCreators.size}
-                onClick={() => setActiveDropdown(activeDropdown === "creators" ? null : "creators")} c={c}
+                onClick={() => setActiveDropdown(activeDropdown === "creators" ? null : "creators")}
               />
               {activeDropdown === "creators" && (
-                <FilterDropdown c={c} width={200}>
+                <FilterDropdown width={200}>
                   {CREATOR_OPTIONS.map(cr => (
-                    <button key={cr.id} onClick={() => toggleSet(setSelectedCreators, cr.id)} className="flex items-center gap-[8px] w-full h-[32px] px-[10px] rounded-[8px] mx-[4px] transition-colors" style={{ width: "calc(100% - 8px)", backgroundColor: selectedCreators.has(cr.id) ? (isDark ? "rgba(37,99,235,0.12)" : "#f0f4ff") : "transparent" }} onMouseEnter={e => { if (!selectedCreators.has(cr.id)) e.currentTarget.style.backgroundColor = c.bgHover; }} onMouseLeave={e => { if (!selectedCreators.has(cr.id)) e.currentTarget.style.backgroundColor = "transparent"; }}>
-                      <User className="size-[13px]" style={{ color: selectedCreators.has(cr.id) ? "#2563eb" : c.textMuted }} strokeWidth={1.5} />
-                      <span className="flex-1 text-left" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>{cr.label}</span>
-                      {selectedCreators.has(cr.id) && <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                    </button>
+                    <Button variant="ghost" key={cr.id} onClick={() => toggleSet(setSelectedCreators, cr.id)} className={`flex items-center gap-[8px] w-[calc(100%-8px)] h-[32px] px-[10px] rounded-[8px] mx-[4px] justify-start ${selectedCreators.has(cr.id) ? "bg-primary/5" : ""}`}>
+                      <Icon icon={User} className={`size-[13px] ${selectedCreators.has(cr.id) ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />
+                      <span className="flex-1 text-left font-normal text-[13px] text-foreground">{cr.label}</span>
+                      {selectedCreators.has(cr.id) && <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                    </Button>
                   ))}
                 </FilterDropdown>
               )}
@@ -447,9 +433,9 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
             <FilterChip
               label={datePreset ? DATE_PRESETS.find(p => p.id === datePreset)?.label || "Date" : selectedDate ? selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Date"}
               hasChevron
-              icon={<Calendar className="size-[12px]" style={{ color: (datePreset || selectedDate) ? "#2563eb" : c.textMuted }} strokeWidth={1.5} />}
+              icon={<Icon icon={Calendar} className={`size-[12px] ${(datePreset || selectedDate) ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />}
               active={datePreset !== null || selectedDate !== null}
-              onClick={() => setActiveDropdown(activeDropdown === "date" ? null : "date")} c={c}
+              onClick={() => setActiveDropdown(activeDropdown === "date" ? null : "date")}
             />
             {activeDropdown === "date" && (
               <DateFilterPanel
@@ -457,16 +443,15 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
                 onSelectPreset={(id) => { setDatePreset(id); setSelectedDate(null); }}
                 onSelectDate={(d) => { setSelectedDate(d); setDatePreset(null); }}
                 onClear={() => { setDatePreset(null); setSelectedDate(null); }}
-                c={c} isDark={isDark}
               />
             )}
           </div>
 
           {/* Clear all */}
           {(hasFilters || titleOnly) && (
-            <button onClick={clearAllFilters} className="flex items-center justify-center size-[28px] rounded-full transition-opacity hover:opacity-70 shrink-0" title="Clear all filters">
-              <X className="size-[13px]" style={{ color: "#EF4444" }} strokeWidth={2} />
-            </button>
+            <Button variant="ghost" size="icon" onClick={clearAllFilters} className="size-[28px] rounded-full shrink-0" title="Clear all filters">
+              <Icon icon={X} className="size-[13px] text-destructive" strokeWidth={2} />
+            </Button>
           )}
         </div>
 
@@ -476,38 +461,35 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {scope === "recordings" && (hasQuery || hasFilters) && recordingResults.length > 0 && (
             <div className="px-[10px] py-[6px]">
               <div className="px-[8px] pt-[6px] pb-[4px]">
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textFaint, letterSpacing: "0.3px" }}>Best matches</span>
+                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px]">Best matches</span>
               </div>
               {recordingResults.map(r => (
-                <button
+                <Button variant="ghost"
                   key={r.id}
-                  className="flex items-start gap-[10px] w-full px-[10px] py-[12px] rounded-[10px] transition-colors text-left group"
-                  style={{ backgroundColor: "transparent" }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = isDark ? "rgba(37,99,235,0.06)" : "#f8faff"}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+                  className="flex items-start gap-[10px] w-full px-[10px] py-[12px] rounded-[10px] text-left group h-auto hover:bg-primary/[0.03] justify-start"
                 >
                   <div className="shrink-0 mt-[2px]"><SourceIcon source={r.source} /></div>
                   <div className="flex-1 min-w-0">
                     {/* Title */}
-                    <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "14px", color: c.textPrimary, lineHeight: "1.4" }}>
-                      <HighlightText text={r.name} query={query} color="#2563eb" />
+                    <div className="font-medium text-[14px] text-foreground leading-[1.4]">
+                      <HighlightText text={r.name} query={query} />
                     </div>
                     {/* Meta */}
                     <div className="flex items-center gap-[4px] mt-[2px] flex-wrap">
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "12px", color: c.textFaint }}>{r.date}</span>
-                      <span style={{ color: c.textFaint, fontSize: "12px" }}>|</span>
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "12px", color: c.textFaint }}>{r.duration}</span>
-                      <span style={{ color: c.textFaint, fontSize: "12px" }}>|</span>
-                      <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "12px", color: c.textFaint }}>{r.creator}</span>
+                      <span className="font-normal text-[12px] text-muted-foreground">{r.date}</span>
+                      <span className="text-muted-foreground text-[12px]">|</span>
+                      <span className="font-normal text-[12px] text-muted-foreground">{r.duration}</span>
+                      <span className="text-muted-foreground text-[12px]">|</span>
+                      <span className="font-normal text-[12px] text-muted-foreground">{r.creator}</span>
                     </div>
                     {/* Summary with highlights */}
                     {!titleOnly && (
-                      <div className="mt-[4px]" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textMuted, lineHeight: "1.45" }}>
-                        <HighlightText text={r.summary.length > 140 ? r.summary.slice(0, 140) + "..." : r.summary} query={query} color="#2563eb" />
+                      <div className="mt-[4px] font-normal text-[13px] text-muted-foreground leading-[1.45]">
+                        <HighlightText text={r.summary.length > 140 ? r.summary.slice(0, 140) + "..." : r.summary} query={query} />
                       </div>
                     )}
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -516,24 +498,21 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {scope === "folders" && (hasQuery || hasFilters) && folderResults.length > 0 && (
             <div className="px-[10px] py-[6px]">
               <div className="px-[8px] pt-[6px] pb-[4px]">
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textFaint, letterSpacing: "0.3px" }}>Matching folders</span>
+                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px]">Matching folders</span>
               </div>
               {folderResults.map(f => (
-                <button
+                <Button variant="ghost"
                   key={f.id}
-                  className="flex items-center gap-[10px] w-full h-[40px] px-[10px] rounded-[10px] transition-colors"
-                  style={{ backgroundColor: "transparent" }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+                  className="flex items-center gap-[10px] w-full h-[40px] px-[10px] rounded-[10px] justify-start"
                 >
                   <svg className="size-[18px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={FOLDER_PATH} fill={f.color} /></svg>
                   <div className="flex-1 min-w-0 text-left">
-                    <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "14px", color: c.textPrimary }}>
-                      <HighlightText text={f.name} query={query} color="#2563eb" />
+                    <span className="font-medium text-[14px] text-foreground">
+                      <HighlightText text={f.name} query={query} />
                     </span>
                   </div>
-                  <span className="shrink-0" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "12px", color: c.textFaint }}>{f.count} recordings</span>
-                </button>
+                  <span className="shrink-0 font-normal text-[12px] text-muted-foreground">{f.count} recordings</span>
+                </Button>
               ))}
             </div>
           )}
@@ -541,9 +520,9 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {/* No results */}
           {(hasQuery || hasFilters) && resultCount === 0 && (
             <div className="flex flex-col items-center justify-center py-[36px]">
-              <Search className="size-[26px] mb-[8px]" style={{ color: c.textFaint }} strokeWidth={1} />
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "14px", color: c.textMuted }}>No results found</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "12px", color: c.textFaint, marginTop: "3px" }}>Try adjusting your search or filters</span>
+              <Icon icon={Search} className="size-[26px] mb-[8px] text-muted-foreground" strokeWidth={1} />
+              <span className="font-medium text-[14px] text-muted-foreground">No results found</span>
+              <span className="font-normal text-[12px] text-muted-foreground mt-[3px]">Try adjusting your search or filters</span>
             </div>
           )}
 
@@ -551,27 +530,24 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {!hasQuery && !hasFilters && (
             <div className="px-[10px] py-[6px]">
               <div className="px-[8px] pt-[6px] pb-[4px]">
-                <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "11px", color: c.textFaint, letterSpacing: "0.3px" }}>Recent searches</span>
+                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px]">Recent searches</span>
               </div>
               {recentSearches.length === 0 ? (
                 <div className="px-[8px] py-[14px] text-center">
-                  <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textFaint, fontStyle: "italic" }}>No recent searches</span>
+                  <span className="font-normal text-[13px] text-muted-foreground italic">No recent searches</span>
                 </div>
               ) : recentSearches.map(rs => (
                 <div
                   key={rs.id}
-                  className="flex items-center gap-[8px] w-full h-[36px] px-[10px] rounded-[10px] transition-colors cursor-pointer group"
-                  style={{ backgroundColor: "transparent" }}
-                  onMouseEnter={e => e.currentTarget.style.backgroundColor = c.bgHover}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
+                  className="flex items-center gap-[8px] w-full h-[36px] px-[10px] rounded-[10px] transition-colors cursor-pointer group hover:bg-accent"
                   onClick={() => setQuery(rs.query)}
                 >
-                  <Clock className="size-[13px] shrink-0" style={{ color: c.textFaint }} strokeWidth={1.5} />
-                  <span className="flex-1 text-left truncate" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "13px", color: c.textSecondary }}>{rs.query}</span>
-                  <span className="shrink-0" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11px", color: c.textFaint }}>{rs.timestamp}</span>
-                  <button onClick={(e) => { e.stopPropagation(); removeRecent(rs.id); }} className="size-[18px] rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" style={{ backgroundColor: c.bgMuted }}>
-                    <X className="size-[9px]" style={{ color: c.textMuted }} strokeWidth={2} />
-                  </button>
+                  <Icon icon={Clock} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
+                  <span className="flex-1 text-left truncate font-normal text-[13px] text-foreground">{rs.query}</span>
+                  <span className="shrink-0 font-normal text-[11px] text-muted-foreground">{rs.timestamp}</span>
+                  <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); removeRecent(rs.id); }} className="size-[18px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-muted">
+                    <Icon icon={X} className="size-[9px] text-muted-foreground" strokeWidth={2} />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -579,18 +555,18 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
         </div>
 
         {/* ─── Footer ─── */}
-        <div className="shrink-0 flex items-center gap-[12px] px-[16px] h-[36px]" style={{ borderTop: `1px solid ${c.border}` }}>
+        <div className="shrink-0 flex items-center gap-[12px] px-[16px] h-[36px] border-t border-border">
           {(hasQuery || hasFilters) && (
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "11.5px", color: c.textFaint }}>
+            <span className="font-normal text-[11.5px] text-muted-foreground">
               {resultCount} result{resultCount !== 1 ? "s" : ""}
             </span>
           )}
           <div className="flex-1" />
           <div className="flex items-center gap-[6px]">
             <div className="flex items-center gap-[4px]">
-              <kbd className="flex items-center justify-center h-[16px] px-[4px] rounded-[3px]" style={{ backgroundColor: c.bgMuted, border: `0.5px solid ${c.border}`, fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: "9px", color: c.textFaint }}>ctrl</kbd>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "10px", color: c.textFaint }}>+</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: "10px", color: c.textFaint }}>Click to open in a new tab</span>
+              <kbd className="flex items-center justify-center h-[16px] px-[4px] rounded-[3px] bg-muted border border-border font-medium text-[9px] text-muted-foreground">ctrl</kbd>
+              <span className="font-normal text-[10px] text-muted-foreground">+</span>
+              <span className="font-normal text-[10px] text-muted-foreground">Click to open in a new tab</span>
             </div>
           </div>
         </div>
