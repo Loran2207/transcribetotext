@@ -564,7 +564,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           <div className="flex-1" />
           <div className="flex items-center gap-[6px]">
             <div className="flex items-center gap-[4px]">
-              <kbd className="flex items-center justify-center h-[16px] px-[4px] rounded-[3px] bg-muted border border-border font-medium text-[9px] text-muted-foreground">ctrl</kbd>
+              <kbd className="flex items-center justify-center h-[18px] px-[5px] rounded-[4px] bg-muted border border-border font-medium text-[10px] text-muted-foreground leading-none">Ctrl</kbd>
               <span className="font-normal text-[10px] text-muted-foreground">+</span>
               <span className="font-normal text-[10px] text-muted-foreground">Click to open in a new tab</span>
             </div>

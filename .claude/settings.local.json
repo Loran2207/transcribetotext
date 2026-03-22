@@ -41,7 +41,9 @@
       "Bash(start:*)",
       "mcp__figma__get_design_context",
       "mcp__figma__get_screenshot",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/tsc --noEmit)"
     ]
   }
 }

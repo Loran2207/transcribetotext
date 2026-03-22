@@ -255,14 +255,10 @@ function FreePlanCard() {
       <div className="mx-[18px] h-px bg-border" />
 
       {/* Usage check — collapsible */}
-      <Button variant="ghost" onClick={() => setUsageOpen(!usageOpen)} className="w-full px-[18px] py-[10px] h-auto rounded-none flex items-center justify-between">
-        <span className="text-foreground" style={{ fontWeight: 500, fontSize: "12px" }}>Check feature usage</span>
-        {usageOpen ? (
-          <Icon icon={ChevronUp} className="size-[14px] text-muted-foreground" strokeWidth={1.5} />
-        ) : (
-          <Icon icon={ChevronRight} className="size-[14px] text-muted-foreground" strokeWidth={1.5} />
-        )}
-      </Button>
+      <button onClick={() => setUsageOpen(!usageOpen)} className="w-full px-[18px] py-[10px] flex items-center justify-between hover:bg-accent transition-colors">
+        <span className="min-w-0 text-foreground" style={{ fontWeight: 500, fontSize: "12px" }}>Check feature usage</span>
+        <Icon icon={usageOpen ? ChevronUp : ChevronRight} className="size-[14px] text-muted-foreground shrink-0" strokeWidth={1.5} />
+      </button>
 
       {/* Collapsible usage details */}
       {usageOpen && (
@@ -270,7 +266,7 @@ function FreePlanCard() {
           {usageItems.map((item, i) => {
             const usagePct = item.total > 0 ? (item.used / item.total) * 100 : 0;
             return (
-              <div key={i} className={`py-[8px] ${i < usageItems.length - 1 ? "border-b border-border" : ""}`}>
+              <div key={i} className="py-[8px]">
                 <div className="flex items-center justify-between mb-[5px]">
                   <div className="flex items-center gap-[4px]">
                     <span className="text-foreground" style={{ fontWeight: 400, fontSize: "11.5px" }}>{item.label}</span>
@@ -309,15 +305,13 @@ function FreePlanCard() {
       </div>
 
       {/* Pro features */}
-      <div className="mx-[10px] mb-[10px] px-[14px] py-[14px] rounded-[10px] bg-primary/[0.03]">
-        <p className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "11.5px", marginBottom: "10px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Unlock with Pro</p>
-        <div className="flex flex-col gap-[7px]">
+      <div className="mx-[10px] mb-[10px] px-[14px] py-[12px] rounded-[10px] bg-muted/60">
+        <p className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "10.5px", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.6px" }}>Unlock with Pro</p>
+        <div className="flex flex-col gap-[6px]">
           {features.map((f, i) => (
-            <div key={i} className="flex items-center gap-[8px]">
-              <div className="flex items-center justify-center size-[16px] rounded-full bg-primary/10">
-                <Icon icon={Check} className="size-[10px] shrink-0 text-primary" strokeWidth={2.5} />
-              </div>
-              <span className="text-foreground" style={{ fontWeight: 450, fontSize: "12px" }}>{f}</span>
+            <div key={i} className="flex items-start gap-[8px]">
+              <Icon icon={Check} className="size-[11px] shrink-0 text-primary mt-[1px]" strokeWidth={2.5} />
+              <span className="text-muted-foreground" style={{ fontWeight: 400, fontSize: "12px" }}>{f}</span>
             </div>
           ))}
         </div>
@@ -425,12 +419,10 @@ export function RightPanel() {
           {/* Today's Events */}
           <div>
             <div className="flex items-center justify-between mb-[4px]">
-              <div className="flex items-center gap-[2px]">
-                <span className="text-foreground" style={{ fontWeight: 600, fontSize: "14px" }}>Today's Events ({todayCount})</span>
-                <Button variant="ghost" size="icon" className="size-[20px] rounded-full hover:opacity-60">
-                  <Icon icon={ChevronRight} className="size-[16px] text-foreground" strokeWidth={2} />
-                </Button>
-              </div>
+              <button className="flex items-center gap-[4px] cursor-pointer group">
+                <span className="text-foreground" style={{ fontWeight: 600, fontSize: "14px" }}>Today's Events</span>
+                <Icon icon={ChevronRight} className="size-[14px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.8} />
+              </button>
             </div>
             {meetingGrouped.filter(g => g.day === todayStr).map((group) => (
               <div key={group.day}>
