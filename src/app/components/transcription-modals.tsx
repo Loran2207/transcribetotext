@@ -2,7 +2,6 @@ import {
   useState, useRef, useEffect, useMemo,
   createContext, useContext,
 } from "react";
-import { useNavigate } from "react-router";
 import { createPortal } from "react-dom";
 import { FolderPlus } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
@@ -1863,7 +1862,6 @@ function AllModals() {
 
 export function FloatingProgressWidget() {
   const { jobs, retryJob } = useTranscriptionModals();
-  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false); // false = collapsed pill, true = full widget
   const [dismissed, setDismissed] = useState(false);
 
@@ -2087,7 +2085,13 @@ export function FloatingProgressWidget() {
                           </svg>
                           <Button variant="ghost"
                             onClick={() => {
-                              navigate(`/transcriptions/${job.id}`, { state: { record: mapJobToRecordState(job) } });
+                              const recordState = mapJobToRecordState(job);
+                              try {
+                                window.sessionStorage.setItem(`uploaded-record:${job.id}`, JSON.stringify(recordState));
+                              } catch {
+                                // best-effort cache; navigation should still work without it
+                              }
+                              window.location.assign(`/transcriptions/${job.id}`);
                             }}
                             className="transition-colors font-semibold text-[11px] text-primary hover:underline p-0 h-auto"
                           >
