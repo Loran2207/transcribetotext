@@ -1117,11 +1117,25 @@ export function TranscriptionDetailPage() {
   const { getName } = useStarred();
 
   const routeStateRecord = (location.state as { record?: RecordRow } | null)?.record;
+  const persistedRecord = useMemo<RecordRow | null>(() => {
+    if (!id || typeof window === "undefined") return null;
+    try {
+      const raw = window.sessionStorage.getItem(`uploaded-record:${id}`);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as RecordRow;
+      if (!parsed || typeof parsed !== "object" || parsed.id !== id) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }, [id]);
+
   const selectedRecord = useMemo<RecordRow | null>(() => {
     if (routeStateRecord && (!id || routeStateRecord.id === id)) return routeStateRecord;
+    if (persistedRecord && (!id || persistedRecord.id === id)) return persistedRecord;
     if (id) return records.find((record) => record.id === id) ?? null;
     return records[0] ?? null;
-  }, [id, routeStateRecord]);
+  }, [id, routeStateRecord, persistedRecord]);
 
   const fallbackTitle = "Weekly Team Sync \u2014 Product & Engineering";
   const recordTitle = selectedRecord ? getName(selectedRecord.id, selectedRecord.name) : fallbackTitle;
