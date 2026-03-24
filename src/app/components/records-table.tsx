@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router";
 import svgPaths from "../../imports/svg-jcr72uvvch";
 import { useStarred } from "./starred-context";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -83,10 +84,10 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
 
   return (
     <div className="flex items-center gap-[2px] relative" ref={ref}>
-      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-border" title="Rename" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="Rename" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M11.333 2a1.886 1.886 0 012.667 2.667L5.333 13.333 2 14l.667-3.333L11.333 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground" /></svg>
       </Button>
-      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-border" title="Share" onClick={(e) => { e.stopPropagation(); onShare(); }}>
+      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="Share" onClick={(e) => { e.stopPropagation(); onShare(); }}>
         <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
           <circle cx="12" cy="2.667" r="1.667" stroke="currentColor" strokeWidth="1.2"/>
           <circle cx="4" cy="8" r="1.667" stroke="currentColor" strokeWidth="1.2"/>
@@ -94,10 +95,10 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
           <path d="M5.58 6.94l4.84-2.82M10.42 11.88L5.58 9.06" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
         </svg>
       </Button>
-      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-border" title={isStarred ? "Unstar" : "Star"} onClick={(e) => { e.stopPropagation(); onStar(); }}>
+      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title={isStarred ? "Unstar" : "Star"} onClick={(e) => { e.stopPropagation(); onStar(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={isStarred ? "" : "text-muted-foreground"} /></svg>
       </Button>
-      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-border" title="More" onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}>
+      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="More" onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}>
         <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.2" fill="currentColor" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="8" cy="13" r="1.2" fill="currentColor" /></svg>
       </Button>
       {menuOpen && (
@@ -1046,20 +1047,21 @@ function ShareDialog({ open, onClose, recordName, config, onSave }: {
    ══════════════════════════════════════════════ */
 
 const tabs = ["Recent", "Starred", "Shared", "Trash"] as const;
+const DEMO_VIDEO_URL = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
 
-interface RecordRow {
+export interface RecordRow {
   id: string; name: string; iconColor: string; iconType: "square" | "circle" | "link"; duration: string;
   dateCreated: string; dateGroup: string; template: string; language: string; source: SourceType;
-  summary: string; tasks: number; screenshots: number; time: string; thumbnail?: string;
+  summary: string; tasks: number; screenshots: number; time: string; thumbnail?: string; videoUrl?: string;
 }
 
-const records: RecordRow[] = [
+export const records: RecordRow[] = [
   { id: "2", name: "Nexora <> QL | Instance Daily Sync", iconColor: "#22C55E", iconType: "link", duration: "32 min", dateCreated: "03/13/2026, 15:06", dateGroup: "Yesterday, Mar 13", template: "Meeting Notes", language: "en", source: "google-meet", summary: "The team discussed the integration of Nexora and QL for daily sync. T and Sandeep agreed to stick to the original plan, with orders grouped within their platform and sent to the TMS. Kirill demonstrated the tendering process...", tasks: 6, screenshots: 34, time: "2:02 PM", thumbnail: "https://images.unsplash.com/photo-1759752394755-1241472b589d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2Z0d2FyZSUyMGRhc2hib2FyZCUyMGFuYWx5dGljcyUyMHNjcmVlbnxlbnwxfHx8fDE3NzM0MTU2NTR8MA&ixlib=rb-4.1.0&q=80&w=1080" },
   { id: "1", name: "QTMS Platform Walkthrough", iconColor: "#3B82F6", iconType: "square", duration: "43 min", dateCreated: "03/11/2026, 08:28", dateGroup: "Tuesday, Mar 11", template: "1 by 1", language: "en", source: "zoom", summary: "The meeting focused on integrating supplier orders directly into the TMS without involving the planning stage. Kirill Kuts demonstrated how to map facilities and manage orders...", tasks: 5, screenshots: 28, time: "2:02 PM", thumbnail: "https://images.unsplash.com/photo-1771054244019-96f9db9720b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWRlbyUyMGNvbmZlcmVuY2UlMjBtZWV0aW5nJTIwc2NyZWVufGVufDF8fHx8MTc3MzQ4NzQ4N3ww&ixlib=rb-4.1.0&q=80&w=1080" },
   { id: "3", name: "\u0441\u043a\u0430\u0437\u0430\u043b\u0430", iconColor: "#3B82F6", iconType: "square", duration: "1 min 49s", dateCreated: "03/11/2026, 11:57", dateGroup: "Tuesday, Mar 11", template: "1 by 1", language: "ru", source: "microphone", summary: "\u041a\u043e\u0440\u043e\u0442\u043a\u0430\u044f \u0433\u043e\u043b\u043e\u0441\u043e\u0432\u0430\u044f \u0437\u0430\u043c\u0435\u0442\u043a\u0430 \u0441 \u043e\u0431\u0441\u0443\u0436\u0434\u0435\u043d\u0438\u0435\u043c \u0442\u0435\u043a\u0443\u0449\u0438\u0445 \u0437\u0430\u0434\u0430\u0447 \u0438 \u043f\u043b\u0430\u043d\u043e\u0432 \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e.", tasks: 2, screenshots: 0, time: "11:57 AM" },
   { id: "4", name: "Small Talk", iconColor: "#3B82F6", iconType: "square", duration: "3 min 39s", dateCreated: "03/11/2026, 08:49", dateGroup: "Tuesday, Mar 11", template: "Interview", language: "en", source: "zoom", summary: "A brief casual conversation covering team updates and weekend plans.", tasks: 0, screenshots: 0, time: "8:49 AM" },
   { id: "5", name: "Integration and Processing Update", iconColor: "#3B82F6", iconType: "square", duration: "7 min", dateCreated: "03/11/2026, 07:58", dateGroup: "Tuesday, Mar 11", template: "Action Items", language: "en", source: "teams", summary: "The conversation involves multiple speakers discussing technical matters related to a project or system integration.", tasks: 3, screenshots: 0, time: "1:50 PM" },
-  { id: "6", name: "Nexora quick guide: get transcription and AI summary", iconColor: "#EF4444", iconType: "circle", duration: "1 min 21s", dateCreated: "03/10/2026, 19:09", dateGroup: "Monday, Mar 10", template: "Summary", language: "en", source: "mp4", summary: "A walkthrough video demonstrating how to use the transcription platform to generate AI-powered summaries.", tasks: 1, screenshots: 1, time: "8:46 AM", thumbnail: "https://images.unsplash.com/photo-1721804295754-1905f69c86ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsb2dpc3RpY3MlMjB0cnVja3MlMjBmbGVldCUyMG9yYW5nZXxlbnwxfHx8fDE3NzM1MDA5NDh8MA&ixlib=rb-4.1.0&q=80&w=1080" },
+  { id: "6", name: "Nexora quick guide: get transcription and AI summary", iconColor: "#EF4444", iconType: "circle", duration: "1 min 21s", dateCreated: "03/10/2026, 19:09", dateGroup: "Monday, Mar 10", template: "Summary", language: "en", source: "mp4", summary: "A walkthrough video demonstrating how to use the transcription platform to generate AI-powered summaries.", tasks: 1, screenshots: 1, time: "8:46 AM", thumbnail: "https://images.unsplash.com/photo-1721804295754-1905f69c86ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsb2dpc3RpY3MlMjB0cnVja3MlMjBmbGVldCUyMG9yYW5nZXxlbnwxfHx8fDE3NzM1MDA5NDh8MA&ixlib=rb-4.1.0&q=80&w=1080", videoUrl: DEMO_VIDEO_URL },
 ];
 
 function pad2(n: number) {
@@ -1116,6 +1118,7 @@ function mapJobToRecord(job: TranscriptionJob): RecordRow {
     tasks: 0,
     screenshots: 0,
     time: dateParts.time,
+    videoUrl: job.fileType === "video" ? (job.mediaUrl ?? DEMO_VIDEO_URL) : undefined,
   };
 }
 
@@ -1204,6 +1207,7 @@ function SavedViewTab({ view, isActive, onLoad, onRename, onDelete }: { view: Sa
    ══════════════════════════════════════════════ */
 
 export function RecordsTable() {
+  const navigate = useNavigate();
   const { t } = useLanguage();
   const { jobs } = useTranscriptionModals();
   const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder } = useFolders();
@@ -1470,6 +1474,7 @@ export function RecordsTable() {
                       onShare={() => setShareDialogRecord(record.id)}
                       onEdit={() => setEditingId(record.id)} onSaveName={(n) => { renameRecord(record.id, n); setEditingId(null); }} onCancelEdit={() => setEditingId(null)}
                       onRestore={() => restoreFromTrash(record.id)} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
+                      onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
                     />
                   ))}
                 </div>
@@ -1500,6 +1505,7 @@ export function RecordsTable() {
                     onShare={() => setShareDialogRecord(record.id)}
                     onEdit={() => setEditingId(record.id)} onSaveName={(n) => { renameRecord(record.id, n); setEditingId(null); }} onCancelEdit={() => setEditingId(null)}
                     onRestore={() => restoreFromTrash(record.id)} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
+                    onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
                   />
                 ))}
               </>
@@ -1537,9 +1543,9 @@ export function RecordsTable() {
    Table Row
    ══════════════════════════════════════════════ */
 
-function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onMoveFolder, onTrash }: {
+function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onMoveFolder, onTrash, onDoubleClick }: {
   record: RecordRow; visibleColumns: ColumnId[]; isSelected: boolean; isStarred: boolean; isShared: boolean; isHovered: boolean; isEditing: boolean; isTrash: boolean;
-  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onMoveFolder: () => void; onTrash: () => void;
+  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onMoveFolder: () => void; onTrash: () => void; onDoubleClick: () => void;
 }) {
   const { t: tRow } = useLanguage();
 
@@ -1557,7 +1563,7 @@ function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isH
 
   const dateVisible = visibleColumns.includes("date");
   const rowBg = isSelected && !isTrash ? "bg-primary/5" : "";
-  const hoverBg = "#f8f9fb";
+  const hoverBg = "hsl(var(--accent))";
   // Color for the actions overlay background — matches the current row state
   const actionsBg = isSelected ? "#f0f4ff" : hoverBg;
   const [showSummary, setShowSummary] = useState(false);
@@ -1565,7 +1571,7 @@ function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isH
   const shortSummary = record.summary.length > 120 ? record.summary.slice(0, 120) + "\u2026" : record.summary;
 
   return (
-    <div className={`flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer relative border-b border-border ${isTrash ? "opacity-60 hover:opacity-80" : "hover:bg-accent"} ${rowBg}`} onMouseEnter={(e) => { onMouseEnter(); summaryTimer.current = setTimeout(() => setShowSummary(true), 600); }} onMouseLeave={(e) => { onMouseLeave(); clearTimeout(summaryTimer.current); setShowSummary(false); }}>
+    <div className={`flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer relative border-b border-border ${isTrash ? "opacity-60 hover:opacity-80" : "hover:bg-accent"} ${rowBg}`} onMouseEnter={(e) => { onMouseEnter(); summaryTimer.current = setTimeout(() => setShowSummary(true), 600); }} onMouseLeave={(e) => { onMouseLeave(); clearTimeout(summaryTimer.current); setShowSummary(false); }} onDoubleClick={onDoubleClick}>
       {/* Summary hover card */}
       {showSummary && record.summary && !isEditing && (
         <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+6px)] z-[60] pointer-events-none" style={{ animation: "fadeInUp 0.2s ease" }}>

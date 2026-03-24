@@ -4,6 +4,7 @@ import { StarredProvider } from "./components/starred-context";
 import { FolderProvider } from "./components/folder-context";
 import { LanguageProvider } from "./components/language-context";
 import { TranscriptionModalsProvider } from "./components/transcription-modals";
+import { Toaster } from "./components/ui/sonner";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <FolderProvider>
           <TranscriptionModalsProvider userPlan="free">
             <RouterProvider router={router} />
+            <Toaster position="bottom-center" />
           </TranscriptionModalsProvider>
         </FolderProvider>
       </StarredProvider>

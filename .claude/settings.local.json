@@ -43,7 +43,8 @@
       "mcp__figma__get_screenshot",
       "Bash(node:*)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
-      "Bash(node_modules/.bin/tsc --noEmit)"
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(find C:Userskutsktranscribe2text -type f -name *.config.* -o -name tailwind.config.* -o -name tsconfig.json)"
     ]
   }
 }
