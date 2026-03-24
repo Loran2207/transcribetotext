@@ -2,6 +2,7 @@ import {
   useState, useRef, useEffect, useMemo,
   createContext, useContext,
 } from "react";
+import { useNavigate } from "react-router";
 import { createPortal } from "react-dom";
 import { FolderPlus } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
@@ -43,6 +44,7 @@ export interface TranscriptionJob {
   translationLang?: string;
   folderId?: string;
   source?: SourceType;
+  mediaUrl?: string;
 }
 
 const ERROR_LABELS: Record<string, string> = {
@@ -58,7 +60,7 @@ interface CtxValue {
   openModal: ModalType;
   setOpenModal: (m: ModalType) => void;
   jobs: TranscriptionJob[];
-  addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType }) => string;
+  addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string }) => string;
   retryJob: (id: string) => void;
   meetingCounterRef: React.MutableRefObject<number>;
   userPlan: UserPlan;
@@ -220,7 +222,7 @@ export function TranscriptionModalsProvider({
     setTimeout(tick, 500);
   }
 
-  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType }) {
+  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string }) {
     const id = Math.random().toString(36).slice(2, 10);
     const createdAt = new Date().toISOString();
     setJobs(prev => [{ id, name, createdAt, progress: 0, status: "uploading", fileType, ...opts }, ...prev]);
@@ -257,6 +259,57 @@ function fmtDuration(s: number) {
   const m = Math.floor(s / 60);
   const sec = s % 60;
   return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
+}
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function formatDateForRecord(date: Date) {
+  const mm = pad2(date.getMonth() + 1);
+  const dd = pad2(date.getDate());
+  const yyyy = date.getFullYear();
+  const hh = pad2(date.getHours());
+  const min = pad2(date.getMinutes());
+  return {
+    dateCreated: `${mm}/${dd}/${yyyy}, ${hh}:${min}`,
+    dateGroup: date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
+    time: date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+  };
+}
+
+function normalizeSource(source: TranscriptionJob["source"], fileType: TranscriptionJob["fileType"]): SourceType {
+  if (source) return source;
+  return fileType === "audio" ? "mp3" : "mp4";
+}
+
+function mapJobToRecordState(job: TranscriptionJob) {
+  const createdDate = job.createdAt ? new Date(job.createdAt) : new Date();
+  const isDone = job.status === "done";
+  const isError = job.status === "error";
+  const dateParts = formatDateForRecord(createdDate);
+
+  return {
+    id: job.id,
+    name: job.name,
+    iconColor: "#3B82F6",
+    iconType: "square" as const,
+    duration: isDone ? (job.duration ?? "—") : isError ? "Failed" : "In progress",
+    dateCreated: dateParts.dateCreated,
+    dateGroup: dateParts.dateGroup,
+    template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
+    language: "en",
+    source: normalizeSource(job.source, job.fileType),
+    summary: isDone
+      ? "Transcript is ready. Open the record to view summary and action items."
+      : isError
+        ? "This transcription failed. You can retry from upload status widget."
+        : "Transcription is in progress.",
+    tasks: 0,
+    screenshots: 0,
+    time: dateParts.time,
+    videoUrl: job.fileType === "video" ? job.mediaUrl : undefined,
+  };
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1048,6 +1101,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
         translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
         folderId: selectedFolderId ?? undefined,
         source: isAudio ? "mp3" : "mp4",
+        mediaUrl: isAudio ? undefined : URL.createObjectURL(file),
       });
     });
     handleClose();
@@ -1809,16 +1863,23 @@ function AllModals() {
 
 export function FloatingProgressWidget() {
   const { jobs, retryJob } = useTranscriptionModals();
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false); // false = collapsed pill, true = full widget
   const [dismissed, setDismissed] = useState(false);
 
   const hasJobs = jobs.length > 0;
+  const newestJobId = jobs[0]?.id ?? null;
   const allDone = hasJobs && jobs.every(j => j.status === "done" || j.status === "error");
   const activeCount = jobs.filter(j => j.status === "uploading" || j.status === "processing").length;
   const doneCount = jobs.filter(j => j.status === "done" || j.status === "error").length;
   const errorCount = jobs.filter(j => j.status === "error").length;
 
-  useEffect(() => { if (hasJobs) { setDismissed(false); setExpanded(false); } }, [hasJobs]);
+  // Re-open the floating pill whenever a new upload job is added.
+  useEffect(() => {
+    if (!newestJobId) return;
+    setDismissed(false);
+    setExpanded(false);
+  }, [newestJobId]);
 
   if (!hasJobs || dismissed) return null;
 
@@ -1874,9 +1935,6 @@ export function FloatingProgressWidget() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-[16px] h-[42px] shrink-0 border-b border-border">
         <div className="flex items-center gap-[7px]">
-          <svg className="size-[13px] text-primary" fill="none" viewBox="0 0 24 24">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
           <span className="font-semibold text-xs text-foreground">Uploaded records</span>
           {activeCount > 0 && (
             <span className="inline-flex items-center justify-center px-[5px] h-[15px] rounded-full text-white min-w-[15px] bg-primary text-[9px] font-bold">
@@ -2028,7 +2086,9 @@ export function FloatingProgressWidget() {
                             <path d="M8 12.5l2.5 2.5 5-5" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
                           <Button variant="ghost"
-                            onClick={() => {}}
+                            onClick={() => {
+                              navigate(`/transcriptions/${job.id}`, { state: { record: mapJobToRecordState(job) } });
+                            }}
                             className="transition-colors font-semibold text-[11px] text-primary hover:underline p-0 h-auto"
                           >
                             Open

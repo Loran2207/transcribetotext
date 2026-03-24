@@ -1,8 +1,15 @@
 import { createBrowserRouter } from "react-router";
-import { MainApp } from "./components/main-app";
+import { AppLayout } from "./components/app-layout";
 import { DesignSystemPage } from "./components/design-system-page";
+import { TranscriptionDetailPage } from "./components/transcription-detail-page";
 
 export const router = createBrowserRouter([
-  { path: "/", Component: MainApp },
+  {
+    path: "/",
+    Component: AppLayout,
+    children: [
+      { path: "transcriptions/:id", Component: TranscriptionDetailPage },
+    ],
+  },
   { path: "/design-system", Component: DesignSystemPage },
 ]);
