@@ -62,10 +62,10 @@ function ActionBtn({ label, onClick, variant = "default" }: ActionBtnProps) {
       variant="outline"
       size="sm"
       onClick={onClick}
-      className={`rounded-full shrink-0 text-[13px] ${
+      className={`h-9 rounded-full border px-4 shrink-0 text-[13px] font-medium ${
         variant === "danger"
-          ? "text-destructive hover:bg-destructive/10 hover:text-destructive"
-          : "text-muted-foreground hover:bg-muted"
+          ? "border-destructive/20 bg-destructive/10 text-destructive hover:border-destructive/30 hover:bg-destructive/15 hover:text-destructive"
+          : "border-border !bg-transparent text-muted-foreground hover:!bg-transparent hover:border-muted-foreground/40 hover:text-foreground"
       }`}
     >
       {label}
@@ -81,7 +81,7 @@ interface DisplayFieldProps {
 }
 function DisplayField({ value, placeholder, type = "text" }: DisplayFieldProps) {
   return (
-    <div className="flex items-center flex-1 rounded-full px-4 h-10 min-w-0 bg-muted cursor-not-allowed">
+    <div className="flex items-center flex-1 rounded-[12px] px-4 h-10 min-w-0 bg-muted cursor-not-allowed">
       <span
         className="text-sm truncate text-muted-foreground"
         style={{ letterSpacing: type === "password" ? "0.12em" : undefined }}
@@ -145,7 +145,7 @@ function DialogFooter({ onCancel, onConfirm, confirmLabel, confirmDisabled }: {
 }) {
   return (
     <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
-      <Button variant="outline" onClick={onCancel}
+      <Button variant="pill-outline" onClick={onCancel}
         className="h-9 px-4 rounded-full text-[13px] text-muted-foreground">
         Cancel
       </Button>
@@ -222,7 +222,7 @@ function ChangeEmailDialog({ currentEmail, onClose }: ChangeEmailDialogProps) {
             </InfoBanner>
             <div>
               <FieldLabel label="Verification code" />
-              <div className="flex items-center rounded-full overflow-hidden border border-border bg-background">
+              <div className="flex items-center rounded-[12px] overflow-hidden border border-border bg-background">
                 <div className="flex items-center gap-2 flex-1 px-4">
                   <Icon icon={Shield} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
                   <Input value={code} onChange={e => setCode(e.target.value)}
@@ -246,7 +246,7 @@ function ChangeEmailDialog({ currentEmail, onClose }: ChangeEmailDialogProps) {
             </InfoBanner>
             <div>
               <FieldLabel label="New email address" />
-              <div className={`flex items-center rounded-full overflow-hidden bg-background ${
+              <div className={`flex items-center rounded-[12px] overflow-hidden bg-background ${
                 newEmail ? "border-[1.5px] border-primary" : "border border-border"
               }`}>
                 <div className="flex items-center gap-2 flex-1 px-4">
@@ -301,7 +301,7 @@ function SetPasswordDialog({ email, onClose }: SetPasswordDialogProps) {
         {/* Verification code */}
         <div>
           <FieldLabel label="Verification code" />
-          <div className="flex items-center rounded-full overflow-hidden border border-border bg-background">
+          <div className="flex items-center rounded-[12px] overflow-hidden border border-border bg-background">
             <div className="flex items-center gap-2 flex-1 px-4">
               <Icon icon={Shield} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
               <Input value={code} onChange={e => setCode(e.target.value)}
@@ -321,7 +321,7 @@ function SetPasswordDialog({ email, onClose }: SetPasswordDialogProps) {
         <div>
           <FieldLabel label="New password" />
           <div className="relative">
-            <div className="flex items-center rounded-full overflow-hidden border border-border bg-background">
+            <div className="flex items-center rounded-[12px] overflow-hidden border border-border bg-background">
               <div className="flex items-center gap-2 flex-1 px-4">
                 <Icon icon={Lock} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
                 <Input type={showPw?"text":"password"} value={password}
@@ -357,7 +357,7 @@ function SetPasswordDialog({ email, onClose }: SetPasswordDialogProps) {
         {/* Confirm password */}
         <div>
           <FieldLabel label="Confirm password" />
-          <div className={`flex items-center rounded-full overflow-hidden bg-background ${
+          <div className={`flex items-center rounded-[12px] overflow-hidden bg-background ${
             confirm && confirm !== password ? "border border-destructive" : "border border-border"
           }`}>
             <div className="flex items-center gap-2 flex-1 px-4">
@@ -502,7 +502,7 @@ function AccountPage() {
             </div>
             <Button variant="outline" size="sm"
               onClick={() => fileRef.current?.click()}
-              className="rounded-full text-[13px] text-muted-foreground"
+              className="h-9 rounded-full border border-border !bg-transparent px-4 text-[13px] font-medium text-muted-foreground hover:!bg-transparent hover:border-muted-foreground/40 hover:text-foreground"
             >
               Upload image
             </Button>
@@ -517,7 +517,7 @@ function AccountPage() {
             <Label className="text-xs font-medium mb-1.5 px-1 text-muted-foreground">Full name</Label>
             <div className="flex items-center gap-2">
               {editingName ? (
-                <div className="flex items-center flex-1 rounded-full overflow-hidden border border-input focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px] bg-background">
+                <div className="flex items-center flex-1 rounded-[12px] overflow-hidden border border-input focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px] bg-background">
                   <Input
                     ref={nameRef}
                     value={draftName}

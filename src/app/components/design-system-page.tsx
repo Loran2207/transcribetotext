@@ -364,12 +364,12 @@ export function DesignSystemPage() {
                 </div>
               </ComponentCard>
 
-              <ComponentCard title="Search Input" description="With search icon and rounded-full shape">
+              <ComponentCard title="Search Input" description="With search icon and 12px corner radius">
                 <div className="relative w-[320px]">
                   <Search className="absolute left-[12px] top-1/2 -translate-y-1/2 size-[15px] text-[#98a2b3]" strokeWidth={1.5} />
                   <input
                     placeholder="Search records..."
-                    className="w-full h-[36px] pl-[34px] pr-[12px] rounded-full outline-none transition-all focus:ring-[3px] focus:ring-[#7F56D9]/20 focus:border-[#7F56D9]"
+                    className="w-full h-[36px] pl-[34px] pr-[12px] rounded-[12px] outline-none transition-all focus:ring-[3px] focus:ring-[#7F56D9]/20 focus:border-[#7F56D9]"
                     style={{ border: "1px solid #d0d5dd", fontFamily: "'Inter', sans-serif", fontSize: "13px", color: "#101828", backgroundColor: "white" }}
                   />
                 </div>

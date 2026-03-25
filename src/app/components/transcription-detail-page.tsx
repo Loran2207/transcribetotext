@@ -28,6 +28,7 @@ import { useStarred } from "./starred-context";
 import { SourceIcon, type SourceType } from "./source-icons";
 import { records, type RecordRow } from "./records-table";
 import { Icon } from "./ui/icon";
+import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -87,6 +88,64 @@ function timestampToSeconds(timestamp: string) {
   return parts.slice(0, -1).reduce((acc, value) => acc * 60 + value, 0) + parts[parts.length - 1];
 }
 
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function formatJobDateForRecord(date: Date) {
+  const mm = pad2(date.getMonth() + 1);
+  const dd = pad2(date.getDate());
+  const yyyy = date.getFullYear();
+  const hh = pad2(date.getHours());
+  const min = pad2(date.getMinutes());
+  return {
+    dateCreated: `${mm}/${dd}/${yyyy}, ${hh}:${min}`,
+    dateGroup: date.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
+    time: date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+  };
+}
+
+function normalizeJobSource(source: TranscriptionJob["source"], fileType: TranscriptionJob["fileType"]): SourceType {
+  if (source) return source;
+  return fileType === "audio" ? "mp3" : "mp4";
+}
+
+function normalizeJobLanguage(lang?: string, langBilingual?: string[]): RecordRow["language"] {
+  const allowed = new Set<RecordRow["language"]>(["en", "ru", "es", "de", "fr"]);
+  if (lang && allowed.has(lang as RecordRow["language"])) return lang as RecordRow["language"];
+  const bilingualLang = (langBilingual ?? []).find((value) => value && allowed.has(value as RecordRow["language"]));
+  if (bilingualLang) return bilingualLang as RecordRow["language"];
+  return "en";
+}
+
+function mapJobToDetailRecord(job: TranscriptionJob): RecordRow {
+  const createdDate = job.createdAt ? new Date(job.createdAt) : new Date();
+  const isDone = job.status === "done";
+  const isError = job.status === "error";
+  const dateParts = formatJobDateForRecord(createdDate);
+  return {
+    id: job.id,
+    name: job.name,
+    iconColor: "#3B82F6",
+    iconType: "square",
+    duration: isDone ? (job.duration ?? "\u2014") : isError ? "Failed" : "In progress",
+    dateCreated: dateParts.dateCreated,
+    dateGroup: dateParts.dateGroup,
+    template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
+    language: normalizeJobLanguage(job.lang, job.langBilingual),
+    source: normalizeJobSource(job.source, job.fileType),
+    summary: isDone
+      ? "Transcript is ready. Open the record to view summary and action items."
+      : isError
+        ? "This transcription failed. You can retry from upload status widget."
+        : "Transcription is in progress.",
+    tasks: 0,
+    screenshots: 0,
+    time: dateParts.time,
+    videoUrl: job.fileType === "video" ? job.mediaUrl : undefined,
+  };
+}
+
 // ════════════════════════════════════════════════════════════
 // Templates
 // ════════════════════════════════════════════════════════════
@@ -117,6 +176,13 @@ const SPEAKERS: Speaker[] = [
   { id: "s2", name: "Maria Garcia", color: "#8b5cf6", initial: "M" },
   { id: "s3", name: "James Chen", color: "#10b981", initial: "J" },
 ];
+
+const LIVE_RECORDING_SPEAKER: Speaker = {
+  id: "live-you",
+  name: "You",
+  color: "#2563eb",
+  initial: "Y",
+};
 
 const MOCK_SEGMENTS: Segment[] = [
   { id: 1, speaker: SPEAKERS[0], timestamp: "0:01", text: "Good morning everyone. Let's get started with the weekly sync. I wanted to cover three main topics today \u2014 the product roadmap update, the Q2 planning timeline, and a quick review of the design handoff process." },
@@ -368,6 +434,7 @@ function TranscriptSegment({
   onCommentChange,
   commentValue,
   textHighlights,
+  showActions = true,
 }: {
   segment: Segment;
   nextTimestamp?: string;
@@ -388,6 +455,7 @@ function TranscriptSegment({
   onCommentChange: (v: string) => void;
   commentValue: string;
   textHighlights: { start: number; end: number }[];
+  showActions?: boolean;
 }) {
   const segmentText = editText ?? segment.text;
   const segmentEndTimestamp = nextTimestamp ?? segment.timestamp;
@@ -429,7 +497,7 @@ function TranscriptSegment({
               : "hover:bg-muted/45"
       }`}
     >
-      {!isEditing && (
+      {showActions && !isEditing && (
         <SegmentInlineActions
           segmentId={segment.id}
           isHighlighted={isSegHighlighted}
@@ -925,6 +993,142 @@ function MediaPlayer({
 // Page Header
 // ════════════════════════════════════════════════════════════
 
+function formatElapsedTime(seconds: number) {
+  const mins = Math.floor(Math.max(0, seconds) / 60);
+  const secs = Math.floor(Math.max(0, seconds) % 60);
+  return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+const LIVE_WAVE_BARS = 18;
+
+function LiveRecordingWaveform({ active }: { active: boolean }) {
+  const [heights, setHeights] = useState<number[]>(() => Array(LIVE_WAVE_BARS).fill(4));
+
+  useEffect(() => {
+    if (!active) {
+      setHeights(Array(LIVE_WAVE_BARS).fill(4));
+      return;
+    }
+    const id = window.setInterval(() => {
+      setHeights(Array.from({ length: LIVE_WAVE_BARS }, () => Math.random() * 14 + 4));
+    }, 120);
+    return () => window.clearInterval(id);
+  }, [active]);
+
+  return (
+    <div className="hidden items-center gap-[2px] min-[980px]:flex" style={{ height: "18px" }}>
+      {heights.map((height, idx) => (
+        <div
+          key={idx}
+          className="w-[2px] rounded-full transition-[height] duration-150"
+          style={{
+            height: `${height}px`,
+            backgroundColor: active ? "var(--primary)" : "var(--muted-foreground)",
+            opacity: active ? 0.45 + (idx % 5) * 0.1 : 0.28,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function LiveRecordingBar({
+  isPaused,
+  elapsedSeconds,
+  onPauseResume,
+  onStop,
+  microphoneDevices,
+  selectedMicrophoneId,
+  onSwitchMicrophone,
+  isSwitchingMicrophone,
+}: {
+  isPaused: boolean;
+  elapsedSeconds: number;
+  onPauseResume: () => void;
+  onStop: () => void;
+  microphoneDevices: { id: string; label: string }[];
+  selectedMicrophoneId: string;
+  onSwitchMicrophone: (deviceId: string) => void;
+  isSwitchingMicrophone: boolean;
+}) {
+  const selectedMic = microphoneDevices.find((device) => device.id === selectedMicrophoneId);
+  const triggerLabel = isSwitchingMicrophone
+    ? "Switching microphone..."
+    : (selectedMic?.label || (microphoneDevices.length ? "Select microphone" : "No microphone detected"));
+
+  return (
+    <div className="shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-[2px]">
+      <div className="grid items-center gap-3 md:grid-cols-[1fr_auto_1fr]">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="relative flex size-[8px] shrink-0">
+            <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${!isPaused ? "animate-ping" : ""}`}
+              style={{ backgroundColor: isPaused ? undefined : "#f87171" }} />
+            <span className={`relative inline-flex size-[8px] rounded-full ${isPaused ? "bg-muted-foreground" : ""}`}
+              style={{ backgroundColor: isPaused ? undefined : "#ef4444" }} />
+          </span>
+          <span className={`font-semibold text-[13px] ${isPaused ? "text-muted-foreground" : "text-destructive"} whitespace-nowrap`}>
+            {isPaused ? "Paused" : "Recording"}
+          </span>
+          <span className="font-semibold text-[14px] text-foreground tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
+          <LiveRecordingWaveform active={!isPaused} />
+          <span className="hidden text-xs text-muted-foreground md:inline">
+            {isPaused ? "Recording on hold" : "Live transcript is running"}
+          </span>
+        </div>
+
+        <div className="order-3 md:order-2 flex items-center justify-center gap-2">
+          <Button
+            variant="pill-outline"
+            className="h-9 rounded-full px-3 gap-1.5"
+            onClick={onPauseResume}
+            title={isPaused ? "Resume recording" : "Pause recording"}
+          >
+            {isPaused
+              ? <svg className="size-[14px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
+              : <svg className="size-[14px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+            }
+            <span className="text-[13px] font-medium text-foreground">{isPaused ? "Resume" : "Pause"}</span>
+          </Button>
+          <Button
+            variant="destructive"
+            className="h-9 rounded-full px-3 gap-1.5"
+            onClick={onStop}
+            title="Stop recording"
+          >
+            <svg className="size-[12px] text-white" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
+            <span className="text-[13px] font-semibold text-white">Stop</span>
+          </Button>
+        </div>
+
+        <div className="order-2 md:order-3 md:justify-self-end w-full md:w-auto md:min-w-[260px] md:max-w-[320px]">
+          <Select
+            value={selectedMicrophoneId || undefined}
+            onValueChange={onSwitchMicrophone}
+            disabled={!microphoneDevices.length || isSwitchingMicrophone}
+          >
+            <SelectTrigger className="h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px]">
+              <span className="flex min-w-0 items-center gap-[8px]">
+                <SourceIcon source="microphone" />
+                <span className="truncate text-[13px] text-foreground">{triggerLabel}</span>
+              </span>
+            </SelectTrigger>
+            <SelectContent align="start" className="z-[120] max-w-[calc(100vw-32px)] rounded-[12px]">
+              {microphoneDevices.map((device) => (
+                <SelectItem key={device.id} value={device.id} className="text-[13px]">
+                  <span className="flex min-w-0 items-center gap-[8px]">
+                    <SourceIcon source="microphone" />
+                    <span className="truncate">{device.label}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface PageHeaderFolderOption {
   id: string;
   name: string;
@@ -1008,9 +1212,9 @@ function PageHeader({
             <Icon icon={Share} className="size-4" strokeWidth={1.7} />
             Share
           </Button>
-          <Button variant="ghost" size="sm" className="h-8 rounded-full gap-2 px-4 text-sm text-muted-foreground hover:text-foreground" onClick={onCopySummary}>
-            <Icon icon={Copy} className="size-4" strokeWidth={1.8} />
-            Copy summary
+          <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer" onClick={onCopySummary}>
+            <Icon icon={Copy} className="size-[14px] text-foreground" strokeWidth={1.5} />
+            <span className="font-medium text-[13px] text-foreground">Copy summary</span>
           </Button>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1115,8 +1319,26 @@ export function TranscriptionDetailPage() {
   const location = useLocation();
   const { folders, folderAssignments, addFolder, assignToFolder } = useFolders();
   const { getName } = useStarred();
+  const {
+    jobs,
+    recordingPhase,
+    recordingElapsed,
+    pauseInstantRecording,
+    resumeInstantRecording,
+    stopInstantRecording,
+    microphoneDevices,
+    selectedMicrophoneId,
+    switchRecordingMicrophone,
+    isSwitchingMicrophone,
+    liveTranscriptSegments,
+    liveTranscriptInterim,
+    isLiveTranscriptionSupported,
+    setRecordingDetailOpen,
+  } = useTranscriptionModals();
 
-  const routeStateRecord = (location.state as { record?: RecordRow } | null)?.record;
+  const routeState = location.state as { record?: RecordRow; liveRecording?: boolean; fromRecordingStop?: boolean } | null;
+  const routeStateRecord = routeState?.record;
+  const isLiveRecordingRoute = id === "live" || Boolean(routeState?.liveRecording);
   const persistedRecord = useMemo<RecordRow | null>(() => {
     if (!id || typeof window === "undefined") return null;
     try {
@@ -1130,14 +1352,24 @@ export function TranscriptionDetailPage() {
     }
   }, [id]);
 
+  const selectedJob = useMemo<TranscriptionJob | null>(() => {
+    if (!id || isLiveRecordingRoute) return null;
+    return jobs.find((job) => job.id === id) ?? null;
+  }, [id, isLiveRecordingRoute, jobs]);
+
   const selectedRecord = useMemo<RecordRow | null>(() => {
+    if (isLiveRecordingRoute) return null;
+    if (selectedJob) return mapJobToDetailRecord(selectedJob);
     if (routeStateRecord && (!id || routeStateRecord.id === id)) return routeStateRecord;
     if (persistedRecord && (!id || persistedRecord.id === id)) return persistedRecord;
     if (id) return records.find((record) => record.id === id) ?? null;
     return records[0] ?? null;
-  }, [id, routeStateRecord, persistedRecord]);
+  }, [id, isLiveRecordingRoute, persistedRecord, routeStateRecord, selectedJob]);
 
-  const fallbackTitle = "Weekly Team Sync \u2014 Product & Engineering";
+  const isJobTranscribing = Boolean(selectedJob && (selectedJob.status === "uploading" || selectedJob.status === "processing"));
+  const previewSegments = selectedJob?.livePreviewSegments ?? [];
+
+  const fallbackTitle = isLiveRecordingRoute ? "Live note" : "Weekly Team Sync \u2014 Product & Engineering";
   const recordTitle = selectedRecord ? getName(selectedRecord.id, selectedRecord.name) : fallbackTitle;
   const selectedFolder = useMemo(() => {
     if (!selectedRecord) return null;
@@ -1168,6 +1400,9 @@ export function TranscriptionDetailPage() {
     () => TRANSLATION_LANGUAGES.find((language) => language.code === activeTranslationLang) ?? null,
     [activeTranslationLang],
   );
+  const showTranslateAction = selectedTranslationLang.length > 0;
+  const isTranslationApplied = showTranslateAction && selectedTranslationLang === activeTranslationLang;
+  const canApplyTranslation = showTranslateAction && !isTranslationApplied && !isTranslationLoading && !isJobTranscribing;
 
   // Segment-level state
   const [segHighlights, setSegHighlights] = useState<Set<number>>(new Set());
@@ -1183,17 +1418,57 @@ export function TranscriptionDetailPage() {
   const segmentRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const lastAutoScrolledSegmentRef = useRef<number | null>(null);
+  const liveTranscriptEndRef = useRef<HTMLDivElement | null>(null);
+  const isLiveRecordingDetail = isLiveRecordingRoute && (recordingPhase === "recording" || recordingPhase === "paused");
+  const liveDetailSegments = useMemo<Segment[]>(
+    () => liveTranscriptSegments.map((segment) => ({
+      id: segment.id,
+      speaker: LIVE_RECORDING_SPEAKER,
+      timestamp: segment.timestamp,
+      text: segment.text,
+    })),
+    [liveTranscriptSegments],
+  );
+  const previewDetailSegments = useMemo<Segment[]>(
+    () => previewSegments.map((segment) => ({
+      id: segment.id,
+      speaker: LIVE_RECORDING_SPEAKER,
+      timestamp: segment.timestamp,
+      text: segment.text,
+    })),
+    [previewSegments],
+  );
+  const contentSegments = useMemo<Segment[]>(
+    () => (selectedJob?.source === "microphone" && previewDetailSegments.length > 0 ? previewDetailSegments : MOCK_SEGMENTS),
+    [previewDetailSegments, selectedJob?.source],
+  );
+  const contentSummary = useMemo(() => {
+    if (!(selectedJob?.source === "microphone" && previewDetailSegments.length > 0)) return MOCK_SUMMARY;
+    const firstSegmentText = previewDetailSegments[0]?.text ?? "";
+    const shortFirstSegment = firstSegmentText.length > 220 ? `${firstSegmentText.slice(0, 217)}...` : firstSegmentText;
+    return [
+      "## Recording Summary",
+      "",
+      `- **Status**: ${selectedJob?.status === "done" ? "Transcript is ready" : "Transcript is being processed"}`,
+      `- **Captured segments**: ${previewDetailSegments.length}`,
+      `- **Duration**: ${selectedRecord?.duration ?? "In progress"}`,
+      "",
+      "## First Captured Phrase",
+      "",
+      shortFirstSegment ? `- ${shortFirstSegment}` : "- No speech was detected.",
+    ].join("\n");
+  }, [previewDetailSegments, selectedJob?.source, selectedJob?.status, selectedRecord?.duration]);
 
   // Build initial text map for edit history
   const initialTexts = useMemo(() => {
     const map: Record<number, string> = {};
-    for (const seg of MOCK_SEGMENTS) { map[seg.id] = seg.text; }
+    for (const seg of contentSegments) { map[seg.id] = seg.text; }
     return map;
-  }, []);
+  }, [contentSegments]);
   const segmentTimings = useMemo(() => {
-    const base = MOCK_SEGMENTS.map((segment, index) => {
+    const base = contentSegments.map((segment, index) => {
       const start = timestampToSeconds(segment.timestamp);
-      const next = MOCK_SEGMENTS[index + 1];
+      const next = contentSegments[index + 1];
       const nextStart = next ? timestampToSeconds(next.timestamp) : null;
       return {
         id: segment.id,
@@ -1202,7 +1477,7 @@ export function TranscriptionDetailPage() {
       };
     });
     return base;
-  }, [videoDuration]);
+  }, [contentSegments, videoDuration]);
 
   const { texts, update, undo, redo, canUndo, canRedo, reset } = useEditHistory(initialTexts);
   const savedTextsRef = useRef(initialTexts);
@@ -1214,6 +1489,40 @@ export function TranscriptionDetailPage() {
   useEffect(() => {
     setTitle(recordTitle);
   }, [recordTitle]);
+
+  useEffect(() => {
+    if (!isJobTranscribing) return;
+    if (activeTab === "transcript-translated" || activeTab === "summary-translated") {
+      setActiveTab("transcript");
+    }
+  }, [activeTab, isJobTranscribing]);
+
+  useEffect(() => {
+    setRecordingDetailOpen(isLiveRecordingDetail);
+    return () => {
+      setRecordingDetailOpen(false);
+    };
+  }, [isLiveRecordingDetail, setRecordingDetailOpen]);
+
+  useEffect(() => {
+    if (!isLiveRecordingRoute) return;
+    if (recordingPhase === "idle") {
+      const latestMicJob = jobs.find((job) => job.source === "microphone");
+      if (latestMicJob) {
+        navigate(`/transcriptions/${latestMicJob.id}`, {
+          replace: true,
+          state: { record: mapJobToDetailRecord(latestMicJob), fromRecordingStop: true },
+        });
+        return;
+      }
+      navigate("/", { replace: true });
+    }
+  }, [isLiveRecordingRoute, jobs, navigate, recordingPhase]);
+
+  useEffect(() => {
+    if (!isLiveRecordingDetail) return;
+    liveTranscriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [isLiveRecordingDetail, liveTranscriptSegments, liveTranscriptInterim]);
 
   useEffect(() => {
     if (!isRightPanelResizing) return;
@@ -1397,13 +1706,13 @@ export function TranscriptionDetailPage() {
   }, [activePlaybackSegmentId, activeTab, hasVideo]);
 
   const transcriptTranslationPayload = useMemo(() => (
-    MOCK_SEGMENTS.map((segment) => ({
+    contentSegments.map((segment) => ({
       id: segment.id,
       speaker: segment.speaker.name,
       timestamp: segment.timestamp,
       text: texts[segment.id] ?? segment.text,
     }))
-  ), [texts]);
+  ), [contentSegments, texts]);
 
   async function translateTranscriptBatch(targetLanguage: string) {
     const payload = {
@@ -1456,7 +1765,7 @@ export function TranscriptionDetailPage() {
     const payload = {
       targetLanguage,
       contentType: "summary",
-      summary: MOCK_SUMMARY,
+      summary: contentSummary,
       instructions: "Translate summary text only and preserve markdown structure.",
     };
 
@@ -1475,11 +1784,11 @@ export function TranscriptionDetailPage() {
       // fallback below
     }
 
-    return makeFallbackTranslation(MOCK_SUMMARY, targetLanguage);
+    return makeFallbackTranslation(contentSummary, targetLanguage);
   }
 
   async function handleTranslate() {
-    if (!selectedTranslationLang || isTranslationLoading) return;
+    if (!canApplyTranslation) return;
     setIsTranslationLoading(true);
 
     try {
@@ -1504,7 +1813,7 @@ export function TranscriptionDetailPage() {
   }
 
   function buildTranscriptExportText() {
-    const rows = MOCK_SEGMENTS.map((segment) => {
+    const rows = contentSegments.map((segment) => {
       const segmentText = texts[segment.id] ?? segment.text;
       return `${segment.speaker.name} (${segment.timestamp}): ${segmentText}`;
     });
@@ -1538,7 +1847,7 @@ export function TranscriptionDetailPage() {
   }
 
   function copySummary() {
-    navigator.clipboard.writeText(MOCK_SUMMARY);
+    navigator.clipboard.writeText(contentSummary);
     toast.success("Summary copied");
   }
 
@@ -1602,7 +1911,7 @@ export function TranscriptionDetailPage() {
     setSegHighlights((prev) => { const next = new Set(prev); if (next.has(segId)) next.delete(segId); else next.add(segId); return next; });
   }
   function copySegmentText(segId: number) {
-    const text = texts[segId] ?? MOCK_SEGMENTS.find((s) => s.id === segId)?.text;
+    const text = texts[segId] ?? contentSegments.find((s) => s.id === segId)?.text;
     if (text) {
       navigator.clipboard.writeText(text);
       toast("Text copied");
@@ -1614,7 +1923,7 @@ export function TranscriptionDetailPage() {
   }
   function submitComment() {
     if (!commentText.trim() || commentSegmentId === null) return;
-    const segment = MOCK_SEGMENTS.find((s) => s.id === commentSegmentId);
+    const segment = contentSegments.find((s) => s.id === commentSegmentId);
     if (!segment) return;
     const nextComment: Comment = {
       id: `c-${Date.now()}`,
@@ -1634,7 +1943,7 @@ export function TranscriptionDetailPage() {
     setCommentText("");
   }
   async function shareSegment(segId: number) {
-    const segment = MOCK_SEGMENTS.find((s) => s.id === segId);
+    const segment = contentSegments.find((s) => s.id === segId);
     const text = texts[segId] ?? segment?.text;
     if (!segment || !text) return;
 
@@ -1671,7 +1980,7 @@ export function TranscriptionDetailPage() {
       // Find text offset within the segment
       const pEl = container.querySelector("p");
       if (!pEl) { setSelectionPill(null); return; }
-      const fullText = texts[segId] ?? MOCK_SEGMENTS.find((s) => s.id === segId)?.text ?? "";
+      const fullText = texts[segId] ?? contentSegments.find((s) => s.id === segId)?.text ?? "";
       const selectedText = sel.toString();
       const startIdx = fullText.indexOf(selectedText);
       if (startIdx === -1) { setSelectionPill(null); return; }
@@ -1689,6 +1998,106 @@ export function TranscriptionDetailPage() {
     setTextHighlights((prev) => ({ ...prev, [segmentId]: [...(prev[segmentId] ?? []), { start, end }] }));
     setSelectionPill(null);
     window.getSelection()?.removeAllRanges();
+  }
+
+  if (isLiveRecordingDetail) {
+    const isPaused = recordingPhase === "paused";
+    const hasTranscript = liveTranscriptSegments.length > 0 || liveTranscriptInterim.trim().length > 0;
+    return (
+      <div ref={pageRef} className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+          <div className="border-b border-border px-8 pt-6 pb-5">
+            <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
+            <h1 className="mt-1 text-[30px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+              {title || "Live note"}
+            </h1>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="scale-[0.9]"><SourceIcon source="microphone" /></span>
+                <span>Microphone</span>
+              </span>
+              <span className="text-border">{"\u2022"}</span>
+              <span>{isPaused ? "Paused — live transcript is on hold" : "Recording in real time"}</span>
+              <span className="text-border">{"\u2022"}</span>
+              <span>{new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-auto">
+            <div className="mx-auto w-full max-w-[980px] px-8 py-6">
+              {!hasTranscript && (
+                <div className="mt-4 rounded-[16px] border border-dashed border-border bg-muted/20 px-6 py-8">
+                  <p className="text-sm font-medium text-foreground">
+                    {isPaused ? "Recording is paused." : "Listening... start speaking and the text will appear here live."}
+                  </p>
+                  {!isLiveTranscriptionSupported && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Real-time speech-to-text is not supported in this browser.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {liveDetailSegments.map((segment, index) => (
+                <TranscriptSegment
+                  key={segment.id}
+                  segment={segment}
+                  nextTimestamp={liveDetailSegments[index + 1]?.timestamp}
+                  isEditing={false}
+                  highlighted={false}
+                  isPlaybackActive={!isPaused && index === liveDetailSegments.length - 1}
+                  segmentRef={(el) => { segmentRefs.current[segment.id] = el; }}
+                  isSegHighlighted={false}
+                  onToggleHighlight={() => {}}
+                  onOpenComment={() => {}}
+                  onShare={() => {}}
+                  onCopyText={() => {}}
+                  inlineComment={false}
+                  onCommentSubmit={() => {}}
+                  onCommentCancel={() => {}}
+                  onCommentChange={() => {}}
+                  commentValue=""
+                  textHighlights={[]}
+                  showActions={false}
+                />
+              ))}
+
+              {liveTranscriptInterim.trim().length > 0 && (
+                <div className="mx-[-8px] rounded-xl bg-primary/5 px-2 py-3 ring-1 ring-primary/20">
+                  <div className="grid grid-cols-[minmax(160px,220px)_1fr] gap-4 max-md:grid-cols-1">
+                    <div className="min-w-0 pt-1">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">Y</div>
+                        <span className="truncate text-sm font-medium text-foreground">You (speaking...)</span>
+                      </div>
+                    </div>
+                    <div className="relative min-w-0 pl-5">
+                      <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-primary/65" />
+                      <p className="mt-1 text-sm leading-relaxed text-foreground/85">
+                        {liveTranscriptInterim}
+                        <span className="ml-1 inline-block h-4 w-[2px] translate-y-[2px] animate-pulse bg-primary" />
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <div ref={liveTranscriptEndRef} />
+            </div>
+          </div>
+
+          <LiveRecordingBar
+            isPaused={isPaused}
+            elapsedSeconds={recordingElapsed}
+            onPauseResume={isPaused ? resumeInstantRecording : pauseInstantRecording}
+            onStop={stopInstantRecording}
+            microphoneDevices={microphoneDevices}
+            selectedMicrophoneId={selectedMicrophoneId}
+            onSwitchMicrophone={(deviceId) => { void switchRecordingMicrophone(deviceId); }}
+            isSwitchingMicrophone={isSwitchingMicrophone}
+          />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1718,13 +2127,13 @@ export function TranscriptionDetailPage() {
               <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
             )}
           </div>
-          <div className="inline-flex h-8 items-center gap-1 rounded-full border border-border/70 bg-muted/20 px-1">
+          <div className="inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
             <Select
               value={selectedTranslationLang || undefined}
               onValueChange={setSelectedTranslationLang}
-              disabled={isTranslationLoading}
+              disabled={isTranslationLoading || isJobTranscribing}
             >
-              <SelectTrigger size="sm" className="h-8 w-[190px] rounded-full border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
+              <SelectTrigger size="sm" className="h-8 w-[190px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
                 <SelectValue placeholder="Translate to..." />
               </SelectTrigger>
               <SelectContent align="end">
@@ -1738,17 +2147,27 @@ export function TranscriptionDetailPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={`h-8 rounded-full px-3 text-sm ${
-                activeTranslationLang ? "text-primary hover:text-primary/90" : "text-muted-foreground hover:text-foreground"
+            <div
+              className={`overflow-hidden transition-all duration-200 ease-out ${
+                showTranslateAction
+                  ? "ml-1 max-w-[120px] opacity-100 translate-x-0"
+                  : "ml-0 max-w-0 opacity-0 translate-x-1 pointer-events-none"
               }`}
-              disabled={!selectedTranslationLang || isTranslationLoading}
-              onClick={() => { void handleTranslate(); }}
             >
-              {isTranslationLoading ? "Translating..." : "Translate"}
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`h-8 rounded-full px-3 text-sm transition-colors ${
+                  canApplyTranslation
+                    ? "font-medium text-primary hover:text-primary/90"
+                    : "text-muted-foreground"
+                }`}
+                disabled={!canApplyTranslation}
+                onClick={() => { void handleTranslate(); }}
+              >
+                {isTranslationLoading ? "Translating..." : isTranslationApplied ? "Translated" : "Translate"}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -1775,7 +2194,7 @@ export function TranscriptionDetailPage() {
             <TabsList variant="line" className="border-b-0">
               <TabsTrigger value="transcript" variant="line">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line">Summary</TabsTrigger>
-              {activeTranslationMeta ? (
+              {activeTranslationMeta && !isJobTranscribing ? (
                 <>
                   <TabsTrigger value="transcript-translated" variant="line">
                     <span className="inline-flex items-center gap-1.5">
@@ -1795,7 +2214,17 @@ export function TranscriptionDetailPage() {
 
             {/* Right side of tab row: context-dependent */}
             <div className="flex items-center gap-2">
-              {activeTab === "transcript" ? (
+              {isJobTranscribing ? (
+                <div className="inline-flex h-7 items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-2.5 text-xs text-primary">
+                  <span className="relative flex size-[6px]">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/45" />
+                    <span className="relative inline-flex size-[6px] rounded-full bg-primary" />
+                  </span>
+                  <span className="font-medium">
+                    {selectedJob?.status === "uploading" ? "Uploading audio..." : "Transcribing..."} {selectedJob?.progress ?? 0}%
+                  </span>
+                </div>
+              ) : activeTab === "transcript" ? (
                 editMode ? (
                   <>
                     <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-7 rounded-full" disabled={!canUndo} onClick={undo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button></TooltipTrigger><TooltipContent>Undo</TooltipContent></Tooltip>
@@ -1821,45 +2250,99 @@ export function TranscriptionDetailPage() {
           ) : null}
 
           <TabsContent value="transcript" className="flex-1 overflow-auto relative">
-            <div className="px-8 pb-4">
-              {MOCK_SEGMENTS.map((seg, index) => (
-                <TranscriptSegment
-                  key={seg.id}
-                  segment={seg}
-                  nextTimestamp={MOCK_SEGMENTS[index + 1]?.timestamp}
-                  isEditing={editMode}
-                  editText={texts[seg.id]}
-                  onEditChange={(t) => update(seg.id, t)}
-                  highlighted={highlightedSegment === seg.id}
-                  isPlaybackActive={activePlaybackSegmentId === seg.id}
-                  segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
-                  isSegHighlighted={segHighlights.has(seg.id)}
-                  onToggleHighlight={toggleHighlight}
-                  onOpenComment={openComment}
-                  onShare={(id) => { void shareSegment(id); }}
-                  onCopyText={copySegmentText}
-                  inlineComment={commentSegmentId === seg.id}
-                  onCommentSubmit={submitComment}
-                  onCommentCancel={() => setCommentSegmentId(null)}
-                  onCommentChange={setCommentText}
-                  commentValue={commentText}
-                  textHighlights={textHighlights[seg.id] ?? []}
-                />
-              ))}
-            </div>
+            {isJobTranscribing ? (
+              <div className="animate-in fade-in duration-300 px-8 pb-6 pt-2">
+                {previewDetailSegments.map((seg, index) => (
+                  <TranscriptSegment
+                    key={`preview-${seg.id}`}
+                    segment={seg}
+                    nextTimestamp={previewDetailSegments[index + 1]?.timestamp}
+                    isEditing={false}
+                    highlighted={false}
+                    isPlaybackActive={false}
+                    segmentRef={() => {}}
+                    isSegHighlighted={false}
+                    onToggleHighlight={() => {}}
+                    onOpenComment={() => {}}
+                    onShare={() => {}}
+                    onCopyText={() => {}}
+                    inlineComment={false}
+                    onCommentSubmit={() => {}}
+                    onCommentCancel={() => {}}
+                    onCommentChange={() => {}}
+                    commentValue=""
+                    textHighlights={[]}
+                    showActions={false}
+                  />
+                ))}
+
+                <div className="mt-3 rounded-[14px] border border-border/70 bg-muted/25 px-4 py-4">
+                  <div className="mb-2 h-3 w-[180px] animate-pulse rounded-full bg-muted" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-[92%] animate-pulse rounded-full bg-muted" />
+                    <div className="h-3 w-[84%] animate-pulse rounded-full bg-muted" />
+                    <div className="h-3 w-[76%] animate-pulse rounded-full bg-muted" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="animate-in fade-in duration-300 px-8 pb-4">
+                {contentSegments.map((seg, index) => (
+                  <TranscriptSegment
+                    key={seg.id}
+                    segment={seg}
+                    nextTimestamp={contentSegments[index + 1]?.timestamp}
+                    isEditing={editMode}
+                    editText={texts[seg.id]}
+                    onEditChange={(t) => update(seg.id, t)}
+                    highlighted={highlightedSegment === seg.id}
+                    isPlaybackActive={activePlaybackSegmentId === seg.id}
+                    segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
+                    isSegHighlighted={segHighlights.has(seg.id)}
+                    onToggleHighlight={toggleHighlight}
+                    onOpenComment={openComment}
+                    onShare={(id) => { void shareSegment(id); }}
+                    onCopyText={copySegmentText}
+                    inlineComment={commentSegmentId === seg.id}
+                    onCommentSubmit={submitComment}
+                    onCommentCancel={() => setCommentSegmentId(null)}
+                    onCommentChange={setCommentText}
+                    commentValue={commentText}
+                    textHighlights={textHighlights[seg.id] ?? []}
+                  />
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="summary" className="flex-1 overflow-auto">
-            <SummaryTab summaryText={MOCK_SUMMARY} />
+            {isJobTranscribing ? (
+              <div className="animate-in fade-in duration-300 px-8 py-6">
+                <div className="rounded-[14px] border border-border/70 bg-muted/25 px-5 py-5">
+                  <div className="mb-3 h-4 w-[220px] animate-pulse rounded-full bg-muted" />
+                  <div className="space-y-2">
+                    <div className="h-3 w-[96%] animate-pulse rounded-full bg-muted" />
+                    <div className="h-3 w-[88%] animate-pulse rounded-full bg-muted" />
+                    <div className="h-3 w-[78%] animate-pulse rounded-full bg-muted" />
+                    <div className="h-3 w-[83%] animate-pulse rounded-full bg-muted" />
+                  </div>
+                  <p className="mt-4 text-xs text-muted-foreground">
+                    Summary is being generated and will appear automatically.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <SummaryTab summaryText={contentSummary} />
+            )}
           </TabsContent>
-          {activeTranslationMeta ? (
+          {activeTranslationMeta && !isJobTranscribing ? (
             <TabsContent value="transcript-translated" className="flex-1 overflow-auto relative">
               <div className="px-8 pb-4">
-                {MOCK_SEGMENTS.map((seg, index) => (
+                {contentSegments.map((seg, index) => (
                   <TranscriptSegment
                     key={`${seg.id}-translated`}
                     segment={seg}
-                    nextTimestamp={MOCK_SEGMENTS[index + 1]?.timestamp}
+                    nextTimestamp={contentSegments[index + 1]?.timestamp}
                     isEditing={false}
                     editText={translatedSegments[seg.id] ?? (texts[seg.id] ?? seg.text)}
                     highlighted={highlightedSegment === seg.id}
@@ -1884,41 +2367,74 @@ export function TranscriptionDetailPage() {
               </div>
             </TabsContent>
           ) : null}
-          {activeTranslationMeta ? (
+          {activeTranslationMeta && !isJobTranscribing ? (
             <TabsContent value="summary-translated" className="flex-1 overflow-auto">
-              <SummaryTab summaryText={translatedSummary || MOCK_SUMMARY} />
+              <SummaryTab summaryText={translatedSummary || contentSummary} />
             </TabsContent>
           ) : null}
         </Tabs>
 
-        <MediaPlayer
-          duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
-          progress={playerProgress}
-          onProgressChange={handlePlayerProgressChange}
-          isPlaying={isPlayerPlaying}
-          onPlayPause={handlePlayerPlayPause}
-          speed={hasVideo ? videoPlaybackRate : 1}
-          onSpeedChange={handlePlaybackRateChange}
-          currentTimeSeconds={effectiveCurrentSeconds}
-          durationSeconds={effectiveDurationSeconds}
-        />
+        {isJobTranscribing ? (
+          <div className="shrink-0 border-t border-border bg-background px-6 py-3">
+            <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+              <span>{selectedJob?.status === "uploading" ? "Uploading audio" : "Transcribing audio"}</span>
+              <span className="tabular-nums">{selectedJob?.progress ?? 0}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-500"
+                style={{ width: `${selectedJob?.progress ?? 0}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <MediaPlayer
+            duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
+            progress={playerProgress}
+            onProgressChange={handlePlayerProgressChange}
+            isPlaying={isPlayerPlaying}
+            onPlayPause={handlePlayerPlayPause}
+            speed={hasVideo ? videoPlaybackRate : 1}
+            onSpeedChange={handlePlaybackRateChange}
+            currentTimeSeconds={effectiveCurrentSeconds}
+            durationSeconds={effectiveDurationSeconds}
+          />
+        )}
       </div>
 
       {/* Right panel */}
-      <RightPanel
-        onSeek={seekTo}
-        onScrollToSegment={scrollToSegment}
-        comments={comments}
-        videoPreview={videoPreview}
-        videoPlaybackRate={videoPlaybackRate}
-        onVideoElementReady={handleVideoElementReady}
-        onVideoPlayStateChange={setIsVideoPlaying}
-        onVideoTimeChange={setVideoCurrentTime}
-        onVideoDurationChange={(seconds) => setVideoDuration(Number.isFinite(seconds) ? seconds : 0)}
-        onVideoPlaybackRateChange={setVideoPlaybackRate}
-        width={rightPanelWidth}
-        onResizeStart={() => setIsRightPanelResizing(true)}
-      />
+      {isJobTranscribing ? (
+        <div className="relative flex shrink-0 flex-col border-l border-border bg-background" style={{ width: rightPanelWidth }}>
+          <div className="border-b border-border px-4 py-3">
+            <p className="text-sm font-medium text-foreground">AI processing</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Outline and comments will appear after transcription is completed.
+            </p>
+          </div>
+          <div className="space-y-3 px-4 py-4">
+            <div className="h-3 w-[78%] animate-pulse rounded-full bg-muted" />
+            <div className="h-3 w-[92%] animate-pulse rounded-full bg-muted" />
+            <div className="h-3 w-[68%] animate-pulse rounded-full bg-muted" />
+            <div className="h-3 w-[88%] animate-pulse rounded-full bg-muted" />
+            <div className="h-3 w-[62%] animate-pulse rounded-full bg-muted" />
+          </div>
+        </div>
+      ) : (
+        <RightPanel
+          onSeek={seekTo}
+          onScrollToSegment={scrollToSegment}
+          comments={comments}
+          videoPreview={videoPreview}
+          videoPlaybackRate={videoPlaybackRate}
+          onVideoElementReady={handleVideoElementReady}
+          onVideoPlayStateChange={setIsVideoPlaying}
+          onVideoTimeChange={setVideoCurrentTime}
+          onVideoDurationChange={(seconds) => setVideoDuration(Number.isFinite(seconds) ? seconds : 0)}
+          onVideoPlaybackRateChange={setVideoPlaybackRate}
+          width={rightPanelWidth}
+          onResizeStart={() => setIsRightPanelResizing(true)}
+        />
+      )}
 
       {/* Text selection highlight pill */}
       {selectionPill && !editMode && (
