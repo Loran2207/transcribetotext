@@ -89,7 +89,7 @@ function CreateFolderDialog({ open, onClose, onCreate }: { open: boolean; onClos
         </div>
         <div className="px-[24px] pt-[18px] pb-[8px]">
           <Label className="block mb-[6px] text-[13px] font-medium text-foreground">Folder name</Label>
-          <Input ref={inputRef} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) { onCreate(name.trim(), selectedColor); onClose(); } if (e.key === "Escape") onClose(); }} placeholder="e.g. Client Meetings" className="w-full h-[40px] px-[14px] rounded-full text-[14px]" />
+          <Input ref={inputRef} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) { onCreate(name.trim(), selectedColor); onClose(); } if (e.key === "Escape") onClose(); }} placeholder="e.g. Client Meetings" className="w-full h-[40px] px-[14px] rounded-[12px] text-[14px]" />
           <Label className="block mt-[18px] mb-[8px] text-[13px] font-medium text-foreground">Color</Label>
           <div className="flex items-center gap-[8px]">
             {folderColors.map((fc) => (
@@ -104,7 +104,7 @@ function CreateFolderDialog({ open, onClose, onCreate }: { open: boolean; onClos
           </div>
         </div>
         <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
-          <Button variant="outline" onClick={onClose} className="h-[36px] px-[18px] rounded-full text-[13px]">Cancel</Button>
+          <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] text-[13px]">Cancel</Button>
           <Button onClick={() => { if (name.trim()) { onCreate(name.trim(), selectedColor); onClose(); } }} disabled={!name.trim()} className="h-[36px] px-[18px] rounded-full text-[13px]">Create Folder</Button>
         </div>
       </div>

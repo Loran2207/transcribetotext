@@ -70,7 +70,7 @@ function CopyToast({ text }: { text: string }) {
   );
 }
 
-function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash, summary, tasksCount }: { isStarred: boolean; onStar: () => void; onEdit: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void; summary: string; tasksCount: number }) {
+function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash, summary }: { isStarred: boolean; onStar: () => void; onEdit: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void; summary: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -107,15 +107,9 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
             <svg className="size-[15px] shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.1" /><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" /></svg>
             <span className="text-[13px] text-foreground">{t("table.copySummary")}</span>
           </Button>
-          {tasksCount > 0 && (
-            <Button variant="ghost" onClick={(e) => { e.stopPropagation(); copyToClipboard(`${tasksCount} tasks`, "tasks"); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] transition-colors hover:bg-accent rounded-none justify-start">
-              <svg className="size-[15px] shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.1" /><path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              <span className="text-[13px] text-foreground">{t("table.copyTasks")}</span>
-            </Button>
-          )}
           <div className="h-px mx-[8px] my-[2px] bg-border" />
           <Button variant="ghost" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMoveFolder(); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] transition-colors hover:bg-accent rounded-none justify-start">
-            <svg className="size-[15px] shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <Icon icon={FolderOpen} className="size-[15px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
             <span className="text-[13px] text-foreground">{t("table.moveToFolder")}</span>
           </Button>
           <Button variant="ghost" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onTrash(); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] transition-colors hover:bg-destructive/10 rounded-none justify-start">
@@ -229,7 +223,7 @@ function SearchInput({ value, onChange, placeholder }: { value: string; onChange
   return (
     <div className="relative flex items-center">
       <svg className="absolute left-[10px] size-[14px] text-muted-foreground pointer-events-none" fill="none" viewBox="0 0 16 16"><path d="M7.333 12.667A5.333 5.333 0 107.333 2a5.333 5.333 0 000 10.667zM14 14l-2.9-2.9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-      <Input ref={inputRef} type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder || "Search records..."} className="border-0 bg-transparent shadow-none focus-visible:ring-0 h-[30px] w-[200px] pl-[30px] pr-[52px] rounded-full text-[13px]" />
+      <Input ref={inputRef} type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder || "Search records..."} className="border-0 bg-transparent shadow-none focus-visible:ring-0 h-[30px] w-[200px] pl-[30px] pr-[52px] rounded-[12px] text-[13px]" />
       <div className="absolute right-[8px] flex items-center gap-[2px] rounded-[4px] px-[5px] h-[18px] pointer-events-none bg-muted border-[0.5px] border-input">
         <span className="font-medium text-[10px] text-muted-foreground leading-none">⌘K</span>
       </div>
@@ -649,7 +643,7 @@ function CreateFolderModal({ open, onClose, onCreate }: { open: boolean; onClose
         </div>
         <div className="px-[24px] pt-[18px] pb-[8px]">
           <Label className="block font-medium text-[13px] text-foreground mb-[6px]">{t("folder.name")}</Label>
-          <Input ref={inputRef} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) { onCreate(name.trim(), selectedColor); onClose(); } if (e.key === "Escape") onClose(); }} placeholder={t("folder.namePlaceholder")} className="w-full h-[40px] px-[14px] rounded-full text-[14px]" />
+          <Input ref={inputRef} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) { onCreate(name.trim(), selectedColor); onClose(); } if (e.key === "Escape") onClose(); }} placeholder={t("folder.namePlaceholder")} className="w-full h-[40px] px-[14px] rounded-[12px] text-[14px]" />
           <Label className="block font-medium text-[13px] text-foreground mt-[18px] mb-[8px]">{t("folder.color")}</Label>
           <div className="flex items-center gap-[8px]">
             {folderColors.map((fc) => (
@@ -664,7 +658,7 @@ function CreateFolderModal({ open, onClose, onCreate }: { open: boolean; onClose
           </div>
         </div>
         <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
-          <Button variant="outline" onClick={onClose} className="h-[36px] px-[18px] rounded-full bg-background transition-colors"><span className="font-medium text-[13px] text-foreground">{t("common.cancel")}</span></Button>
+          <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors"><span className="font-medium text-[13px] text-foreground">{t("common.cancel")}</span></Button>
           <Button onClick={() => { if (name.trim()) { onCreate(name.trim(), selectedColor); onClose(); } }} disabled={!name.trim()} className="h-[36px] px-[18px] rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-white"><span className="font-medium text-[13px]">{t("folder.create")}</span></Button>
         </div>
       </div>
@@ -741,7 +735,7 @@ function MoveToFolderDialog({ open, onClose, count, onMove, onCreateFolder, fold
           </Button>
         </div>
         <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
-          <Button variant="outline" onClick={onClose} className="h-[36px] px-[18px] rounded-full bg-background transition-colors"><span className="font-medium text-[13px] text-foreground">{t("common.cancel")}</span></Button>
+          <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors"><span className="font-medium text-[13px] text-foreground">{t("common.cancel")}</span></Button>
           <Button onClick={() => { if (selectedId) { onMove(selectedId); onClose(); } }} disabled={!selectedId} className="h-[36px] px-[18px] rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-white"><span className="font-medium text-[13px]">{t("folder.moveHere")}</span></Button>
         </div>
       </div>
@@ -954,9 +948,9 @@ function ShareDialog({ open, onClose, recordName, config, onSave }: {
                 <span className="text-[14px] text-foreground">Link expiration</span>
                 <div className="relative">
                   <Button
-                    variant="outline"
+                    variant="pill-outline"
                     onClick={(e) => { e.stopPropagation(); setExpirationOpen(!expirationOpen); }}
-                    className="flex items-center gap-[5px] h-[28px] px-[10px] rounded-full transition-colors bg-secondary"
+                    className="flex items-center gap-[5px] h-[28px] px-[10px] transition-colors"
                   >
                     <span className="font-medium text-[13px] text-foreground">
                       {EXPIRATION_OPTIONS.find(o => o.id === cfg.expiration)?.label ?? "never"}
@@ -1334,7 +1328,7 @@ export function RecordsTable() {
           <Icon icon={ChevronRight} className="size-[16px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
         </button>
         <div className="flex-1" />
-        <Button variant="outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-[32px] px-[14px] rounded-full transition-colors cursor-pointer bg-background hover:bg-accent">
+        <Button variant="pill-outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer">
           <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
           <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
         </Button>
@@ -1388,7 +1382,7 @@ export function RecordsTable() {
 
           {/* Clear filter indicator */}
           {hasActiveFilters && (
-            <Button variant="outline" onClick={clearAllFilters} className="flex items-center gap-[5px] h-[26px] px-[10px] rounded-full bg-secondary transition-colors shrink-0 ml-[12px] mb-[4px]">
+            <Button variant="outline" onClick={clearAllFilters} className="flex items-center gap-[5px] h-[28px] px-[10px] rounded-full border border-border !bg-transparent transition-colors shrink-0 ml-[12px] mb-[4px] hover:!bg-transparent hover:border-muted-foreground/40">
               <svg className="size-[11px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M12.5 3.5l-9 9M3.5 3.5l9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
               <span className="font-medium text-[11.5px] text-muted-foreground">
                 {(typeFilter.size > 0 ? 1 : 0) + (templateFilter.size > 0 ? 1 : 0) + (langFilter.size > 0 ? 1 : 0) + (searchQuery ? 1 : 0)} {t("table.filters")}
@@ -1603,7 +1597,7 @@ function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isH
             style={{ right: "-26px", width: "180px", background: `linear-gradient(to right, transparent 0px, ${actionsBg} 48px)` }}
             onClick={e => e.stopPropagation()}
           >
-            <RowActions isStarred={isStarred} onStar={onStar} onEdit={onEdit} onShare={onShare} onMoveFolder={onMoveFolder} onTrash={onTrash} summary={record.summary} tasksCount={record.tasks} />
+            <RowActions isStarred={isStarred} onStar={onStar} onEdit={onEdit} onShare={onShare} onMoveFolder={onMoveFolder} onTrash={onTrash} summary={record.summary} />
           </div>
         )}
         {/* Trash restore button */}

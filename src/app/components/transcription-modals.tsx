@@ -4,6 +4,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { FolderPlus } from "@hugeicons/core-free-icons";
+import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
 import { Button } from "./ui/button";
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
+import { router } from "../routes";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -35,15 +37,19 @@ export interface TranscriptionJob {
   createdAt: string;
   duration?: string;
   progress: number;
+  uploadProgress?: number;
+  transcriptionProgress?: number;
   status: "uploading" | "processing" | "done" | "error";
   fileType: "audio" | "video";
   errorType?: "no_audio" | "corrupt" | "too_long" | "network";
+  noAudioDetected?: boolean;
   lang?: string;
   langBilingual?: string[];
   translationLang?: string;
   folderId?: string;
   source?: SourceType;
   mediaUrl?: string;
+  livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
 }
 
 const ERROR_LABELS: Record<string, string> = {
@@ -55,23 +61,84 @@ const ERROR_LABELS: Record<string, string> = {
 
 type RecordingPhase = "idle" | "recording" | "paused" | "review";
 
+interface RecordingMicrophoneOption {
+  id: string;
+  label: string;
+}
+
+export interface LiveTranscriptSegment {
+  id: number;
+  timestamp: string;
+  text: string;
+}
+
+interface SpeechRecognitionResultAlternativeLike {
+  transcript: string;
+}
+
+interface SpeechRecognitionResultLike {
+  isFinal: boolean;
+  length: number;
+  [index: number]: SpeechRecognitionResultAlternativeLike;
+}
+
+interface SpeechRecognitionEventLike {
+  resultIndex: number;
+  results: SpeechRecognitionResultLike[];
+}
+
+interface BrowserSpeechRecognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+}
+
+type BrowserSpeechRecognitionCtor = new () => BrowserSpeechRecognition;
+
+type WindowWithSpeechRecognition = Window & {
+  SpeechRecognition?: BrowserSpeechRecognitionCtor;
+  webkitSpeechRecognition?: BrowserSpeechRecognitionCtor;
+};
+
+type InstantRecordingSubmitOptions = {
+  lang?: string;
+  langBilingual?: string[];
+  translationLang?: string;
+  folderId?: string;
+};
+
 interface CtxValue {
   openModal: ModalType;
   setOpenModal: (m: ModalType) => void;
   jobs: TranscriptionJob[];
-  addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string }) => string;
+  addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean }) => string;
   retryJob: (id: string) => void;
   meetingCounterRef: React.MutableRefObject<number>;
   userPlan: UserPlan;
   recordingPhase: RecordingPhase;
   recordingElapsed: number;
   audioUrl: string | null;
-  startInstantRecording: () => void;
+  startInstantRecording: (opts?: InstantRecordingSubmitOptions) => Promise<boolean>;
   pauseInstantRecording: () => void;
   resumeInstantRecording: () => void;
   stopInstantRecording: () => void;
+  microphoneDevices: RecordingMicrophoneOption[];
+  selectedMicrophoneId: string;
+  switchRecordingMicrophone: (deviceId: string) => Promise<void>;
+  isSwitchingMicrophone: boolean;
+  liveTranscriptSegments: LiveTranscriptSegment[];
+  liveTranscriptInterim: string;
+  isLiveTranscriptionSupported: boolean;
+  recordingDetailOpen: boolean;
+  setRecordingDetailOpen: (open: boolean) => void;
   cancelInstantRecording: () => void;
-  submitInstantRecording: (opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string }) => void;
+  submitInstantRecording: (opts?: InstantRecordingSubmitOptions) => void;
   openUploadWithFiles: (files: File[]) => void;
   consumePreloadedFiles: () => File[];
 }
@@ -94,6 +161,7 @@ export function TranscriptionModalsProvider({
   const { assignToFolder } = useFolders();
   const [openModal, setOpenModal] = useState<ModalType>(null);
   const [jobs, setJobs] = useState<TranscriptionJob[]>([]);
+  const jobsRef = useRef<TranscriptionJob[]>([]);
   const meetingCounterRef = useRef(1);
 
   // ── Upload preload state ───────────────────────────────────
@@ -117,6 +185,30 @@ export function TranscriptionModalsProvider({
   const recordingStreamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const [microphoneDevices, setMicrophoneDevices] = useState<RecordingMicrophoneOption[]>([]);
+  const [selectedMicrophoneId, setSelectedMicrophoneId] = useState("");
+  const [isSwitchingMicrophone, setIsSwitchingMicrophone] = useState(false);
+  const [liveTranscriptSegments, setLiveTranscriptSegments] = useState<LiveTranscriptSegment[]>([]);
+  const [liveTranscriptInterim, setLiveTranscriptInterim] = useState("");
+  const [isLiveTranscriptionSupported, setIsLiveTranscriptionSupported] = useState(false);
+  const [recordingDetailOpen, setRecordingDetailOpen] = useState(false);
+  const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const shouldRestartSpeechRef = useRef(false);
+  const recordingPhaseRef = useRef<RecordingPhase>("idle");
+  const recordingElapsedRef = useRef(0);
+  const instantRecordingOptionsRef = useRef<InstantRecordingSubmitOptions | undefined>(undefined);
+
+  useEffect(() => {
+    recordingPhaseRef.current = recordingPhase;
+  }, [recordingPhase]);
+
+  useEffect(() => {
+    jobsRef.current = jobs;
+  }, [jobs]);
+
+  useEffect(() => {
+    recordingElapsedRef.current = recordingElapsed;
+  }, [recordingElapsed]);
 
   useEffect(() => {
     if (recordingPhase !== "recording") return;
@@ -130,6 +222,150 @@ export function TranscriptionModalsProvider({
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
   }, [recordingPhase]);
+
+  function getSpeechRecognitionCtor() {
+    if (typeof window === "undefined") return null;
+    const maybeWindow = window as WindowWithSpeechRecognition;
+    return maybeWindow.SpeechRecognition ?? maybeWindow.webkitSpeechRecognition ?? null;
+  }
+
+  useEffect(() => {
+    setIsLiveTranscriptionSupported(Boolean(getSpeechRecognitionCtor()));
+  }, []);
+
+  function stopLiveTranscription(opts?: { clearInterim?: boolean; clearSegments?: boolean }) {
+    shouldRestartSpeechRef.current = false;
+    const recognition = speechRecognitionRef.current;
+    if (recognition) {
+      recognition.onend = null;
+      recognition.onresult = null;
+      recognition.onerror = null;
+      try {
+        recognition.stop();
+      } catch {
+        try {
+          recognition.abort();
+        } catch {
+          // no-op
+        }
+      }
+      speechRecognitionRef.current = null;
+    }
+    if (opts?.clearInterim) setLiveTranscriptInterim("");
+    if (opts?.clearSegments) setLiveTranscriptSegments([]);
+  }
+
+  function appendLiveTranscriptSegment(rawText: string) {
+    const text = rawText.trim();
+    if (!text) return;
+    setLiveTranscriptSegments((prev) => [
+      ...prev,
+      { id: prev.length + 1, timestamp: fmtTime(recordingElapsedRef.current), text },
+    ]);
+  }
+
+  function startLiveTranscriptionSession() {
+    const SpeechRecognitionCtor = getSpeechRecognitionCtor();
+    if (!SpeechRecognitionCtor) {
+      setIsLiveTranscriptionSupported(false);
+      setLiveTranscriptInterim("");
+      return;
+    }
+    setIsLiveTranscriptionSupported(true);
+    stopLiveTranscription({ clearInterim: true });
+    const recognition = new SpeechRecognitionCtor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = navigator.language || "en-US";
+    recognition.onresult = (event) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result?.[0]?.transcript?.trim() ?? "";
+        if (!transcript) continue;
+        if (result.isFinal) {
+          appendLiveTranscriptSegment(transcript);
+        } else {
+          interim = `${interim} ${transcript}`.trim();
+        }
+      }
+      setLiveTranscriptInterim(interim);
+    };
+    recognition.onerror = () => {
+      setLiveTranscriptInterim("");
+    };
+    recognition.onend = () => {
+      speechRecognitionRef.current = null;
+      if (shouldRestartSpeechRef.current && recordingPhaseRef.current === "recording") {
+        startLiveTranscriptionSession();
+      }
+    };
+    speechRecognitionRef.current = recognition;
+    shouldRestartSpeechRef.current = true;
+    try {
+      recognition.start();
+    } catch {
+      // no-op
+    }
+  }
+
+  function formatMicrophoneLabel(device: MediaDeviceInfo, index: number) {
+    const raw = device.label?.trim();
+    if (device.deviceId === "default") {
+      const base = raw?.replace(/^default\s*-\s*/i, "") || "Microphone";
+      return `Default - ${base}`;
+    }
+    if (device.deviceId === "communications") {
+      const base = raw?.replace(/^communications\s*-\s*/i, "") || "Microphone";
+      return `Communications - ${base}`;
+    }
+    return raw || `Microphone ${index + 1}`;
+  }
+
+  async function refreshMicrophoneDevices(preferredId?: string) {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const allDevices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = allDevices.filter((d) => d.kind === "audioinput");
+      const nextOptions = audioInputs.map((device, index) => ({
+        id: device.deviceId,
+        label: formatMicrophoneLabel(device, index),
+      }));
+      setMicrophoneDevices(nextOptions);
+      setSelectedMicrophoneId((prevId) => {
+        const candidate = preferredId ?? prevId;
+        if (candidate && nextOptions.some((d) => d.id === candidate)) return candidate;
+        return nextOptions[0]?.id ?? "";
+      });
+    } catch {
+      setMicrophoneDevices([]);
+    }
+  }
+
+  async function getAudioStreamForDevice(deviceId?: string) {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Media devices are unavailable");
+    }
+    if (deviceId) {
+      try {
+        return await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } } });
+      } catch {
+        return await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+    }
+    return await navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+
+  useEffect(() => {
+    void refreshMicrophoneDevices();
+  }, []);
+
+  useEffect(() => {
+    if (!navigator.mediaDevices?.addEventListener) return;
+    const handleDeviceChange = () => { void refreshMicrophoneDevices(); };
+    navigator.mediaDevices.addEventListener("devicechange", handleDeviceChange);
+    return () => navigator.mediaDevices.removeEventListener("devicechange", handleDeviceChange);
+  }, []);
 
   function _startMediaRecorder(stream: MediaStream) {
     try {
@@ -147,20 +383,32 @@ export function TranscriptionModalsProvider({
     }
   }
 
-  function startInstantRecording() {
-    navigator.mediaDevices?.getUserMedia({ audio: true })
-      .then(stream => {
-        recordingStreamRef.current = stream;
-        audioChunksRef.current = [];
-        setAudioUrl(null);
-        setRecordingElapsed(0);
-        _startMediaRecorder(stream);
-        setRecordingPhase("recording");
-      })
-      .catch(() => { /* mic denied — silently no-op */ });
+  async function startInstantRecording(opts?: InstantRecordingSubmitOptions) {
+    try {
+      const stream = await getAudioStreamForDevice(selectedMicrophoneId || undefined);
+      instantRecordingOptionsRef.current = opts;
+      recordingStreamRef.current = stream;
+      audioChunksRef.current = [];
+      setAudioUrl(null);
+      setRecordingElapsed(0);
+      setLiveTranscriptSegments([]);
+      setLiveTranscriptInterim("");
+      _startMediaRecorder(stream);
+      const activeDeviceId = stream.getAudioTracks()[0]?.getSettings().deviceId;
+      if (activeDeviceId) setSelectedMicrophoneId(activeDeviceId);
+      void refreshMicrophoneDevices(activeDeviceId);
+      recordingPhaseRef.current = "recording";
+      setRecordingPhase("recording");
+      startLiveTranscriptionSession();
+      return true;
+    } catch {
+      return false;
+    }
   }
   function pauseInstantRecording() {
     mediaRecorderRef.current?.pause();
+    stopLiveTranscription({ clearInterim: true });
+    recordingPhaseRef.current = "paused";
     setRecordingPhase("paused");
   }
   function resumeInstantRecording() {
@@ -170,77 +418,214 @@ export function TranscriptionModalsProvider({
       // Continue after review — start new recorder segment, keep existing chunks
       _startMediaRecorder(recordingStreamRef.current);
     }
+    recordingPhaseRef.current = "recording";
     setRecordingPhase("recording");
+    startLiveTranscriptionSession();
   }
   function stopInstantRecording() {
-    mediaRecorderRef.current?.stop();
-    mediaRecorderRef.current = null;
-    setRecordingPhase("review");
+    if (recordingPhase !== "recording" && recordingPhase !== "paused") return;
+    submitInstantRecording(instantRecordingOptionsRef.current);
+  }
+
+  async function switchRecordingMicrophone(deviceId: string) {
+    if (!deviceId || deviceId === selectedMicrophoneId) return;
+    if (recordingPhase !== "recording" && recordingPhase !== "paused") {
+      setSelectedMicrophoneId(deviceId);
+      return;
+    }
+    setIsSwitchingMicrophone(true);
+    const shouldPause = recordingPhase === "paused";
+    try {
+      const nextStream = await getAudioStreamForDevice(deviceId);
+      mediaRecorderRef.current?.stop();
+      mediaRecorderRef.current = null;
+      recordingStreamRef.current?.getTracks().forEach((t) => t.stop());
+      recordingStreamRef.current = nextStream;
+      _startMediaRecorder(nextStream);
+      if (shouldPause) {
+        mediaRecorderRef.current?.pause();
+        recordingPhaseRef.current = "paused";
+        setRecordingPhase("paused");
+      } else {
+        recordingPhaseRef.current = "recording";
+        setRecordingPhase("recording");
+      }
+      const activeDeviceId = nextStream.getAudioTracks()[0]?.getSettings().deviceId || deviceId;
+      await refreshMicrophoneDevices(activeDeviceId);
+    } catch {
+      await refreshMicrophoneDevices();
+    } finally {
+      setIsSwitchingMicrophone(false);
+    }
   }
   function cancelInstantRecording() {
     mediaRecorderRef.current?.stop();
     mediaRecorderRef.current = null;
+    instantRecordingOptionsRef.current = undefined;
+    stopLiveTranscription({ clearInterim: true, clearSegments: true });
     audioChunksRef.current = [];
     setAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
     recordingStreamRef.current?.getTracks().forEach(t => t.stop());
     recordingStreamRef.current = null;
+    recordingPhaseRef.current = "idle";
     setRecordingPhase("idle");
     setRecordingElapsed(0);
   }
-  function submitInstantRecording(opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string }) {
+  function submitInstantRecording(opts?: InstantRecordingSubmitOptions) {
     const name = `Recording ${fmtTime(recordingElapsed)}.wav`;
+    const previewSegments = [
+      ...liveTranscriptSegments,
+      ...(liveTranscriptInterim.trim().length > 0
+        ? [{ id: liveTranscriptSegments.length + 1, timestamp: fmtTime(recordingElapsedRef.current), text: liveTranscriptInterim.trim() }]
+        : []),
+    ];
     mediaRecorderRef.current?.stop();
     mediaRecorderRef.current = null;
+    instantRecordingOptionsRef.current = undefined;
+    stopLiveTranscription({ clearInterim: true, clearSegments: true });
     audioChunksRef.current = [];
     setAudioUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
     recordingStreamRef.current?.getTracks().forEach(t => t.stop());
     recordingStreamRef.current = null;
+    recordingPhaseRef.current = "idle";
     setRecordingPhase("idle");
     setRecordingElapsed(0);
-    addJob(name, "audio", { ...opts, source: "microphone" });
+    const id = addJob(name, "audio", { ...opts, source: "microphone", livePreviewSegments: previewSegments });
+    const queuedJob: TranscriptionJob = {
+      id,
+      name,
+      createdAt: new Date().toISOString(),
+      progress: 0,
+      uploadProgress: 0,
+      transcriptionProgress: 0,
+      status: "uploading",
+      fileType: "audio",
+      ...opts,
+      source: "microphone",
+      livePreviewSegments: previewSegments,
+    };
+    const recordState = mapJobToRecordState(queuedJob);
+    try {
+      window.sessionStorage.setItem(`uploaded-record:${id}`, JSON.stringify(recordState));
+    } catch {
+      // best-effort cache only
+    }
+    void router.navigate(`/transcriptions/${id}`, { state: { record: recordState, fromRecordingStop: true } });
   }
+
+  useEffect(() => {
+    return () => {
+      stopLiveTranscription({ clearInterim: true });
+    };
+  }, []);
 
   function simulateJob(id: string) {
-    let p = 0;
-    const tick = () => {
-      p += Math.random() * 7 + 1.5;
-      if (p >= 100) {
+    let uploadPct = 0;
+    let transcriptionPct = 0;
+
+    const tickTranscription = () => {
+      transcriptionPct += Math.random() * 10 + 4;
+      if (transcriptionPct >= 100) {
+        transcriptionPct = 100;
         const rand = Math.random();
-        if (rand < 0.18) {
-          const errTypes = ["no_audio", "corrupt", "too_long", "network"] as const;
+        if (rand < 0.15) {
+          const errTypes = ["corrupt", "too_long", "network"] as const;
           const errorType = errTypes[Math.floor(Math.random() * errTypes.length)];
-          setJobs(prev => prev.map(j => j.id === id ? { ...j, progress: 100, status: "error", errorType } : j));
+          setJobs(prev => prev.map(j => j.id === id ? {
+            ...j,
+            progress: 100,
+            uploadProgress: 100,
+            transcriptionProgress: 100,
+            status: "error",
+            errorType,
+          } : j));
         } else {
-          setJobs(prev => prev.map(j => j.id === id ? { ...j, progress: 100, status: "done", duration: randomDuration() } : j));
+          setJobs(prev => prev.map(j => j.id === id ? {
+            ...j,
+            progress: 100,
+            uploadProgress: 100,
+            transcriptionProgress: 100,
+            status: "done",
+            duration: randomDuration(),
+          } : j));
         }
-      } else {
-        setJobs(prev => prev.map(j => j.id === id ? { ...j, progress: Math.round(p), status: p > 55 ? "processing" : "uploading" } : j));
-        setTimeout(tick, 350 + Math.random() * 200);
+        return;
       }
+
+      const rounded = Math.round(transcriptionPct);
+      setJobs(prev => prev.map(j => j.id === id ? {
+        ...j,
+        status: "processing",
+        transcriptionProgress: rounded,
+        uploadProgress: 100,
+        progress: Math.round(55 + rounded * 0.45),
+      } : j));
+      setTimeout(tickTranscription, 320 + Math.random() * 180);
     };
-    setTimeout(tick, 500);
+
+    const tickUpload = () => {
+      uploadPct += Math.random() * 14 + 6;
+      if (uploadPct >= 100) {
+        uploadPct = 100;
+        const noAudioDetected = jobsRef.current.find((job) => job.id === id)?.noAudioDetected === true;
+        if (noAudioDetected) {
+          setJobs(prev => prev.map(j => j.id === id ? {
+            ...j,
+            progress: 100,
+            uploadProgress: 100,
+            transcriptionProgress: 0,
+            status: "error",
+            errorType: "no_audio",
+          } : j));
+          return;
+        }
+
+        setJobs(prev => prev.map(j => j.id === id ? {
+          ...j,
+          status: "processing",
+          uploadProgress: 100,
+          transcriptionProgress: 0,
+          progress: 55,
+          errorType: undefined,
+        } : j));
+        setTimeout(tickTranscription, 420);
+        return;
+      }
+
+      const rounded = Math.round(uploadPct);
+      setJobs(prev => prev.map(j => j.id === id ? {
+        ...j,
+        status: "uploading",
+        uploadProgress: rounded,
+        transcriptionProgress: 0,
+        progress: Math.round(rounded * 0.55),
+        errorType: undefined,
+      } : j));
+      setTimeout(tickUpload, 240 + Math.random() * 140);
+    };
+
+    setTimeout(tickUpload, 300);
   }
 
-  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string }) {
+  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean }) {
     const id = Math.random().toString(36).slice(2, 10);
     const createdAt = new Date().toISOString();
-    setJobs(prev => [{ id, name, createdAt, progress: 0, status: "uploading", fileType, ...opts }, ...prev]);
+    setJobs(prev => [{ id, name, createdAt, progress: 0, uploadProgress: 0, transcriptionProgress: 0, status: "uploading", fileType, ...opts }, ...prev]);
     if (opts?.folderId) assignToFolder([id], opts.folderId);
     simulateJob(id);
     return id;
   }
 
   function retryJob(id: string) {
-    setJobs(prev => prev.map(j => j.id === id ? { ...j, progress: 0, status: "uploading", duration: undefined } : j));
+    setJobs(prev => prev.map(j => j.id === id ? { ...j, progress: 0, uploadProgress: 0, transcriptionProgress: 0, status: "uploading", duration: undefined, errorType: undefined } : j));
     simulateJob(id);
   }
 
   return (
-    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles }}>
+    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles }}>
       {children}
       <AllModals />
       <RecordingPill />
-      <RecordingReviewModal />
       <FloatingProgressWidget />
     </Ctx.Provider>
   );
@@ -404,7 +789,7 @@ function CreateFolderDialog({
               if (e.key === "Escape") onClose();
             }}
             placeholder="e.g. Client Meetings"
-            className="w-full h-[40px] px-[14px] rounded-full text-sm"
+            className="w-full h-[40px] px-[14px] rounded-[12px] text-sm"
           />
 
           <Label className="font-medium text-[13px] text-foreground block mt-[18px] mb-[8px]">
@@ -451,9 +836,9 @@ function CreateFolderDialog({
         </div>
 
         <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
-          <Button variant="outline"
+          <Button variant="pill-outline"
             onClick={onClose}
-            className="h-[36px] px-[18px] rounded-full bg-background transition-colors hover:bg-accent"
+            className="h-[36px] px-[18px] transition-colors"
           >
             <span className="font-medium text-[13px] text-foreground">Cancel</span>
           </Button>
@@ -505,7 +890,7 @@ function FolderSelector({
       {!compact && <SectionLabel>{label}</SectionLabel>}
       <Select value={value ?? "__none__"} onValueChange={handleValueChange}>
         <SelectTrigger
-          className={`w-full rounded-full border-input bg-transparent px-[12px] gap-[8px] ${compact ? "h-[36px]" : "h-[40px]"}`}
+          className={`w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "h-[36px]" : "h-[40px]"}`}
         >
           <SelectValue placeholder="Select folder" className="text-[13px]" />
         </SelectTrigger>
@@ -594,7 +979,7 @@ function LanguageSelector({ value, onChange, label }: { value: string; onChange:
       {label && <SectionLabel>{label}</SectionLabel>}
       <Button variant="ghost"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-[8px] h-[40px] px-[14px] rounded-full transition-all text-sm text-foreground bg-transparent border border-input"
+        className="w-full flex items-center gap-[8px] h-[40px] px-[14px] rounded-[12px] transition-all text-sm text-foreground bg-transparent border border-input"
       >
         <span className="text-[15px]">{selected.flag}</span>
         <span className="flex-1 text-left text-sm text-foreground">{selected.label}</span>
@@ -639,7 +1024,7 @@ function TranscriptionModeToggle({ mode, onChange, compact = false }: {
 }) {
   if (compact) {
     return (
-      <div className="flex items-center rounded-full p-[3px] shrink-0 bg-muted">
+      <div className="flex h-[40px] items-center rounded-[12px] border border-border bg-muted/70 p-[3px] shrink-0">
         {(["mono", "bi"] as const).map(m => {
           const isActive = mode === m;
           return (
@@ -647,10 +1032,10 @@ function TranscriptionModeToggle({ mode, onChange, compact = false }: {
               key={m}
               type="button"
               onClick={() => onChange(m)}
-              className={`flex items-center justify-center rounded-full px-[14px] py-[5px] text-[12px] font-medium transition-all whitespace-nowrap ${
+              className={`flex h-full min-w-[58px] items-center justify-center rounded-[9px] px-[14px] text-[12px] font-medium transition-all whitespace-nowrap ${
                 isActive
                   ? "bg-background shadow-sm text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {m === "mono" ? "Mono" : "Bi"}
@@ -712,7 +1097,7 @@ function SpeakerSection({ enabled, onToggle, count, onCountChange }: {
         <div className="mt-[10px] relative" ref={ref}>
           <Button variant="ghost"
             onClick={() => setDropOpen(v => !v)}
-            className="w-full flex items-center justify-between h-[40px] px-[14px] rounded-full transition-all text-[13px] text-foreground bg-transparent border border-input"
+            className="w-full flex items-center justify-between h-[40px] px-[14px] rounded-[12px] transition-all text-[13px] text-foreground bg-transparent border border-input"
           >
             <span className="text-[13px] text-foreground">{countLabel}</span>
             <svg className={`size-[12px] transition-transform text-muted-foreground ${dropOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16">
@@ -839,7 +1224,7 @@ function MultiLanguageSelector({ values, onChange, label }: {
       {/* Trigger — looks like a single-select input, chips render inside */}
       <div
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center flex-wrap gap-[5px] min-h-[40px] pl-[12px] pr-[36px] py-[6px] rounded-full cursor-pointer transition-all relative text-sm text-foreground bg-transparent border border-input"
+        className="w-full flex items-center flex-wrap gap-[5px] min-h-[40px] pl-[12px] pr-[36px] py-[6px] rounded-[12px] cursor-pointer transition-all relative text-sm text-foreground bg-transparent border border-input"
       >
         {selectedLangs.length === 0 ? (
           <span className="text-[13px] text-muted-foreground">
@@ -936,7 +1321,7 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick }: {
         <TranscriptionModeToggle mode={state.mode} onChange={handleModeChange} compact />
       </div>
       <AdvancedSection>
-        <div className="rounded-[12px] p-[14px] bg-card border border-border">
+        <div className="pt-[2px]">
           <SpeakerSection
             enabled={state.speakerEnabled}
             onToggle={() => onChange({ speakerEnabled: !state.speakerEnabled })}
@@ -953,15 +1338,16 @@ function AdvancedSection({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
     <div>
-      <Button variant="ghost"
+      <button
+        type="button"
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-[8px] h-[30px] transition-opacity hover:opacity-80 p-0 justify-start"
+        className="inline-flex items-center gap-[8px] h-[30px] rounded-[8px] pl-0 pr-[8px] outline-none transition-colors hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/40"
       >
         <svg className={`size-[14px] transition-transform text-muted-foreground ${open ? "rotate-90" : ""}`} fill="none" viewBox="0 0 16 16">
           <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         <span className="font-medium text-[13px] text-foreground">Advanced options</span>
-      </Button>
+      </button>
       {open && (
         <div className="mt-[10px]">{children}</div>
       )}
@@ -1049,6 +1435,150 @@ function formatBytes(b: number) {
   return b > 1e9 ? `${(b / 1e9).toFixed(1)} GB` : b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.round(b / 1024)} KB`;
 }
 
+async function detectVideoHasAudioTrack(file: File): Promise<boolean | null> {
+  if (typeof window === "undefined") return null;
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    const objectUrl = URL.createObjectURL(file);
+    let settled = false;
+
+    const cleanup = () => {
+      video.removeAttribute("src");
+      video.load();
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    const settle = (value: boolean | null) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(value);
+    };
+
+    const timerId = window.setTimeout(() => settle(null), 4000);
+
+    video.preload = "metadata";
+    video.onloadedmetadata = () => {
+      window.clearTimeout(timerId);
+      const maybeVideo = video as HTMLVideoElement & {
+        audioTracks?: { length?: number };
+        mozHasAudio?: boolean;
+        webkitAudioDecodedByteCount?: number;
+        captureStream?: () => MediaStream;
+        mozCaptureStream?: () => MediaStream;
+      };
+      let detection: boolean | null = null;
+
+      if (typeof maybeVideo.audioTracks?.length === "number") {
+        detection = maybeVideo.audioTracks.length > 0;
+      } else if (typeof maybeVideo.mozHasAudio === "boolean") {
+        detection = maybeVideo.mozHasAudio;
+      }
+
+      if (detection === null) {
+        try {
+          const stream = maybeVideo.captureStream?.() ?? maybeVideo.mozCaptureStream?.();
+          if (stream) {
+            const hasTrack = stream.getAudioTracks().length > 0;
+            stream.getTracks().forEach((track) => track.stop());
+            if (hasTrack) detection = true;
+          }
+        } catch {
+          // Some browsers block stream capture before playback.
+        }
+      }
+
+      if (detection === null && (maybeVideo.webkitAudioDecodedByteCount ?? 0) > 0) {
+        detection = true;
+      }
+
+      settle(detection);
+    };
+    video.onerror = () => {
+      window.clearTimeout(timerId);
+      settle(null);
+    };
+    video.src = objectUrl;
+  });
+}
+
+function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { startInstantRecording, userPlan } = useTranscriptionModals();
+  const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setSettings(DEFAULT_SETTINGS);
+    setSelectedFolderId(null);
+    setIsStarting(false);
+  }, [open]);
+
+  async function handleStart() {
+    if (isStarting) return;
+    setIsStarting(true);
+    const started = await startInstantRecording({
+      lang: settings.mode === "mono" ? settings.langPrimary : undefined,
+      langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
+      translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
+      folderId: selectedFolderId ?? undefined,
+    });
+    setIsStarting(false);
+    if (!started) {
+      toast.error("Microphone access is required to start recording.");
+      return;
+    }
+    onClose();
+    void router.navigate("/transcriptions/live", { state: { liveRecording: true } });
+  }
+
+  if (!open) return null;
+
+  return (
+    <>
+      <ModalShell
+        title="Instant speech"
+        subtitle="Select recognition settings before recording"
+        onClose={onClose}
+        onBackdropClick={onClose}
+        width={520}
+      >
+        <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
+          <SharedSettings
+            state={settings}
+            onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
+            userPlan={userPlan}
+            onUpgradeClick={() => setUpgradeOpen(true)}
+          />
+
+          <div className="flex items-center justify-between gap-[8px]">
+            <div style={{ minWidth: 0, maxWidth: "220px" }}>
+              <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
+            </div>
+            <div className="flex items-center gap-[8px] shrink-0">
+              <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors">
+                <span className="font-medium text-[13px] text-foreground">Cancel</span>
+              </Button>
+              <Button
+                onClick={() => { void handleStart(); }}
+                disabled={isStarting}
+                className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <span className="font-semibold text-[13px]">
+                  {isStarting ? "Starting..." : "Start recording"}
+                </span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </ModalShell>
+      <UpgradePrompt open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+    </>
+  );
+}
+
 function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addJob, userPlan, consumePreloadedFiles } = useTranscriptionModals();
 
@@ -1089,11 +1619,20 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
     if (dropped.length) addFiles(dropped);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!files.length) return;
-    files.forEach(file => {
+    const prepared = await Promise.all(files.map(async (file) => {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
       const isAudio = AUDIO_EXTS.includes(ext);
+      let noAudioDetected = false;
+      if (!isAudio) {
+        const hasAudioTrack = await detectVideoHasAudioTrack(file);
+        noAudioDetected = hasAudioTrack === false;
+      }
+      return { file, isAudio, noAudioDetected };
+    }));
+
+    prepared.forEach(({ file, isAudio, noAudioDetected }) => {
       addJob(file.name, isAudio ? "audio" : "video", {
         lang: settings.mode === "mono" ? settings.langPrimary : undefined,
         langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
@@ -1101,6 +1640,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
         folderId: selectedFolderId ?? undefined,
         source: isAudio ? "mp3" : "mp4",
         mediaUrl: isAudio ? undefined : URL.createObjectURL(file),
+        noAudioDetected: isAudio ? undefined : noAudioDetected,
       });
     });
     handleClose();
@@ -1123,7 +1663,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
             onDragLeave={() => setDragActive(false)}
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
-            className={`rounded-[14px] flex flex-col items-center justify-center cursor-pointer select-none border-2 border-dashed transition-all ${dragActive ? "border-primary bg-primary/5" : "border-border"}`}
+            className={`rounded-[12px] flex flex-col items-center justify-center cursor-pointer select-none border-2 border-dashed transition-all ${dragActive ? "border-primary bg-primary/5" : "border-border"}`}
             style={{
               height: files.length > 0 ? "88px" : "220px",
               transition: "height 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -1161,7 +1701,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
                     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
                     const isAudio = AUDIO_EXTS.includes(ext);
                     return (
-                      <div key={i} className="flex items-center gap-[10px] h-[48px] px-[12px] rounded-full border border-border bg-card">
+                      <div key={i} className="flex items-center gap-[10px] h-[48px] px-[12px] rounded-[12px] border border-border bg-card">
                         <div className={`size-[30px] rounded-[8px] flex items-center justify-center shrink-0 ${isAudio ? "bg-primary/5" : "bg-violet-500/5"}`}>
                           {isAudio ? (
                             <svg className="size-[14px] text-primary" fill="none" viewBox="0 0 24 24">
@@ -1201,10 +1741,10 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
             <div className="flex items-center gap-[8px] shrink-0">
-              <Button variant="outline" onClick={handleClose} className="h-[36px] px-[18px] rounded-full transition-colors hover:bg-accent">
+              <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
-              <Button onClick={handleSubmit} disabled={!files.length}
+              <Button onClick={() => { void handleSubmit(); }} disabled={!files.length}
                 className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <span className="font-semibold text-[13px]">
@@ -1261,7 +1801,7 @@ function StopConfirmDialog({ open, onCancel, onStop }: { open: boolean; onCancel
           </p>
         </div>
         <div className="flex gap-[8px]">
-          <Button variant="outline" onClick={onCancel} className="flex-1 h-[38px] rounded-full transition-colors bg-background hover:bg-accent">
+          <Button variant="pill-outline" onClick={onCancel} className="flex-1 h-[38px] transition-colors">
             <span className="font-medium text-[13px] text-foreground">Cancel</span>
           </Button>
           <Button variant="destructive" onClick={onStop} className="flex-1 h-[38px] rounded-full transition-colors">
@@ -1367,7 +1907,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
               <Input type="url" placeholder="Paste the link here" value={url}
                 onChange={e => { setUrl(e.target.value); if (urlError) validateUrl(e.target.value); }}
                 onBlur={() => validateUrl(url)}
-                className={`w-full h-[42px] pl-[36px] pr-[108px] rounded-full text-sm ${urlError ? "border-destructive" : ""}`}
+                className={`w-full h-[42px] pl-[36px] pr-[108px] rounded-[12px] text-sm ${urlError ? "border-destructive" : ""}`}
               />
               <LinkInputIcons />
             </div>
@@ -1393,7 +1933,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
             <div className="flex items-center gap-[8px] shrink-0">
-              <Button variant="outline" onClick={handleClose} className="h-[36px] px-[18px] rounded-full transition-colors hover:bg-accent">
+              <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
               <Button onClick={handleSubmit} disabled={!canSubmit}
@@ -1487,7 +2027,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
               <Input type="url" placeholder="Paste the meeting invite link here" value={meetingUrl}
                 onChange={e => { setMeetingUrl(e.target.value); if (meetingUrlError) validateMeetingUrl(e.target.value); }}
                 onBlur={() => validateMeetingUrl(meetingUrl)}
-                className={`w-full h-[42px] pl-[14px] pr-[98px] rounded-full text-sm ${meetingUrlError ? "border-destructive" : ""}`}
+                className={`w-full h-[42px] pl-[14px] pr-[98px] rounded-[12px] text-sm ${meetingUrlError ? "border-destructive" : ""}`}
               />
               <div className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 flex items-center gap-[8px]">
                 <SourceIcon source="zoom" />
@@ -1522,14 +2062,12 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                 </div>
                 {/* Advanced options */}
                 <AdvancedSection>
-                  <div className="flex flex-col gap-[8px]">
-                    <div className="rounded-[12px] p-[14px] bg-card border border-border">
-                      <SpeakerSection enabled={speakerEnabled} onToggle={() => setSpeakerEnabled(v => !v)} count={speakerCount} onCountChange={setSpeakerCount} />
-                    </div>
-                    <div className="rounded-[12px] p-[14px] bg-card border border-border">
+                  <div className="flex flex-col gap-[14px] pt-[2px]">
+                    <SpeakerSection enabled={speakerEnabled} onToggle={() => setSpeakerEnabled(v => !v)} count={speakerCount} onCountChange={setSpeakerCount} />
+                    <div>
                       <SectionLabel>Bot display name</SectionLabel>
                       <Input type="text" value={botName} onChange={e => setBotName(e.target.value)}
-                        className="w-full h-[40px] px-[14px] rounded-full text-[13px]"
+                        className="w-full h-[40px] px-[14px] rounded-[12px] text-[13px]"
                       />
                     </div>
                     <RealTimeTranslationControl
@@ -1537,8 +2075,9 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                       onToggle={() => setRealTimeTranslation(v => !v)}
                       lang={realTimeTranslationLang}
                       onLangChange={setRealTimeTranslationLang}
+                      withCard={false}
                     />
-                    <div className="rounded-[12px] p-[14px] bg-card border border-border">
+                    <div>
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-[13px] text-foreground">Notify participants</span>
                         <ToggleSw checked={notifyParticipants} onChange={() => setNotifyParticipants(v => !v)} />
@@ -1560,7 +2099,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
             <div className="flex items-center gap-[8px] shrink-0">
-              <Button variant="outline" onClick={handleClose} className="h-[36px] px-[18px] rounded-full transition-colors hover:bg-accent">
+              <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
               <Button onClick={handleSubmit} disabled={!canSubmit}
@@ -1580,9 +2119,9 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
 // Instant recording — floating pill widget
 // ════════════════════════════════════════════════════════════
 
-const MINI_BAR_COUNT = 16;
+const MINI_BAR_COUNT = 28;
 
-function MiniWaveform({ active }: { active: boolean }) {
+function MiniWaveform({ active, fill = false }: { active: boolean; fill?: boolean }) {
   const [heights, setHeights] = useState<number[]>(() => Array(MINI_BAR_COUNT).fill(4));
   useEffect(() => {
     if (!active) { setHeights(Array(MINI_BAR_COUNT).fill(4)); return; }
@@ -1592,61 +2131,129 @@ function MiniWaveform({ active }: { active: boolean }) {
     return () => clearInterval(id);
   }, [active]);
   return (
-    <div className="flex items-center gap-[2px]" style={{ height: "20px" }}>
+    <div className={`${fill ? "grid grid-flow-col auto-cols-fr" : "flex"} w-full items-center gap-[2px]`} style={{ height: "18px" }}>
       {heights.map((h, i) => (
         <div key={i} className="rounded-full"
-          style={{ width: "2px", height: `${h}px`, backgroundColor: active ? "var(--primary)" : "#d1d5db", opacity: active ? 0.5 + (i % 5) * 0.1 : 0.4, transition: active ? "height 0.09s ease" : "height 0.3s ease" }} />
+          style={{ width: fill ? "100%" : "2px", height: `${h}px`, backgroundColor: active ? "var(--primary)" : "#d1d5db", opacity: active ? 0.5 + (i % 5) * 0.1 : 0.4, transition: active ? "height 0.09s ease" : "height 0.3s ease" }} />
       ))}
     </div>
   );
 }
 
+function RecordingMicrophoneSelect({ compact = false }: { compact?: boolean }) {
+  const {
+    microphoneDevices,
+    selectedMicrophoneId,
+    switchRecordingMicrophone,
+    isSwitchingMicrophone,
+  } = useTranscriptionModals();
+  const selectedMic = microphoneDevices.find((d) => d.id === selectedMicrophoneId);
+  const triggerLabel = isSwitchingMicrophone
+    ? "Switching microphone..."
+    : (selectedMic?.label || (microphoneDevices.length ? "Select microphone" : "No microphone detected"));
+
+  return (
+    <Select
+      value={selectedMicrophoneId || undefined}
+      onValueChange={(deviceId) => { void switchRecordingMicrophone(deviceId); }}
+      disabled={!microphoneDevices.length || isSwitchingMicrophone}
+    >
+      <SelectTrigger
+        className={compact
+          ? "h-[32px] w-full rounded-[10px] border-input bg-transparent px-[9px] gap-[6px]"
+          : "h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px]"}
+      >
+        <span className={`flex min-w-0 items-center ${compact ? "gap-[6px]" : "gap-[8px]"}`}>
+          <span className={compact ? "scale-[0.88]" : ""}>
+            <SourceIcon source="microphone" />
+          </span>
+          <span className={`truncate text-foreground ${compact ? "text-[12px]" : "text-[13px]"}`}>{triggerLabel}</span>
+        </span>
+      </SelectTrigger>
+      <SelectContent className="z-[10000] max-w-[calc(100vw-32px)] rounded-[12px]">
+        {microphoneDevices.map((device) => (
+          <SelectItem key={device.id} value={device.id} className="text-[13px]">
+            <span className="flex min-w-0 items-center gap-[8px]">
+              <SourceIcon source="microphone" />
+              <span className="truncate">{device.label}</span>
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function RecordingPill() {
-  const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording, stopInstantRecording } = useTranscriptionModals();
+  const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, recordingDetailOpen } = useTranscriptionModals();
   const visible = recordingPhase === "recording" || recordingPhase === "paused";
   const isPaused = recordingPhase === "paused";
-  if (!visible) return null;
+  if (!visible || recordingDetailOpen) return null;
   return createPortal(
-    <div
-      className="fixed flex items-center gap-[10px] rounded-full px-[14px] py-[10px] bg-background shadow-lg border border-border"
-      style={{ bottom: "24px", right: "24px", zIndex: 9999 }}
-    >
-      {/* Status dot */}
-      <span className="relative flex size-[8px] shrink-0">
-        <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${!isPaused ? "animate-ping" : ""}`}
-          style={{ backgroundColor: isPaused ? undefined : "#f87171" }} />
-        <span className={`relative inline-flex size-[8px] rounded-full ${isPaused ? "bg-muted-foreground" : ""}`}
-          style={{ backgroundColor: isPaused ? undefined : "#ef4444" }} />
-      </span>
-      {/* Label */}
-      <span className={`font-semibold text-xs ${isPaused ? "text-muted-foreground" : "text-destructive"}`}>
-        {isPaused ? "Paused" : "Recording"}
-      </span>
-      {/* Timer */}
-      <span className="font-bold text-[15px] text-foreground tracking-wide tabular-nums min-w-[42px]">
-        {fmtTime(recordingElapsed)}
-      </span>
-      {/* Mini waveform */}
-      <MiniWaveform active={!isPaused} />
-      {/* Pause / Resume */}
-      <Button variant="ghost" size="icon"
-        onClick={isPaused ? resumeInstantRecording : pauseInstantRecording}
-        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0 bg-muted hover:bg-accent"
-        title={isPaused ? "Resume" : "Pause"}
-      >
-        {isPaused
-          ? <svg className="size-[12px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
-          : <svg className="size-[12px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-        }
-      </Button>
-      {/* Stop */}
-      <Button variant="ghost" size="icon"
-        onClick={stopInstantRecording}
-        className="flex items-center justify-center size-[30px] rounded-full transition-colors shrink-0 bg-destructive/10 hover:bg-destructive/20"
-        title="Stop recording"
-      >
-        <svg className="size-[10px] text-destructive" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
-      </Button>
+    <div className="fixed" style={{ bottom: "24px", right: "24px", zIndex: 9999 }}>
+      <div className="w-[min(320px,calc(100vw-24px))] rounded-[22px] border border-border bg-background shadow-lg">
+        <div className="flex items-center justify-between gap-[10px] px-[12px] pt-[10px] pb-[8px]">
+          <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+            {/* Status dot */}
+            <span className="relative flex size-[8px] shrink-0">
+              <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${!isPaused ? "animate-ping" : ""}`}
+                style={{ backgroundColor: isPaused ? undefined : "#f87171" }} />
+              <span className={`relative inline-flex size-[8px] rounded-full ${isPaused ? "bg-muted-foreground" : ""}`}
+                style={{ backgroundColor: isPaused ? undefined : "#ef4444" }} />
+            </span>
+            {/* Label */}
+            <span className={`font-semibold text-[12px] ${isPaused ? "text-muted-foreground" : "text-destructive"}`}>
+              {isPaused ? "Paused" : "Recording"}
+            </span>
+            {/* Timer */}
+            <span className="font-bold text-[14px] text-foreground tracking-wide tabular-nums min-w-[40px]">
+              {fmtTime(recordingElapsed)}
+            </span>
+          </div>
+          {/* Mini waveform */}
+          <div className="flex min-w-[56px] flex-1">
+            <MiniWaveform active={!isPaused} fill />
+          </div>
+
+          <div className="flex items-center gap-[6px] shrink-0">
+            {/* Expand */}
+            <Button variant="ghost" size="icon"
+              onClick={() => { void router.navigate("/transcriptions/live", { state: { liveRecording: true } }); }}
+              className="flex items-center justify-center size-[28px] rounded-full transition-colors shrink-0 bg-muted hover:bg-accent"
+              title="Open live details"
+            >
+              <svg className="size-[10px] text-foreground" fill="none" viewBox="0 0 24 24">
+                <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M21 16v5h-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Button>
+            {/* Pause / Resume */}
+            <Button variant="ghost" size="icon"
+              onClick={isPaused ? resumeInstantRecording : pauseInstantRecording}
+              className="flex items-center justify-center size-[28px] rounded-full transition-colors shrink-0 bg-muted hover:bg-accent"
+              title={isPaused ? "Resume" : "Pause"}
+            >
+              {isPaused
+                ? <svg className="size-[11px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
+                : <svg className="size-[11px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+              }
+            </Button>
+            {/* Stop */}
+            <Button variant="ghost" size="icon"
+              onClick={stopInstantRecording}
+              className="flex items-center justify-center size-[28px] rounded-full transition-colors shrink-0 bg-destructive/10 hover:bg-destructive/20"
+              title="Stop recording"
+            >
+              <svg className="size-[9px] text-destructive" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
+            </Button>
+          </div>
+        </div>
+
+        <div className="border-t border-border/70 px-[10px] pt-[8px] pb-[10px]">
+          <div className="w-full">
+            <RecordingMicrophoneSelect compact />
+          </div>
+        </div>
+      </div>
     </div>,
     document.body
   );
@@ -1798,7 +2405,7 @@ function RecordingReviewModal() {
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
             <div className="flex items-center gap-[8px] shrink-0">
-              <Button variant="outline" onClick={handleCancel} className="h-[36px] px-[18px] rounded-full transition-colors hover:bg-accent">
+              <Button variant="pill-outline" onClick={handleCancel} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
 <Button onClick={handleSubmit}
@@ -1824,7 +2431,7 @@ function RecordingReviewModal() {
               </p>
             </div>
             <div className="flex gap-[8px]">
-              <Button variant="outline" onClick={() => setDiscardConfirm(false)} className="flex-1 h-[38px] rounded-full transition-colors bg-background hover:bg-accent">
+              <Button variant="pill-outline" onClick={() => setDiscardConfirm(false)} className="flex-1 h-[38px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Keep recording</span>
               </Button>
               <Button variant="destructive" onClick={handleDiscard} className="flex-1 h-[38px] rounded-full transition-colors">
@@ -1849,6 +2456,7 @@ function AllModals() {
   const close = () => setOpenModal(null);
   return (
     <>
+      <InstantSpeechSetupModal open={openModal === "record"} onClose={close} />
       <UploadFileModal open={openModal === "upload"} onClose={close} />
       <TranscribeLinkModal open={openModal === "link"} onClose={close} />
       <MeetingBotModal open={openModal === "meeting"} onClose={close} />
@@ -1864,13 +2472,19 @@ export function FloatingProgressWidget() {
   const { jobs, retryJob } = useTranscriptionModals();
   const [expanded, setExpanded] = useState(false); // false = collapsed pill, true = full widget
   const [dismissed, setDismissed] = useState(false);
+  const widgetJobs = useMemo(
+    () => jobs.filter((job) => job.source !== "microphone"),
+    [jobs]
+  );
 
-  const hasJobs = jobs.length > 0;
-  const newestJobId = jobs[0]?.id ?? null;
-  const allDone = hasJobs && jobs.every(j => j.status === "done" || j.status === "error");
-  const activeCount = jobs.filter(j => j.status === "uploading" || j.status === "processing").length;
-  const doneCount = jobs.filter(j => j.status === "done" || j.status === "error").length;
-  const errorCount = jobs.filter(j => j.status === "error").length;
+  const hasJobs = widgetJobs.length > 0;
+  const newestJobId = widgetJobs[0]?.id ?? null;
+  const allDone = hasJobs && widgetJobs.every(j => j.status === "done" || j.status === "error");
+  const activeCount = widgetJobs.filter(j => j.status === "uploading" || j.status === "processing").length;
+  const uploadingCount = widgetJobs.filter(j => j.status === "uploading").length;
+  const processingCount = widgetJobs.filter(j => j.status === "processing").length;
+  const doneCount = widgetJobs.filter(j => j.status === "done" || j.status === "error").length;
+  const errorCount = widgetJobs.filter(j => j.status === "error").length;
 
   // Re-open the floating pill whenever a new upload job is added.
   useEffect(() => {
@@ -1886,9 +2500,13 @@ export function FloatingProgressWidget() {
   // ── Collapsed pill ──
   const pillLabel = allDone
     ? errorCount > 0
-      ? `Completed with errors (${doneCount}/${jobs.length})`
-      : `Upload complete! (${doneCount}/${jobs.length})`
-    : `Uploading… (${doneCount}/${jobs.length})`;
+      ? `Completed with errors (${doneCount}/${widgetJobs.length})`
+      : `Upload complete! (${doneCount}/${widgetJobs.length})`
+    : processingCount > 0
+      ? uploadingCount > 0
+        ? `Uploading ${uploadingCount} • Transcribing ${processingCount}`
+        : `Transcribing… (${doneCount}/${widgetJobs.length})`
+      : `Uploading… (${doneCount}/${widgetJobs.length})`;
 
   const pillBg = allDone
     ? errorCount > 0 ? "#f59e0b" : undefined
@@ -1935,7 +2553,7 @@ export function FloatingProgressWidget() {
         <div className="flex items-center gap-[7px]">
           <span className="font-semibold text-xs text-foreground">Uploaded records</span>
           {activeCount > 0 && (
-            <span className="inline-flex items-center justify-center px-[5px] h-[15px] rounded-full text-white min-w-[15px] bg-primary text-[9px] font-bold">
+            <span className="font-semibold text-xs text-foreground">
               {activeCount}
             </span>
           )}
@@ -1974,18 +2592,22 @@ export function FloatingProgressWidget() {
             <div className="w-[52px] shrink-0 text-right">
               <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Dur.</span>
             </div>
-            <div className="w-[120px] shrink-0 text-right">
+            <div className="w-[160px] shrink-0 text-right">
               <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Status</span>
             </div>
           </div>
 
           {/* ── Job rows ── */}
           <div style={{ maxHeight: "320px", overflowY: "auto" }}>
-            {jobs.map((job, idx) => {
+            {widgetJobs.map((job, idx) => {
               const isActive = job.status === "uploading" || job.status === "processing";
               const isDone = job.status === "done";
               const isError = job.status === "error";
               const errLabel = job.errorType ? (ERROR_LABELS[job.errorType] ?? "Upload failed") : "Upload failed";
+              const uploadPct = Math.max(0, Math.min(100, Math.round(job.uploadProgress ?? (job.status === "uploading" ? job.progress : 100))));
+              const transcribePct = Math.max(0, Math.min(100, Math.round(job.transcriptionProgress ?? (job.status === "processing" ? job.progress : (job.status === "done" ? 100 : 0)))));
+              const phaseLabel = job.status === "uploading" ? "Uploading" : "Transcribing";
+              const phasePct = job.status === "uploading" ? uploadPct : transcribePct;
 
               return (
                 <div key={job.id} className="relative" style={{ borderTop: idx > 0 ? rowBorder : "none" }}>
@@ -2011,7 +2633,7 @@ export function FloatingProgressWidget() {
                       </p>
                       {isActive && (
                         <p className="text-[10px] text-muted-foreground mt-[1px]">
-                          {job.status === "uploading" ? "Uploading…" : "Processing…"}
+                          {phaseLabel} {phasePct}%
                         </p>
                       )}
                       {isError && (
@@ -2060,20 +2682,21 @@ export function FloatingProgressWidget() {
                     </div>
 
                     {/* Status area */}
-                    <div className="w-[120px] shrink-0 flex items-center justify-end gap-[5px]">
+                    <div className="w-[160px] shrink-0 flex items-center justify-end gap-[5px]">
                       {isActive && (
                         <div className="flex items-center gap-[8px] w-full">
+                          <span className="min-w-[56px] text-[10px] text-muted-foreground text-right">{job.status === "uploading" ? "Upload" : "Transcribe"}</span>
                           <div className="h-[6px] flex-1 rounded-full overflow-hidden bg-muted">
                             <div className="h-full transition-all duration-300"
                               style={{
-                                width: `${job.progress}%`,
+                                width: `${phasePct}%`,
                                 background: job.status === "processing"
                                   ? "linear-gradient(90deg,#2563eb,#7c3aed)"
                                   : "var(--primary)",
                               }} />
                           </div>
                           <span className="font-medium text-[11px] text-primary min-w-[30px] text-right">
-                            {job.progress}%
+                            {phasePct}%
                           </span>
                         </div>
                       )}

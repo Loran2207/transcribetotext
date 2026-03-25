@@ -109,18 +109,22 @@ function FilterChip({ label, icon, active, count, onClick, hasChevron }: {
       variant="outline"
       size="sm"
       onClick={onClick}
-      className={`flex items-center gap-[5px] h-[28px] px-[10px] rounded-full shrink-0 ${active ? "bg-primary/[0.08] border-primary" : "bg-transparent"}`}
+      className={`flex items-center gap-[6px] h-8 px-[10px] rounded-[10px] shrink-0 border border-input !bg-transparent transition-colors hover:!bg-transparent ${
+        active
+          ? "border-primary/35"
+          : "border-border hover:border-muted-foreground/40"
+      }`}
     >
       {icon}
       <span className={`font-medium text-[12px] ${active ? "text-primary" : "text-muted-foreground"}`}>
         {label}
       </span>
       {count !== undefined && count > 0 && (
-        <span className="font-semibold text-[12px] text-primary">
+        <span className="font-semibold text-[11px] text-primary">
           {count}
         </span>
       )}
-      {hasChevron && <Icon icon={ChevronDown} className={`size-[10px] ${active ? "text-primary" : "text-muted-foreground"}`} strokeWidth={2} />}
+      {hasChevron && <Icon icon={ChevronDown} className={`size-[9px] ${active ? "text-primary" : "text-muted-foreground"}`} strokeWidth={2} />}
     </Button>
   );
 }
@@ -207,7 +211,7 @@ function ScopeSelector({ scope, onChange }: { scope: "recordings" | "folders"; o
     <div className="relative shrink-0" ref={ref}>
       <Button variant="outline"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-[6px] h-[30px] pl-[10px] pr-[6px] rounded-[8px] shrink-0 bg-muted"
+        className="flex items-center gap-[6px] h-9 pl-[12px] pr-[8px] rounded-[12px] shrink-0 border border-input !bg-transparent transition-colors hover:!bg-transparent hover:border-muted-foreground/40"
       >
         <span className="font-medium text-[13px] text-foreground">
           {scope === "recordings" ? "Recordings" : "Folders"}

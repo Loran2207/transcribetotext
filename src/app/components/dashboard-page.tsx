@@ -341,7 +341,7 @@ function useGreeting() {
 
 export function DashboardPage() {
   const greeting = useGreeting();
-  const { setOpenModal, startInstantRecording, openUploadWithFiles } = useTranscriptionModals();
+  const { setOpenModal, openUploadWithFiles } = useTranscriptionModals();
   const [dragOver, setDragOver] = useState(false);
   const dragCounterRef = useRef(0);
 
@@ -414,7 +414,13 @@ export function DashboardPage() {
               <div
                 key={key}
                 className="relative flex-1 min-w-0 group cursor-pointer"
-                onClick={() => modal === "record" ? startInstantRecording() : setOpenModal(modal)}
+                onClick={() => {
+                  if (modal === "record") {
+                    setOpenModal("record");
+                    return;
+                  }
+                  setOpenModal(modal);
+                }}
               >
                 {card}
                 <kbd className="absolute top-[10px] right-[10px] flex items-center gap-[3px] rounded-[4px] px-[6px] h-[20px] pointer-events-none z-10 bg-background border border-black/[0.08] text-muted-foreground font-medium leading-none" style={{ fontSize: "11px", boxShadow: "0 1px 2px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.05)" }}>
