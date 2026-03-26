@@ -339,7 +339,7 @@ function useGreeting() {
   return `${base}, ${firstName}`;
 }
 
-export function DashboardPage() {
+export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page: string) => void; onOpenFolder?: (folderId: string) => void } = {}) {
   const greeting = useGreeting();
   const { setOpenModal, openUploadWithFiles } = useTranscriptionModals();
   const [dragOver, setDragOver] = useState(false);
@@ -431,7 +431,7 @@ export function DashboardPage() {
             ))}
           </motion.div>
           <motion.div {...fadeUp(0.18, 70)}>
-            <RecordsTable />
+            <RecordsTable onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />
           </motion.div>
         </div>
       </div>

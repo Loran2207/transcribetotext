@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router";
 import { AppSidebar } from "./app-sidebar";
 import { DashboardPage } from "./dashboard-page";
 import { CalendarPage } from "./calendar-page";
+import { MyRecordsPage } from "./my-records-page";
 import { useLanguage } from "./language-context";
 import { TopBar } from "./top-bar";
 import { SettingsPage } from "./settings-modal";
@@ -46,8 +47,9 @@ export function AppLayout() {
                   <SettingsPage onClose={() => handleNavigate(prevPageRef.current || "dashboard")} />
                 )}
                 {!isSettings && activePage === "dashboard" && <DashboardPage />}
+                {!isSettings && activePage === "records" && <MyRecordsPage />}
                 {!isSettings && activePage === "calendar" && <CalendarPage />}
-                {!isSettings && activePage !== "dashboard" && activePage !== "calendar" && (
+                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "calendar" && (
                   <PagePlaceholder activePage={activePage} />
                 )}
               </>

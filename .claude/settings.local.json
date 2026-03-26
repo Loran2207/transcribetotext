@@ -44,7 +44,8 @@
       "Bash(node:*)",
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(node_modules/.bin/tsc --noEmit)",
-      "Bash(find C:Userskutsktranscribe2text -type f -name *.config.* -o -name tailwind.config.* -o -name tsconfig.json)"
+      "Bash(find C:Userskutsktranscribe2text -type f -name *.config.* -o -name tailwind.config.* -o -name tsconfig.json)",
+      "Bash(xargs ls:*)"
     ]
   }
 }

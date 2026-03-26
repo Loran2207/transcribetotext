@@ -1,7 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { AppSidebar } from "./app-sidebar";
 import { DashboardPage } from "./dashboard-page";
 import { CalendarPage } from "./calendar-page";
+import { MyRecordsPage } from "./my-records-page";
 import { useLanguage } from "./language-context";
 import { TopBar } from "./top-bar";
 import { SettingsPage } from "./settings-modal";
@@ -11,6 +12,7 @@ import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 export function MainApp() {
   const [activePage, setActivePage] = useState("dashboard");
   const prevPageRef = useRef("dashboard");
+  const [pendingFolderId, setPendingFolderId] = useState<string | null>(null);
 
   const isSettings = activePage === "settings";
 
@@ -23,6 +25,11 @@ export function MainApp() {
     }
   }
 
+  const handleOpenFolder = useCallback((folderId: string) => {
+    setPendingFolderId(folderId);
+    handleNavigate("records");
+  }, []);
+
   return (
     <UserProfileProvider>
       <SidebarProvider className="h-screen !min-h-0 overflow-hidden bg-sidebar">
@@ -33,9 +40,14 @@ export function MainApp() {
             {isSettings && (
               <SettingsPage onClose={() => handleNavigate(prevPageRef.current || "dashboard")} />
             )}
-            {!isSettings && activePage === "dashboard" && <DashboardPage />}
+            {!isSettings && activePage === "dashboard" && (
+              <DashboardPage onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />
+            )}
+            {!isSettings && activePage === "records" && (
+              <MyRecordsPage initialFolderId={pendingFolderId} onFolderConsumed={() => setPendingFolderId(null)} />
+            )}
             {!isSettings && activePage === "calendar" && <CalendarPage />}
-            {!isSettings && activePage !== "dashboard" && activePage !== "calendar" && (
+            {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "calendar" && (
               <PagePlaceholder activePage={activePage} />
             )}
           </main>
