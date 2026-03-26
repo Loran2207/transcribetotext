@@ -1200,7 +1200,16 @@ function SavedViewTab({ view, isActive, onLoad, onRename, onDelete }: { view: Sa
    Main Component
    ══════════════════════════════════════════════ */
 
-export function RecordsTable() {
+interface RecordsTableProps {
+  hideTopHeader?: boolean;
+  showAddFolderButton?: boolean;
+  scopedFolderId?: string | null;
+  showInlineFolderRows?: boolean;
+  onNavigateToRecords?: () => void;
+  onOpenFolder?: (folderId: string) => void;
+}
+
+export function RecordsTable({ hideTopHeader = false, showAddFolderButton = false, scopedFolderId = null, showInlineFolderRows = true, onNavigateToRecords, onOpenFolder }: RecordsTableProps = {}) {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { jobs } = useTranscriptionModals();
@@ -1256,6 +1265,7 @@ export function RecordsTable() {
   }
   function clearSelection() { setSelectedRows(new Set()); }
   function clearAllFilters() { setSearchQuery(""); setTypeFilter(new Set()); setTemplateFilter(new Set()); setLangFilter(new Set()); setDateSort("newest"); }
+  useEffect(() => { clearSelection(); }, [scopedFolderId]);
   const hasActiveFilters = searchQuery !== "" || typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0;
   const showSaveView = (typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0) && !activeTab.startsWith("sv_");
   function trashSelected() { setTrashedIds((prev) => { const next = new Set(prev); selectedRows.forEach((id) => next.add(id)); return next; }); clearSelection(); }
@@ -1284,11 +1294,13 @@ export function RecordsTable() {
   const displayRecords = allRecords.map((r) => ({ ...r, name: getName(r.id, r.name) }));
   const activeRecords = displayRecords.filter((r) => !trashedIds.has(r.id));
   const trashRecords = displayRecords.filter((r) => trashedIds.has(r.id));
+  const scopedActiveRecords = scopedFolderId ? activeRecords.filter((r) => folderAssignments[r.id] === scopedFolderId) : activeRecords;
+  const scopedTrashRecords = scopedFolderId ? trashRecords.filter((r) => folderAssignments[r.id] === scopedFolderId) : trashRecords;
 
   // Shared records (mock: first 3 records are "shared with me")
   const sharedIds = new Set(records.slice(0, 3).map(r => r.id));
 
-  let filteredRecords = activeTab === "Trash" ? trashRecords : activeRecords;
+  let filteredRecords = activeTab === "Trash" ? scopedTrashRecords : scopedActiveRecords;
   if (searchQuery) filteredRecords = filteredRecords.filter((r) => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
   if (activeTab === "Starred") filteredRecords = filteredRecords.filter((r) => starred.has(r.id));
   if (activeTab === "Shared") filteredRecords = filteredRecords.filter((r) => sharedIds.has(r.id) || sharedConfigs.has(r.id));
@@ -1311,28 +1323,29 @@ export function RecordsTable() {
 
   const hasSelection = selectedRows.size > 0 && activeTab !== "Trash";
 
-  const sharedCount = activeRecords.filter((r) => sharedIds.has(r.id) || sharedConfigs.has(r.id)).length;
+  const sharedCount = scopedActiveRecords.filter((r) => sharedIds.has(r.id) || sharedConfigs.has(r.id)).length;
 
   // Tab counts
-  const recentCount = activeRecords.length;
-  const starredCount = activeRecords.filter((r) => starred.has(r.id)).length;
-  const trashCount = trashedIds.size;
+  const recentCount = scopedActiveRecords.length;
+  const starredCount = scopedActiveRecords.filter((r) => starred.has(r.id)).length;
+  const trashCount = scopedTrashRecords.length;
 
   return (
-    <div className="mt-[32px]">
+    <div className={hideTopHeader ? "mt-[0]" : "mt-[32px]"}>
       {/* Header: Title + Search + Settings + Add Folder */}
-      <div className="flex items-center gap-[12px] mb-[16px]">
-
-        <button className="flex items-center gap-[4px] cursor-pointer group">
-          <span className="font-semibold text-[18px] text-foreground">{t("table.myRecords")}</span>
-          <Icon icon={ChevronRight} className="size-[16px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
-        </button>
-        <div className="flex-1" />
-        <Button variant="pill-outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer">
-          <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
-          <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
-        </Button>
-      </div>
+      {!hideTopHeader && (
+        <div className="flex items-center gap-[12px] mb-[16px]">
+          <button className="flex items-center gap-[4px] cursor-pointer group" onClick={onNavigateToRecords}>
+            <span className="font-semibold text-[18px] text-foreground">{t("table.myRecords")}</span>
+            <Icon icon={ChevronRight} className="size-[16px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+          </button>
+          <div className="flex-1" />
+          <Button variant="pill-outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer">
+            <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
+            <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
+          </Button>
+        </div>
+      )}
 
       <CreateFolderModal open={folderModalOpen} onClose={() => setFolderModalOpen(false)} onCreate={(name, color) => { addFolderToContext(name, color); }} />
       <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={selectedRows.size} onMove={(folderId) => { assignToFolder(Array.from(selectedRows), folderId); clearSelection(); }} onCreateFolder={() => { setMoveDialogOpen(false); setFolderModalOpen(true); }} folders={userFolders} />
@@ -1379,6 +1392,14 @@ export function RecordsTable() {
               )}
             </TabsList>
           </Tabs>
+
+          {/* Add Folder button (inline with tabs) */}
+          {showAddFolderButton && (
+            <Button variant="pill-outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-[28px] px-[12px] ml-[8px] mb-[4px] shrink-0 transition-colors cursor-pointer">
+              <Icon icon={FolderPlus} className="size-[13px] text-foreground" strokeWidth={1.5} />
+              <span className="font-medium text-[12px] text-foreground">{t("folder.addFolder")}</span>
+            </Button>
+          )}
 
           {/* Clear filter indicator */}
           {hasActiveFilters && (
@@ -1475,8 +1496,8 @@ export function RecordsTable() {
               ))
             ) : (
               <>
-                {activeTab === "Recent" && userFolders.map((folder) => (
-                  <div key={folder.id} className="flex items-center h-[40px] transition-colors cursor-pointer border-b border-border hover:bg-accent">
+                {showInlineFolderRows && !scopedFolderId && activeTab === "Recent" && userFolders.map((folder) => (
+                  <div key={folder.id} className="flex items-center h-[40px] transition-colors cursor-pointer border-b border-border hover:bg-accent" onDoubleClick={() => onOpenFolder?.(folder.id)}>
                     <div className="w-[40px] shrink-0" />
                     <div className="flex-[2.2] min-w-0 px-[12px] flex items-center gap-[8px]">
                       <svg className="size-[16px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill={folder.color} stroke={folder.color} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>

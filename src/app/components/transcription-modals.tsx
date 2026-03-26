@@ -3,7 +3,7 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus } from "@hugeicons/core-free-icons";
+import { FolderPlus, AlertCircle, Upload, Trash, X } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -34,6 +34,7 @@ export type UserPlan = "free" | "pro";
 export interface TranscriptionJob {
   id: string;
   name: string;
+  batchId?: string;
   createdAt: string;
   duration?: string;
   progress: number;
@@ -119,6 +120,8 @@ interface CtxValue {
   jobs: TranscriptionJob[];
   addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean }) => string;
   retryJob: (id: string) => void;
+  removeJob: (id: string) => void;
+  clearFailedJobs: () => void;
   meetingCounterRef: React.MutableRefObject<number>;
   userPlan: UserPlan;
   recordingPhase: RecordingPhase;
@@ -162,6 +165,7 @@ export function TranscriptionModalsProvider({
   const [openModal, setOpenModal] = useState<ModalType>(null);
   const [jobs, setJobs] = useState<TranscriptionJob[]>([]);
   const jobsRef = useRef<TranscriptionJob[]>([]);
+  const currentUploadBatchIdRef = useRef<string | null>(null);
   const meetingCounterRef = useRef(1);
 
   // ── Upload preload state ───────────────────────────────────
@@ -204,6 +208,15 @@ export function TranscriptionModalsProvider({
 
   useEffect(() => {
     jobsRef.current = jobs;
+  }, [jobs]);
+
+  useEffect(() => {
+    const hasActiveUploads = jobs.some(
+      (job) => job.source !== "microphone" && (job.status === "uploading" || job.status === "processing")
+    );
+    if (!hasActiveUploads) {
+      currentUploadBatchIdRef.current = null;
+    }
   }, [jobs]);
 
   useEffect(() => {
@@ -610,7 +623,22 @@ export function TranscriptionModalsProvider({
   function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean }) {
     const id = Math.random().toString(36).slice(2, 10);
     const createdAt = new Date().toISOString();
-    setJobs(prev => [{ id, name, createdAt, progress: 0, uploadProgress: 0, transcriptionProgress: 0, status: "uploading", fileType, ...opts }, ...prev]);
+    let batchId: string | undefined;
+    if (opts?.source !== "microphone") {
+      const activeBatchId = jobsRef.current.find(
+        (job) => job.source !== "microphone" && (job.status === "uploading" || job.status === "processing")
+      )?.batchId;
+
+      if (activeBatchId) {
+        currentUploadBatchIdRef.current = activeBatchId;
+      } else if (!currentUploadBatchIdRef.current) {
+        currentUploadBatchIdRef.current = `batch-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      }
+
+      batchId = currentUploadBatchIdRef.current ?? undefined;
+    }
+
+    setJobs(prev => [{ id, name, batchId, createdAt, progress: 0, uploadProgress: 0, transcriptionProgress: 0, status: "uploading", fileType, ...opts }, ...prev]);
     if (opts?.folderId) assignToFolder([id], opts.folderId);
     simulateJob(id);
     return id;
@@ -621,8 +649,16 @@ export function TranscriptionModalsProvider({
     simulateJob(id);
   }
 
+  function removeJob(id: string) {
+    setJobs((prev) => prev.filter((job) => job.id !== id));
+  }
+
+  function clearFailedJobs() {
+    setJobs((prev) => prev.filter((job) => job.status !== "error"));
+  }
+
   return (
-    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles }}>
+    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles }}>
       {children}
       <AllModals />
       <RecordingPill />
@@ -1441,6 +1477,7 @@ async function detectVideoHasAudioTrack(file: File): Promise<boolean | null> {
     const video = document.createElement("video");
     const objectUrl = URL.createObjectURL(file);
     let settled = false;
+    let timerId: number | undefined;
 
     const cleanup = () => {
       video.removeAttribute("src");
@@ -1451,15 +1488,19 @@ async function detectVideoHasAudioTrack(file: File): Promise<boolean | null> {
     const settle = (value: boolean | null) => {
       if (settled) return;
       settled = true;
+      if (typeof timerId === "number") {
+        window.clearTimeout(timerId);
+      }
       cleanup();
       resolve(value);
     };
 
-    const timerId = window.setTimeout(() => settle(null), 4000);
+    timerId = window.setTimeout(() => settle(null), 7000);
 
     video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
     video.onloadedmetadata = () => {
-      window.clearTimeout(timerId);
       const maybeVideo = video as HTMLVideoElement & {
         audioTracks?: { length?: number };
         mozHasAudio?: boolean;
@@ -1481,7 +1522,7 @@ async function detectVideoHasAudioTrack(file: File): Promise<boolean | null> {
           if (stream) {
             const hasTrack = stream.getAudioTracks().length > 0;
             stream.getTracks().forEach((track) => track.stop());
-            if (hasTrack) detection = true;
+            detection = hasTrack;
           }
         } catch {
           // Some browsers block stream capture before playback.
@@ -1492,10 +1533,35 @@ async function detectVideoHasAudioTrack(file: File): Promise<boolean | null> {
         detection = true;
       }
 
-      settle(detection);
+      if (detection !== null) {
+        settle(detection);
+        return;
+      }
+
+      const probeAfterPlay = async () => {
+        try {
+          await video.play();
+          await new Promise<void>((resolveDelay) => {
+            window.setTimeout(() => resolveDelay(), 300);
+          });
+          const stream = maybeVideo.captureStream?.() ?? maybeVideo.mozCaptureStream?.();
+          if (stream) {
+            detection = stream.getAudioTracks().length > 0;
+            stream.getTracks().forEach((track) => track.stop());
+          }
+          if (detection === null && (maybeVideo.webkitAudioDecodedByteCount ?? 0) > 0) {
+            detection = true;
+          }
+          video.pause();
+        } catch {
+          // Keep detection null if autoplay probe is blocked.
+        }
+        settle(detection);
+      };
+
+      void probeAfterPlay();
     };
     video.onerror = () => {
-      window.clearTimeout(timerId);
       settle(null);
     };
     video.src = objectUrl;
@@ -2469,9 +2535,10 @@ function AllModals() {
 // ════════════════════════════════════════════════════════════
 
 export function FloatingProgressWidget() {
-  const { jobs, retryJob } = useTranscriptionModals();
+  const { jobs, retryJob, removeJob, clearFailedJobs } = useTranscriptionModals();
   const [expanded, setExpanded] = useState(false); // false = collapsed pill, true = full widget
-  const [dismissed, setDismissed] = useState(false);
+  const [iconOnly, setIconOnly] = useState(false);
+  const [activeTab, setActiveTab] = useState<"uploaded" | "history" | "failed">("uploaded");
   const widgetJobs = useMemo(
     () => jobs.filter((job) => job.source !== "microphone"),
     [jobs]
@@ -2479,34 +2546,80 @@ export function FloatingProgressWidget() {
 
   const hasJobs = widgetJobs.length > 0;
   const newestJobId = widgetJobs[0]?.id ?? null;
-  const allDone = hasJobs && widgetJobs.every(j => j.status === "done" || j.status === "error");
-  const activeCount = widgetJobs.filter(j => j.status === "uploading" || j.status === "processing").length;
-  const uploadingCount = widgetJobs.filter(j => j.status === "uploading").length;
-  const processingCount = widgetJobs.filter(j => j.status === "processing").length;
-  const doneCount = widgetJobs.filter(j => j.status === "done" || j.status === "error").length;
-  const errorCount = widgetJobs.filter(j => j.status === "error").length;
+  const activeCount = widgetJobs.filter((j) => j.status === "uploading" || j.status === "processing").length;
+
+  const activeBatchIds = useMemo(() => {
+    const ids = new Set<string>();
+    widgetJobs.forEach((job) => {
+      if ((job.status === "uploading" || job.status === "processing") && job.batchId) {
+        ids.add(job.batchId);
+      }
+    });
+    return ids;
+  }, [widgetJobs]);
+
+  const latestBatchId = widgetJobs[0]?.batchId ?? null;
+
+  const uploadedNowJobs = useMemo(() => {
+    if (widgetJobs.length === 0) return [];
+
+    if (activeBatchIds.size > 0) {
+      const activeBatchJobs = widgetJobs.filter((job) => {
+        if (job.batchId) return activeBatchIds.has(job.batchId);
+        return job.status === "uploading" || job.status === "processing";
+      });
+
+      if (activeBatchJobs.length > 0) {
+        return activeBatchJobs;
+      }
+    }
+
+    if (latestBatchId) {
+      const latestBatchJobs = widgetJobs.filter((job) => job.batchId === latestBatchId);
+      if (latestBatchJobs.length > 0) {
+        return latestBatchJobs;
+      }
+    }
+
+    return [widgetJobs[0]];
+  }, [widgetJobs, activeBatchIds, latestBatchId]);
+
+  const historyJobs = widgetJobs;
+  const failedJobs = useMemo(() => historyJobs.filter((job) => job.status === "error"), [historyJobs]);
+  const visibleJobs = activeTab === "history"
+    ? historyJobs
+    : activeTab === "failed"
+      ? failedJobs
+      : uploadedNowJobs;
+  const summaryJobs = uploadedNowJobs.length > 0 ? uploadedNowJobs : widgetJobs;
+  const allDone = summaryJobs.length > 0 && summaryJobs.every((j) => j.status === "done" || j.status === "error");
+  const uploadingCount = summaryJobs.filter((j) => j.status === "uploading").length;
+  const processingCount = summaryJobs.filter((j) => j.status === "processing").length;
+  const doneCount = summaryJobs.filter((j) => j.status === "done" || j.status === "error").length;
+  const errorCount = summaryJobs.filter((j) => j.status === "error").length;
 
   // Re-open the floating pill whenever a new upload job is added.
   useEffect(() => {
     if (!newestJobId) return;
-    setDismissed(false);
+    setIconOnly(false);
     setExpanded(false);
+    setActiveTab("uploaded");
   }, [newestJobId]);
 
-  if (!hasJobs || dismissed) return null;
+  if (!hasJobs) return null;
 
   const rowBorder = "1px solid var(--border)";
 
-  // ── Collapsed pill ──
+  // Collapsed pill
   const pillLabel = allDone
     ? errorCount > 0
-      ? `Completed with errors (${doneCount}/${widgetJobs.length})`
-      : `Upload complete! (${doneCount}/${widgetJobs.length})`
+      ? `Completed with errors (${doneCount}/${summaryJobs.length})`
+      : `Upload complete! (${doneCount}/${summaryJobs.length})`
     : processingCount > 0
       ? uploadingCount > 0
-        ? `Uploading ${uploadingCount} • Transcribing ${processingCount}`
-        : `Transcribing… (${doneCount}/${widgetJobs.length})`
-      : `Uploading… (${doneCount}/${widgetJobs.length})`;
+        ? `Uploading ${uploadingCount} | Transcribing ${processingCount}`
+        : `Transcribing... (${doneCount}/${summaryJobs.length})`
+      : `Uploading... (${doneCount}/${summaryJobs.length})`;
 
   const pillBg = allDone
     ? errorCount > 0 ? "#f59e0b" : undefined
@@ -2515,60 +2628,117 @@ export function FloatingProgressWidget() {
   if (!expanded) {
     return createPortal(
       <div className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col items-end gap-[0px]">
-        <Button
-          onClick={() => setExpanded(true)}
-          className="flex items-center gap-[8px] h-[40px] px-[16px] rounded-full shadow-lg transition-all bg-primary text-primary-foreground hover:opacity-90"
-          style={{ backgroundColor: pillBg ?? undefined, boxShadow: "0 4px 20px rgba(37,99,235,0.35)" }}
-        >
-          {/* Status icon */}
-          {allDone ? (
-            <svg className="size-[15px] shrink-0" fill="none" viewBox="0 0 24 24">
-              <path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          ) : (
-            <svg className="size-[14px] shrink-0 animate-spin" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" />
-              <path d="M12 3a9 9 0 019 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-            </svg>
+        <div className="relative">
+          <Button
+            onClick={() => {
+              setActiveTab(iconOnly ? "history" : "uploaded");
+              setExpanded(true);
+            }}
+            className={
+              iconOnly
+                ? "size-[42px] rounded-full shadow-md transition-all bg-white text-muted-foreground border border-border hover:bg-accent/40"
+                : "flex items-center gap-[8px] h-[40px] px-[16px] rounded-full shadow-lg transition-all bg-primary text-primary-foreground hover:opacity-90"
+            }
+            style={iconOnly
+              ? { boxShadow: "0 6px 18px rgba(15,23,42,0.12)" }
+              : { backgroundColor: pillBg ?? undefined, boxShadow: "0 4px 20px rgba(37,99,235,0.35)" }}
+            title={iconOnly ? "Open upload history" : undefined}
+          >
+            {iconOnly ? (
+              <svg className="size-[17px] shrink-0" viewBox="0 0 24 24" fill="none">
+                <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <>
+                {/* Status icon */}
+                {allDone ? (
+                  <svg className="size-[15px] shrink-0" fill="none" viewBox="0 0 24 24">
+                    <path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : (
+                  <svg className="size-[14px] shrink-0 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" />
+                    <path d="M12 3a9 9 0 019 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                )}
+                <span className="font-semibold text-[13px]">{pillLabel}</span>
+                {/* Chevron up */}
+                <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16">
+                  <path d="M4 10l4-4 4 4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </>
+            )}
+          </Button>
+          {iconOnly && activeCount > 0 && (
+            <span className="absolute -top-[4px] -right-[4px] min-w-[18px] h-[18px] px-[4px] rounded-full bg-destructive text-[10px] leading-[18px] text-white text-center font-semibold">
+              {activeCount > 99 ? "99+" : activeCount}
+            </span>
           )}
-          <span className="font-semibold text-[13px]">{pillLabel}</span>
-          {/* Chevron up */}
-          <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16">
-            <path d="M4 10l4-4 4 4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </Button>
+        </div>
       </div>,
       document.body
     );
   }
 
-  // ── Full expanded widget ──
+  // Full expanded widget
   return createPortal(
     <div
       className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col rounded-[16px] overflow-hidden bg-popover border border-border"
-      style={{ width: "480px", boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
+      style={{ width: "560px", maxWidth: "calc(100vw - 24px)", boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
     >
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between px-[16px] h-[42px] shrink-0 border-b border-border">
-        <div className="flex items-center gap-[7px]">
-          <span className="font-semibold text-xs text-foreground">Uploaded records</span>
-          {activeCount > 0 && (
-            <span className="font-semibold text-xs text-foreground">
-              {activeCount}
-            </span>
+      <div className="flex items-end justify-between px-[16px] pt-[8px] shrink-0 border-b border-border">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value === "history" ? "history" : value === "failed" ? "failed" : "uploaded")} className="gap-0 flex-1 min-w-0">
+          <TabsList variant="line" className="gap-6 border-b-0">
+            <TabsTrigger value="uploaded" variant="line" className="text-[13px] font-semibold">
+              Uploaded now <span className="opacity-50 font-[inherit]">{uploadedNowJobs.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="history" variant="line" className="text-[13px] font-semibold">
+              History <span className="opacity-50 font-[inherit]">{historyJobs.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="failed" variant="line" className="text-[13px] font-semibold data-[state=active]:text-destructive data-[state=active]:after:bg-destructive">
+              Failed <span className="opacity-50 font-[inherit]">{failedJobs.length}</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <div className="flex items-center gap-[1px] pb-[6px] ml-[8px]">
+          {activeTab === "failed" && failedJobs.length > 0 && (
+            <Button
+              variant="ghost"
+              onClick={clearFailedJobs}
+              title="Clear failed files"
+              className="h-[24px] px-[8px] rounded-full text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center gap-[4px]"
+            >
+              <Icon icon={Trash} className="size-[12px]" strokeWidth={1.7} />
+              <span className="font-medium">Clear</span>
+            </Button>
           )}
-        </div>
-        <div className="flex items-center gap-[1px]">
-          {/* Collapse to pill */}
-          <Button variant="ghost" size="icon" onClick={() => setExpanded(false)} title="Collapse"
-            className="size-[24px] rounded-full flex items-center justify-center transition-colors hover:bg-accent">
+          {/* Collapse to full pill */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setIconOnly(false);
+              setExpanded(false);
+            }}
+            title="Collapse"
+            className="size-[24px] rounded-full flex items-center justify-center transition-colors hover:bg-accent"
+          >
             <svg className="size-[11px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
               <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </Button>
-          {/* Dismiss */}
-          <Button variant="ghost" size="icon" onClick={() => setDismissed(true)} title="Dismiss"
-            className="size-[24px] rounded-full flex items-center justify-center transition-colors hover:bg-accent">
+          {/* Minimize to icon */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setIconOnly(true);
+              setExpanded(false);
+            }}
+            title="Minimize to icon"
+            className="size-[24px] rounded-full flex items-center justify-center transition-colors hover:bg-accent"
+          >
             <svg className="size-[11px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
               <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
@@ -2576,174 +2746,208 @@ export function FloatingProgressWidget() {
         </div>
       </div>
 
-      {/* ── Column headers (mini table) ── */}
+      {/* Column headers (mini table) */}
       <>
-          <div className="flex items-center px-[14px] h-[32px] shrink-0"
-            style={{ borderBottom: rowBorder }}>
-            <div className="flex-1 min-w-0">
-              <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">File</span>
-            </div>
-            <div className="w-[44px] shrink-0 text-center">
-              <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Lang</span>
-            </div>
-            <div className="w-[52px] shrink-0 text-center">
-              <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Transl.</span>
-            </div>
-            <div className="w-[52px] shrink-0 text-right">
-              <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Dur.</span>
-            </div>
-            <div className="w-[160px] shrink-0 text-right">
-              <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Status</span>
-            </div>
+        <div className="flex items-center px-[14px] h-[32px] shrink-0" style={{ borderBottom: rowBorder }}>
+          <div className="flex-1 min-w-0">
+            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">File</span>
           </div>
+          <div className="w-[44px] shrink-0 text-center">
+            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Lang</span>
+          </div>
+          <div className="w-[52px] shrink-0 text-center">
+            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Transl.</span>
+          </div>
+          <div className="w-[52px] shrink-0 text-right">
+            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Dur.</span>
+          </div>
+          <div className="w-[160px] shrink-0 text-right">
+            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Status</span>
+          </div>
+        </div>
 
-          {/* ── Job rows ── */}
-          <div style={{ maxHeight: "320px", overflowY: "auto" }}>
-            {widgetJobs.map((job, idx) => {
-              const isActive = job.status === "uploading" || job.status === "processing";
-              const isDone = job.status === "done";
-              const isError = job.status === "error";
-              const errLabel = job.errorType ? (ERROR_LABELS[job.errorType] ?? "Upload failed") : "Upload failed";
-              const uploadPct = Math.max(0, Math.min(100, Math.round(job.uploadProgress ?? (job.status === "uploading" ? job.progress : 100))));
-              const transcribePct = Math.max(0, Math.min(100, Math.round(job.transcriptionProgress ?? (job.status === "processing" ? job.progress : (job.status === "done" ? 100 : 0)))));
-              const phaseLabel = job.status === "uploading" ? "Uploading" : "Transcribing";
-              const phasePct = job.status === "uploading" ? uploadPct : transcribePct;
+        {/* Job rows */}
+        <div style={{ maxHeight: "320px", overflowY: "auto" }}>
+          {visibleJobs.length === 0 && (
+            <div className="px-[16px] py-[20px] text-[12px] text-muted-foreground">
+              {activeTab === "uploaded"
+                ? "No files in the current upload batch yet."
+                : activeTab === "failed"
+                  ? "No failed uploads."
+                  : "History is empty."}
+            </div>
+          )}
+          {visibleJobs.map((job, idx) => {
+            const isActive = job.status === "uploading" || job.status === "processing";
+            const isDone = job.status === "done";
+            const isError = job.status === "error";
+            const errLabel = job.errorType ? (ERROR_LABELS[job.errorType] ?? "Upload failed") : "Upload failed";
+            const canRetry = isError && job.errorType !== "no_audio";
+            const uploadPct = Math.max(0, Math.min(100, Math.round(job.uploadProgress ?? (job.status === "uploading" ? job.progress : 100))));
+            const transcribePct = Math.max(0, Math.min(100, Math.round(job.transcriptionProgress ?? (job.status === "processing" ? job.progress : (job.status === "done" ? 100 : 0)))));
+            const phaseLabel = job.status === "uploading" ? "Uploading" : "Transcribing";
+            const phasePct = job.status === "uploading" ? uploadPct : transcribePct;
 
-              return (
-                <div key={job.id} className="relative" style={{ borderTop: idx > 0 ? rowBorder : "none" }}>
-                  {/* Main row */}
-                  <div className={`flex items-center gap-[8px] px-[14px] pt-[9px] pb-[10px] ${isError ? "bg-destructive/5" : ""}`}>
-                    {/* File type icon */}
-                    <div className={`size-[26px] rounded-[7px] flex items-center justify-center shrink-0 ${job.fileType === "audio" ? "bg-primary/5" : "bg-violet-500/5"}`}>
-                      {job.fileType === "audio" ? (
-                        <svg className="size-[12px] text-primary" fill="none" viewBox="0 0 24 24">
-                          <path d="M9 18V5l12-2v13M9 18a3 3 0 11-3-3 3 3 0 013 3zM21 16a3 3 0 11-3-3 3 3 0 013 3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      ) : (
-                        <svg className="size-[12px]" fill="none" viewBox="0 0 24 24" style={{ color: "#7c3aed" }}>
-                          <path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </div>
+            return (
+              <div key={job.id} className="relative" style={{ borderTop: idx > 0 ? rowBorder : "none" }}>
+                {/* Main row */}
+                <div className={`flex items-center gap-[8px] px-[14px] pt-[9px] pb-[10px] ${isError ? "bg-destructive/5" : ""}`}>
+                  {/* File type icon */}
+                  <div className={`size-[26px] rounded-[7px] flex items-center justify-center shrink-0 ${isError ? "bg-destructive/10" : job.fileType === "audio" ? "bg-primary/5" : "bg-violet-500/5"}`}>
+                    {isError ? (
+                      <Icon icon={AlertCircle} className="size-[14px] text-destructive" strokeWidth={1.9} />
+                    ) : job.fileType === "audio" ? (
+                      <svg className="size-[12px] text-primary" fill="none" viewBox="0 0 24 24">
+                        <path d="M9 18V5l12-2v13M9 18a3 3 0 11-3-3 3 3 0 013 3zM21 16a3 3 0 11-3-3 3 3 0 013 3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : (
+                      <svg className="size-[12px]" fill="none" viewBox="0 0 24 24" style={{ color: "#7c3aed" }}>
+                        <path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
 
-                    {/* Name */}
-                    <div className="flex-1 min-w-0">
-                      <p className={`truncate font-medium text-xs ${isError ? "text-destructive" : "text-foreground"}`} title={job.name}>
-                        {job.name}
+                  {/* Name */}
+                  <div className="flex-1 min-w-0">
+                    <p className={`truncate font-medium text-xs ${isError ? "text-destructive" : "text-foreground"}`} title={job.name}>
+                      {job.name}
+                    </p>
+                    {isActive && (
+                      <p className="text-[10px] text-muted-foreground mt-[1px]">
+                        {phaseLabel} {phasePct}%
                       </p>
-                      {isActive && (
-                        <p className="text-[10px] text-muted-foreground mt-[1px]">
-                          {phaseLabel} {phasePct}%
-                        </p>
-                      )}
-                      {isError && (
-                        <p className="text-[10px] text-destructive mt-[1px]">
+                    )}
+                    {isError && (
+                      <>
+                        <p className="text-[10px] text-destructive mt-[1px] truncate" title={errLabel}>
                           {errLabel}
                         </p>
-                      )}
-                    </div>
+                        <p className="text-[10px] text-muted-foreground mt-[1px]">
+                          {canRetry ? "Check source file and retry upload" : "This file has no audio track. Please re-upload another file."}
+                        </p>
+                      </>
+                    )}
+                  </div>
 
-                    {/* Lang column */}
-                    <div className="w-[44px] shrink-0 flex items-center justify-center">
-                      {job.langBilingual && job.langBilingual.length > 0 ? (
-                        <div className="flex gap-[1px]">
-                          {job.langBilingual.slice(0, 2).map(id => {
-                            const l = LANGUAGES.find(l => l.id === id);
-                            return <span key={id} className="text-[12px]">{l?.flag ?? id.toUpperCase()}</span>;
-                          })}
-                        </div>
-                      ) : job.lang ? (
-                        <div className="flex items-center gap-[2px]">
-                          <span className="text-[12px]">{LANGUAGES.find(l => l.id === job.lang)?.flag ?? ""}</span>
-                          <span className="font-medium text-[10px] text-muted-foreground">{job.lang === "auto" ? "Auto" : job.lang.toUpperCase()}</span>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-muted-foreground">—</span>
-                      )}
-                    </div>
+                  {/* Lang column */}
+                  <div className="w-[44px] shrink-0 flex items-center justify-center">
+                    {job.langBilingual && job.langBilingual.length > 0 ? (
+                      <div className="flex gap-[1px]">
+                        {job.langBilingual.slice(0, 2).map((id) => {
+                          const l = LANGUAGES.find((lang) => lang.id === id);
+                          return <span key={id} className="text-[12px]">{l?.flag ?? id.toUpperCase()}</span>;
+                        })}
+                      </div>
+                    ) : job.lang ? (
+                      <div className="flex items-center gap-[2px]">
+                        <span className="text-[12px]">{LANGUAGES.find((lang) => lang.id === job.lang)?.flag ?? ""}</span>
+                        <span className="font-medium text-[10px] text-muted-foreground">{job.lang === "auto" ? "Auto" : job.lang.toUpperCase()}</span>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">-</span>
+                    )}
+                  </div>
 
-                    {/* Translation column */}
-                    <div className="w-[52px] shrink-0 flex items-center justify-center">
-                      {job.translationLang ? (
-                        <div className="flex items-center gap-[2px]">
-                          <span className="text-[12px]">{LANGUAGES.find(l => l.id === job.translationLang)?.flag ?? ""}</span>
-                          <span className="font-medium text-[10px] text-muted-foreground">{job.translationLang.toUpperCase()}</span>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-muted-foreground">—</span>
-                      )}
-                    </div>
+                  {/* Translation column */}
+                  <div className="w-[52px] shrink-0 flex items-center justify-center">
+                    {job.translationLang ? (
+                      <div className="flex items-center gap-[2px]">
+                        <span className="text-[12px]">{LANGUAGES.find((lang) => lang.id === job.translationLang)?.flag ?? ""}</span>
+                        <span className="font-medium text-[10px] text-muted-foreground">{job.translationLang.toUpperCase()}</span>
+                      </div>
+                    ) : (
+                      <span className="text-[11px] text-muted-foreground">-</span>
+                    )}
+                  </div>
 
-                    {/* Duration */}
-                    <div className="w-[52px] shrink-0 text-right">
-                      <span className="text-[11px] text-muted-foreground">
-                        {job.duration ?? (isDone || isError ? "—" : "")}
-                      </span>
-                    </div>
+                  {/* Duration */}
+                  <div className="w-[52px] shrink-0 text-right">
+                    <span className="text-[11px] text-muted-foreground">
+                      {job.duration ?? (isDone || isError ? "-" : "")}
+                    </span>
+                  </div>
 
-                    {/* Status area */}
-                    <div className="w-[160px] shrink-0 flex items-center justify-end gap-[5px]">
-                      {isActive && (
-                        <div className="flex items-center gap-[8px] w-full">
-                          <span className="min-w-[56px] text-[10px] text-muted-foreground text-right">{job.status === "uploading" ? "Upload" : "Transcribe"}</span>
-                          <div className="h-[6px] flex-1 rounded-full overflow-hidden bg-muted">
-                            <div className="h-full transition-all duration-300"
-                              style={{
-                                width: `${phasePct}%`,
-                                background: job.status === "processing"
-                                  ? "linear-gradient(90deg,#2563eb,#7c3aed)"
-                                  : "var(--primary)",
-                              }} />
-                          </div>
-                          <span className="font-medium text-[11px] text-primary min-w-[30px] text-right">
-                            {phasePct}%
-                          </span>
-                        </div>
-                      )}
-                      {isDone && (
-                        <>
-                          <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="9" fill="#dcfce7" stroke="#22c55e" strokeWidth="1.4" />
-                            <path d="M8 12.5l2.5 2.5 5-5" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                          <Button variant="ghost"
-                            onClick={() => {
-                              const recordState = mapJobToRecordState(job);
-                              try {
-                                window.sessionStorage.setItem(`uploaded-record:${job.id}`, JSON.stringify(recordState));
-                              } catch {
-                                // best-effort cache; navigation should still work without it
-                              }
-                              window.location.assign(`/transcriptions/${job.id}`);
+                  {/* Status area */}
+                  <div className="w-[160px] shrink-0 flex items-center justify-end gap-[5px]">
+                    {isActive && (
+                      <div className="flex items-center gap-[8px] w-full">
+                        <span className="min-w-[56px] text-[10px] text-muted-foreground text-right">{job.status === "uploading" ? "Upload" : "Transcribe"}</span>
+                        <div className="h-[6px] flex-1 rounded-full overflow-hidden bg-muted">
+                          <div
+                            className="h-full transition-all duration-300"
+                            style={{
+                              width: `${phasePct}%`,
+                              background: job.status === "processing"
+                                ? "linear-gradient(90deg,#2563eb,#7c3aed)"
+                                : "var(--primary)",
                             }}
-                            className="transition-colors font-semibold text-[11px] text-primary hover:underline p-0 h-auto"
-                          >
-                            Open
-                          </Button>
-                        </>
-                      )}
-                      {isError && (
-                        <>
-                          <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="9" fill="#fee2e2" stroke="#ef4444" strokeWidth="1.4" />
-                            <path d="M9 9l6 6M15 9l-6 6" stroke="#ef4444" strokeWidth="1.7" strokeLinecap="round" />
-                          </svg>
-                          <Button variant="ghost"
+                          />
+                        </div>
+                        <span className="font-medium text-[11px] text-primary min-w-[30px] text-right">
+                          {phasePct}%
+                        </span>
+                      </div>
+                    )}
+                    {isDone && (
+                      <>
+                        <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="9" fill="#dcfce7" stroke="#22c55e" strokeWidth="1.4" />
+                          <path d="M8 12.5l2.5 2.5 5-5" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            const recordState = mapJobToRecordState(job);
+                            try {
+                              window.sessionStorage.setItem(`uploaded-record:${job.id}`, JSON.stringify(recordState));
+                            } catch {
+                              // best-effort cache; navigation should still work without it
+                            }
+                            window.location.assign(`/transcriptions/${job.id}`);
+                          }}
+                          className="transition-colors font-semibold text-[11px] text-primary hover:underline p-0 h-auto"
+                        >
+                          Open
+                        </Button>
+                      </>
+                    )}
+                    {isError && (
+                      <>
+                        <span className="inline-flex size-[18px] items-center justify-center rounded-full bg-destructive/15 text-destructive">
+                          <Icon icon={AlertCircle} className="size-[11px]" strokeWidth={2} />
+                        </span>
+                        {canRetry ? (
+                          <Button
+                            variant="ghost"
                             onClick={() => retryJob(job.id)}
-                            className="transition-colors font-semibold text-[11px] text-destructive hover:underline p-0 h-auto"
+                            className="transition-colors font-semibold text-[11px] text-destructive hover:underline p-0 h-auto flex items-center gap-[4px]"
                           >
+                            <Icon icon={Upload} className="size-[11px]" strokeWidth={1.8} />
                             Retry
                           </Button>
-                        </>
-                      )}
-                    </div>
-
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground font-medium">
+                            Re-upload
+                          </span>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeJob(job.id)}
+                          title="Remove failed file"
+                          className="size-[20px] rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                        >
+                          <Icon icon={X} className="size-[11px]" strokeWidth={2} />
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </>
+              </div>
+            );
+          })}
+        </div>
+      </>
     </div>,
     document.body
   );
