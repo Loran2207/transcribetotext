@@ -15,6 +15,23 @@ import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 
 /* ══════════════════════════════════════════════
    Column Configuration Types
@@ -1213,7 +1230,8 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { jobs } = useTranscriptionModals();
-  const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder } = useFolders();
+  const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder, deleteFolder } = useFolders();
+  const [deletingInlineFolderId, setDeletingInlineFolderId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("Recent");
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -1349,6 +1367,30 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
       <CreateFolderModal open={folderModalOpen} onClose={() => setFolderModalOpen(false)} onCreate={(name, color) => { addFolderToContext(name, color); }} />
       <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={selectedRows.size} onMove={(folderId) => { assignToFolder(Array.from(selectedRows), folderId); clearSelection(); }} onCreateFolder={() => { setMoveDialogOpen(false); setFolderModalOpen(true); }} folders={userFolders} />
+
+      {/* Delete inline folder confirmation */}
+      <AlertDialog open={!!deletingInlineFolderId} onOpenChange={(open) => { if (!open) setDeletingInlineFolderId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete folder?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The folder will be deleted. Files inside will not be removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-white hover:bg-destructive/90"
+              onClick={() => {
+                if (deletingInlineFolderId) deleteFolder(deletingInlineFolderId);
+                setDeletingInlineFolderId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {shareDialogRecord && (
         <ShareDialog
           open={!!shareDialogRecord}
@@ -1497,7 +1539,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             ) : (
               <>
                 {showInlineFolderRows && !scopedFolderId && activeTab === "Recent" && userFolders.map((folder) => (
-                  <div key={folder.id} className="flex items-center h-[40px] transition-colors cursor-pointer border-b border-border hover:bg-accent" onDoubleClick={() => onOpenFolder?.(folder.id)}>
+                  <div key={folder.id} className="group flex items-center h-[40px] transition-colors cursor-pointer border-b border-border hover:bg-accent" onDoubleClick={() => onOpenFolder?.(folder.id)}>
                     <div className="w-[40px] shrink-0" />
                     <div className="flex-[2.2] min-w-0 px-[12px] flex items-center gap-[8px]">
                       <svg className="size-[16px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill={folder.color} stroke={folder.color} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -1510,7 +1552,30 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                         {col === "time" && folder.createdAt ? <span className="text-[13px] text-muted-foreground">{new Date(folder.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span> : null}
                       </div>
                     ))}
-                    <div className="w-[100px] shrink-0" />
+                    <div className="w-[100px] shrink-0 flex items-center justify-end pr-[8px]">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                          onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                          className="flex size-[28px] shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-accent hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <svg className="size-[14px]" fill="none" viewBox="0 0 16 16">
+                            <circle cx="8" cy="3" r="1.2" fill="currentColor" />
+                            <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+                            <circle cx="8" cy="13" r="1.2" fill="currentColor" />
+                          </svg>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" sideOffset={6} className="w-[160px]">
+                          <DropdownMenuItem onClick={() => onOpenFolder?.(folder.id)}>
+                            Open folder
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="destructive" onClick={() => setDeletingInlineFolderId(folder.id)}>
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 ))}
                 {filteredRecords.map((record) => (

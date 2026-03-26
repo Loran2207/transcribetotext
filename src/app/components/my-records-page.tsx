@@ -24,11 +24,16 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { Icon } from "./ui/icon";
+import { FolderOpen, Edit, Trash, MoreHorizontal, Upload } from "@hugeicons/core-free-icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 
@@ -269,6 +274,8 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   // Create folder dialog
   const [createOpen, setCreateOpen] = useState(false);
+  // If set, after creating a new folder we move this folder ID into it
+  const [moveAfterCreate, setMoveAfterCreate] = useState<string | null>(null);
 
   // Edit folder dialog (name + color)
   const [editingFolder, setEditingFolder] = useState<FolderItem | null>(null);
@@ -348,15 +355,78 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             </p>
           )}
 
-          {/* Add Folder button — always visible in header */}
-          <Button
-            variant="pill-outline"
-            onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
-          >
-            <FolderPlusIcon />
-            <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
-          </Button>
+          {/* Header right actions */}
+          <div className="flex items-center gap-[8px]">
+            {isInsideFolder && activeFolder && (
+              <Button
+                onClick={() => setEditingFolder(activeFolder)}
+                className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 rounded-full bg-primary text-white hover:bg-primary/90 transition-colors cursor-pointer"
+              >
+                <svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M11.333 2a1.886 1.886 0 012.667 2.667L5.333 13.333 2 14l.667-3.333L11.333 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <span className="font-medium text-[13px]">Edit folder</span>
+              </Button>
+            )}
+            <Button
+              variant="pill-outline"
+              onClick={() => setCreateOpen(true)}
+              className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
+            >
+              <FolderPlusIcon />
+              <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
+            </Button>
+            {isInsideFolder && activeFolder && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="Folder actions"
+                    className="inline-flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    <Icon icon={MoreHorizontal} className="size-4" strokeWidth={2} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" sideOffset={6} className="w-[180px]">
+                  <DropdownMenuItem className="gap-2" onClick={() => setEditingFolder(activeFolder)}>
+                    <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="gap-2">
+                      <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                      Move to folder
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-[210px]">
+                      <DropdownMenuItem className="gap-2" onClick={() => moveFolder(activeFolder.id, null)}>
+                        <svg className="size-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="13" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.1" /><path d="M1.5 6.5h13" stroke="currentColor" strokeWidth="1.1" /></svg>
+                        <span className="truncate">My Records (root)</span>
+                      </DropdownMenuItem>
+                      {flattenFolders(folders, activeFolder.id).map((f) => (
+                        <DropdownMenuItem key={f.id} className="gap-2" onClick={() => moveFolder(activeFolder.id, f.id)}>
+                          <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path d={FOLDER_PATH} fill={f.color} /></svg>
+                          <span className="truncate">{f.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="gap-2" onClick={() => { setMoveAfterCreate(activeFolder.id); setCreateOpen(true); }}>
+                        <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                        Create folder and move
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  <DropdownMenuItem className="gap-2">
+                    <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                    <span>Export files</span>
+                    <span className="ml-auto text-[12px] font-medium text-muted-foreground">{folderRecordCounts.get(activeFolder.id) ?? 0}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => setDeletingFolderId(activeFolder.id)}>
+                    <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
+                    Delete folder
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
 
         {/* Folder cards grid */}
@@ -389,35 +459,54 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                         </div>
                       </div>
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-[26px] rounded-full shrink-0 text-muted-foreground hover:text-foreground"
-                            onClick={(e) => e.stopPropagation()}
-                            onDoubleClick={(e) => e.stopPropagation()}
-                            aria-label="Folder actions"
-                          >
-                            <svg className="size-[14px]" fill="none" viewBox="0 0 16 16">
-                              <circle cx="8" cy="3" r="1.2" fill="currentColor" />
-                              <circle cx="8" cy="8" r="1.2" fill="currentColor" />
-                              <circle cx="8" cy="13" r="1.2" fill="currentColor" />
-                            </svg>
-                          </Button>
+                        <DropdownMenuTrigger
+                          onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                          onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                          className="flex size-[28px] shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-accent hover:text-foreground transition-colors"
+                          aria-label="Folder actions"
+                        >
+                          <svg className="size-[14px]" fill="none" viewBox="0 0 16 16">
+                            <circle cx="8" cy="3" r="1.2" fill="currentColor" />
+                            <circle cx="8" cy="8" r="1.2" fill="currentColor" />
+                            <circle cx="8" cy="13" r="1.2" fill="currentColor" />
+                          </svg>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" sideOffset={6} className="w-[170px]" onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenuItem onClick={() => setActiveFolderId(folder.id)}>
+                        <DropdownMenuContent align="end" sideOffset={6} className="w-[170px]">
+                          <DropdownMenuItem className="gap-2" onClick={() => setActiveFolderId(folder.id)}>
+                            <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                             Open folder
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setEditingFolder(folder)}>
-                            Edit name &amp; color
+                          <DropdownMenuItem className="gap-2" onClick={() => setEditingFolder(folder)}>
+                            <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                            Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setMovingFolder(folder)}>
-                            Move to folder
-                          </DropdownMenuItem>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="gap-2">
+                              <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                              Move to folder
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="w-[210px]">
+                              <DropdownMenuItem className="gap-2" onClick={() => moveFolder(folder.id, null)}>
+                                <svg className="size-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="13" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.1" /><path d="M1.5 6.5h13" stroke="currentColor" strokeWidth="1.1" /></svg>
+                                <span className="truncate">My Records (root)</span>
+                              </DropdownMenuItem>
+                              {flattenFolders(folders, folder.id).map((f) => (
+                                <DropdownMenuItem key={f.id} className="gap-2" onClick={() => moveFolder(folder.id, f.id)}>
+                                  <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path d={FOLDER_PATH} fill={f.color} /></svg>
+                                  <span className="truncate">{f.name}</span>
+                                </DropdownMenuItem>
+                              ))}
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="gap-2" onClick={() => { setMoveAfterCreate(folder.id); setCreateOpen(true); }}>
+                                <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                                Create folder and move
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive" onClick={() => setDeletingFolderId(folder.id)}>
-                            {t("common.delete")}
+                          <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => setDeletingFolderId(folder.id)}>
+                            <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
+                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -435,10 +524,16 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
       {/* Create folder dialog */}
       <FolderFormDialog
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => { setCreateOpen(false); setMoveAfterCreate(null); }}
         title={t("folder.createNew")}
         submitLabel={t("folder.create")}
-        onSave={(name, color) => addFolder(name, color)}
+        onSave={(name, color) => {
+          const newFolder = addFolder(name, color);
+          if (moveAfterCreate) {
+            moveFolder(moveAfterCreate, newFolder.id);
+            setMoveAfterCreate(null);
+          }
+        }}
       />
 
       {/* Edit folder dialog */}
