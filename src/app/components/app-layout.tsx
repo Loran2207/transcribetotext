@@ -12,6 +12,7 @@ import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 
 export function AppLayout() {
   const [activePage, setActivePage] = useState("dashboard");
+  const [initialFolderId, setInitialFolderId] = useState<string | null>(null);
   const prevPageRef = useRef("dashboard");
   const location = useLocation();
   const routerNavigate = useNavigate();
@@ -32,10 +33,15 @@ export function AppLayout() {
     }
   }
 
+  function handleOpenFolder(folderId: string) {
+    setInitialFolderId(folderId);
+    handleNavigate("records");
+  }
+
   return (
     <UserProfileProvider>
       <SidebarProvider className="h-screen !min-h-0 overflow-hidden bg-sidebar">
-        <AppSidebar activePage={activePage} onNavigate={handleNavigate} />
+        <AppSidebar activePage={activePage} onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />
         <SidebarInset className="overflow-hidden bg-sidebar">
           <TopBar onNavigate={handleNavigate} />
           <main className="flex flex-1 overflow-hidden rounded-tl-[32px] bg-background">
@@ -46,8 +52,8 @@ export function AppLayout() {
                 {isSettings && (
                   <SettingsPage onClose={() => handleNavigate(prevPageRef.current || "dashboard")} />
                 )}
-                {!isSettings && activePage === "dashboard" && <DashboardPage />}
-                {!isSettings && activePage === "records" && <MyRecordsPage />}
+                {!isSettings && activePage === "dashboard" && <DashboardPage onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />}
+                {!isSettings && activePage === "records" && <MyRecordsPage initialFolderId={initialFolderId} onFolderConsumed={() => setInitialFolderId(null)} />}
                 {!isSettings && activePage === "calendar" && <CalendarPage />}
                 {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "calendar" && (
                   <PagePlaceholder activePage={activePage} />

@@ -32,6 +32,7 @@ import {
 interface AppSidebarProps {
   activePage: string;
   onNavigate: (page: string) => void;
+  onOpenFolder?: (folderId: string) => void;
 }
 
 /* ── Folder icon SVG path (filled, no stroke) — from Figma p1f315b00 ── */
@@ -204,7 +205,7 @@ const NAV_ITEMS = [
   { id: "templates", labelKey: "nav.templates", icon: Layers },
 ] as const;
 
-export function AppSidebar({ activePage, onNavigate }: AppSidebarProps) {
+export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarProps) {
   const [starredOpen, setStarredOpen] = useState(true);
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
@@ -300,7 +301,10 @@ export function AppSidebar({ activePage, onNavigate }: AppSidebarProps) {
             <SidebarMenuSub>
               {folders.map((folder) => (
                 <SidebarMenuSubItem key={folder.id}>
-                  <SidebarMenuSubButton>
+                  <SidebarMenuSubButton
+                    onClick={userFolders.length > 0 ? () => { onNavigate("records"); onOpenFolder?.(folder.id); } : undefined}
+                    className={userFolders.length > 0 ? "cursor-pointer" : ""}
+                  >
                     <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16">
                       <path d={FOLDER_PATH} fill={folder.color} />
                     </svg>
