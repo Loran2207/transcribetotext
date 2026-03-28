@@ -6,10 +6,10 @@ import { useStarred } from "./starred-context";
 import { SourceIcon, type SourceType } from "./source-icons";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { useFolders } from "./folder-context";
+import { useFolders, type FolderItem as CtxFolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
-import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash } from "@hugeicons/core-free-icons";
+import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
@@ -20,6 +20,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import {
@@ -47,6 +50,25 @@ const COLUMN_LABEL_KEYS: Record<ColumnId, string> = {
 };
 
 const DEFAULT_COLUMN_ORDER: ColumnId[] = ["template", "lang", "duration", "date"];
+
+/* ── Inline folder helpers ── */
+const INLINE_FOLDER_PATH = "M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z";
+const INLINE_FOLDER_COLORS = [
+  { id: "blue", color: "#3B82F6" }, { id: "green", color: "#22C55E" }, { id: "amber", color: "#F59E0B" }, { id: "red", color: "#EF4444" },
+  { id: "purple", color: "#8B5CF6" }, { id: "pink", color: "#EC4899" }, { id: "cyan", color: "#06B6D4" }, { id: "gray", color: "#6B7280" },
+];
+function flattenFoldersInTable(folders: CtxFolderItem[], excludeId?: string): CtxFolderItem[] {
+  const result: CtxFolderItem[] = [];
+  function walk(items: CtxFolderItem[]) {
+    for (const f of items) {
+      if (f.id === excludeId) continue;
+      result.push(f);
+      if (f.children) walk(f.children);
+    }
+  }
+  walk(folders);
+  return result;
+}
 
 /* ══════════════════════════════════════════════
    Figma-exact Checkbox
@@ -688,7 +710,7 @@ function CreateFolderModal({ open, onClose, onCreate }: { open: boolean; onClose
    Move to Folder Dialog
    ══════════════════════════════════════════════ */
 
-interface FolderItem { id: string; name: string; color: string; children?: FolderItem[] }
+type FolderItem = CtxFolderItem;
 
 const defaultFolders: FolderItem[] = [
   { id: "f1", name: "Client Meetings", color: "#3B82F6", children: [
@@ -754,6 +776,50 @@ function MoveToFolderDialog({ open, onClose, count, onMove, onCreateFolder, fold
         <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
           <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors"><span className="font-medium text-[13px] text-foreground">{t("common.cancel")}</span></Button>
           <Button onClick={() => { if (selectedId) { onMove(selectedId); onClose(); } }} disabled={!selectedId} className="h-[36px] px-[18px] rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-white"><span className="font-medium text-[13px]">{t("folder.moveHere")}</span></Button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function InlineFolderEditDialog({ open, folder, onClose, onSave }: { open: boolean; folder: FolderItem | null; onClose: () => void; onSave: (name: string, color: string) => void }) {
+  const [name, setName] = useState(folder?.name ?? "");
+  const [color, setColor] = useState(folder?.color ?? "#3B82F6");
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (open && folder) { setName(folder.name); setColor(folder.color); setTimeout(() => inputRef.current?.focus(), 50); }
+  }, [open, folder?.id]);
+  if (!open || !folder) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+        <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
+          <h2 className="font-semibold text-[17px] text-foreground">Edit folder</h2>
+          <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center">
+            <svg className="size-[16px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+          </Button>
+        </div>
+        <div className="px-[24px] pt-[18px] pb-[8px]">
+          <Label className="block font-medium text-[13px] text-foreground mb-[6px]">Name</Label>
+          <Input ref={inputRef} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) { onSave(name.trim(), color); onClose(); } if (e.key === "Escape") onClose(); }} placeholder="e.g. Client Meetings" className="w-full h-[40px] px-[14px] rounded-[12px] text-[14px]" />
+          <Label className="block font-medium text-[13px] text-foreground mt-[18px] mb-[8px]">Color</Label>
+          <div className="flex items-center gap-[8px]">
+            {INLINE_FOLDER_COLORS.map((fc) => (
+              <Button variant="ghost" size="icon" key={fc.id} onClick={() => setColor(fc.color)} className="size-[28px] rounded-full flex items-center justify-center transition-all" style={{ backgroundColor: fc.color, boxShadow: color === fc.color ? `0 0 0 2px var(--popover), 0 0 0 4px ${fc.color}` : "none", transform: color === fc.color ? "scale(1.1)" : "scale(1)" }}>
+                {color === fc.color && <svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-[10px] mt-[20px] p-[12px] rounded-[12px] bg-secondary border border-border">
+            <svg style={{ width: 22, height: 22 }} className="shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={color} /></svg>
+            <span className={`font-medium text-[14px] ${name.trim() ? "text-foreground" : "text-muted-foreground"}`}>{name.trim() || "Folder name"}</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
+          <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px]"><span className="font-medium text-[13px] text-foreground">Cancel</span></Button>
+          <Button onClick={() => { if (name.trim()) { onSave(name.trim(), color); onClose(); } }} disabled={!name.trim()} className="h-[36px] px-[18px] rounded-full bg-primary text-white disabled:opacity-40"><span className="font-medium text-[13px]">Save</span></Button>
         </div>
       </div>
     </div>,
@@ -1230,8 +1296,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { jobs } = useTranscriptionModals();
-  const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder, deleteFolder } = useFolders();
+  const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder, deleteFolder, renameFolder, changeFolderColor, moveFolder } = useFolders();
   const [deletingInlineFolderId, setDeletingInlineFolderId] = useState<string | null>(null);
+  const [editingInlineFolder, setEditingInlineFolder] = useState<FolderItem | null>(null);
   const [activeTab, setActiveTab] = useState<string>("Recent");
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -1307,6 +1374,14 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   function renameView(id: string, name: string) { setSavedViews((prev) => prev.map((v) => v.id === id ? { ...v, name } : v)); setEditingViewId(null); }
   function deleteView(id: string) { setSavedViews((prev) => prev.filter((v) => v.id !== id)); }
 
+  const inlineFolders = useMemo(() => {
+    if (!scopedFolderId) return userFolders;
+    function find(list: FolderItem[], id: string): FolderItem | null {
+      for (const f of list) { if (f.id === id) return f; const c = find(f.children ?? [], id); if (c) return c; } return null;
+    }
+    return find(userFolders, scopedFolderId)?.children ?? [];
+  }, [userFolders, scopedFolderId]);
+
   const jobRecords = useMemo(() => jobs.map(mapJobToRecord), [jobs]);
   const allRecords = useMemo(() => [...jobRecords, ...records], [jobRecords]);
   const displayRecords = allRecords.map((r) => ({ ...r, name: getName(r.id, r.name) }));
@@ -1367,6 +1442,18 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
       <CreateFolderModal open={folderModalOpen} onClose={() => setFolderModalOpen(false)} onCreate={(name, color) => { addFolderToContext(name, color); }} />
       <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={selectedRows.size} onMove={(folderId) => { assignToFolder(Array.from(selectedRows), folderId); clearSelection(); }} onCreateFolder={() => { setMoveDialogOpen(false); setFolderModalOpen(true); }} folders={userFolders} />
+
+      {/* Edit inline folder dialog */}
+      <InlineFolderEditDialog
+        open={!!editingInlineFolder}
+        folder={editingInlineFolder}
+        onClose={() => setEditingInlineFolder(null)}
+        onSave={(name, color) => {
+          if (!editingInlineFolder) return;
+          renameFolder(editingInlineFolder.id, name);
+          changeFolderColor(editingInlineFolder.id, color);
+        }}
+      />
 
       {/* Delete inline folder confirmation */}
       <AlertDialog open={!!deletingInlineFolderId} onOpenChange={(open) => { if (!open) setDeletingInlineFolderId(null); }}>
@@ -1538,11 +1625,11 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
               ))
             ) : (
               <>
-                {showInlineFolderRows && !scopedFolderId && activeTab === "Recent" && userFolders.map((folder) => (
+                {showInlineFolderRows && activeTab === "Recent" && inlineFolders.map((folder) => (
                   <div key={folder.id} className="group flex items-center h-[40px] transition-colors cursor-pointer border-b border-border hover:bg-accent" onDoubleClick={() => onOpenFolder?.(folder.id)}>
                     <div className="w-[40px] shrink-0" />
                     <div className="flex-[2.2] min-w-0 px-[12px] flex items-center gap-[8px]">
-                      <svg className="size-[16px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill={folder.color} stroke={folder.color} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                      <svg className="size-[16px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
                       <span className="font-medium text-[14px] text-foreground">{folder.name}</span>
                     </div>
                     {/* Star column placeholder */}
@@ -1565,12 +1652,36 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                             <circle cx="8" cy="13" r="1.2" fill="currentColor" />
                           </svg>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" sideOffset={6} className="w-[160px]">
-                          <DropdownMenuItem onClick={() => onOpenFolder?.(folder.id)}>
+                        <DropdownMenuContent align="end" sideOffset={6} className="w-[170px]">
+                          <DropdownMenuItem className="gap-2" onClick={() => onOpenFolder?.(folder.id)}>
+                            <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                             Open folder
                           </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2" onClick={() => setEditingInlineFolder(folder)}>
+                            <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="gap-2">
+                              <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                              Move to folder
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="w-[210px]">
+                              <DropdownMenuItem className="gap-2" onClick={() => moveFolder(folder.id, null)}>
+                                <svg className="size-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="13" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.1" /><path d="M1.5 6.5h13" stroke="currentColor" strokeWidth="1.1" /></svg>
+                                <span className="truncate">My Records (root)</span>
+                              </DropdownMenuItem>
+                              {flattenFoldersInTable(userFolders, folder.id).map((f) => (
+                                <DropdownMenuItem key={f.id} className="gap-2" onClick={() => moveFolder(folder.id, f.id)}>
+                                  <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={f.color} /></svg>
+                                  <span className="truncate">{f.name}</span>
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive" onClick={() => setDeletingInlineFolderId(folder.id)}>
+                          <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => setDeletingInlineFolderId(folder.id)}>
+                            <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>

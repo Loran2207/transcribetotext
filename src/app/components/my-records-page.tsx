@@ -517,7 +517,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             </div>
           )}
 
-          <RecordsTable hideTopHeader showAddFolderButton={false} scopedFolderId={activeFolderId} showInlineFolderRows={false} />
+          <RecordsTable hideTopHeader showAddFolderButton={false} scopedFolderId={activeFolderId} onOpenFolder={(folderId) => setActiveFolderId(folderId)} />
         </div>
       </div>
 
@@ -528,7 +528,8 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
         title={t("folder.createNew")}
         submitLabel={t("folder.create")}
         onSave={(name, color) => {
-          const newFolder = addFolder(name, color);
+          const parentId = moveAfterCreate ? null : (activeFolderId ?? null);
+          const newFolder = addFolder(name, color, parentId);
           if (moveAfterCreate) {
             moveFolder(moveAfterCreate, newFolder.id);
             setMoveAfterCreate(null);
