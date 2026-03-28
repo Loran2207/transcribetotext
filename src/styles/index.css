@@ -4,53 +4,40 @@
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Auth Illustration — CSS Keyframes
-   Defined here (not injected at runtime) so they survive Vite tree-shaking
-   and are available immediately on first paint.
+   Defined in CSS (not runtime-injected) so they survive Vite tree-shaking.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-@keyframes auth-wave-bar {
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes float-medium {
+  0%, 100% { transform: translateY(-4px); }
+  50% { transform: translateY(4px); }
+}
+
+@keyframes float-fast {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes bar-pulse {
   0%, 100% { transform: scaleY(0.3); }
   50% { transform: scaleY(1); }
 }
 
-@keyframes auth-float-1 {
-  0%, 100% { transform: translateY(0px) rotateY(8deg) rotateX(4deg); }
-  50% { transform: translateY(-8px) rotateY(8deg) rotateX(4deg); }
-}
-
-@keyframes auth-float-2 {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
-}
-
-@keyframes auth-float-3 {
-  0%, 100% { transform: translateY(0px) rotateY(-6deg) rotateX(-3deg); }
-  50% { transform: translateY(-6px) rotateY(-6deg) rotateX(-3deg); }
-}
-
-@keyframes auth-float-dot {
-  0%, 100% { transform: translate(0, 0); }
-  33% { transform: translate(6px, -8px); }
-  66% { transform: translate(-4px, 4px); }
-}
-
-@keyframes auth-pulse-dot {
+@keyframes blink-dot {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50% { opacity: 0; }
 }
 
-@keyframes auth-shimmer {
+@keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
-@keyframes auth-highlight-pill {
+@keyframes highlight-pill {
   0%, 100% { background: rgba(255,255,255,0.06); }
   50% { background: rgba(255,255,255,0.14); }
-}
-
-@keyframes auth-copied-toast {
-  0% { opacity: 0; transform: translateY(4px); }
-  15%, 70% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-4px); }
 }
