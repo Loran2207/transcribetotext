@@ -1,86 +1,86 @@
-<testsuites id="" name="" tests="38" failures="0" skipped="0" errors="0" time="207.269976">
-<testsuite name="auth.spec.ts" timestamp="2026-03-28T19:03:39.120Z" hostname="chromium" tests="38" failures="0" skipped="0" time="205.726" errors="0">
-<testcase name="Login Page › renders login form with all expected elements" classname="auth.spec.ts" time="3.488">
+<testsuites id="" name="" tests="38" failures="0" skipped="0" errors="0" time="80.061028">
+<testsuite name="auth.spec.ts" timestamp="2026-03-28T19:14:13.093Z" hostname="chromium" tests="38" failures="0" skipped="0" time="78.752" errors="0">
+<testcase name="Login Page › renders login form with all expected elements" classname="auth.spec.ts" time="5.72">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\login-page-initial.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Login Page › email and password fields accept input" classname="auth.spec.ts" time="4.213">
+<testcase name="Login Page › email and password fields accept input" classname="auth.spec.ts" time="2.092">
 </testcase>
-<testcase name="Login Page › shows validation errors when submitting empty form" classname="auth.spec.ts" time="3.324">
+<testcase name="Login Page › shows validation errors when submitting empty form" classname="auth.spec.ts" time="1.336">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\login-validation-errors.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Login Page › password show/hide toggle works" classname="auth.spec.ts" time="3.581">
+<testcase name="Login Page › password show/hide toggle works" classname="auth.spec.ts" time="1.606">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\login-password-toggle.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Login Page › submit button shows loading state during submission" classname="auth.spec.ts" time="4.165">
+<testcase name="Login Page › submit button shows loading state during submission" classname="auth.spec.ts" time="2.135">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\login-loading-state.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Login Page › shows error message on invalid credentials" classname="auth.spec.ts" time="4.54">
+<testcase name="Login Page › shows error message on invalid credentials" classname="auth.spec.ts" time="2.456">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\login-error-invalid-credentials.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Login Page › successful login redirects to /" classname="auth.spec.ts" time="4.643">
+<testcase name="Login Page › successful login redirects to /" classname="auth.spec.ts" time="2.446">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\login-success-redirect.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Login Page › &apos;Create one free&apos; link navigates to signup page" classname="auth.spec.ts" time="3.368">
+<testcase name="Login Page › &apos;Create one free&apos; link navigates to signup page" classname="auth.spec.ts" time="1.331">
 </testcase>
-<testcase name="Login Page › no console errors on login page load" classname="auth.spec.ts" time="8.701">
+<testcase name="Login Page › no console errors on login page load" classname="auth.spec.ts" time="2.604">
 </testcase>
-<testcase name="Signup Page › renders signup form with all expected elements" classname="auth.spec.ts" time="8.86">
+<testcase name="Signup Page › renders signup form with all expected elements" classname="auth.spec.ts" time="1.1">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-page-initial.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Signup Page › all form fields accept input" classname="auth.spec.ts" time="12.097">
+<testcase name="Signup Page › all form fields accept input" classname="auth.spec.ts" time="3.045">
 </testcase>
-<testcase name="Signup Page › shows validation errors on empty submit (after blur)" classname="auth.spec.ts" time="7.398">
+<testcase name="Signup Page › shows validation errors on empty submit (after blur)" classname="auth.spec.ts" time="1.499">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-validation-errors.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Signup Page › email validation rejects invalid format" classname="auth.spec.ts" time="10.401">
+<testcase name="Signup Page › email validation rejects invalid format" classname="auth.spec.ts" time="1.616">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-invalid-email.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Signup Page › password minimum length validation" classname="auth.spec.ts" time="5.056">
+<testcase name="Signup Page › password minimum length validation" classname="auth.spec.ts" time="1.58">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-password-too-short.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Signup Page › password confirmation mismatch shows error" classname="auth.spec.ts" time="6.328">
+<testcase name="Signup Page › password confirmation mismatch shows error" classname="auth.spec.ts" time="2.533">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-password-mismatch.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Signup Page › password show/hide toggle works for both password fields" classname="auth.spec.ts" time="6.991">
+<testcase name="Signup Page › password show/hide toggle works for both password fields" classname="auth.spec.ts" time="2.261">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-password-toggles.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Signup Page › password strength bar updates as user types" classname="auth.spec.ts" time="6.433">
+<testcase name="Signup Page › password strength bar updates as user types" classname="auth.spec.ts" time="2.55">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-strength-weak.png
   [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-strength-medium.png
@@ -88,87 +88,87 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="Signup Page › password strength bar not shown when password is empty" classname="auth.spec.ts" time="3.649">
+<testcase name="Signup Page › password strength bar not shown when password is empty" classname="auth.spec.ts" time="0.993">
 </testcase>
-<testcase name="Signup Page › submit button shows loading state during submission" classname="auth.spec.ts" time="6.291">
+<testcase name="Signup Page › submit button shows loading state during submission" classname="auth.spec.ts" time="3.256">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-loading-state.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Signup Page › successful signup shows toast and redirects to /check-email" classname="auth.spec.ts" time="5.236">
+<testcase name="Signup Page › successful signup shows toast and redirects to /check-email" classname="auth.spec.ts" time="3.299">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-success-redirect.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Signup Page › shows error message on signup failure" classname="auth.spec.ts" time="5.461">
+<testcase name="Signup Page › shows error message on signup failure" classname="auth.spec.ts" time="3.535">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-error-duplicate.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Signup Page › &apos;Sign in&apos; link navigates to login page" classname="auth.spec.ts" time="3.843">
+<testcase name="Signup Page › &apos;Sign in&apos; link navigates to login page" classname="auth.spec.ts" time="2.013">
 </testcase>
-<testcase name="Auth Layout › login page shows branded left panel on desktop" classname="auth.spec.ts" time="3.151">
+<testcase name="Auth Layout › login page shows branded left panel on desktop" classname="auth.spec.ts" time="1.151">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\auth-layout-desktop.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Auth Layout › login page hides left panel on mobile" classname="auth.spec.ts" time="3.029">
+<testcase name="Auth Layout › login page hides left panel on mobile" classname="auth.spec.ts" time="0.936">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\auth-layout-mobile.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Protected Routes › unauthenticated user visiting / is redirected to /login" classname="auth.spec.ts" time="2.749">
+<testcase name="Protected Routes › unauthenticated user visiting / is redirected to /login" classname="auth.spec.ts" time="0.655">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\protected-route-redirect.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Protected Routes › unauthenticated user visiting /transcriptions/:id is redirected to /login" classname="auth.spec.ts" time="2.72">
+<testcase name="Protected Routes › unauthenticated user visiting /transcriptions/:id is redirected to /login" classname="auth.spec.ts" time="0.662">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\protected-transcription-redirect.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Protected Routes › protected route shows loading spinner while checking auth" classname="auth.spec.ts" time="2.625">
+<testcase name="Protected Routes › protected route shows loading spinner while checking auth" classname="auth.spec.ts" time="0.537">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\protected-route-loading.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Keyboard Accessibility › login form can be submitted with keyboard only" classname="auth.spec.ts" time="3.193">
+<testcase name="Keyboard Accessibility › login form can be submitted with keyboard only" classname="auth.spec.ts" time="1.132">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\login-keyboard-navigation.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="Keyboard Accessibility › signup form can be navigated with Tab key" classname="auth.spec.ts" time="4.871">
+<testcase name="Keyboard Accessibility › signup form can be navigated with Tab key" classname="auth.spec.ts" time="1.124">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\auth\signup-keyboard-navigation.png
 ]]>
 </system-out>
 </testcase>
-<testcase name="UI Consistency › login page uses correct design tokens (no hardcoded colors in form area)" classname="auth.spec.ts" time="3.13">
+<testcase name="UI Consistency › login page uses correct design tokens (no hardcoded colors in form area)" classname="auth.spec.ts" time="0.985">
 </testcase>
-<testcase name="UI Consistency › signup page password strength bar uses correct colors" classname="auth.spec.ts" time="4.192">
+<testcase name="UI Consistency › signup page password strength bar uses correct colors" classname="auth.spec.ts" time="1.879">
 </testcase>
-<testcase name="Email Confirmation Flow › signup redirects to /check-email with email param" classname="auth.spec.ts" time="8.011">
+<testcase name="Email Confirmation Flow › signup redirects to /check-email with email param" classname="auth.spec.ts" time="3.135">
 </testcase>
-<testcase name="Email Confirmation Flow › /check-email page renders with all elements" classname="auth.spec.ts" time="6.43">
+<testcase name="Email Confirmation Flow › /check-email page renders with all elements" classname="auth.spec.ts" time="1.005">
 </testcase>
-<testcase name="Email Confirmation Flow › /check-email &apos;Back to login&apos; link works" classname="auth.spec.ts" time="6.063">
+<testcase name="Email Confirmation Flow › /check-email &apos;Back to login&apos; link works" classname="auth.spec.ts" time="1.213">
 </testcase>
-<testcase name="Email Confirmation Flow › /auth/callback shows spinner and redirects" classname="auth.spec.ts" time="7.872">
+<testcase name="Email Confirmation Flow › /auth/callback shows spinner and redirects" classname="auth.spec.ts" time="5.388">
 </testcase>
-<testcase name="Google OAuth Login › login page shows Google sign-in button" classname="auth.spec.ts" time="5.524">
+<testcase name="Google OAuth Login › login page shows Google sign-in button" classname="auth.spec.ts" time="0.976">
 </testcase>
-<testcase name="Google OAuth Login › signup page shows Google sign-in button" classname="auth.spec.ts" time="5.561">
+<testcase name="Google OAuth Login › signup page shows Google sign-in button" classname="auth.spec.ts" time="0.976">
 </testcase>
-<testcase name="Google OAuth Login › Google button shows loading state when clicked" classname="auth.spec.ts" time="8.538">
+<testcase name="Google OAuth Login › Google button shows loading state when clicked" classname="auth.spec.ts" time="5.992">
 </testcase>
 </testsuite>
 </testsuites>
