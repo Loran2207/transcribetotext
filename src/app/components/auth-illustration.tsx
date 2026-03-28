@@ -1,136 +1,171 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { useState, useEffect, useCallback } from "react";
+import { motion, useReducedMotion } from "motion/react";
 
-/* Scene durations in ms */
-const SCENE_DURATIONS = [3000, 2000, 4000];
+/* ═══════════════════════════════════════════════════════════════════════════
+   CSS Keyframes — injected once, used by waveform bars + floating cards.
+   Using CSS animations ensures they work in Vite production builds.
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ═══════════════════════════════════════════════
-   Scene 1 — Audio Waveform
-   ═══════════════════════════════════════════════ */
+const KEYFRAMES_ID = "auth-illustration-keyframes";
 
-function AudioWaveScene() {
-  const [tick, setTick] = useState(0);
-  const rafRef = useRef<number>(0);
+function ensureKeyframes() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById(KEYFRAMES_ID)) return;
 
-  useEffect(() => {
-    let running = true;
-    const animate = () => {
-      if (!running) return;
-      setTick(Date.now());
-      rafRef.current = requestAnimationFrame(animate);
-    };
-    rafRef.current = requestAnimationFrame(animate);
-    return () => {
-      running = false;
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
+  const style = document.createElement("style");
+  style.id = KEYFRAMES_ID;
+  style.textContent = `
+    @keyframes wave-bar {
+      0%, 100% { transform: scaleY(0.3); }
+      50% { transform: scaleY(1); }
+    }
+    @keyframes float-1 {
+      0%, 100% { transform: translateY(0px) rotateY(8deg) rotateX(4deg); }
+      50% { transform: translateY(-8px) rotateY(8deg) rotateX(4deg); }
+    }
+    @keyframes float-2 {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-12px); }
+    }
+    @keyframes float-3 {
+      0%, 100% { transform: translateY(0px) rotateY(-6deg) rotateX(-3deg); }
+      50% { transform: translateY(-6px) rotateY(-6deg) rotateX(-3deg); }
+    }
+    @keyframes float-dot {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(6px, -8px); }
+      66% { transform: translate(-4px, 4px); }
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes highlight-pill {
+      0%, 100% { background: rgba(255,255,255,0.06); }
+      50% { background: rgba(255,255,255,0.14); }
+    }
+    @keyframes copied-toast {
+      0% { opacity: 0; transform: translateY(4px); }
+      15%, 70% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-4px); }
+    }
+  `;
+  document.head.appendChild(style);
+}
 
-  const bars = useMemo(() => Array.from({ length: 28 }, (_, i) => i), []);
+/* ═══════════════════════════════════════════════════════════════════════════
+   Shared glass card style
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const glassBase: React.CSSProperties = {
+  backdropFilter: "blur(16px)",
+  WebkitBackdropFilter: "blur(16px)",
+  borderRadius: 16,
+};
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Card 1 — Waveform (back, top-right)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function WaveformCard({ reduced }: { reduced: boolean }) {
+  const bars = Array.from({ length: 20 }, (_, i) => i);
 
   return (
-    <div className="flex flex-col items-center gap-5">
-      <div className="flex items-end justify-center gap-[2.5px] h-20">
+    <div
+      style={{
+        ...glassBase,
+        position: "absolute",
+        top: -10,
+        right: -20,
+        width: 180,
+        padding: "20px 16px 16px",
+        background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+        opacity: 0.75,
+        zIndex: 1,
+        animation: reduced ? "none" : "float-1 3s ease-in-out infinite",
+        transformStyle: "preserve-3d",
+        transform: "rotateY(8deg) rotateX(4deg)",
+      }}
+    >
+      {/* Waveform bars */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "center",
+          gap: 2,
+          height: 48,
+          marginBottom: 12,
+        }}
+      >
         {bars.map((i) => {
-          const center = 13.5;
+          const center = 9.5;
           const dist = Math.abs(i - center) / center;
-          const opacity = 1 - dist * 0.55;
-          const time = tick / 1000;
-          const h =
-            6 +
-            Math.abs(Math.sin(time * 3 + i * 0.4)) * 18 * (1 - dist * 0.5) +
-            Math.abs(Math.cos(time * 2.3 + i * 0.7)) * 14 * (1 - dist * 0.3) +
-            Math.abs(Math.sin(time * 5 + i * 1.1)) * 8;
+          const duration = 0.5 + Math.random() * 0.7;
+          const delay = i * 0.05;
 
           return (
             <div
               key={i}
-              className="rounded-full"
               style={{
-                width: 3,
-                height: h,
+                width: 2.5,
+                height: 40 * (1 - dist * 0.5),
+                borderRadius: 2,
                 background: "var(--primary)",
-                opacity,
-                transition: "height 0.05s linear",
+                opacity: 1 - dist * 0.4,
+                transformOrigin: "bottom",
+                animation: reduced
+                  ? "none"
+                  : `wave-bar ${duration}s ease-in-out ${delay}s infinite`,
+                boxShadow: "0 0 6px rgba(88,101,242,0.3)",
               }}
             />
           );
         })}
       </div>
-      <div className="flex items-center gap-2">
+
+      {/* Recording label */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+        }}
+      >
         <div
-          className="w-2 h-2 rounded-full animate-pulse"
-          style={{ background: "var(--primary)" }}
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: "#ef4444",
+            animation: reduced ? "none" : "pulse-dot 1.2s ease-in-out infinite",
+          }}
         />
-        <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            color: "rgba(255,255,255,0.55)",
+            letterSpacing: "0.02em",
+          }}
+        >
           Recording...
-        </p>
+        </span>
       </div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════
-   Scene 2 — Processing
-   ═══════════════════════════════════════════════ */
-
-function ProcessingScene() {
-  return (
-    <div className="flex flex-col items-center gap-6">
-      <div className="relative">
-        <svg width="64" height="64" viewBox="0 0 64 64">
-          <circle
-            cx="32"
-            cy="32"
-            r="28"
-            fill="none"
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth="3"
-          />
-          <motion.circle
-            cx="32"
-            cy="32"
-            r="28"
-            fill="none"
-            stroke="var(--primary)"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray={175.9}
-            initial={{ strokeDashoffset: 175.9 }}
-            animate={{ strokeDashoffset: 0 }}
-            transition={{ duration: 1.8, ease: "easeInOut" }}
-            style={{ transformOrigin: "center", transform: "rotate(-90deg)" }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex gap-1">
-            {[0, 1, 2].map((i) => (
-              <motion.div
-                key={i}
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ background: "var(--primary)" }}
-                animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
-                transition={{
-                  duration: 1,
-                  delay: i * 0.2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-      <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.6)" }}>
-        Transcribing your audio...
-      </p>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════
-   Scene 3 — Transcript Result
-   ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════
+   Card 2 — Transcript (center, main)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 const SPEAKERS = [
   {
@@ -156,249 +191,517 @@ const SPEAKERS = [
   },
 ];
 
-function TypewriterText({ text, delay }: { text: string; delay: number }) {
-  const [displayedCount, setDisplayedCount] = useState(0);
+function TranscriptCard({ reduced }: { reduced: boolean }) {
+  const [visibleRows, setVisibleRows] = useState(0);
+  const [showSummary, setShowSummary] = useState(false);
+  const [cycle, setCycle] = useState(0);
+
+  const resetCycle = useCallback(() => {
+    setVisibleRows(0);
+    setShowSummary(false);
+    setCycle((c) => c + 1);
+  }, []);
 
   useEffect(() => {
-    const startTimeout = setTimeout(() => {
-      let count = 0;
-      const interval = setInterval(() => {
-        count += 1;
-        if (count >= text.length) {
-          setDisplayedCount(text.length);
-          clearInterval(interval);
-        } else {
-          setDisplayedCount(count);
-        }
-      }, 25);
-      return () => clearInterval(interval);
-    }, delay * 1000);
-    return () => clearTimeout(startTimeout);
-  }, [text, delay]);
+    if (reduced) {
+      setVisibleRows(3);
+      return;
+    }
+
+    // Stagger rows in
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    for (let i = 1; i <= 3; i++) {
+      timers.push(setTimeout(() => setVisibleRows(i), i * 1500));
+    }
+    // Show summary after rows
+    timers.push(setTimeout(() => setShowSummary(true), 5000));
+    // Reset and loop
+    timers.push(setTimeout(resetCycle, 8000));
+
+    return () => timers.forEach(clearTimeout);
+  }, [cycle, reduced, resetCycle]);
 
   return (
-    <span style={{ color: "rgba(255,255,255,0.7)" }}>
-      {text.slice(0, displayedCount)}
-      {displayedCount < text.length && (
-        <motion.span
-          className="inline-block w-[2px] h-3.5 ml-[1px] align-text-bottom"
-          style={{ background: "var(--primary)" }}
-          animate={{ opacity: [1, 0] }}
-          transition={{ duration: 0.5, repeat: Infinity }}
-        />
-      )}
-    </span>
-  );
-}
-
-function ResultScene() {
-  return (
-    <div className="flex flex-col gap-3 w-full">
+    <div
+      style={{
+        ...glassBase,
+        position: "relative",
+        width: 300,
+        padding: "0",
+        background: "rgba(255,255,255,0.09)",
+        border: "1px solid rgba(255,255,255,0.15)",
+        boxShadow:
+          "0 20px 60px rgba(0,0,0,0.35), 0 0 40px rgba(88,101,242,0.08)",
+        zIndex: 2,
+        animation: reduced ? "none" : "float-2 4s ease-in-out infinite",
+        overflow: "hidden",
+      }}
+    >
+      {/* Header */}
       <div
-        className="rounded-xl p-4 flex flex-col gap-3.5"
         style={{
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "14px 16px 10px",
+          borderBottom: "1px solid rgba(255,255,255,0.08)",
         }}
       >
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "rgba(255,255,255,0.85)",
+            letterSpacing: "0.01em",
+          }}
+        >
+          Meeting Transcript
+        </span>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            color: "#22c55e",
+            background: "rgba(34,197,94,0.12)",
+            border: "1px solid rgba(34,197,94,0.2)",
+            borderRadius: 20,
+            padding: "2px 8px",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          }}
+        >
+          <span
+            style={{
+              width: 5,
+              height: 5,
+              borderRadius: "50%",
+              background: "#22c55e",
+              animation: reduced
+                ? "none"
+                : "pulse-dot 1.5s ease-in-out infinite",
+            }}
+          />
+          Live
+        </span>
+      </div>
+
+      {/* Speaker rows */}
+      <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 10, minHeight: 140 }}>
         {SPEAKERS.map((speaker, i) => (
           <motion.div
-            key={speaker.initial}
-            className="flex gap-2.5"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
+            key={`${speaker.initial}-${cycle}`}
+            style={{
+              display: "flex",
+              gap: 8,
+              opacity: 0,
+            }}
+            animate={
+              i < visibleRows ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
+            }
+            initial={{ opacity: 0, y: 10 }}
             transition={{
-              type: "spring",
-              stiffness: 300,
-              damping: 24,
-              delay: i * 0.6,
+              duration: 0.4,
+              ease: [0.23, 1, 0.32, 1],
             }}
           >
             <div
-              className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold mt-0.5"
-              style={{ background: speaker.color, color: "white" }}
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 9,
+                fontWeight: 700,
+                color: "white",
+                background: speaker.color,
+                marginTop: 1,
+              }}
             >
               {speaker.initial}
             </div>
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <div className="flex items-center gap-2">
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span
-                  className="text-xs font-semibold"
-                  style={{ color: "rgba(255,255,255,0.85)" }}
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "rgba(255,255,255,0.85)",
+                  }}
                 >
                   {speaker.name}
                 </span>
-                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                <span
+                  style={{
+                    fontSize: 9,
+                    color: "rgba(255,255,255,0.3)",
+                  }}
+                >
                   {speaker.time}
                 </span>
               </div>
-              <p className="text-[13px] leading-relaxed">
-                <TypewriterText text={speaker.text} delay={i * 0.6 + 0.3} />
+              <p
+                style={{
+                  fontSize: 11,
+                  lineHeight: 1.5,
+                  color: "rgba(255,255,255,0.6)",
+                  margin: 0,
+                }}
+              >
+                {speaker.text}
               </p>
             </div>
           </motion.div>
         ))}
       </div>
 
+      {/* AI Summary shimmer */}
       <motion.div
-        className="flex items-center gap-1.5 self-end px-2.5 py-1 rounded-full"
+        animate={showSummary ? { opacity: 1 } : { opacity: 0 }}
+        initial={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
         style={{
-          background: "rgba(34,197,94,0.12)",
-          border: "1px solid rgba(34,197,94,0.2)",
+          padding: "10px 16px 14px",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
         }}
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 2.4, type: "spring", stiffness: 400, damping: 20 }}
       >
-        <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#22c55e" }} />
-        <span className="text-[11px] font-medium" style={{ color: "#22c55e" }}>
-          Transcription complete
-        </span>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            marginBottom: 6,
+          }}
+        >
+          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>
+            AI Summary generating...
+          </span>
+        </div>
+        <div
+          style={{
+            height: 8,
+            borderRadius: 4,
+            background:
+              "linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 75%)",
+            backgroundSize: "200% 100%",
+            animation: reduced ? "none" : "shimmer 1.5s ease-in-out infinite",
+          }}
+        />
+        <div
+          style={{
+            height: 8,
+            borderRadius: 4,
+            marginTop: 4,
+            width: "60%",
+            background:
+              "linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 75%)",
+            backgroundSize: "200% 100%",
+            animation: reduced
+              ? "none"
+              : "shimmer 1.5s ease-in-out 0.2s infinite",
+          }}
+        />
       </motion.div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════
-   Static fallback (reduced motion)
-   ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════
+   Card 3 — Export & Share (front, bottom-left)
+   ═══════════════════════════════════════════════════════════════════════════ */
 
-function StaticResult() {
+const FORMATS = ["TXT", "SRT", "DOCX"];
+
+function ExportCard({ reduced }: { reduced: boolean }) {
+  const [copiedVisible, setCopiedVisible] = useState(false);
+
+  useEffect(() => {
+    if (reduced) return;
+    const show = () => {
+      setCopiedVisible(true);
+      setTimeout(() => setCopiedVisible(false), 2000);
+    };
+    const timer = setInterval(show, 5000);
+    // Fire once initially after a delay
+    const initial = setTimeout(show, 3000);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(initial);
+    };
+  }, [reduced]);
+
   return (
-    <div className="flex flex-col gap-3 w-full">
-      <div
-        className="rounded-xl p-4 flex flex-col gap-3.5"
+    <div
+      style={{
+        ...glassBase,
+        position: "absolute",
+        bottom: -6,
+        left: -24,
+        width: 190,
+        padding: "14px 14px 12px",
+        background: "rgba(255,255,255,0.05)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
+        zIndex: 3,
+        animation: reduced ? "none" : "float-3 3.5s ease-in-out infinite",
+        transformStyle: "preserve-3d",
+        transform: "rotateY(-6deg) rotateX(-3deg)",
+      }}
+    >
+      {/* Header */}
+      <span
         style={{
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.08)",
+          fontSize: 11,
+          fontWeight: 600,
+          color: "rgba(255,255,255,0.8)",
+          display: "block",
+          marginBottom: 10,
+          letterSpacing: "0.01em",
         }}
       >
-        {SPEAKERS.map((speaker) => (
-          <div key={speaker.initial} className="flex gap-2.5">
-            <div
-              className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold mt-0.5"
-              style={{ background: speaker.color, color: "white" }}
-            >
-              {speaker.initial}
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold" style={{ color: "rgba(255,255,255,0.85)" }}>
-                  {speaker.name}
-                </span>
-                <span className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>
-                  {speaker.time}
-                </span>
-              </div>
-              <p className="text-[13px] leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>
-                {speaker.text}
-              </p>
-            </div>
+        Export & Share
+      </span>
+
+      {/* Format pills */}
+      <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        {FORMATS.map((fmt, i) => (
+          <div
+            key={fmt}
+            style={{
+              fontSize: 10,
+              fontWeight: 500,
+              color: "rgba(255,255,255,0.65)",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 8,
+              padding: "4px 8px",
+              display: "flex",
+              alignItems: "center",
+              gap: 3,
+              animation: reduced
+                ? "none"
+                : `highlight-pill 2.5s ease-in-out ${i * 0.8}s infinite`,
+            }}
+          >
+            {fmt}
+            <span style={{ fontSize: 8, opacity: 0.5 }}>&#8595;</span>
           </div>
         ))}
       </div>
+
+      {/* Share link row */}
       <div
-        className="flex items-center gap-1.5 self-end px-2.5 py-1 rounded-full"
         style={{
-          background: "rgba(34,197,94,0.12)",
-          border: "1px solid rgba(34,197,94,0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.06)",
+          borderRadius: 8,
+          padding: "6px 8px",
+          position: "relative",
         }}
       >
-        <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#22c55e" }} />
-        <span className="text-[11px] font-medium" style={{ color: "#22c55e" }}>
-          Transcription complete
+        <span
+          style={{
+            fontSize: 10,
+            color: "rgba(255,255,255,0.45)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            maxWidth: 110,
+          }}
+        >
+          transcribe.to/s/a8f2k
         </span>
+        {/* Copy icon (simple SVG) */}
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="rgba(255,255,255,0.4)"
+          strokeWidth="2"
+          strokeLinecap="round"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" />
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+        </svg>
       </div>
+
+      {/* "Copied!" toast */}
+      {copiedVisible && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: -8,
+            right: 12,
+            fontSize: 9,
+            fontWeight: 600,
+            color: "#22c55e",
+            background: "rgba(34,197,94,0.12)",
+            border: "1px solid rgba(34,197,94,0.2)",
+            borderRadius: 6,
+            padding: "3px 8px",
+            animation: "copied-toast 2s ease-out forwards",
+            display: "flex",
+            alignItems: "center",
+            gap: 3,
+          }}
+        >
+          <svg
+            width="10"
+            height="10"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#22c55e"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          Copied!
+        </div>
+      )}
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════
-   Main illustration component
-   ═══════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════════
+   Floating ambient dots
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const DOTS = [
+  { size: 10, x: "12%", y: "18%", opacity: 0.35, dur: "6s", delay: "0s" },
+  { size: 14, x: "78%", y: "72%", opacity: 0.25, dur: "8s", delay: "1s" },
+  { size: 8, x: "65%", y: "25%", opacity: 0.4, dur: "7s", delay: "2s" },
+  { size: 12, x: "25%", y: "80%", opacity: 0.3, dur: "5s", delay: "0.5s" },
+];
+
+function AmbientDots({ reduced }: { reduced: boolean }) {
+  return (
+    <>
+      {DOTS.map((dot, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            left: dot.x,
+            top: dot.y,
+            width: dot.size,
+            height: dot.size,
+            borderRadius: "50%",
+            background: "var(--primary)",
+            opacity: dot.opacity,
+            filter: "blur(3px)",
+            animation: reduced
+              ? "none"
+              : `float-dot ${dot.dur} ease-in-out ${dot.delay} infinite`,
+            pointerEvents: "none",
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Main illustration — all 3 cards visible simultaneously
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 export function AuthIllustration() {
-  const prefersReducedMotion = useReducedMotion();
-  const [currentScene, setCurrentScene] = useState(0);
-
-  const advanceScene = useCallback(() => {
-    setCurrentScene((prev) => (prev + 1) % 3);
-  }, []);
+  const prefersReducedMotion = useReducedMotion() ?? false;
 
   useEffect(() => {
-    if (prefersReducedMotion) return;
-
-    const timeout = setTimeout(advanceScene, SCENE_DURATIONS[currentScene]);
-    return () => clearTimeout(timeout);
-  }, [currentScene, prefersReducedMotion, advanceScene]);
-
-  if (prefersReducedMotion) {
-    return (
-      <div
-        className="w-full p-8 flex items-center justify-center"
-        style={{
-          maxWidth: 420,
-          background: "rgba(255,255,255,0.06)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: "var(--radius-2xl)",
-          boxShadow: "0 0 60px rgba(100,130,255,0.1)",
-        }}
-      >
-        <StaticResult />
-      </div>
-    );
-  }
+    ensureKeyframes();
+  }, []);
 
   return (
     <div
-      className="w-full p-8 flex items-center justify-center"
       style={{
+        position: "relative",
+        width: "100%",
         maxWidth: 420,
-        minHeight: 280,
-        background: "rgba(255,255,255,0.06)",
-        border: "1px solid rgba(255,255,255,0.12)",
-        borderRadius: "var(--radius-2xl)",
-        boxShadow: "0 0 60px rgba(100,130,255,0.1)",
+        height: 320,
+        perspective: "1200px",
       }}
     >
-      <AnimatePresence mode="wait">
-        {currentScene === 0 && (
+      {/* Radial glow behind main card */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(ellipse 60% 45% at 50% 50%, rgba(88,101,242,0.12) 0%, transparent 70%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      {/* Ambient floating dots */}
+      <AmbientDots reduced={prefersReducedMotion} />
+
+      {/* Card container — centered with perspective */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transformStyle: "preserve-3d",
+        }}
+      >
+        {/* Entrance animations via motion */}
+        <motion.div
+          style={{
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.92 }}
+          animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1], delay: 0.3 }}
+        >
+          {/* Card 1 — Waveform (back, top-right) */}
           <motion.div
-            key="wave"
-            className="flex items-center justify-center w-full"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
+            initial={prefersReducedMotion ? undefined : { opacity: 0, x: 30, y: -20 }}
+            animate={prefersReducedMotion ? undefined : { opacity: 1, x: 0, y: 0 }}
+            transition={{
+              duration: 0.5,
+              ease: [0.23, 1, 0.32, 1],
+              delay: 0.5,
+            }}
           >
-            <AudioWaveScene />
+            <WaveformCard reduced={prefersReducedMotion} />
           </motion.div>
-        )}
-        {currentScene === 1 && (
+
+          {/* Card 2 — Transcript (center) */}
+          <TranscriptCard reduced={prefersReducedMotion} />
+
+          {/* Card 3 — Export (front, bottom-left) */}
           <motion.div
-            key="processing"
-            className="flex items-center justify-center w-full"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
+            initial={
+              prefersReducedMotion ? undefined : { opacity: 0, x: -20, y: 20 }
+            }
+            animate={
+              prefersReducedMotion ? undefined : { opacity: 1, x: 0, y: 0 }
+            }
+            transition={{
+              duration: 0.5,
+              ease: [0.23, 1, 0.32, 1],
+              delay: 0.7,
+            }}
           >
-            <ProcessingScene />
+            <ExportCard reduced={prefersReducedMotion} />
           </motion.div>
-        )}
-        {currentScene === 2 && (
-          <motion.div
-            key="result"
-            className="flex items-center justify-center w-full"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
-          >
-            <ResultScene />
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </motion.div>
+      </div>
     </div>
   );
 }

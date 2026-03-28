@@ -44,17 +44,9 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         className="hidden lg:flex w-[55%] flex-col relative overflow-hidden"
         style={{
           background:
-            "linear-gradient(135deg, oklch(0.12 0.01 264) 0%, oklch(0.08 0.005 264) 100%)",
+            "radial-gradient(ellipse 80% 50% at 20% 30%, oklch(0.22 0.07 264) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 70%, oklch(0.16 0.05 280) 0%, transparent 50%), oklch(0.08 0.01 264)",
         }}
       >
-        {/* Subtle background glow */}
-        <div
-          className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none"
-          style={{
-            background: "radial-gradient(circle, rgba(100,130,255,0.08) 0%, transparent 70%)",
-          }}
-        />
-
         {/* Top: Logo */}
         <div className="p-8 relative z-10">
           <AuthLogo />
