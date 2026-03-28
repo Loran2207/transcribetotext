@@ -1,61 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   CSS Keyframes — injected once, used by waveform bars + floating cards.
-   Using CSS animations ensures they work in Vite production builds.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-const KEYFRAMES_ID = "auth-illustration-keyframes";
-
-function ensureKeyframes() {
-  if (typeof document === "undefined") return;
-  if (document.getElementById(KEYFRAMES_ID)) return;
-
-  const style = document.createElement("style");
-  style.id = KEYFRAMES_ID;
-  style.textContent = `
-    @keyframes wave-bar {
-      0%, 100% { transform: scaleY(0.3); }
-      50% { transform: scaleY(1); }
-    }
-    @keyframes float-1 {
-      0%, 100% { transform: translateY(0px) rotateY(8deg) rotateX(4deg); }
-      50% { transform: translateY(-8px) rotateY(8deg) rotateX(4deg); }
-    }
-    @keyframes float-2 {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-12px); }
-    }
-    @keyframes float-3 {
-      0%, 100% { transform: translateY(0px) rotateY(-6deg) rotateX(-3deg); }
-      50% { transform: translateY(-6px) rotateY(-6deg) rotateX(-3deg); }
-    }
-    @keyframes float-dot {
-      0%, 100% { transform: translate(0, 0); }
-      33% { transform: translate(6px, -8px); }
-      66% { transform: translate(-4px, 4px); }
-    }
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    @keyframes highlight-pill {
-      0%, 100% { background: rgba(255,255,255,0.06); }
-      50% { background: rgba(255,255,255,0.14); }
-    }
-    @keyframes copied-toast {
-      0% { opacity: 0; transform: translateY(4px); }
-      15%, 70% { opacity: 1; transform: translateY(0); }
-      100% { opacity: 0; transform: translateY(-4px); }
-    }
-  `;
-  document.head.appendChild(style);
-}
+/*
+ * All @keyframes are defined in src/styles/index.css (not runtime-injected)
+ * so they survive Vite production tree-shaking and are available on first paint.
+ *
+ * Keyframe names: auth-wave-bar, auth-float-1, auth-float-2, auth-float-3,
+ *   auth-float-dot, auth-pulse-dot, auth-shimmer, auth-highlight-pill,
+ *   auth-copied-toast
+ */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Shared glass card style
@@ -66,6 +19,12 @@ const glassBase: React.CSSProperties = {
   WebkitBackdropFilter: "blur(16px)",
   borderRadius: 16,
 };
+
+/* Pre-computed bar durations to avoid Math.random() during render */
+const BAR_DURATIONS = [
+  0.72, 0.91, 0.54, 1.03, 0.67, 0.85, 1.12, 0.58, 0.96, 0.74,
+  0.88, 0.63, 1.07, 0.79, 0.52, 0.95, 0.68, 1.01, 0.83, 0.59,
+];
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Card 1 — Waveform (back, top-right)
@@ -88,7 +47,7 @@ function WaveformCard({ reduced }: { reduced: boolean }) {
         boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
         opacity: 0.75,
         zIndex: 1,
-        animation: reduced ? "none" : "float-1 3s ease-in-out infinite",
+        animation: `auth-float-1 ${reduced ? "0.01s" : "3s"} ease-in-out infinite`,
         transformStyle: "preserve-3d",
         transform: "rotateY(8deg) rotateX(4deg)",
       }}
@@ -107,7 +66,7 @@ function WaveformCard({ reduced }: { reduced: boolean }) {
         {bars.map((i) => {
           const center = 9.5;
           const dist = Math.abs(i - center) / center;
-          const duration = 0.5 + Math.random() * 0.7;
+          const duration = BAR_DURATIONS[i];
           const delay = i * 0.05;
 
           return (
@@ -120,9 +79,7 @@ function WaveformCard({ reduced }: { reduced: boolean }) {
                 background: "var(--primary)",
                 opacity: 1 - dist * 0.4,
                 transformOrigin: "bottom",
-                animation: reduced
-                  ? "none"
-                  : `wave-bar ${duration}s ease-in-out ${delay}s infinite`,
+                animation: `auth-wave-bar ${reduced ? "0.01s" : `${duration}s`} ease-in-out ${delay}s infinite`,
                 boxShadow: "0 0 6px rgba(88,101,242,0.3)",
               }}
             />
@@ -145,7 +102,7 @@ function WaveformCard({ reduced }: { reduced: boolean }) {
             height: 6,
             borderRadius: "50%",
             background: "#ef4444",
-            animation: reduced ? "none" : "pulse-dot 1.2s ease-in-out infinite",
+            animation: `auth-pulse-dot ${reduced ? "0.01s" : "1.2s"} ease-in-out infinite`,
           }}
         />
         <span
@@ -192,8 +149,8 @@ const SPEAKERS = [
 ];
 
 function TranscriptCard({ reduced }: { reduced: boolean }) {
-  const [visibleRows, setVisibleRows] = useState(0);
-  const [showSummary, setShowSummary] = useState(false);
+  const [visibleRows, setVisibleRows] = useState(reduced ? 3 : 0);
+  const [showSummary, setShowSummary] = useState(reduced);
   const [cycle, setCycle] = useState(0);
 
   const resetCycle = useCallback(() => {
@@ -205,17 +162,15 @@ function TranscriptCard({ reduced }: { reduced: boolean }) {
   useEffect(() => {
     if (reduced) {
       setVisibleRows(3);
+      setShowSummary(true);
       return;
     }
 
-    // Stagger rows in
     const timers: ReturnType<typeof setTimeout>[] = [];
     for (let i = 1; i <= 3; i++) {
       timers.push(setTimeout(() => setVisibleRows(i), i * 1500));
     }
-    // Show summary after rows
     timers.push(setTimeout(() => setShowSummary(true), 5000));
-    // Reset and loop
     timers.push(setTimeout(resetCycle, 8000));
 
     return () => timers.forEach(clearTimeout);
@@ -233,7 +188,7 @@ function TranscriptCard({ reduced }: { reduced: boolean }) {
         boxShadow:
           "0 20px 60px rgba(0,0,0,0.35), 0 0 40px rgba(88,101,242,0.08)",
         zIndex: 2,
-        animation: reduced ? "none" : "float-2 4s ease-in-out infinite",
+        animation: `auth-float-2 ${reduced ? "0.01s" : "4s"} ease-in-out infinite`,
         overflow: "hidden",
       }}
     >
@@ -277,9 +232,7 @@ function TranscriptCard({ reduced }: { reduced: boolean }) {
               height: 5,
               borderRadius: "50%",
               background: "#22c55e",
-              animation: reduced
-                ? "none"
-                : "pulse-dot 1.5s ease-in-out infinite",
+              animation: `auth-pulse-dot ${reduced ? "0.01s" : "1.5s"} ease-in-out infinite`,
             }}
           />
           Live
@@ -287,23 +240,27 @@ function TranscriptCard({ reduced }: { reduced: boolean }) {
       </div>
 
       {/* Speaker rows */}
-      <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 10, minHeight: 140 }}>
+      <div
+        style={{
+          padding: "12px 16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          minHeight: 140,
+        }}
+      >
         {SPEAKERS.map((speaker, i) => (
           <motion.div
             key={`${speaker.initial}-${cycle}`}
-            style={{
-              display: "flex",
-              gap: 8,
-              opacity: 0,
-            }}
+            initial={{ opacity: 0, y: 10 }}
             animate={
               i < visibleRows ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }
             }
-            initial={{ opacity: 0, y: 10 }}
             transition={{
-              duration: 0.4,
+              duration: reduced ? 0.01 : 0.4,
               ease: [0.23, 1, 0.32, 1],
             }}
+            style={{ display: "flex", gap: 8 }}
           >
             <div
               style={{
@@ -323,7 +280,14 @@ function TranscriptCard({ reduced }: { reduced: boolean }) {
             >
               {speaker.initial}
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                minWidth: 0,
+              }}
+            >
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <span
                   style={{
@@ -334,12 +298,7 @@ function TranscriptCard({ reduced }: { reduced: boolean }) {
                 >
                   {speaker.name}
                 </span>
-                <span
-                  style={{
-                    fontSize: 9,
-                    color: "rgba(255,255,255,0.3)",
-                  }}
-                >
+                <span style={{ fontSize: 9, color: "rgba(255,255,255,0.3)" }}>
                   {speaker.time}
                 </span>
               </div>
@@ -362,7 +321,7 @@ function TranscriptCard({ reduced }: { reduced: boolean }) {
       <motion.div
         animate={showSummary ? { opacity: 1 } : { opacity: 0 }}
         initial={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: reduced ? 0.01 : 0.3 }}
         style={{
           padding: "10px 16px 14px",
           borderTop: "1px solid rgba(255,255,255,0.06)",
@@ -387,7 +346,7 @@ function TranscriptCard({ reduced }: { reduced: boolean }) {
             background:
               "linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 75%)",
             backgroundSize: "200% 100%",
-            animation: reduced ? "none" : "shimmer 1.5s ease-in-out infinite",
+            animation: `auth-shimmer ${reduced ? "0.01s" : "1.5s"} ease-in-out infinite`,
           }}
         />
         <div
@@ -399,9 +358,7 @@ function TranscriptCard({ reduced }: { reduced: boolean }) {
             background:
               "linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.04) 75%)",
             backgroundSize: "200% 100%",
-            animation: reduced
-              ? "none"
-              : "shimmer 1.5s ease-in-out 0.2s infinite",
+            animation: `auth-shimmer ${reduced ? "0.01s" : "1.5s"} ease-in-out 0.2s infinite`,
           }}
         />
       </motion.div>
@@ -425,7 +382,6 @@ function ExportCard({ reduced }: { reduced: boolean }) {
       setTimeout(() => setCopiedVisible(false), 2000);
     };
     const timer = setInterval(show, 5000);
-    // Fire once initially after a delay
     const initial = setTimeout(show, 3000);
     return () => {
       clearInterval(timer);
@@ -446,7 +402,7 @@ function ExportCard({ reduced }: { reduced: boolean }) {
         border: "1px solid rgba(255,255,255,0.1)",
         boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
         zIndex: 3,
-        animation: reduced ? "none" : "float-3 3.5s ease-in-out infinite",
+        animation: `auth-float-3 ${reduced ? "0.01s" : "3.5s"} ease-in-out infinite`,
         transformStyle: "preserve-3d",
         transform: "rotateY(-6deg) rotateX(-3deg)",
       }}
@@ -481,9 +437,7 @@ function ExportCard({ reduced }: { reduced: boolean }) {
               display: "flex",
               alignItems: "center",
               gap: 3,
-              animation: reduced
-                ? "none"
-                : `highlight-pill 2.5s ease-in-out ${i * 0.8}s infinite`,
+              animation: `auth-highlight-pill ${reduced ? "0.01s" : "2.5s"} ease-in-out ${i * 0.8}s infinite`,
             }}
           >
             {fmt}
@@ -517,7 +471,6 @@ function ExportCard({ reduced }: { reduced: boolean }) {
         >
           transcribe.to/s/a8f2k
         </span>
-        {/* Copy icon (simple SVG) */}
         <svg
           width="12"
           height="12"
@@ -546,7 +499,7 @@ function ExportCard({ reduced }: { reduced: boolean }) {
             border: "1px solid rgba(34,197,94,0.2)",
             borderRadius: 6,
             padding: "3px 8px",
-            animation: "copied-toast 2s ease-out forwards",
+            animation: "auth-copied-toast 2s ease-out forwards",
             display: "flex",
             alignItems: "center",
             gap: 3,
@@ -598,9 +551,7 @@ function AmbientDots({ reduced }: { reduced: boolean }) {
             background: "var(--primary)",
             opacity: dot.opacity,
             filter: "blur(3px)",
-            animation: reduced
-              ? "none"
-              : `float-dot ${dot.dur} ease-in-out ${dot.delay} infinite`,
+            animation: `auth-float-dot ${reduced ? "0.01s" : dot.dur} ease-in-out ${dot.delay} infinite`,
             pointerEvents: "none",
           }}
         />
@@ -615,10 +566,6 @@ function AmbientDots({ reduced }: { reduced: boolean }) {
 
 export function AuthIllustration() {
   const prefersReducedMotion = useReducedMotion() ?? false;
-
-  useEffect(() => {
-    ensureKeyframes();
-  }, []);
 
   return (
     <div
@@ -664,18 +611,22 @@ export function AuthIllustration() {
             alignItems: "center",
             justifyContent: "center",
           }}
-          initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.92 }}
-          animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1], delay: 0.3 }}
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{
+            duration: prefersReducedMotion ? 0.01 : 0.6,
+            ease: [0.23, 1, 0.32, 1],
+            delay: prefersReducedMotion ? 0 : 0.3,
+          }}
         >
           {/* Card 1 — Waveform (back, top-right) */}
           <motion.div
-            initial={prefersReducedMotion ? undefined : { opacity: 0, x: 30, y: -20 }}
-            animate={prefersReducedMotion ? undefined : { opacity: 1, x: 0, y: 0 }}
+            initial={{ opacity: 0, x: 30, y: -20 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{
-              duration: 0.5,
+              duration: prefersReducedMotion ? 0.01 : 0.5,
               ease: [0.23, 1, 0.32, 1],
-              delay: 0.5,
+              delay: prefersReducedMotion ? 0 : 0.5,
             }}
           >
             <WaveformCard reduced={prefersReducedMotion} />
@@ -686,16 +637,12 @@ export function AuthIllustration() {
 
           {/* Card 3 — Export (front, bottom-left) */}
           <motion.div
-            initial={
-              prefersReducedMotion ? undefined : { opacity: 0, x: -20, y: 20 }
-            }
-            animate={
-              prefersReducedMotion ? undefined : { opacity: 1, x: 0, y: 0 }
-            }
+            initial={{ opacity: 0, x: -20, y: 20 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{
-              duration: 0.5,
+              duration: prefersReducedMotion ? 0.01 : 0.5,
               ease: [0.23, 1, 0.32, 1],
-              delay: 0.7,
+              delay: prefersReducedMotion ? 0 : 0.7,
             }}
           >
             <ExportCard reduced={prefersReducedMotion} />
