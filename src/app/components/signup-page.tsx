@@ -39,13 +39,14 @@ const STRENGTH_CONFIG: Record<PasswordStrength, { color: string; width: string; 
 };
 
 export function SignupPage() {
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
@@ -74,8 +75,18 @@ export function SignupPage() {
       return;
     }
 
-    toast.success("Account created! Check your email.");
-    navigate("/login");
+    toast.success("Almost there! Check your inbox.");
+    navigate(`/check-email?email=${encodeURIComponent(data.email)}`);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setErrorMessage(null);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      setErrorMessage(error.message);
+      setIsGoogleLoading(false);
+    }
   };
 
   const animProps = (delay: number) =>
@@ -107,8 +118,44 @@ export function SignupPage() {
           <p className="text-sm text-destructive">{errorMessage}</p>
         )}
 
+        {/* Google Sign In */}
+        <motion.div {...animProps(0.12)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full rounded-full"
+            onClick={handleGoogleSignIn}
+            disabled={isGoogleLoading || isSubmitting}
+          >
+            {isGoogleLoading ? (
+              <>
+                <Icon icon={Loading01Icon} size={16} className="animate-spin" />
+                Redirecting...
+              </>
+            ) : (
+              <>
+                <svg width="18" height="18" viewBox="0 0 18 18" className="shrink-0">
+                  <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/>
+                  <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/>
+                  <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18z"/>
+                  <path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/>
+                </svg>
+                Continue with Google
+              </>
+            )}
+          </Button>
+        </motion.div>
+
+        {/* Divider */}
+        <motion.div className="flex items-center gap-3" {...animProps(0.14)}>
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-xs text-muted-foreground">or</span>
+          <div className="flex-1 h-px bg-border" />
+        </motion.div>
+
         {/* Full Name */}
-        <motion.div className="flex flex-col gap-2" {...animProps(0.16)}>
+        <motion.div className="flex flex-col gap-2" {...animProps(0.22)}>
           <Label htmlFor="fullName">Full name</Label>
           <Input
             id="fullName"
@@ -124,7 +171,7 @@ export function SignupPage() {
         </motion.div>
 
         {/* Email */}
-        <motion.div className="flex flex-col gap-2" {...animProps(0.24)}>
+        <motion.div className="flex flex-col gap-2" {...animProps(0.30)}>
           <Label htmlFor="signupEmail">Email</Label>
           <Input
             id="signupEmail"
@@ -146,7 +193,7 @@ export function SignupPage() {
         </motion.div>
 
         {/* Password */}
-        <motion.div className="flex flex-col gap-2" {...animProps(0.32)}>
+        <motion.div className="flex flex-col gap-2" {...animProps(0.38)}>
           <Label htmlFor="signupPassword">Password</Label>
           <div className="relative">
             <Input
@@ -203,7 +250,7 @@ export function SignupPage() {
         </motion.div>
 
         {/* Confirm Password */}
-        <motion.div className="flex flex-col gap-2" {...animProps(0.4)}>
+        <motion.div className="flex flex-col gap-2" {...animProps(0.46)}>
           <Label htmlFor="confirmPassword">Confirm password</Label>
           <div className="relative">
             <Input
@@ -239,7 +286,7 @@ export function SignupPage() {
         </motion.div>
 
         {/* Submit */}
-        <motion.div {...animProps(0.48)}>
+        <motion.div {...animProps(0.54)}>
           <Button
             type="submit"
             className="w-full rounded-full"
@@ -263,7 +310,7 @@ export function SignupPage() {
 
         <motion.p
           className="text-sm text-center text-muted-foreground"
-          {...animProps(0.56)}
+          {...animProps(0.62)}
         >
           Already have an account?{" "}
           <Link

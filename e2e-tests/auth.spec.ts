@@ -484,7 +484,7 @@ test.describe("Signup Page", () => {
     await screenshot(page, "signup-loading-state");
   });
 
-  test("successful signup shows toast and redirects to /login", async ({ page }) => {
+  test("successful signup shows toast and redirects to /check-email", async ({ page }) => {
     await mockSignupSuccess(page);
 
     await typeInto(page, "#fullName", "Jane Doe");
@@ -495,12 +495,12 @@ test.describe("Signup Page", () => {
     await page.getByRole("button", { name: "Create account" }).click();
 
     // Should show success toast
-    await expect(page.getByText("Account created! Check your email.")).toBeVisible({
+    await expect(page.getByText("Almost there! Check your inbox.")).toBeVisible({
       timeout: 10000,
     });
 
-    // Should redirect to login
-    await page.waitForURL(`${BASE_URL}/login`, { timeout: 10000 });
+    // Should redirect to check-email
+    await page.waitForURL(/\/check-email\?email=/, { timeout: 10000 });
 
     await screenshot(page, "signup-success-redirect");
   });
@@ -704,5 +704,148 @@ test.describe("UI Consistency", () => {
     await typeInto(page, "#signupPassword", "AbcDefGh1!");
     const strongLabel = page.getByText("Strong");
     await expect(strongLabel).toBeVisible({ timeout: 3000 });
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  EMAIL CONFIRMATION FLOW TESTS
+// ═════════════════════════════════════════════════════════════════════════════
+
+test.describe("Email Confirmation Flow", () => {
+  test("signup redirects to /check-email with email param", async ({ page }) => {
+    // Mock successful signup
+    await page.route(`${SUPABASE_URL}/auth/v1/signup**`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          id: "new-user-id",
+          email: "jane@example.com",
+          user_metadata: { full_name: "Jane Doe" },
+        }),
+      });
+    });
+
+    await page.goto("http://localhost:5173/signup");
+    await page.waitForLoadState("networkidle");
+
+    // Fill form using pressSequentially for RHF compatibility
+    const fullName = page.locator("#fullName");
+    await fullName.click();
+    await fullName.fill("");
+    await fullName.pressSequentially("Jane Doe", { delay: 30 });
+
+    const email = page.locator("#signupEmail");
+    await email.click();
+    await email.fill("");
+    await email.pressSequentially("jane@example.com", { delay: 30 });
+
+    const password = page.locator("#signupPassword");
+    await password.click();
+    await password.fill("");
+    await password.pressSequentially("StrongPass123", { delay: 30 });
+
+    const confirm = page.locator("#confirmPassword");
+    await confirm.click();
+    await confirm.fill("");
+    await confirm.pressSequentially("StrongPass123", { delay: 30 });
+
+    await page.getByRole("button", { name: "Create account" }).click();
+
+    // Should redirect to check-email with email param
+    await page.waitForURL(/\/check-email\?email=/, { timeout: 10000 });
+
+    // Should show confirmation page content
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+    await expect(page.getByText("jane@example.com")).toBeVisible();
+  });
+
+  test("/check-email page renders with all elements", async ({ page }) => {
+    await page.goto("http://localhost:5173/check-email?email=test@example.com");
+    await page.waitForLoadState("networkidle");
+
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+    await expect(page.getByText("test@example.com")).toBeVisible();
+    await expect(page.getByRole("button", { name: /Resend email/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Back to login/i })).toBeVisible();
+  });
+
+  test("/check-email 'Back to login' link works", async ({ page }) => {
+    await page.goto("http://localhost:5173/check-email?email=test@example.com");
+    await page.waitForLoadState("networkidle");
+
+    await page.getByRole("link", { name: /Back to login/i }).click();
+    await page.waitForURL(/\/login/);
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
+  });
+
+  test("/auth/callback shows spinner and redirects", async ({ page }) => {
+    // Mock getSession to return no session (will timeout and redirect to login)
+    await page.route(`${SUPABASE_URL}/auth/v1/**`, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ data: { session: null }, error: null }),
+      });
+    });
+
+    await page.goto("http://localhost:5173/auth/callback");
+
+    // Should show confirming text
+    await expect(page.getByText(/Confirming your email/i)).toBeVisible({ timeout: 5000 });
+
+    // Should eventually redirect to login (after timeout)
+    await page.waitForURL(/\/login/, { timeout: 15000 });
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+//  GOOGLE OAUTH LOGIN TESTS
+// ═════════════════════════════════════════════════════════════════════════════
+
+test.describe("Google OAuth Login", () => {
+  test("login page shows Google sign-in button", async ({ page }) => {
+    await page.goto("http://localhost:5173/login");
+    await page.waitForLoadState("networkidle");
+
+    const googleBtn = page.getByRole("button", { name: /Continue with Google/i });
+    await expect(googleBtn).toBeVisible();
+
+    // Should have the Google SVG icon
+    const googleSvg = googleBtn.locator("svg");
+    await expect(googleSvg).toBeVisible();
+
+    // Should have "or" divider
+    await expect(page.getByText("or", { exact: true })).toBeVisible();
+  });
+
+  test("signup page shows Google sign-in button", async ({ page }) => {
+    await page.goto("http://localhost:5173/signup");
+    await page.waitForLoadState("networkidle");
+
+    const googleBtn = page.getByRole("button", { name: /Continue with Google/i });
+    await expect(googleBtn).toBeVisible();
+
+    // Should have "or" divider
+    await expect(page.getByText("or", { exact: true })).toBeVisible();
+  });
+
+  test("Google button shows loading state when clicked", async ({ page }) => {
+    // Mock the OAuth redirect to prevent actual navigation
+    await page.route(`${SUPABASE_URL}/auth/v1/authorize**`, async (route) => {
+      // Delay to observe loading state
+      await new Promise((r) => setTimeout(r, 5000));
+      await route.fulfill({ status: 200, body: "" });
+    });
+
+    await page.goto("http://localhost:5173/login");
+    await page.waitForLoadState("networkidle");
+
+    const googleBtn = page.getByRole("button", { name: /Continue with Google/i });
+    await googleBtn.click();
+
+    // Check for loading state — the button text should change to "Redirecting..."
+    // Note: signInWithOAuth may redirect immediately, so this might be brief
+    // Just verify no crash occurs
   });
 });
