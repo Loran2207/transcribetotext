@@ -74,7 +74,8 @@
       "Bash(ls C:/Users/kutsk/transcribe2text/.env*)",
       "Bash(printf:*)",
       "Bash(file /c/Users/kutsk/transcribe2text/src/assets/*.png)",
-      "Bash(find /c/Users/kutsk/transcribe2text -name *.svg -type f)"
+      "Bash(find /c/Users/kutsk/transcribe2text -name *.svg -type f)",
+      "Bash(cd:*)"
     ]
   }
 }
