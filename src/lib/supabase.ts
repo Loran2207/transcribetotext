@@ -31,7 +31,7 @@ function createStubClient(): SupabaseClient {
         return () => Promise.resolve({ data: { session: null }, error: null });
       }
       // signInWithPassword, signUp, signOut → return { error }
-      if (prop === 'signInWithPassword' || prop === 'signUp' || prop === 'signOut') {
+      if (prop === 'signInWithPassword' || prop === 'signUp' || prop === 'signOut' || prop === 'resend' || prop === 'signInWithOAuth') {
         return () => Promise.resolve({ data: null, error: configError });
       }
 
