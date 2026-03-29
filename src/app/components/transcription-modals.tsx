@@ -1626,6 +1626,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
   const { startInstantRecording, userPlan } = useTranscriptionModals();
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
@@ -1673,9 +1674,14 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
             onUpgradeClick={() => setUpgradeOpen(true)}
           />
 
-          <div className="flex flex-col gap-[10px]">
-            <div style={{ maxWidth: "220px" }}>
-              <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex items-start gap-[8px]">
+              <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
+              </div>
             </div>
             <div className="flex items-center justify-end gap-[8px]">
               <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors">
@@ -1856,14 +1862,14 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           </div>
 
-          {/* Footer: folder + template row, then Cancel + Start row */}
-          <div className="flex flex-col gap-[10px]">
-            <div className="flex items-center gap-[8px]">
+          {/* Footer: template + folder row, then Cancel + Start row */}
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex items-start gap-[8px]">
               <div className="flex-1 min-w-0">
-                <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
               </div>
               <div className="flex-1 min-w-0">
-                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} compact />
+                <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
             <div className="flex items-center justify-end gap-[8px]">
@@ -1994,6 +2000,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
   const [urlError, setUrlError] = useState("");
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   function resetForm() { setUrl(""); setUrlError(""); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
@@ -2054,9 +2061,14 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
             </div>
           </div>
 
-          <div className="flex flex-col gap-[10px]">
-            <div style={{ maxWidth: "200px" }}>
-              <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex items-start gap-[8px]">
+              <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
+              </div>
             </div>
             <div className="flex items-center justify-end gap-[8px]">
               <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
@@ -2097,6 +2109,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   const [notifyParticipants, setNotifyParticipants] = useState(true);
   const [notifyMessage, setNotifyMessage] = useState("I'm recording this meeting with TranscribeToText for note-taking purposes.");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
 
   function resetForm() {
     setMeetingUrl(""); setMeetingUrlError(""); meetingCounterRef.current += 1;
@@ -2220,9 +2233,14 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           </div>
 
-          <div className="flex flex-col gap-[10px]">
-            <div style={{ maxWidth: "200px" }}>
-              <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex items-start gap-[8px]">
+              <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
+              </div>
             </div>
             <div className="flex items-center justify-end gap-[8px]">
               <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
@@ -2494,6 +2512,7 @@ function RecordingReviewModal() {
   const { recordingPhase, recordingElapsed, audioUrl, cancelInstantRecording, submitInstantRecording, resumeInstantRecording, userPlan } = useTranscriptionModals();
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [discardConfirm, setDiscardConfirm] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
@@ -2526,9 +2545,14 @@ function RecordingReviewModal() {
 
           <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
 
-          <div className="flex flex-col gap-[10px]">
-            <div style={{ maxWidth: "200px" }}>
-              <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex items-start gap-[8px]">
+              <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
+              </div>
             </div>
             <div className="flex items-center justify-end gap-[8px]">
               <Button variant="pill-outline" onClick={handleCancel} className="h-[36px] px-[18px] transition-colors">
