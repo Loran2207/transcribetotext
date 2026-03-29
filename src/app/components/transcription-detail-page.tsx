@@ -554,13 +554,28 @@ function TranscriptSegment({
 // Summary Tab
 // ════════════════════════════════════════════════════════════
 
-function SummaryTab({ summaryText }: { summaryText: string }) {
+function SummaryTab({ summaryText, template }: { summaryText: string; template?: Template | null }) {
+  // If a template is selected, use its sections for headings with icons
+  const sectionIcons: Record<string, string | undefined> = {};
+  if (template?.sections) {
+    for (const sec of template.sections) {
+      sectionIcons[sec.title] = sec.iconId;
+    }
+  }
+
   return (
     <div className="px-8 py-6">
       <div className="prose-custom max-w-none">
         {summaryText.split("\n").map((line, i) => {
           if (line.startsWith("## ")) {
-            return <h2 key={i} className="mt-6 mb-3 text-base font-semibold text-foreground first:mt-0">{line.replace("## ", "")}</h2>;
+            const title = line.replace("## ", "");
+            const iconId = sectionIcons[title];
+            return (
+              <h2 key={i} className="mt-6 mb-3 flex items-center gap-2 text-base font-semibold text-foreground first:mt-0">
+                {iconId && <SectionIconDisplay iconId={iconId} />}
+                {title}
+              </h2>
+            );
           }
           if (line.startsWith("- **")) {
             const match = line.match(/^- \*\*(.+?)\*\*:?\s*(.*)$/);
@@ -582,6 +597,19 @@ function SummaryTab({ summaryText }: { summaryText: string }) {
       </div>
     </div>
   );
+}
+
+/** Small icon display for summary section titles */
+function SectionIconDisplay({ iconId }: { iconId: string }) {
+  // Map iconId to a simple colored dot/indicator since we can't dynamically import HugeIcons here
+  // We use a small colored square as a section indicator
+  const colors: Record<string, string> = {
+    summary: "bg-blue-400", checklist: "bg-green-400", target: "bg-amber-400",
+    stars: "bg-purple-400", note: "bg-cyan-400", bookmark: "bg-rose-400",
+    chart: "bg-indigo-400", flag: "bg-red-400", idea: "bg-yellow-400",
+    users: "bg-teal-400", taskdone: "bg-emerald-400", analytics: "bg-violet-400",
+  };
+  return <span className={`size-[6px] rounded-full shrink-0 ${colors[iconId] ?? "bg-primary/50"}`} />;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1005,16 +1033,26 @@ function MediaPlayer({
       <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="mb-3 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
       <div className="flex items-center justify-between">
         <span className="min-w-[50px] text-xs tabular-nums text-muted-foreground">{formatTime(currentSeconds)}</span>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="size-8 rounded-full" onClick={() => onProgressChange([(Math.max(0, progress[0] - (5 / totalSeconds) * 100))])}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 19l-7-7 7-7" /><text x="14" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="600">5</text></svg></Button>
-          <Button variant="ghost" size="icon" className="size-10 rounded-full" onClick={onPlayPause}>
-            {isPlaying ? <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg> : <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg>}
+        <div className="flex items-center gap-1.5">
+          <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.max(0, progress[0] - (5 / totalSeconds) * 100))])} title="Back 5s">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 19l-7-7 7-7" /><text x="14" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
-          <Button variant="ghost" size="icon" className="size-8 rounded-full" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l7 7-7 7" /><text x="2" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="600">5</text></svg></Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button variant="ghost" size="sm" className="ml-1 h-7 rounded-full px-2 text-xs font-medium text-muted-foreground">{speed}x</Button></DropdownMenuTrigger>
-              <DropdownMenuContent align="center" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
-            </DropdownMenu>
+          <Button
+            onClick={onPlayPause}
+            className={`rounded-full gap-1.5 transition-all ${isPlaying ? "h-9 w-9 px-0" : "h-9 px-4"} bg-primary text-primary-foreground hover:bg-primary/90`}
+          >
+            {isPlaying
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+              : <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg><span className="text-[13px] font-semibold">Play</span></>
+            }
+          </Button>
+          <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])} title="Forward 5s">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l7 7-7 7" /><text x="2" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="ml-0.5 h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="center" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <span className="min-w-[50px] text-right text-xs tabular-nums text-muted-foreground">{duration}</span>
       </div>
@@ -1479,22 +1517,57 @@ export function TranscriptionDetailPage() {
     () => (selectedJob?.source === "microphone" && previewDetailSegments.length > 0 ? previewDetailSegments : MOCK_SEGMENTS),
     [previewDetailSegments, selectedJob?.source],
   );
+  const activeTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
+
   const contentSummary = useMemo(() => {
-    if (!(selectedJob?.source === "microphone" && previewDetailSegments.length > 0)) return MOCK_SUMMARY;
-    const firstSegmentText = previewDetailSegments[0]?.text ?? "";
-    const shortFirstSegment = firstSegmentText.length > 220 ? `${firstSegmentText.slice(0, 217)}...` : firstSegmentText;
-    return [
-      "## Recording Summary",
-      "",
-      `- **Status**: ${selectedJob?.status === "done" ? "Transcript is ready" : "Transcript is being processed"}`,
-      `- **Captured segments**: ${previewDetailSegments.length}`,
-      `- **Duration**: ${selectedRecord?.duration ?? "In progress"}`,
-      "",
-      "## First Captured Phrase",
-      "",
-      shortFirstSegment ? `- ${shortFirstSegment}` : "- No speech was detected.",
-    ].join("\n");
-  }, [previewDetailSegments, selectedJob?.source, selectedJob?.status, selectedRecord?.duration]);
+    if (selectedJob?.source === "microphone" && previewDetailSegments.length > 0) {
+      const firstSegmentText = previewDetailSegments[0]?.text ?? "";
+      const shortFirstSegment = firstSegmentText.length > 220 ? `${firstSegmentText.slice(0, 217)}...` : firstSegmentText;
+      return [
+        "## Recording Summary",
+        "",
+        `- **Status**: ${selectedJob?.status === "done" ? "Transcript is ready" : "Transcript is being processed"}`,
+        `- **Captured segments**: ${previewDetailSegments.length}`,
+        `- **Duration**: ${selectedRecord?.duration ?? "In progress"}`,
+        "",
+        "## First Captured Phrase",
+        "",
+        shortFirstSegment ? `- ${shortFirstSegment}` : "- No speech was detected.",
+      ].join("\n");
+    }
+
+    // When a template is applied, restructure summary using template sections
+    if (activeTemplate?.sections?.length) {
+      // Parse the MOCK_SUMMARY into sections (## heading → content blocks)
+      const mockSections: { heading: string; lines: string[] }[] = [];
+      let current: { heading: string; lines: string[] } | null = null;
+      for (const line of MOCK_SUMMARY.split("\n")) {
+        if (line.startsWith("## ")) {
+          if (current) mockSections.push(current);
+          current = { heading: line.replace("## ", ""), lines: [] };
+        } else if (current) {
+          current.lines.push(line);
+        }
+      }
+      if (current) mockSections.push(current);
+
+      // Map template sections to mock content (round-robin if more template sections)
+      const result: string[] = [];
+      activeTemplate.sections.forEach((sec, idx) => {
+        if (idx > 0) result.push("");
+        result.push(`## ${sec.title}`);
+        const source = mockSections[idx % mockSections.length];
+        if (source) {
+          result.push(...source.lines);
+        } else {
+          result.push("", `- AI-generated content for "${sec.title}" based on transcription.`);
+        }
+      });
+      return result.join("\n");
+    }
+
+    return MOCK_SUMMARY;
+  }, [previewDetailSegments, selectedJob?.source, selectedJob?.status, selectedRecord?.duration, activeTemplate]);
 
   // Build initial text map for edit history
   const initialTexts = useMemo(() => {
@@ -2280,15 +2353,20 @@ export function TranscriptionDetailPage() {
                   activeTemplateId={activeTemplateId}
                   templates={templates}
                   onSelect={(id) => {
+                    const wasSame = activeTemplateId === id;
+                    if (wasSame) {
+                      setActiveTemplateId(null);
+                      toast("Template removed");
+                      return;
+                    }
                     setActiveTemplateId(id);
                     const selected = templates.find((t) => t.id === id);
                     if (selected) {
                       setIsSummaryLoading(true);
-                      // Simulate summary regeneration delay
                       setTimeout(() => {
                         setIsSummaryLoading(false);
-                        toast.success(`Summary regenerated with ${selected.name}`);
-                      }, 1500);
+                        toast.success(`Template "${selected.name}" applied`);
+                      }, 800);
                     }
                   }}
                   onNavigateToTemplates={() => navigate("/")}
@@ -2387,7 +2465,7 @@ export function TranscriptionDetailPage() {
                 )}
               </div>
             ) : (
-              <SummaryTab summaryText={contentSummary} />
+              <SummaryTab summaryText={contentSummary} template={activeTemplate} />
             )}
           </TabsContent>
           {activeTranslationMeta && !isJobTranscribing ? (
@@ -2424,7 +2502,7 @@ export function TranscriptionDetailPage() {
           ) : null}
           {activeTranslationMeta && !isJobTranscribing ? (
             <TabsContent value="summary-translated" className="flex-1 overflow-auto">
-              <SummaryTab summaryText={translatedSummary || contentSummary} />
+              <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} />
             </TabsContent>
           ) : null}
         </Tabs>

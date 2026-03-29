@@ -748,6 +748,10 @@ function TemplateDetail({
 
           {/* Title + meta badge */}
           <div className="mt-5 mb-6">
+            <div
+              className={`min-w-0 rounded-xl py-2 pr-2 pl-0 transition-colors ${isEditingName ? "bg-muted/55" : "cursor-text hover:bg-muted/45"}`}
+              onClick={() => { if (!isEditingName) setIsEditingName(true); }}
+            >
             {isEditingName ? (
               <Input
                 value={form.name}
@@ -760,13 +764,11 @@ function TemplateDetail({
                 autoFocus
               />
             ) : (
-              <h1
-                className="text-2xl font-bold text-foreground leading-tight cursor-text hover:text-foreground/80 transition-colors"
-                onClick={() => setIsEditingName(true)}
-              >
+              <h1 className="text-2xl font-bold text-foreground leading-tight">
                 {form.name || "Untitled template"}
               </h1>
             )}
+            </div>
             <div className="flex items-center gap-2 mt-2">
               {isBuiltIn ? (
                 <Icon icon={Layers} size={14} className="text-primary" />
