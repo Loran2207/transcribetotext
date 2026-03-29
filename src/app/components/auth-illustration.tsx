@@ -137,103 +137,43 @@ const glass: React.CSSProperties = {
 export function AuthIllustration() {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // GSAP only for: marquee scroll + speaker row stagger + feature pills entrance
+  // Everything else uses CSS keyframes (no nested context issues)
   useGSAP(
-    (_context, contextSafe) => {
-      const mm = gsap.matchMedia();
+    () => {
+      // ── A) MARQUEE — logos scrolling left infinitely ──
+      gsap.to(".logos-track", {
+        xPercent: -50,
+        duration: 20,
+        ease: "none",
+        repeat: -1,
+      });
 
-      mm.add(
+      // ── B) SPEAKER ROWS — stagger in on mount ──
+      gsap.fromTo(
+        ".speaker-row",
+        { autoAlpha: 0, y: 20 },
         {
-          animate: "(prefers-reduced-motion: no-preference)",
-          reduce: "(prefers-reduced-motion: reduce)",
-        },
-        (ctx) => {
-          const { reduce } = ctx.conditions!;
+          autoAlpha: 1,
+          y: 0,
+          stagger: 0.5,
+          duration: 0.7,
+          ease: "power2.out",
+          delay: 0.3,
+        }
+      );
 
-          if (reduce) return;
-
-          // ── A) MARQUEE — logos scrolling left infinitely ──
-          gsap.to(".logos-track", {
-            xPercent: -50,
-            duration: 20,
-            ease: "none",
-            repeat: -1,
-          });
-
-          // ── B) WAVEFORM — bars breathing continuously ──
-          gsap.to(".wave-bar", {
-            scaleY: "random(0.2, 1)",
-            duration: "random(0.3, 0.7)",
-            ease: "power1.inOut",
-            repeat: -1,
-            yoyo: true,
-            stagger: {
-              each: 0.06,
-              repeat: -1,
-            },
-          });
-
-          // ── Pulsing live dot ──
-          gsap.to(".live-dot", {
-            autoAlpha: 0.2,
-            duration: 0.8,
-            ease: "power1.inOut",
-            repeat: -1,
-            yoyo: true,
-          });
-
-          // ── C) SPEAKER ROWS — stagger in on mount ──
-          gsap.fromTo(
-            ".speaker-row",
-            { autoAlpha: 0, y: 20 },
-            {
-              autoAlpha: 1,
-              y: 0,
-              stagger: 0.5,
-              duration: 0.7,
-              ease: "power2.out",
-            }
-          );
-
-          // ── Shimmer line repeating ──
-          gsap.fromTo(
-            ".shimmer-bar",
-            { xPercent: -100 },
-            {
-              xPercent: 200,
-              duration: 1.5,
-              ease: "power1.inOut",
-              repeat: -1,
-              stagger: 0.3,
-            }
-          );
-
-          // ── Feature pills entrance ──
-          gsap.fromTo(
-            ".feature-pill",
-            { autoAlpha: 0, y: 10 },
-            {
-              autoAlpha: 1,
-              y: 0,
-              stagger: 0.2,
-              duration: 0.5,
-              ease: "power2.out",
-              delay: 1.5,
-            }
-          );
-
-          // ── Ambient orb floating ──
-          gsap.to(".ambient-orb-1", {
-            y: -10, duration: 6, ease: "sine.inOut", repeat: -1, yoyo: true,
-          });
-          gsap.to(".ambient-orb-2", {
-            y: 8, duration: 8, ease: "sine.inOut", repeat: -1, yoyo: true,
-          });
-          gsap.to(".ambient-orb-3", {
-            y: -7, duration: 5, ease: "sine.inOut", repeat: -1, yoyo: true,
-          });
-          gsap.to(".ambient-orb-4", {
-            y: 6, duration: 7, ease: "sine.inOut", repeat: -1, yoyo: true,
-          });
+      // ── C) Feature pills entrance ──
+      gsap.fromTo(
+        ".feature-pill",
+        { autoAlpha: 0, y: 10 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          stagger: 0.2,
+          duration: 0.5,
+          ease: "power2.out",
+          delay: 1.8,
         }
       );
     },
@@ -272,7 +212,7 @@ export function AuthIllustration() {
         }}
       />
       <div
-        className="ambient-orb-1"
+        className="ambient-orb"
         style={{
           position: "absolute",
           width: 120,
@@ -285,10 +225,11 @@ export function AuthIllustration() {
           right: "5%",
           pointerEvents: "none",
           zIndex: 0,
+          animation: "float-slow 6s ease-in-out infinite",
         }}
       />
       <div
-        className="ambient-orb-2"
+        className="ambient-orb"
         style={{
           position: "absolute",
           width: 80,
@@ -301,10 +242,11 @@ export function AuthIllustration() {
           left: "2%",
           pointerEvents: "none",
           zIndex: 0,
+          animation: "float-medium 8s ease-in-out infinite",
         }}
       />
       <div
-        className="ambient-orb-3"
+        className="ambient-orb"
         style={{
           position: "absolute",
           width: 60,
@@ -317,10 +259,11 @@ export function AuthIllustration() {
           left: "5%",
           pointerEvents: "none",
           zIndex: 0,
+          animation: "float-fast 5s ease-in-out infinite",
         }}
       />
       <div
-        className="ambient-orb-4"
+        className="ambient-orb"
         style={{
           position: "absolute",
           width: 40,
@@ -333,11 +276,12 @@ export function AuthIllustration() {
           left: "18%",
           pointerEvents: "none",
           zIndex: 0,
+          animation: "float-slow 7s ease-in-out 1s infinite",
         }}
       />
 
       {/* ═══════════════════════════════════════════════════════════════════
-         TOP — Logo Marquee Strip
+         TOP — Logo Marquee Strip (GSAP-driven)
          ═══════════════════════════════════════════════════════════════════ */}
       <div
         style={{
@@ -405,7 +349,7 @@ export function AuthIllustration() {
           boxShadow: "0 20px 60px rgba(0,0,0,0.35), 0 0 40px rgba(88,101,242,0.08)",
         }}
       >
-        {/* Waveform strip */}
+        {/* Waveform strip — pure CSS animation */}
         <div
           style={{
             padding: "12px 20px",
@@ -437,9 +381,11 @@ export function AuthIllustration() {
                     borderRadius: 2,
                     background: "var(--primary)",
                     opacity: 1 - dist * 0.35,
-                    transformOrigin: "center",
+                    transformOrigin: "bottom",
                     flexShrink: 0,
                     boxShadow: "0 0 4px rgba(88,101,242,0.25)",
+                    animation: `wave-bar ${0.4 + i * 0.05}s ease-in-out infinite`,
+                    animationDelay: `${i * 0.06}s`,
                   }}
                 />
               );
@@ -447,13 +393,14 @@ export function AuthIllustration() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <div
-              className="live-dot"
+              className="live-dot-css"
               style={{
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
                 background: "#ef4444",
                 flexShrink: 0,
+                animation: "blink-dot 1.2s ease-in-out infinite",
               }}
             />
             <span
@@ -496,19 +443,20 @@ export function AuthIllustration() {
             }}
           >
             <span
-              className="live-dot"
+              className="live-dot-css"
               style={{
                 width: 5,
                 height: 5,
                 borderRadius: "50%",
                 background: "#22c55e",
+                animation: "blink-dot 1.5s ease-in-out infinite",
               }}
             />
             Live
           </span>
         </div>
 
-        {/* Speaker rows */}
+        {/* Speaker rows (GSAP stagger) */}
         <div style={{ padding: "6px 20px 14px", display: "flex", flexDirection: "column", gap: 12 }}>
           {SPEAKERS.map((s) => (
             <div
@@ -560,7 +508,7 @@ export function AuthIllustration() {
           ))}
         </div>
 
-        {/* AI Summary shimmer */}
+        {/* AI Summary shimmer — pure CSS */}
         <div
           style={{
             padding: "10px 20px 14px",
@@ -584,11 +532,12 @@ export function AuthIllustration() {
               }}
             >
               <div
-                className="shimmer-bar"
+                className="shimmer-bar-css"
                 style={{
                   position: "absolute",
                   inset: 0,
                   background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)",
+                  animation: `shimmer-slide 1.5s ease-in-out ${i * 0.3}s infinite`,
                 }}
               />
             </div>
@@ -597,7 +546,7 @@ export function AuthIllustration() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-         BOTTOM — Feature Pills
+         BOTTOM — Feature Pills (GSAP entrance)
          ═══════════════════════════════════════════════════════════════════ */}
       <div
         style={{
