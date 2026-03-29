@@ -50,18 +50,18 @@ function FileUploadDemo() {
           <Icon icon={FileAudioIcon} size={20} style={{ color: "var(--primary)" }} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground truncate">quarterly_meeting.mp4</p>
-          <p className="text-xs text-muted-foreground">248 MB</p>
+          <p className="text-sm font-medium text-white truncate">quarterly_meeting.mp4</p>
+          <p className="text-xs text-white/50">248 MB</p>
         </div>
         {stage === "done" && <Icon icon={CheckCircle} size={20} style={{ color: "#34d399" }} />}
       </div>
 
       <div className="space-y-2">
         <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">
+          <span className="text-white/50">
             {stage === "uploading" ? "Uploading..." : stage === "processing" ? "Transcribing..." : "Complete"}
           </span>
-          <span className="text-foreground font-mono">{stage === "done" ? "100" : progress}%</span>
+          <span className="text-white font-mono">{stage === "done" ? "100" : progress}%</span>
         </div>
         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
           <div
@@ -98,22 +98,22 @@ function TranslationDemo() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Icon icon={Globe} size={16} style={{ color: "var(--primary)" }} />
-        <span className="text-xs text-muted-foreground">100+ languages supported</span>
+        <span className="text-xs text-white/50">100+ languages supported</span>
       </div>
 
       <div className="flex items-center gap-3">
         <div className="flex h-8 items-center gap-1.5 px-3 rounded-lg" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)" }}>
-          <span className="text-xs font-medium text-foreground">EN</span>
+          <span className="text-xs font-medium text-white">EN</span>
         </div>
-        <Icon icon={ArrowRight01Icon} size={16} className="text-muted-foreground" />
+        <Icon icon={ArrowRight01Icon} size={16} className="text-white/50" />
         <div className="flex h-8 items-center gap-1.5 px-3 rounded-lg" style={{ background: "rgba(88,101,242,0.2)", border: "1px solid rgba(88,101,242,0.3)" }}>
           <span className="text-xs font-bold" style={{ color: "var(--primary)" }}>{languages[currentLang].code}</span>
         </div>
       </div>
 
       <div className="p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-        <p className="text-xs text-muted-foreground mb-1">{languages[currentLang].name}</p>
-        <p className="text-sm text-foreground leading-relaxed" key={currentLang} style={{ animation: "fadeInUp 0.5s ease forwards" }}>
+        <p className="text-xs text-white/50 mb-1">{languages[currentLang].name}</p>
+        <p className="text-sm text-white leading-relaxed" key={currentLang} style={{ animation: "fadeInUp 0.5s ease forwards" }}>
           {languages[currentLang].text}
         </p>
       </div>
@@ -154,7 +154,7 @@ function LiveMeetingDemo() {
           </span>
           <span className="text-xs font-medium text-red-400">Recording</span>
         </div>
-        <span className="text-xs font-mono text-foreground">{formatTime(time)}</span>
+        <span className="text-xs font-mono text-white">{formatTime(time)}</span>
       </div>
 
       <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
@@ -162,18 +162,18 @@ function LiveMeetingDemo() {
           {["S", "M", "A"].map((initial, i) => (
             <div
               key={i}
-              className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background text-xs font-medium text-foreground"
+              className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#060818] text-xs font-medium text-white"
               style={{ background: "rgba(88,101,242,0.3)" }}
             >
               {initial}
             </div>
           ))}
         </div>
-        <span className="text-xs text-muted-foreground ml-1">3 participants</span>
+        <span className="text-xs text-white/50 ml-1">3 participants</span>
       </div>
 
       <div className="p-3 rounded-xl" style={{ background: "rgba(88,101,242,0.1)", border: "1px solid rgba(88,101,242,0.2)" }}>
-        <p className="text-sm text-foreground">Transcribing in real-time{dots}</p>
+        <p className="text-sm text-white">Transcribing in real-time{dots}</p>
       </div>
     </div>
   )
@@ -199,14 +199,14 @@ function UrlDemo() {
     <div className="space-y-4">
       <div className="relative">
         <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-          <Icon icon={Link} size={16} className="text-muted-foreground flex-shrink-0" />
+          <Icon icon={Link} size={16} className="text-white/50 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             {showUrl ? (
-              <span className="text-sm text-foreground truncate block" style={{ animation: "fadeInUp 0.3s ease forwards" }}>
+              <span className="text-sm text-white truncate block" style={{ animation: "fadeInUp 0.3s ease forwards" }}>
                 youtube.com/watch?v=dQw4w9WgXcQ
               </span>
             ) : (
-              <span className="text-sm text-muted-foreground">Paste any video URL...</span>
+              <span className="text-sm text-white/50">Paste any video URL...</span>
             )}
           </div>
         </div>
@@ -217,12 +217,12 @@ function UrlDemo() {
           {status === "fetching" ? (
             <>
               <div className="h-4 w-4 rounded-full border-2 animate-spin" style={{ borderColor: "var(--primary)", borderTopColor: "transparent" }} />
-              <span className="text-sm text-foreground">Fetching video...</span>
+              <span className="text-sm text-white">Fetching video...</span>
             </>
           ) : (
             <>
               <Icon icon={CheckCircle} size={16} style={{ color: "#34d399" }} />
-              <span className="text-sm text-foreground">Ready to transcribe</span>
+              <span className="text-sm text-white">Ready to transcribe</span>
             </>
           )}
         </div>
@@ -230,7 +230,7 @@ function UrlDemo() {
 
       <div className="flex gap-2">
         {["YouTube", "Vimeo", "Loom"].map((platform) => (
-          <span key={platform} className="px-2 py-1 text-xs rounded-md text-muted-foreground" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <span key={platform} className="px-2 py-1 text-xs rounded-md text-white/50" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
             {platform}
           </span>
         ))}
@@ -285,7 +285,7 @@ function MicrophoneDemo() {
         </div>
       )}
 
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-center text-sm text-white/50">
         {isRecording ? "Listening and transcribing..." : "Click to start recording"}
       </p>
     </div>
@@ -359,10 +359,11 @@ export function FeatureShowcase() {
                 setActiveIndex(index)
                 setKey((prev) => prev + 1)
               }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 flex-shrink-0 ${
-                index === activeIndex ? "text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-              }`}
-              style={index === activeIndex ? { background: "rgba(88,101,242,0.2)", color: "var(--primary)" } : undefined}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 flex-shrink-0"
+              style={{
+                background: index === activeIndex ? "rgba(88,101,242,0.2)" : undefined,
+                color: index === activeIndex ? "var(--primary)" : "rgba(255,255,255,0.45)",
+              }}
             >
               {feature.icon}
               <span className="text-xs font-medium hidden sm:inline">{feature.title.split(" ")[0]}</span>
@@ -373,8 +374,8 @@ export function FeatureShowcase() {
         {/* Feature content */}
         <div className="p-6" key={key}>
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-foreground mb-1">{activeFeature.title}</h3>
-            <p className="text-sm text-muted-foreground">{activeFeature.subtitle}</p>
+            <h3 className="text-lg font-semibold text-white mb-1">{activeFeature.title}</h3>
+            <p className="text-sm text-white/50">{activeFeature.subtitle}</p>
           </div>
           <div style={{ animation: "fadeInUp 0.5s ease forwards" }}>{activeFeature.demo}</div>
         </div>

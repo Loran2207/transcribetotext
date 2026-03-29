@@ -115,15 +115,15 @@ export function AuthIllustration() {
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Logo */}
-        <div className="flex items-center gap-3 mb-8 lg:mb-12">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: "rgba(88,101,242,0.2)", border: "1px solid rgba(88,101,242,0.3)" }}>
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round">
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(88,101,242,0.2)", border: "1px solid rgba(88,101,242,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
               <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
               <line x1="12" x2="12" y1="19" y2="22" />
             </svg>
           </div>
-          <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.05em", color: "white" }}>
+          <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", color: "white" }}>
             TRANSCRIBETOTEXT<span style={{ color: "var(--primary)" }}>.AI</span>
           </span>
         </div>
@@ -132,12 +132,12 @@ export function AuthIllustration() {
         <div className="flex-1 flex flex-col justify-center">
           {/* Headline */}
           <div className="mb-8 lg:mb-10">
-            <h1 className="text-3xl lg:text-4xl xl:text-[2.75rem] font-semibold tracking-tight text-foreground leading-[1.15] text-balance">
+            <h1 className="text-3xl lg:text-4xl xl:text-[2.75rem] font-semibold tracking-tight leading-[1.15] text-balance" style={{ color: "white" }}>
               Audio & Video to Text
               <br />
               <span style={{ color: "var(--primary)" }}>in Seconds</span>
             </h1>
-            <p className="mt-4 text-base lg:text-lg text-muted-foreground max-w-md leading-relaxed">
+            <p className="mt-4 text-base lg:text-lg max-w-md leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
               Transcribe files, translate to 100+ languages, record meetings, and capture voice notes. All powered by AI.
             </p>
           </div>
@@ -151,43 +151,39 @@ export function AuthIllustration() {
         {/* Bottom section: Rating and platforms */}
         <div className="relative z-10 mt-auto pt-8 lg:pt-10">
           {/* Star rating */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex gap-0.5">
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <div style={{ display: "flex", gap: 2 }}>
               {[...Array(5)].map((_, i) => (
-                <span key={i} style={{ color: "#FBBF24", fontSize: 16, lineHeight: 1 }}>&#9733;</span>
+                <span key={i} style={{ color: "#FBBF24", fontSize: 15 }}>&#9733;</span>
               ))}
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-foreground">4.9</span>
-              <span className="text-sm text-muted-foreground">from 2,400+ reviews</span>
-            </div>
+            <span style={{ color: "white", fontSize: 13, fontWeight: 600 }}>4.9</span>
+            <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 13 }}>from 2,400+ reviews</span>
           </div>
 
           {/* Platform logos */}
-          <div className="flex flex-col gap-3">
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">Integrates with</span>
-            <div className="flex items-center gap-3">
+          <div>
+            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const }}>
+              Integrates with
+            </span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", marginTop: 12 }}>
               {platformLogos.map((platform) => (
-                <div key={platform.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                  <div
-                    className="backdrop-blur-sm transition-colors hover:bg-white/10 hover:border-white/20"
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      background: "rgba(255,255,255,0.05)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                    title={platform.name}
-                  >
-                    <svg viewBox="0 0 24 24" width={18} height={18} fill="rgba(255,255,255,0.5)">
-                      <path d={"si" in platform ? platform.si.path : platform.path} />
-                    </svg>
-                  </div>
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", fontWeight: 500 }}>
+                <div
+                  key={platform.name}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "6px 12px",
+                    borderRadius: 8,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.04)",
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" width={16} height={16} fill="rgba(255,255,255,0.55)">
+                    <path d={"si" in platform ? platform.si.path : platform.path} />
+                  </svg>
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", fontWeight: 500, whiteSpace: "nowrap" }}>
                     {platform.name}
                   </span>
                 </div>
