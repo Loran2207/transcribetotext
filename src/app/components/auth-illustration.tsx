@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   siZoom,
@@ -6,7 +6,6 @@ import {
   siYoutube,
   siGoogledrive,
   siDropbox,
-  siSpotify,
 } from "simple-icons";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -20,13 +19,17 @@ const TRANSCRIPT = [
   { speaker: "Alex", color: "#60A5FA", text: "We should double down on that channel for Q4" },
 ];
 
-const LOGOS = [
-  { icon: siZoom, name: "Zoom" },
-  { icon: siGooglemeet, name: "Meet" },
-  { icon: siYoutube, name: "YouTube" },
-  { icon: siGoogledrive, name: "Drive" },
-  { icon: siDropbox, name: "Dropbox" },
-  { icon: siSpotify, name: "Spotify" },
+// Microsoft Teams SVG path (not in simple-icons)
+const TEAMS_PATH =
+  "M20.625 3.6h-7.5a1.125 1.125 0 00-1.125 1.125v7.5A1.125 1.125 0 0013.125 13.35h7.5A1.125 1.125 0 0021.75 12.225v-7.5A1.125 1.125 0 0020.625 3.6zm-1.5 6.75h-1.5v3h-1.5v-3h-1.5V8.85h4.5v1.5zM17.25 3.15a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6zm5.25 4.2a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm.75.9h-2.7v4.5a2.25 2.25 0 01-2.25 2.25h-4.05a3.6 3.6 0 003.45 2.55h3.3a2.25 2.25 0 002.25-2.25v-5.1a1.95 1.95 0 00-2-1.95zM9.75 14.475v-9a2.25 2.25 0 012.25-2.25h4.35a3.6 3.6 0 00-3.6-3.075H5.4A2.25 2.25 0 003.15 2.4v10.35a3.6 3.6 0 003.075 3.563 3.6 3.6 0 003.525-1.838z";
+
+const LOGOS: { path: string; name: string }[] = [
+  { path: siZoom.path, name: "Zoom" },
+  { path: siGooglemeet.path, name: "Google Meet" },
+  { path: siYoutube.path, name: "YouTube" },
+  { path: TEAMS_PATH, name: "Teams" },
+  { path: siGoogledrive.path, name: "Drive" },
+  { path: siDropbox.path, name: "Dropbox" },
 ];
 
 const TESTIMONIALS = [
@@ -36,7 +39,7 @@ const TESTIMONIALS = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Live transcript hook — words appear one by one
+   Live transcript hook
    ═══════════════════════════════════════════════════════════════════════════ */
 
 interface TranscriptLine {
@@ -49,61 +52,64 @@ interface TranscriptLine {
 
 function useStreamingTranscript() {
   const [lines, setLines] = useState<TranscriptLine[]>([]);
-  const [lineIdx, setLineIdx] = useState(0);
-  const [wordIdx, setWordIdx] = useState(0);
+  const [sentenceIndex, setSentenceIndex] = useState(0);
+  const [wordIndex, setWordIndex] = useState(-1); // -1 = not started
 
-  const currentEntry = TRANSCRIPT[lineIdx % TRANSCRIPT.length];
-  const allWords = currentEntry.text.split(" ");
+  const entry = TRANSCRIPT[sentenceIndex % TRANSCRIPT.length];
+  const words = entry.text.split(" ");
 
   useEffect(() => {
-    // Add words one by one
-    if (wordIdx <= allWords.length) {
+    if (wordIndex === -1) {
+      // Create new line, then start adding words
       const timer = setTimeout(() => {
-        if (wordIdx === 0) {
-          // Start new line
-          setLines((prev) => {
-            const next = [
-              ...prev,
-              {
-                id: lineIdx,
-                speaker: currentEntry.speaker,
-                color: currentEntry.color,
-                words: [],
-                complete: false,
-              },
-            ];
-            // Keep max 3 visible lines
-            return next.length > 3 ? next.slice(-3) : next;
-          });
-          setWordIdx(1);
-        } else if (wordIdx <= allWords.length) {
-          // Add next word
-          setLines((prev) =>
-            prev.map((line) =>
-              line.id === lineIdx
-                ? { ...line, words: allWords.slice(0, wordIdx) }
-                : line
-            )
-          );
-          if (wordIdx === allWords.length) {
-            // Sentence complete — mark it, wait, then advance
-            setLines((prev) =>
-              prev.map((line) =>
-                line.id === lineIdx ? { ...line, complete: true } : line
-              )
-            );
-            setTimeout(() => {
-              setLineIdx((prev) => prev + 1);
-              setWordIdx(0);
-            }, 1500);
-          } else {
-            setWordIdx((prev) => prev + 1);
-          }
-        }
-      }, wordIdx === 0 ? 300 : 200);
+        setLines((prev) => {
+          const next = [
+            ...prev,
+            {
+              id: sentenceIndex,
+              speaker: entry.speaker,
+              color: entry.color,
+              words: [],
+              complete: false,
+            },
+          ];
+          return next.length > 3 ? next.slice(-3) : next;
+        });
+        setWordIndex(0);
+      }, 300);
       return () => clearTimeout(timer);
     }
-  }, [lineIdx, wordIdx, allWords, currentEntry, lines.length]);
+
+    if (wordIndex < words.length) {
+      // Add next word
+      const timer = setTimeout(() => {
+        const count = wordIndex + 1;
+        setLines((prev) =>
+          prev.map((line) =>
+            line.id === sentenceIndex
+              ? { ...line, words: words.slice(0, count) }
+              : line
+          )
+        );
+        setWordIndex(count);
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+
+    if (wordIndex === words.length) {
+      // Sentence done — mark complete, wait, advance
+      setLines((prev) =>
+        prev.map((line) =>
+          line.id === sentenceIndex ? { ...line, complete: true } : line
+        )
+      );
+      const timer = setTimeout(() => {
+        setSentenceIndex((prev) => prev + 1);
+        setWordIndex(-1);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [sentenceIndex, wordIndex, words, entry]);
 
   return lines;
 }
@@ -124,7 +130,7 @@ function useTestimonialRotator() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Star component
+   Star
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function Star() {
@@ -150,39 +156,47 @@ export function AuthIllustration() {
         flexDirection: "column",
         height: "100%",
         width: "100%",
-        padding: "32px 40px",
+        padding: "72px 40px 32px",
         position: "relative",
+        overflow: "hidden",
       }}
     >
-      {/* ── TOP: Live demo pill ── */}
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 11,
-            fontWeight: 500,
-            color: "rgba(255,255,255,0.6)",
-            letterSpacing: "0.05em",
-          }}
-        >
-          <div
-            className="pulse-dot"
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: "#ef4444",
-              animation: "pulse-red 2s ease-in-out infinite",
-            }}
-          />
-          Live demo
-        </div>
-      </div>
+      {/* ── Background blobs ── */}
+      <div
+        className="bg-blob"
+        style={{
+          position: "absolute",
+          width: 400,
+          height: 400,
+          borderRadius: "50%",
+          background: "rgba(59,130,246,0.12)",
+          filter: "blur(80px)",
+          top: "-5%",
+          left: "-10%",
+          pointerEvents: "none",
+          zIndex: 0,
+          animation: "blob-move 12s ease infinite",
+        }}
+      />
+      <div
+        className="bg-blob"
+        style={{
+          position: "absolute",
+          width: 300,
+          height: 300,
+          borderRadius: "50%",
+          background: "rgba(139,92,246,0.10)",
+          filter: "blur(60px)",
+          bottom: "-5%",
+          right: "-5%",
+          pointerEvents: "none",
+          zIndex: 0,
+          animation: "blob-move 15s ease infinite reverse",
+        }}
+      />
 
-      {/* ── CENTER TOP: Waveform ── */}
-      <div style={{ marginBottom: 8 }}>
+      {/* ── Waveform ── */}
+      <div style={{ position: "relative", zIndex: 1, marginBottom: 4 }}>
         <div
           style={{
             display: "flex",
@@ -219,7 +233,7 @@ export function AuthIllustration() {
             textAlign: "center",
             fontSize: 11,
             color: "rgba(255,255,255,0.35)",
-            marginTop: 10,
+            marginTop: 8,
             letterSpacing: "0.08em",
             textTransform: "uppercase",
           }}
@@ -228,17 +242,19 @@ export function AuthIllustration() {
         </p>
       </div>
 
-      {/* ── CENTER: Live transcription stream ── */}
+      {/* ── Live transcription stream ── */}
       <div
         style={{
+          position: "relative",
+          zIndex: 1,
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center",
-          gap: 20,
+          justifyContent: "flex-start",
+          gap: 16,
           minHeight: 0,
           overflow: "hidden",
-          padding: "20px 0",
+          paddingTop: 12,
         }}
       >
         <AnimatePresence mode="popLayout">
@@ -249,9 +265,8 @@ export function AuthIllustration() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              style={{ display: "flex", flexDirection: "column", gap: 6 }}
+              style={{ display: "flex", flexDirection: "column", gap: 4 }}
             >
-              {/* Speaker tag */}
               <span
                 style={{
                   fontSize: 11,
@@ -263,11 +278,10 @@ export function AuthIllustration() {
               >
                 {line.speaker}
               </span>
-              {/* Words */}
               <div
                 style={{
                   fontSize: 18,
-                  lineHeight: 1.8,
+                  lineHeight: 1.7,
                   display: "flex",
                   flexWrap: "wrap",
                   gap: "0 6px",
@@ -310,12 +324,14 @@ export function AuthIllustration() {
         </AnimatePresence>
       </div>
 
-      {/* ── BOTTOM: Trust strip ── */}
+      {/* ── Trust strip ── */}
       <div
         style={{
+          position: "relative",
+          zIndex: 1,
           display: "flex",
           flexDirection: "column",
-          gap: 16,
+          gap: 14,
           paddingTop: 20,
           borderTop: "1px solid rgba(255,255,255,0.06)",
         }}
@@ -332,38 +348,19 @@ export function AuthIllustration() {
           </span>
         </div>
 
-        {/* Logos row */}
+        {/* Logos */}
         <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           {LOGOS.map((item, i) => (
-            <span key={item.name} style={{ display: "flex", alignItems: "center", gap: 0 }}>
+            <span key={item.name} style={{ display: "flex", alignItems: "center" }}>
               {i > 0 && (
-                <span
-                  style={{
-                    color: "rgba(255,255,255,0.2)",
-                    fontSize: 10,
-                    margin: "0 6px",
-                  }}
-                >
+                <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, margin: "0 6px" }}>
                   ·
                 </span>
               )}
-              <svg
-                viewBox="0 0 24 24"
-                width={16}
-                height={16}
-                fill="white"
-                opacity={0.45}
-                style={{ flexShrink: 0 }}
-              >
-                <path d={item.icon.path} />
+              <svg viewBox="0 0 24 24" width={16} height={16} fill="white" opacity={0.45} style={{ flexShrink: 0 }}>
+                <path d={item.path} />
               </svg>
-              <span
-                style={{
-                  fontSize: 12,
-                  color: "rgba(255,255,255,0.4)",
-                  marginLeft: 4,
-                }}
-              >
+              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginLeft: 4 }}>
                 {item.name}
               </span>
             </span>
@@ -371,7 +368,7 @@ export function AuthIllustration() {
         </div>
 
         {/* Testimonial */}
-        <div style={{ minHeight: 40 }}>
+        <div style={{ minHeight: 36 }}>
           <p
             key={testimonial.name}
             style={{
@@ -384,13 +381,7 @@ export function AuthIllustration() {
             }}
           >
             &ldquo;{testimonial.quote}&rdquo;
-            <span
-              style={{
-                fontStyle: "normal",
-                color: "rgba(255,255,255,0.6)",
-                marginLeft: 8,
-              }}
-            >
+            <span style={{ fontStyle: "normal", color: "rgba(255,255,255,0.6)", marginLeft: 8 }}>
               — {testimonial.name}, {testimonial.role}
             </span>
           </p>
