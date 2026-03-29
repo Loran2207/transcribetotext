@@ -84,7 +84,8 @@
       "Bash(curl -so ~/.claude/skills/gsap-core/SKILL.md \"https://raw.githubusercontent.com/greensock/gsap-skills/main/skills/gsap-core/SKILL.md\")",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Skill(update-config)"
     ]
   }
 }

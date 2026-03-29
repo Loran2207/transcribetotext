@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import {
   Add01Icon,
@@ -24,11 +24,12 @@ import { ScrollArea } from "@/app/components/ui/scroll-area";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { Label } from "@/app/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/app/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+} from "@/app/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,7 +49,7 @@ import type {
 } from "@/lib/templates";
 
 // ---------------------------------------------------------------------------
-// Constants
+// Constants & Helpers
 // ---------------------------------------------------------------------------
 
 type FilterKey = "all" | "built_in" | "custom" | "sales" | "hr" | "meetings" | "one_on_one";
@@ -100,12 +101,27 @@ function getCategoryEmoji(template: Template): string {
   return "\u{1F4CB}";
 }
 
-function makeEmptySection(): TemplateSection {
-  return { id: crypto.randomUUID(), title: "", instruction: "" };
+function makeEmptySection(title = ""): TemplateSection {
+  return { id: crypto.randomUUID(), title, instruction: "" };
+}
+
+/** Read section toggle prefs from localStorage for built-in templates. */
+function readSectionPrefs(templateId: string): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(`template_prefs_${templateId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Write section toggle prefs to localStorage for built-in templates. */
+function writeSectionPrefs(templateId: string, prefs: Record<string, boolean>) {
+  localStorage.setItem(`template_prefs_${templateId}`, JSON.stringify(prefs));
 }
 
 // ---------------------------------------------------------------------------
-// Sub-components
+// Filter Sidebar
 // ---------------------------------------------------------------------------
 
 function FilterSidebar({
@@ -161,6 +177,10 @@ function FilterSidebar({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Template Card
+// ---------------------------------------------------------------------------
+
 function TemplateCard({
   template,
   isSelected,
@@ -214,15 +234,12 @@ function TemplateCard({
         </div>
       </div>
 
-      {/* Name */}
       <p className="text-sm font-medium text-foreground leading-snug">{template.name}</p>
 
-      {/* Description */}
       {template.description && (
         <p className="text-xs text-muted-foreground line-clamp-2">{template.description}</p>
       )}
 
-      {/* Section pills */}
       {sections.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {visibleSections.map((s) => (
@@ -238,7 +255,6 @@ function TemplateCard({
         </div>
       )}
 
-      {/* Footer */}
       <div className="flex items-center justify-between pt-1">
         <div className="flex items-center gap-2">
           {template.is_locked ? (
@@ -253,7 +269,6 @@ function TemplateCard({
           )}
         </div>
 
-        {/* Action buttons — visible on hover */}
         <div
           className={cn(
             "flex items-center gap-1 transition-opacity",
@@ -309,7 +324,7 @@ function CreateTemplateCard({ onClick }: { onClick: () => void }) {
 }
 
 // ---------------------------------------------------------------------------
-// Editor Panel
+// Editor State
 // ---------------------------------------------------------------------------
 
 interface EditorState {
@@ -317,58 +332,81 @@ interface EditorState {
   description: string;
   instructions: string;
   sections: TemplateSection[];
+  sectionToggles: Record<string, boolean>;
   autoAssignKeywords: string[];
   isDefault: boolean;
 }
 
 function initEditorState(template?: Template): EditorState {
+  const sections = template?.sections?.length
+    ? template.sections.map((s) => ({ ...s }))
+    : [makeEmptySection("Summary")];
+
+  const toggles: Record<string, boolean> = {};
+  if (template?.type === "built_in") {
+    const stored = readSectionPrefs(template.id);
+    for (const s of sections) {
+      toggles[s.id] = stored[s.id] !== undefined ? stored[s.id] : true;
+    }
+  } else {
+    for (const s of sections) {
+      toggles[s.id] = true;
+    }
+  }
+
   return {
     name: template?.name ?? "",
     description: template?.description ?? "",
     instructions: template?.instructions ?? "",
-    sections: template?.sections?.length
-      ? template.sections.map((s) => ({ ...s }))
-      : [makeEmptySection()],
+    sections,
+    sectionToggles: toggles,
     autoAssignKeywords: template?.auto_assign_keywords ? [...template.auto_assign_keywords] : [],
     isDefault: template?.is_default ?? false,
   };
 }
 
-function EditorPanel({
+// ---------------------------------------------------------------------------
+// Template Sheet
+// ---------------------------------------------------------------------------
+
+function TemplateSheet({
+  open,
+  onOpenChange,
   template,
   isCreateMode,
-  onClose,
   onSave,
   onDuplicate,
   onDelete,
 }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
   template: Template | null;
   isCreateMode: boolean;
-  onClose: () => void;
   onSave: (data: CreateTemplateData) => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
-  const reduceMotion = useReducedMotion();
   const isBuiltIn = template?.type === "built_in";
   const isReadOnly = isBuiltIn && !isCreateMode;
 
   const [form, setForm] = useState<EditorState>(() => initEditorState(template ?? undefined));
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [keywordInput, setKeywordInput] = useState("");
-  const [previewOpen, setPreviewOpen] = useState(false);
 
+  // Re-initialize form when template or mode changes
   useEffect(() => {
-    setForm(initEditorState(template ?? undefined));
-    setExpandedSections(new Set());
-    setKeywordInput("");
-  }, [template?.id, isCreateMode]);
+    if (open) {
+      setForm(initEditorState(template ?? undefined));
+      setExpandedSections(new Set());
+      setKeywordInput("");
+    }
+  }, [template?.id, isCreateMode, open]);
 
-  const panelLabel = isCreateMode
+  const sheetTitle = isCreateMode
     ? "New template"
     : isBuiltIn
-      ? "View template"
-      : "Edit template";
+      ? template?.name ?? "View template"
+      : template?.name ?? "Edit template";
 
   function updateForm(patch: Partial<EditorState>) {
     setForm((prev) => ({ ...prev, ...patch }));
@@ -383,13 +421,24 @@ function EditorPanel({
 
   function addSection() {
     const newSection = makeEmptySection();
-    setForm((prev) => ({ ...prev, sections: [...prev.sections, newSection] }));
+    setForm((prev) => ({
+      ...prev,
+      sections: [...prev.sections, newSection],
+      sectionToggles: { ...prev.sectionToggles, [newSection.id]: true },
+    }));
     setExpandedSections((prev) => new Set([...prev, newSection.id]));
   }
 
   function removeSection(id: string) {
     if (form.sections.length <= 1) return;
-    setForm((prev) => ({ ...prev, sections: prev.sections.filter((s) => s.id !== id) }));
+    setForm((prev) => {
+      const { [id]: _, ...restToggles } = prev.sectionToggles;
+      return {
+        ...prev,
+        sections: prev.sections.filter((s) => s.id !== id),
+        sectionToggles: restToggles,
+      };
+    });
     setExpandedSections((prev) => {
       const next = new Set(prev);
       next.delete(id);
@@ -417,6 +466,16 @@ function EditorPanel({
     });
   }
 
+  function toggleSectionEnabled(id: string, enabled: boolean) {
+    const nextToggles = { ...form.sectionToggles, [id]: enabled };
+    updateForm({ sectionToggles: nextToggles });
+
+    // Persist built-in template prefs to localStorage
+    if (template && isBuiltIn) {
+      writeSectionPrefs(template.id, nextToggles);
+    }
+  }
+
   function addKeyword() {
     const kw = keywordInput.trim();
     if (!kw || form.autoAssignKeywords.includes(kw)) {
@@ -432,100 +491,142 @@ function EditorPanel({
   }
 
   function handleSave() {
-    if (!form.name.trim()) return;
+    if (!form.name.trim()) {
+      toast.error("Template name is required");
+      return;
+    }
+    const hasSection = form.sections.some((s) => s.title.trim());
+    if (!hasSection) {
+      toast.error("At least one section with a title is required");
+      return;
+    }
+
+    // For custom templates, only include toggled-on sections
+    const activeSections = isBuiltIn
+      ? form.sections
+      : form.sections.filter((s) => form.sectionToggles[s.id] !== false);
+
     onSave({
       name: form.name.trim(),
       description: form.description.trim() || null,
       instructions: form.instructions.trim() || null,
-      sections: form.sections,
+      sections: activeSections,
       auto_assign_keywords: form.autoAssignKeywords,
       is_default: form.isDefault,
     });
   }
 
   return (
-    <>
-      <motion.div
-        initial={reduceMotion ? false : { x: 80, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={reduceMotion ? undefined : { x: 80, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24 }}
-        className="w-[320px] shrink-0 border-l border-border bg-card flex flex-col"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground">{panelLabel}</p>
-            {template && !isCreateMode && (
-              <p className="text-sm font-medium text-foreground truncate">{template.name}</p>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-[400px] sm:max-w-[400px] flex flex-col p-0">
+        <SheetHeader className="px-5 pt-5 pb-3 border-b border-border">
+          <div className="flex items-center gap-2">
+            {!isCreateMode && template && (
+              <Badge variant={isBuiltIn ? "default" : "secondary"} className="text-[10px]">
+                {isBuiltIn ? "Built-in" : "Custom"}
+              </Badge>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-          >
-            <Icon icon={Cancel01Icon} size={16} />
-          </button>
-        </div>
+          <SheetTitle className="text-base">{sheetTitle}</SheetTitle>
+          {isBuiltIn && !isCreateMode && template?.description && (
+            <p className="text-xs text-muted-foreground">{template.description}</p>
+          )}
+        </SheetHeader>
 
-        {/* Form body */}
+        {/* Scrollable body */}
         <ScrollArea className="flex-1">
-          <div className="flex flex-col gap-4 p-4">
-            {/* Name */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-medium">Name</Label>
-              <Input
-                value={form.name}
-                onChange={(e) => updateForm({ name: e.target.value })}
-                placeholder="Template name"
-                disabled={isReadOnly}
-              />
-            </div>
+          <div className="flex flex-col gap-5 px-5 py-4">
+            {/* Name & Description — editable for custom/create */}
+            {!isReadOnly && (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-medium">Name</Label>
+                  <Input
+                    value={form.name}
+                    onChange={(e) => updateForm({ name: e.target.value })}
+                    placeholder="Template name"
+                    autoFocus={isCreateMode}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-medium">Description</Label>
+                  <Input
+                    value={form.description}
+                    onChange={(e) => updateForm({ description: e.target.value })}
+                    placeholder="Short description"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-medium">AI instructions</Label>
+                  <Textarea
+                    value={form.instructions}
+                    onChange={(e) => updateForm({ instructions: e.target.value })}
+                    placeholder="Describe the purpose of this meeting and how you'd like the summary structured..."
+                    rows={4}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Guide the AI on how to structure and prioritize the output.
+                  </p>
+                </div>
+              </>
+            )}
 
-            {/* Description */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-medium">Description</Label>
-              <Textarea
-                value={form.description}
-                onChange={(e) => updateForm({ description: e.target.value })}
-                placeholder="Short description..."
-                rows={2}
-                disabled={isReadOnly}
-              />
-            </div>
-
-            {/* Instructions */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-medium">AI instructions</Label>
-              <Textarea
-                value={form.instructions}
-                onChange={(e) => updateForm({ instructions: e.target.value })}
-                placeholder="Describe the purpose of this meeting and how you'd like the summary structured..."
-                rows={5}
-                disabled={isReadOnly}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Guide the AI on how to structure and prioritize the output.
-              </p>
-            </div>
+            {/* Built-in AI instructions (read-only) */}
+            {isReadOnly && template?.instructions && (
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs font-medium">AI instructions</Label>
+                <p className="text-xs text-muted-foreground whitespace-pre-wrap rounded-lg border border-border bg-muted/30 p-3">
+                  {template.instructions}
+                </p>
+              </div>
+            )}
 
             {/* Sections */}
             <div className="flex flex-col gap-2">
               <Label className="text-xs font-medium">Sections</Label>
               {form.sections.map((section, idx) => {
                 const isExpanded = expandedSections.has(section.id);
+                const isEnabled = form.sectionToggles[section.id] !== false;
+
                 return (
-                  <div key={section.id} className="rounded-lg border border-border bg-background p-2">
-                    <div className="flex items-center gap-1">
-                      <Input
-                        value={section.title}
-                        onChange={(e) => updateSection(section.id, { title: e.target.value })}
-                        placeholder={`Section ${idx + 1}`}
-                        className="flex-1 h-8 text-xs"
-                        disabled={isReadOnly}
-                      />
+                  <div
+                    key={section.id}
+                    className={cn(
+                      "rounded-lg border border-border bg-background transition-opacity",
+                      !isEnabled && "opacity-50"
+                    )}
+                  >
+                    {/* Section header row */}
+                    <div className="flex items-center gap-2 px-3 py-2.5">
+                      {/* Expand/collapse for editable */}
                       {!isReadOnly && (
-                        <div className="flex items-center">
+                        <button
+                          onClick={() => toggleSectionExpand(section.id)}
+                          className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          <Icon
+                            icon={ChevronRight}
+                            size={14}
+                            className={cn("transition-transform", isExpanded && "rotate-90")}
+                          />
+                        </button>
+                      )}
+
+                      {/* Section info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {section.title || `Section ${idx + 1}`}
+                        </p>
+                        {section.instruction && !isExpanded && (
+                          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                            {section.instruction}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Reorder buttons (editable only) */}
+                      {!isReadOnly && (
+                        <div className="flex items-center gap-0.5">
                           <button
                             onClick={() => moveSection(section.id, "up")}
                             disabled={idx === 0}
@@ -542,38 +643,53 @@ function EditorPanel({
                           </button>
                         </div>
                       )}
-                      <button
-                        onClick={() => toggleSectionExpand(section.id)}
-                        className="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <Icon
-                          icon={ChevronRight}
-                          size={12}
-                          className={cn("transition-transform", isExpanded && "rotate-90")}
-                        />
-                      </button>
-                      {!isReadOnly && form.sections.length > 1 && (
-                        <button
-                          onClick={() => removeSection(section.id)}
-                          className="rounded p-0.5 text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <Icon icon={Cancel01Icon} size={12} />
-                        </button>
-                      )}
-                    </div>
-                    {isExpanded && (
-                      <Textarea
-                        value={section.instruction}
-                        onChange={(e) => updateSection(section.id, { instruction: e.target.value })}
-                        placeholder="Section instructions..."
-                        rows={3}
-                        className="mt-2 text-xs"
-                        disabled={isReadOnly}
+
+                      {/* Toggle */}
+                      <Switch
+                        checked={isEnabled}
+                        onCheckedChange={(checked) => toggleSectionEnabled(section.id, checked)}
                       />
+                    </div>
+
+                    {/* Expanded edit area */}
+                    {!isReadOnly && isExpanded && (
+                      <div className="border-t border-border px-3 py-2.5 flex flex-col gap-2">
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-[11px] text-muted-foreground">Title</Label>
+                          <Input
+                            value={section.title}
+                            onChange={(e) => updateSection(section.id, { title: e.target.value })}
+                            placeholder={`Section ${idx + 1}`}
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <Label className="text-[11px] text-muted-foreground">Instruction</Label>
+                          <Textarea
+                            value={section.instruction}
+                            onChange={(e) => updateSection(section.id, { instruction: e.target.value })}
+                            placeholder="Section instructions..."
+                            rows={3}
+                            className="text-xs"
+                          />
+                        </div>
+                        {form.sections.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeSection(section.id)}
+                            className="self-start text-destructive hover:text-destructive h-7 text-xs px-2"
+                          >
+                            <Icon icon={Delete02Icon} size={12} className="mr-1" />
+                            Remove section
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                 );
               })}
+
               {!isReadOnly && (
                 <button
                   onClick={addSection}
@@ -585,17 +701,15 @@ function EditorPanel({
               )}
             </div>
 
-            {/* Preview button */}
-            <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
-              Preview template
-            </Button>
+            <Separator />
 
-            {/* Auto-assign keywords */}
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-xs font-medium">Auto-assign keywords</Label>
-              <p className="text-[11px] text-muted-foreground">
-                If a title contains any of these, this template auto-applies.
+            {/* Template selection rules */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-medium">Template selection rules</Label>
+              <p className="text-xs text-muted-foreground">
+                When these conditions are met, this template is applied automatically
               </p>
+
               {!isReadOnly && (
                 <div className="flex gap-1.5">
                   <Input
@@ -610,7 +724,7 @@ function EditorPanel({
                   </Button>
                 </div>
               )}
-              {form.autoAssignKeywords.length > 0 && (
+              {form.autoAssignKeywords.length > 0 ? (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {form.autoAssignKeywords.map((kw) => (
                     <Badge key={kw} variant="secondary" className="text-[11px] gap-1 pr-1">
@@ -623,10 +737,12 @@ function EditorPanel({
                     </Badge>
                   ))}
                 </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground italic">No keywords set</p>
               )}
             </div>
 
-            {/* Set as default */}
+            {/* Set as default toggle */}
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <div className="flex flex-col gap-0.5">
                 <Label className="text-xs font-medium">Set as default</Label>
@@ -641,115 +757,55 @@ function EditorPanel({
           </div>
         </ScrollArea>
 
-        {/* Footer */}
-        <div className="border-t border-border p-4">
-          {isReadOnly ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs text-muted-foreground">Built-in templates are read-only</p>
-              <Button variant="outline" size="sm" onClick={onDuplicate}>
-                <Icon icon={Copy01Icon} size={14} className="mr-1.5" />
-                Duplicate to edit
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={onClose} className="flex-1">
+        {/* Sticky footer */}
+        <SheetFooter className="border-t border-border px-5 py-3 flex-row">
+          {isCreateMode ? (
+            <>
+              <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1">
                 Cancel
               </Button>
+              <Button onClick={handleSave} disabled={!form.name.trim()} className="flex-1">
+                Create template
+              </Button>
+            </>
+          ) : isBuiltIn ? (
+            <>
+              <Button variant="outline" onClick={onDuplicate} className="flex-1">
+                <Icon icon={Copy01Icon} size={14} className="mr-1.5" />
+                Duplicate & edit
+              </Button>
               <Button
-                size="sm"
                 onClick={handleSave}
-                disabled={!form.name.trim()}
+                disabled={template?.is_locked}
                 className="flex-1"
               >
-                {isCreateMode ? "Create template" : "Save changes"}
+                Use this template
               </Button>
-            </div>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                onClick={onDelete}
+                className="text-destructive hover:text-destructive"
+              >
+                <Icon icon={Delete02Icon} size={14} className="mr-1" />
+                Delete
+              </Button>
+              <div className="flex-1" />
+              <Button onClick={handleSave} disabled={!form.name.trim()}>
+                Save
+              </Button>
+            </>
           )}
-        </div>
-      </motion.div>
-
-      {/* Preview Dialog */}
-      <PreviewDialog
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
-        form={form}
-      />
-    </>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Preview Dialog
-// ---------------------------------------------------------------------------
-
-function PreviewDialog({
-  open,
-  onOpenChange,
-  form,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  form: EditorState;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle>Template Preview</DialogTitle>
-        </DialogHeader>
-        <div className="grid grid-cols-2 gap-6 overflow-auto max-h-[60vh] pr-2">
-          {/* Left — config */}
-          <div className="flex flex-col gap-4">
-            <div>
-              <h4 className="text-sm font-medium text-foreground">{form.name || "Untitled"}</h4>
-              {form.description && (
-                <p className="text-xs text-muted-foreground mt-1">{form.description}</p>
-              )}
-            </div>
-            {form.instructions && (
-              <div>
-                <p className="text-xs font-medium text-foreground mb-1">AI Instructions</p>
-                <p className="text-xs text-muted-foreground whitespace-pre-wrap">{form.instructions}</p>
-              </div>
-            )}
-            <div>
-              <p className="text-xs font-medium text-foreground mb-2">Sections</p>
-              <div className="flex flex-col gap-2">
-                {form.sections.map((s, i) => (
-                  <div key={s.id} className="rounded-md border border-border p-2">
-                    <p className="text-xs font-medium">{s.title || `Section ${i + 1}`}</p>
-                    {s.instruction && (
-                      <p className="text-[11px] text-muted-foreground mt-1">{s.instruction}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right — mock output */}
-          <div className="rounded-xl bg-muted/50 p-4 flex flex-col gap-4">
-            <p className="text-xs font-semibold text-foreground">Generated Summary Preview</p>
-            {form.sections.map((s, i) => (
-              <div key={s.id}>
-                <h4 className="text-sm font-medium text-foreground mb-1">{s.title || `Section ${i + 1}`}</h4>
-                <p className="text-xs text-muted-foreground italic leading-relaxed">
-                  AI-generated content for &ldquo;{s.title || `Section ${i + 1}`}&rdquo; will appear here
-                  based on the transcription content. The output follows the instructions
-                  provided for this section.
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Loading skeleton
+// Loading Skeleton
 // ---------------------------------------------------------------------------
 
 function TemplatesSkeleton() {
@@ -793,13 +849,12 @@ export function TemplatesPage() {
   const [isCreateMode, setIsCreateMode] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
 
-  const isPanelOpen = selectedId !== null || isCreateMode;
+  const sheetOpen = selectedId !== null || isCreateMode;
 
   // Filter templates
   const filtered = useMemo(() => {
     let result = templates;
 
-    // Type / category filter
     switch (activeFilter) {
       case "built_in":
         result = result.filter((t) => t.type === "built_in");
@@ -815,7 +870,6 @@ export function TemplatesPage() {
         break;
     }
 
-    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((t) => {
@@ -833,7 +887,7 @@ export function TemplatesPage() {
   const customTemplates = filtered.filter((t) => t.type === "custom");
   const selectedTemplate = selectedId ? templates.find((t) => t.id === selectedId) ?? null : null;
 
-  function closePanel() {
+  function closeSheet() {
     setSelectedId(null);
     setIsCreateMode(false);
   }
@@ -885,7 +939,7 @@ export function TemplatesPage() {
     if (!deleteTarget) return;
     const success = await remove(deleteTarget.id);
     if (success && selectedId === deleteTarget.id) {
-      closePanel();
+      closeSheet();
     }
     setDeleteTarget(null);
   }, [deleteTarget, remove, selectedId]);
@@ -897,14 +951,14 @@ export function TemplatesPage() {
   return (
     <>
       <div className="flex flex-1 overflow-hidden">
-        {/* Zone A — Filter sidebar */}
+        {/* Filter sidebar */}
         <FilterSidebar
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
           templates={templates}
         />
 
-        {/* Zone B — Main content */}
+        {/* Main content */}
         <ScrollArea className="flex-1">
           <div className="p-6">
             {/* Header */}
@@ -937,12 +991,7 @@ export function TemplatesPage() {
                 <p className="text-sm font-medium text-muted-foreground mb-3">
                   Built-in &middot; {builtInTemplates.length}
                 </p>
-                <div
-                  className={cn(
-                    "grid gap-4",
-                    isPanelOpen ? "grid-cols-2" : "grid-cols-3"
-                  )}
-                >
+                <div className="grid grid-cols-3 gap-4">
                   {builtInTemplates.map((t, idx) => (
                     <motion.div
                       key={t.id}
@@ -972,12 +1021,7 @@ export function TemplatesPage() {
               <p className="text-sm font-medium text-muted-foreground mb-3">
                 My templates &middot; {customTemplates.length}
               </p>
-              <div
-                className={cn(
-                  "grid gap-4",
-                  isPanelOpen ? "grid-cols-2" : "grid-cols-3"
-                )}
-              >
+              <div className="grid grid-cols-3 gap-4">
                 {customTemplates.map((t, idx) => (
                   <motion.div
                     key={t.id}
@@ -1027,22 +1071,22 @@ export function TemplatesPage() {
             )}
           </div>
         </ScrollArea>
-
-        {/* Zone C — Editor panel */}
-        <AnimatePresence>
-          {isPanelOpen && (
-            <EditorPanel
-              key={selectedId ?? "create"}
-              template={selectedTemplate}
-              isCreateMode={isCreateMode}
-              onClose={closePanel}
-              onSave={handleSave}
-              onDuplicate={() => selectedTemplate && handleDuplicate(selectedTemplate)}
-              onDelete={() => selectedTemplate && setDeleteTarget(selectedTemplate)}
-            />
-          )}
-        </AnimatePresence>
       </div>
+
+      {/* Template Sheet (slide-over) */}
+      <TemplateSheet
+        open={sheetOpen}
+        onOpenChange={(open) => { if (!open) closeSheet(); }}
+        template={selectedTemplate}
+        isCreateMode={isCreateMode}
+        onSave={handleSave}
+        onDuplicate={() => selectedTemplate && handleDuplicate(selectedTemplate)}
+        onDelete={() => {
+          if (selectedTemplate) {
+            setDeleteTarget(selectedTemplate);
+          }
+        }}
+      />
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
