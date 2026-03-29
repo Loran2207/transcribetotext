@@ -28,7 +28,10 @@ import { useStarred } from "./starred-context";
 import { SourceIcon, type SourceType } from "./source-icons";
 import { records, type RecordRow } from "./records-table";
 import { Icon } from "./ui/icon";
+import { Skeleton } from "./ui/skeleton";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
+import { useTemplates } from "@/hooks/use-templates";
+import type { Template } from "@/lib/templates";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -150,22 +153,7 @@ function mapJobToDetailRecord(job: TranscriptionJob): RecordRow {
 // Templates
 // ════════════════════════════════════════════════════════════
 
-interface SummaryTemplate {
-  id: string;
-  label: string;
-  locked: boolean;
-}
-
-const TEMPLATES: SummaryTemplate[] = [
-  { id: "general", label: "General", locked: false },
-  { id: "sales-bant", label: "Sales - BANT", locked: false },
-  { id: "team-meeting", label: "Team Meeting", locked: false },
-  { id: "one-on-one", label: "1/1", locked: false },
-  { id: "candidate-interview", label: "Candidate Interview", locked: false },
-  { id: "sales-discovery", label: "Sales - Discovery", locked: true },
-  { id: "team-standup", label: "Team Standup", locked: true },
-  { id: "user-research", label: "User Research Interview", locked: true },
-];
+// Templates are now loaded from Supabase via useTemplates hook
 
 // ════════════════════════════════════════════════════════════
 // Mock data
@@ -600,14 +588,26 @@ function SummaryTab({ summaryText }: { summaryText: string }) {
 // Template Selector Dropdown
 // ════════════════════════════════════════════════════════════
 
-function TemplateSelectorButton({ activeTemplate, onSelect }: { activeTemplate: string; onSelect: (id: string) => void }) {
-  const active = TEMPLATES.find((t) => t.id === activeTemplate) ?? TEMPLATES[0];
+function TemplateSelectorButton({
+  activeTemplateId,
+  templates,
+  onSelect,
+  onNavigateToTemplates,
+}: {
+  activeTemplateId: string | null;
+  templates: Template[];
+  onSelect: (id: string) => void;
+  onNavigateToTemplates: () => void;
+}) {
+  const active = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) : null;
+  const builtIn = templates.filter((t) => t.type === "built_in");
+  const custom = templates.filter((t) => t.type === "custom");
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground">
-          Template: <span className="text-foreground font-medium">{active.label}</span>
+          Template: <span className="text-foreground font-medium">{active?.name ?? "None"}</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
         </Button>
       </DropdownMenuTrigger>
@@ -615,31 +615,64 @@ function TemplateSelectorButton({ activeTemplate, onSelect }: { activeTemplate: 
         <div className="flex items-center justify-between px-2 py-1.5">
           <span className="text-xs font-medium text-muted-foreground">Workspace templates</span>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="size-5 rounded-full text-muted-foreground">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-            </Button>
-            <Button variant="ghost" size="icon" className="size-5 rounded-full text-muted-foreground">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-5 rounded-full text-muted-foreground" onClick={onNavigateToTemplates}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Manage templates</TooltipContent>
+            </Tooltip>
           </div>
         </div>
         <DropdownMenuSeparator />
-        {TEMPLATES.map((t) => (
+        {builtIn.length > 0 && (
+          <div className="px-2 py-1">
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Built-in</span>
+          </div>
+        )}
+        {builtIn.map((t) => (
           <DropdownMenuItem
             key={t.id}
-            disabled={t.locked}
-            onClick={() => { if (!t.locked) onSelect(t.id); }}
+            disabled={t.is_locked}
+            onClick={() => {
+              if (t.is_locked) {
+                toast("Upgrade to Pro to use this template");
+              } else {
+                onSelect(t.id);
+              }
+            }}
             className="flex items-center justify-between"
           >
-            <span className={t.locked ? "text-muted-foreground" : ""}>
-              {t.label}
-              {t.locked && <span className="ml-1.5">{"\u{1F512}"}</span>}
+            <span className={t.is_locked ? "text-muted-foreground" : ""}>
+              {t.name}
+              {t.is_locked && <span className="ml-1.5">{"\u{1F512}"}</span>}
             </span>
-            {t.id === activeTemplate && (
+            {t.id === activeTemplateId && (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><polyline points="20 6 9 17 4 12" /></svg>
             )}
           </DropdownMenuItem>
         ))}
+        {custom.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <div className="px-2 py-1">
+              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">My templates</span>
+            </div>
+            {custom.map((t) => (
+              <DropdownMenuItem
+                key={t.id}
+                onClick={() => onSelect(t.id)}
+                className="flex items-center justify-between"
+              >
+                <span>{t.name}</span>
+                {t.id === activeTemplateId && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><polyline points="20 6 9 17 4 12" /></svg>
+                )}
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -1390,7 +1423,9 @@ export function TranscriptionDetailPage() {
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoPlaybackRate, setVideoPlaybackRate] = useState(1);
   const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
-  const [activeTemplate, setActiveTemplate] = useState("general");
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const { templates } = useTemplates();
   const [selectedTranslationLang, setSelectedTranslationLang] = useState("");
   const [activeTranslationLang, setActiveTranslationLang] = useState<string | null>(null);
   const [isTranslationLoading, setIsTranslationLoading] = useState(false);
@@ -2241,7 +2276,23 @@ export function TranscriptionDetailPage() {
                   </Button>
                 )
               ) : (
-                <TemplateSelectorButton activeTemplate={activeTemplate} onSelect={setActiveTemplate} />
+                <TemplateSelectorButton
+                  activeTemplateId={activeTemplateId}
+                  templates={templates}
+                  onSelect={(id) => {
+                    setActiveTemplateId(id);
+                    const selected = templates.find((t) => t.id === id);
+                    if (selected) {
+                      setIsSummaryLoading(true);
+                      // Simulate summary regeneration delay
+                      setTimeout(() => {
+                        setIsSummaryLoading(false);
+                        toast.success(`Summary regenerated with ${selected.name}`);
+                      }, 1500);
+                    }
+                  }}
+                  onNavigateToTemplates={() => navigate("/")}
+                />
               )}
             </div>
           </div>
@@ -2318,20 +2369,22 @@ export function TranscriptionDetailPage() {
           </TabsContent>
 
           <TabsContent value="summary" className="flex-1 overflow-auto">
-            {isJobTranscribing ? (
+            {isJobTranscribing || isSummaryLoading ? (
               <div className="animate-in fade-in duration-300 px-8 py-6">
-                <div className="rounded-[14px] border border-border/70 bg-muted/25 px-5 py-5">
-                  <div className="mb-3 h-4 w-[220px] animate-pulse rounded-full bg-muted" />
-                  <div className="space-y-2">
-                    <div className="h-3 w-[96%] animate-pulse rounded-full bg-muted" />
-                    <div className="h-3 w-[88%] animate-pulse rounded-full bg-muted" />
-                    <div className="h-3 w-[78%] animate-pulse rounded-full bg-muted" />
-                    <div className="h-3 w-[83%] animate-pulse rounded-full bg-muted" />
-                  </div>
+                <div className="space-y-4">
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                  <Skeleton className="h-4 w-4/6" />
+                  <Skeleton className="h-5 w-36 mt-6" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+                {isJobTranscribing && (
                   <p className="mt-4 text-xs text-muted-foreground">
                     Summary is being generated and will appear automatically.
                   </p>
-                </div>
+                )}
               </div>
             ) : (
               <SummaryTab summaryText={contentSummary} />
