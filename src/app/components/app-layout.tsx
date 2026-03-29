@@ -4,6 +4,7 @@ import { AppSidebar } from "./app-sidebar";
 import { DashboardPage } from "./dashboard-page";
 import { CalendarPage } from "./calendar-page";
 import { MyRecordsPage } from "./my-records-page";
+import { TemplatesPage } from "./templates-page";
 import { useLanguage } from "./language-context";
 import { TopBar } from "./top-bar";
 import { SettingsPage } from "./settings-modal";
@@ -55,7 +56,8 @@ export function AppLayout() {
                 {!isSettings && activePage === "dashboard" && <DashboardPage onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />}
                 {!isSettings && activePage === "records" && <MyRecordsPage initialFolderId={initialFolderId} onFolderConsumed={() => setInitialFolderId(null)} />}
                 {!isSettings && activePage === "calendar" && <CalendarPage />}
-                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "calendar" && (
+                {!isSettings && activePage === "templates" && <TemplatesPage />}
+                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "calendar" && activePage !== "templates" && (
                   <PagePlaceholder activePage={activePage} />
                 )}
               </>

@@ -6,6 +6,8 @@ import { LoginPage } from "./components/login-page";
 import { SignupPage } from "./components/signup-page";
 import { EmailConfirmationPage } from "./components/email-confirmation-page";
 import { AuthCallbackPage } from "./components/auth-callback-page";
+import { ForgotPasswordPage } from "./components/forgot-password-page";
+import { ResetPasswordPage } from "./components/reset-password-page";
 import { ProtectedRoute } from "./components/protected-route";
 
 function ProtectedAppLayout() {
@@ -28,5 +30,7 @@ export const router = createBrowserRouter([
   { path: "/signup", Component: SignupPage },
   { path: "/check-email", Component: EmailConfirmationPage },
   { path: "/auth/callback", Component: AuthCallbackPage },
+  { path: "/forgot-password", Component: ForgotPasswordPage },
+  { path: "/reset-password", Component: ResetPasswordPage },
   { path: "/design-system", Component: DesignSystemPage },
 ]);

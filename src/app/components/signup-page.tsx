@@ -1,6 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, Navigate } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
 import { EyeIcon, ViewOffIcon, Loading01Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
@@ -32,14 +32,14 @@ function getPasswordStrength(password: string): PasswordStrength {
   return "weak";
 }
 
-const STRENGTH_CONFIG: Record<PasswordStrength, { color: string; width: string; label: string }> = {
-  weak: { color: "var(--destructive)", width: "33%", label: "Weak" },
-  medium: { color: "#eab308", width: "66%", label: "Medium" },
-  strong: { color: "#22c55e", width: "100%", label: "Strong" },
+const STRENGTH_CONFIG: Record<PasswordStrength, { barClass: string; textClass: string; width: string; label: string }> = {
+  weak: { barClass: "bg-destructive", textClass: "text-destructive", width: "33%", label: "Weak" },
+  medium: { barClass: "bg-[var(--strength-medium)]", textClass: "text-[var(--strength-medium)]", width: "66%", label: "Medium" },
+  strong: { barClass: "bg-[var(--strength-strong)]", textClass: "text-[var(--strength-strong)]", width: "100%", label: "Strong" },
 };
 
 export function SignupPage() {
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, user, loading } = useAuth();
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
 
@@ -48,6 +48,8 @@ export function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [failedEmail, setFailedEmail] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   const {
     register,
@@ -63,20 +65,39 @@ export function SignupPage() {
     [passwordValue],
   );
 
+  // BUG 10 fix: redirect already-authenticated users away from signup
+  if (!loading && user) {
+    return <Navigate to="/" replace />;
+  }
+
   const onSubmit = async (data: SignupFormValues) => {
+    // Prevent double-submit (React StrictMode can cause double-mount)
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSubmitting(true);
     setErrorMessage(null);
+    setFailedEmail(null);
 
-    const { error } = await signUp(data.email, data.password, data.fullName);
+    const { error, needsEmailConfirmation } = await signUp(data.email, data.password, data.fullName);
 
     if (error) {
+      const isAlreadyExists = error.message.includes('already exists');
       setErrorMessage(error.message);
+      if (isAlreadyExists) {
+        setFailedEmail(data.email);
+      }
       setIsSubmitting(false);
+      submittingRef.current = false;
       return;
     }
 
-    toast.success("Almost there! Check your inbox.");
-    navigate(`/check-email?email=${encodeURIComponent(data.email)}`);
+    if (needsEmailConfirmation) {
+      navigate(`/check-email?email=${encodeURIComponent(data.email)}`);
+      return;
+    }
+
+    toast.success("Account created! Welcome aboard.");
+    navigate("/");
   };
 
   const handleGoogleSignIn = async () => {
@@ -88,6 +109,8 @@ export function SignupPage() {
       setIsGoogleLoading(false);
     }
   };
+
+  const isFormDisabled = isSubmitting || isGoogleLoading;
 
   const animProps = (delay: number) =>
     prefersReducedMotion
@@ -115,7 +138,21 @@ export function SignupPage() {
         </motion.p>
 
         {errorMessage && (
-          <p className="text-sm text-destructive">{errorMessage}</p>
+          <div className="text-sm text-destructive">
+            <span>{errorMessage}</span>
+            {failedEmail && (
+              <>
+                {" "}
+                <Link
+                  to="/login"
+                  state={{ prefillEmail: failedEmail }}
+                  className="text-primary font-medium hover:underline"
+                >
+                  Log in instead &rarr;
+                </Link>
+              </>
+            )}
+          </div>
         )}
 
         {/* Google Sign In */}
@@ -126,7 +163,7 @@ export function SignupPage() {
             size="lg"
             className="w-full rounded-full"
             onClick={handleGoogleSignIn}
-            disabled={isGoogleLoading || isSubmitting}
+            disabled={isFormDisabled}
           >
             {isGoogleLoading ? (
               <>
@@ -162,7 +199,9 @@ export function SignupPage() {
             type="text"
             placeholder="Jane Doe"
             autoComplete="name"
-            className="rounded-full"
+            className={`rounded-full ${errors.fullName ? "border-destructive" : ""}`}
+            disabled={isFormDisabled}
+            aria-invalid={!!errors.fullName}
             {...register("fullName", { required: "Name is required" })}
           />
           {errors.fullName && (
@@ -178,12 +217,14 @@ export function SignupPage() {
             type="email"
             placeholder="you@example.com"
             autoComplete="email"
-            className="rounded-full"
+            className={`rounded-full ${errors.email ? "border-destructive" : ""}`}
+            disabled={isFormDisabled}
+            aria-invalid={!!errors.email}
             {...register("email", {
               required: "Email is required",
               pattern: {
                 value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                message: "Enter a valid email address",
+                message: "Please enter a valid email address",
               },
             })}
           />
@@ -201,7 +242,9 @@ export function SignupPage() {
               type={showPassword ? "text" : "password"}
               placeholder="At least 6 characters"
               autoComplete="new-password"
-              className="pr-10 rounded-full"
+              className={`pr-10 rounded-full ${errors.password ? "border-destructive" : ""}`}
+              disabled={isFormDisabled}
+              aria-invalid={!!errors.password}
               {...register("password", {
                 required: "Password is required",
                 minLength: {
@@ -227,22 +270,15 @@ export function SignupPage() {
           {/* Password strength bar */}
           {strength && (
             <div className="flex flex-col gap-1 mt-1">
-              <div
-                className="h-1 w-full rounded-full"
-                style={{ background: "var(--border)" }}
-              >
+              <div className="h-1 w-full rounded-full bg-border">
                 <motion.div
-                  className="h-1 rounded-full"
-                  style={{ background: STRENGTH_CONFIG[strength].color }}
+                  className={`h-1 rounded-full ${STRENGTH_CONFIG[strength].barClass}`}
                   initial={{ width: 0 }}
                   animate={{ width: STRENGTH_CONFIG[strength].width }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 />
               </div>
-              <span
-                className="text-xs"
-                style={{ color: STRENGTH_CONFIG[strength].color }}
-              >
+              <span className={`text-xs ${STRENGTH_CONFIG[strength].textClass}`}>
                 {STRENGTH_CONFIG[strength].label}
               </span>
             </div>
@@ -258,11 +294,13 @@ export function SignupPage() {
               type={showConfirmPassword ? "text" : "password"}
               placeholder="Re-enter your password"
               autoComplete="new-password"
-              className="pr-10 rounded-full"
+              className={`pr-10 rounded-full ${errors.confirmPassword ? "border-destructive" : ""}`}
+              disabled={isFormDisabled}
+              aria-invalid={!!errors.confirmPassword}
               {...register("confirmPassword", {
                 required: "Please confirm your password",
                 validate: (value) =>
-                  value === passwordValue || "Passwords do not match",
+                  value === passwordValue || "Passwords don't match",
               })}
             />
             <button
@@ -291,7 +329,7 @@ export function SignupPage() {
             type="submit"
             className="w-full rounded-full"
             size="lg"
-            disabled={isSubmitting}
+            disabled={isFormDisabled}
           >
             {isSubmitting ? (
               <>

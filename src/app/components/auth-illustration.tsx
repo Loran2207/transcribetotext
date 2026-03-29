@@ -1,310 +1,190 @@
-import { useMemo } from "react";
+import { useEffect, useRef } from "react"
+import { FeatureShowcase } from "./feature-showcase"
 import {
   siZoom,
   siGooglemeet,
   siYoutube,
   siGoogledrive,
   siDropbox,
-  siNotion,
-  siDiscord,
-  siSpotify,
-} from "simple-icons";
+} from "simple-icons"
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   All animation is CSS-only (see src/styles/index.css).
-   Zero JS runtime animation — no GSAP, no framer-motion, no setInterval.
+   Data
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Logo data (simple-icons, official SVG paths) ── */
+const TEAMS_PATH =
+  "M20.625 3.6h-7.5a1.125 1.125 0 00-1.125 1.125v7.5A1.125 1.125 0 0013.125 13.35h7.5A1.125 1.125 0 0021.75 12.225v-7.5A1.125 1.125 0 0020.625 3.6zm-1.5 6.75h-1.5v3h-1.5v-3h-1.5V8.85h4.5v1.5zM17.25 3.15a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6zm5.25 4.2a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm.75.9h-2.7v4.5a2.25 2.25 0 01-2.25 2.25h-4.05a3.6 3.6 0 003.45 2.55h3.3a2.25 2.25 0 002.25-2.25v-5.1a1.95 1.95 0 00-2-1.95zM9.75 14.475v-9a2.25 2.25 0 012.25-2.25h4.35a3.6 3.6 0 00-3.6-3.075H5.4A2.25 2.25 0 003.15 2.4v10.35a3.6 3.6 0 003.075 3.563 3.6 3.6 0 003.525-1.838z"
 
-const LOGOS = [
-  { icon: siZoom, name: "Zoom" },
-  { icon: siGooglemeet, name: "Google Meet" },
-  { icon: siYoutube, name: "YouTube" },
-  { icon: siGoogledrive, name: "Google Drive" },
-  { icon: siDropbox, name: "Dropbox" },
-  { icon: siNotion, name: "Notion" },
-  { icon: siDiscord, name: "Discord" },
-  { icon: siSpotify, name: "Spotify" },
-];
-
-/* ── Speaker data ── */
-
-const SPEAKERS = [
-  { initial: "A", name: "Alex", time: "00:12", bg: "#3B82F6", text: "The Q3 results exceeded all our targets...", delay: 0.5 },
-  { initial: "M", name: "Maria", time: "00:24", bg: "#8B5CF6", text: "Great news. What drove the growth?", delay: 2 },
-  { initial: "K", name: "Kevin", time: "00:38", bg: "#10B981", text: "Mainly the new enterprise contracts.", delay: 3.5 },
-];
-
-const FEATURE_PILLS = ["98% accuracy", "50+ languages", "Instant export"];
+const platformLogos = [
+  { si: siZoom, name: "Zoom" },
+  { si: siGooglemeet, name: "Meet" },
+  { si: siYoutube, name: "YouTube" },
+  { path: TEAMS_PATH, name: "Teams" },
+  { si: siGoogledrive, name: "Drive" },
+  { si: siDropbox, name: "Dropbox" },
+]
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Component
+   Main Component
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export function AuthIllustration() {
-  // Generate random waveform bar params once, stable across re-renders
-  const bars = useMemo(
-    () =>
-      Array.from({ length: 32 }, (_, i) => ({
-        duration: (0.4 + Math.random() * 0.5).toFixed(2),
-        delay: (i * 0.05).toFixed(2),
-        opacity: (0.3 + (1 - Math.abs(i - 16) / 16) * 0.7).toFixed(2),
-      })),
-    []
-  );
+  const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  const doubledLogos = [...LOGOS, ...LOGOS];
+  // Canvas waveform animation
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    let animationId: number
+    let time = 0
+
+    const resize = () => {
+      canvas.width = canvas.offsetWidth * window.devicePixelRatio
+      canvas.height = canvas.offsetHeight * window.devicePixelRatio
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+    }
+    resize()
+    window.addEventListener("resize", resize)
+
+    const draw = () => {
+      const width = canvas.offsetWidth
+      const height = canvas.offsetHeight
+      ctx.clearRect(0, 0, width, height)
+      const centerY = height / 2
+      const bars = 80
+      const barWidth = width / bars
+      const maxHeight = height * 0.6
+
+      for (let i = 0; i < bars; i++) {
+        const x = i * barWidth + barWidth / 2
+        const wave1 = Math.sin(i * 0.15 + time * 0.02) * 0.5
+        const wave2 = Math.sin(i * 0.08 + time * 0.015) * 0.3
+        const wave3 = Math.sin(i * 0.25 + time * 0.025) * 0.2
+        const amplitude = (wave1 + wave2 + wave3 + 1) / 2
+        const barHeight = Math.max(4, amplitude * maxHeight)
+
+        const gradient = ctx.createLinearGradient(x, centerY - barHeight / 2, x, centerY + barHeight / 2)
+        gradient.addColorStop(0, `rgba(99, 102, 241, ${0.12 + amplitude * 0.35})`)
+        gradient.addColorStop(0.5, `rgba(129, 140, 248, ${0.18 + amplitude * 0.45})`)
+        gradient.addColorStop(1, `rgba(99, 102, 241, ${0.12 + amplitude * 0.35})`)
+
+        ctx.fillStyle = gradient
+        ctx.beginPath()
+        ctx.roundRect(
+          x - barWidth * 0.3,
+          centerY - barHeight / 2,
+          barWidth * 0.6,
+          barHeight,
+          barWidth * 0.3
+        )
+        ctx.fill()
+
+        ctx.shadowColor = "rgba(99, 102, 241, 0.4)"
+        ctx.shadowBlur = 15
+      }
+      time++
+      animationId = requestAnimationFrame(draw)
+    }
+
+    draw()
+    return () => {
+      window.removeEventListener("resize", resize)
+      cancelAnimationFrame(animationId)
+    }
+  }, [])
 
   return (
-    <div
-      style={{
-        position: "relative",
-        width: "100%",
-        maxWidth: 420,
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-      }}
-    >
-      {/* ── Ambient background orbs ── */}
-      <div className="ambient-orb" style={{ position: "absolute", width: 120, height: 120, borderRadius: "50%", background: "var(--primary)", opacity: 0.12, filter: "blur(40px)", top: "5%", right: "5%", pointerEvents: "none", zIndex: 0, animation: "float-slow 6s ease-in-out infinite" }} />
-      <div className="ambient-orb" style={{ position: "absolute", width: 80, height: 80, borderRadius: "50%", background: "#a855f7", opacity: 0.1, filter: "blur(40px)", bottom: "8%", left: "2%", pointerEvents: "none", zIndex: 0, animation: "float-medium 8s ease-in-out infinite" }} />
-      <div className="ambient-orb" style={{ position: "absolute", width: 50, height: 50, borderRadius: "50%", background: "#10B981", opacity: 0.09, filter: "blur(40px)", top: "40%", left: "5%", pointerEvents: "none", zIndex: 0, animation: "float-fast 5s ease-in-out infinite" }} />
+    <div className="relative flex h-full flex-col justify-between overflow-hidden p-8 lg:p-12" style={{ background: "linear-gradient(160deg, #060818 0%, #030410 100%)" }}>
+      {/* Animated waveform background */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ opacity: 0.6, filter: "blur(1px)" }}
+      />
 
-      {/* ═══════════════════════════════════════════════════════════════════
-         GLASS CARD — Waveform + Transcript
-         ═══════════════════════════════════════════════════════════════════ */}
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          background: "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.14)",
-          borderRadius: 16,
-          overflow: "hidden",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.35), 0 0 40px rgba(88,101,242,0.15)",
-        }}
-      >
-        {/* ── Waveform section ── */}
-        <div style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
-          {/* Recording indicator */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            <div
-              className="live-dot-css"
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: "#ef4444",
-                animation: "blink-dot 1.2s ease-in-out infinite",
-              }}
-            />
-            <span style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap" }}>
-              REC
+      {/* Dark gradient overlays */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to bottom, #060818 0%, transparent 30%, transparent 70%, #030410 100%)" }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to right, rgba(6,8,24,0.6) 0%, transparent 40%, transparent 60%, rgba(3,4,16,0.6) 100%)" }} />
+
+      {/* Subtle radial glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(88,101,242,0.05)" }} />
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col h-full">
+        {/* Logo */}
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 32 }}>
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em", color: "white" }}>
+            TRANSCRIBETOTEXT<span style={{ color: "var(--primary)" }}>.AI</span>
+          </span>
+        </div>
+
+        {/* Main content area */}
+        <div className="flex-1 flex flex-col justify-center">
+          {/* Headline */}
+          <div className="mb-8 lg:mb-10">
+            <h1 style={{ color: "white", fontSize: 48, fontWeight: 800, lineHeight: 1.1, margin: 0 }}>
+              Audio & Video to Text
+              <br />
+              <span style={{ color: "var(--primary)" }}>in Seconds</span>
+            </h1>
+            <p className="mt-4 text-base lg:text-lg max-w-md leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
+              Transcribe files, translate to 100+ languages, record meetings, and capture voice notes. All powered by AI.
+            </p>
+          </div>
+
+          {/* Feature showcase carousel */}
+          <div className="max-w-lg">
+            <FeatureShowcase />
+          </div>
+        </div>
+
+        {/* Bottom section: Rating and platforms */}
+        <div className="relative z-10 mt-auto" style={{ paddingTop: 24 }}>
+          {/* Star rating */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 2 }}>
+              {[...Array(5)].map((_, i) => (
+                <span key={i} style={{ color: "#FBBF24", fontSize: 18 }}>&#9733;</span>
+              ))}
+            </div>
+            <span style={{ color: "white", fontSize: 15, fontWeight: 700 }}>4.9</span>
+            <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 14 }}>from 2,400+ reviews</span>
+          </div>
+
+          {/* Platform logos */}
+          <div>
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const }}>
+              Integrates with
             </span>
-          </div>
-
-          {/* Waveform bars */}
-          <div style={{ display: "flex", alignItems: "center", gap: 2, height: 40, flex: 1 }}>
-            {bars.map((bar, i) => (
-              <div
-                key={i}
-                className="wave-bar"
-                style={{
-                  width: 3,
-                  height: 36,
-                  background: "var(--primary)",
-                  borderRadius: 2,
-                  transformOrigin: "center",
-                  flexShrink: 0,
-                  opacity: Number(bar.opacity),
-                  animation: `bar-wave ${bar.duration}s ease-in-out infinite`,
-                  animationDelay: `${bar.delay}s`,
-                }}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* ── Divider ── */}
-        <div style={{ height: 1, background: "rgba(255,255,255,0.08)" }} />
-
-        {/* ── Transcript header ── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px 8px" }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.9)" }}>
-            Meeting Transcript
-          </span>
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 600,
-              color: "#22c55e",
-              background: "rgba(34,197,94,0.12)",
-              border: "1px solid rgba(34,197,94,0.2)",
-              borderRadius: 20,
-              padding: "3px 10px",
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <span
-              className="live-dot-css"
-              style={{
-                width: 5,
-                height: 5,
-                borderRadius: "50%",
-                background: "#22c55e",
-                animation: "blink-dot 1.5s ease-in-out infinite",
-              }}
-            />
-            Live
-          </span>
-        </div>
-
-        {/* ── Speaker rows with typewriter text ── */}
-        <div style={{ padding: "4px 20px 16px", display: "flex", flexDirection: "column", gap: 14 }}>
-          {SPEAKERS.map((s) => (
-            <div key={s.initial} style={{ display: "flex", gap: 10 }}>
-              {/* Avatar */}
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: "50%",
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "white",
-                  background: s.bg,
-                  marginTop: 1,
-                }}
-              >
-                {s.initial}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0, overflow: "hidden" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.9)" }}>{s.name}</span>
-                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{s.time}</span>
-                </div>
-                {/* Typewriter line */}
-                <span
-                  className="typewriter-text"
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16 }}>
+              {platformLogos.map((platform) => (
+                <div
+                  key={platform.name}
                   style={{
-                    display: "inline-block",
-                    overflow: "hidden",
-                    whiteSpace: "nowrap",
-                    width: 0,
-                    fontSize: 12,
-                    lineHeight: 1.5,
-                    color: "rgba(255,255,255,0.6)",
-                    animation: `typing 1.2s steps(30) ${s.delay}s forwards`,
-                    borderRight: "2px solid var(--primary)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 14px",
+                    borderRadius: 8,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.04)",
                   }}
                 >
-                  &ldquo;{s.text}&rdquo;
-                </span>
-              </div>
+                  <svg viewBox="0 0 24 24" width={18} height={18} fill="rgba(255,255,255,0.55)">
+                    <path d={"si" in platform ? platform.si.path : platform.path} />
+                  </svg>
+                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", fontWeight: 500, whiteSpace: "nowrap" }}>
+                    {platform.name}
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-
-        {/* ── AI Summary shimmer ── */}
-        <div style={{ padding: "10px 20px 14px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", display: "block", marginBottom: 6 }}>
-            &#10022; AI Summary generating...
-          </span>
-          {[100, 60].map((w, i) => (
-            <div
-              key={i}
-              style={{
-                height: 7,
-                borderRadius: 4,
-                marginTop: i > 0 ? 5 : 0,
-                width: `${w}%`,
-                background: "rgba(255,255,255,0.04)",
-                overflow: "hidden",
-                position: "relative",
-              }}
-            >
-              <div
-                className="shimmer-bar-css"
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)",
-                  animation: `shimmer-slide 1.5s ease-in-out ${i * 0.3}s infinite`,
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════
-         LOGOS MARQUEE — CSS-only infinite scroll
-         ═══════════════════════════════════════════════════════════════════ */}
-      <div className="logos-marquee" style={{ position: "relative", zIndex: 1 }}>
-        <div className="logos-track">
-          {doubledLogos.map((item, i) => (
-            <div
-              key={`${item.name}-${i}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "8px 14px",
-                background: "rgba(255,255,255,0.07)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 100,
-                whiteSpace: "nowrap",
-                fontSize: 13,
-                color: "rgba(255,255,255,0.8)",
-                fontWeight: 500,
-                flexShrink: 0,
-              }}
-            >
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="white" opacity="0.8">
-                <path d={item.icon.path} />
-              </svg>
-              {item.name}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════
-         FEATURE PILLS — bottom
-         ═══════════════════════════════════════════════════════════════════ */}
-      <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "center", gap: 10 }}>
-        {FEATURE_PILLS.map((pill, i) => (
-          <div
-            key={pill}
-            className="feature-pill-animated"
-            style={{
-              fontSize: 11,
-              fontWeight: 500,
-              color: "rgba(255,255,255,0.65)",
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 20,
-              padding: "6px 14px",
-              whiteSpace: "nowrap",
-              opacity: 0,
-              animation: `fade-up 0.4s ease-out ${1.5 + i * 0.2}s forwards`,
-            }}
-          >
-            {pill}
           </div>
-        ))}
+        </div>
       </div>
     </div>
-  );
+  )
 }

@@ -75,7 +75,16 @@
       "Bash(printf:*)",
       "Bash(file /c/Users/kutsk/transcribe2text/src/assets/*.png)",
       "Bash(find /c/Users/kutsk/transcribe2text -name *.svg -type f)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(curl -sI \"https://raw.githubusercontent.com/greensock/gsap-skills/main/skills/gsap-react/SKILL.md\")",
+      "Bash(curl -sI \"https://raw.githubusercontent.com/greensock/gsap-skills/main/skills/gsap-core/SKILL.md\")",
+      "Bash(mkdir -p ~/.claude/skills/gsap-react)",
+      "Bash(curl -so ~/.claude/skills/gsap-react/SKILL.md \"https://raw.githubusercontent.com/greensock/gsap-skills/main/skills/gsap-react/SKILL.md\")",
+      "Bash(mkdir -p ~/.claude/skills/gsap-core)",
+      "Bash(curl -so ~/.claude/skills/gsap-core/SKILL.md \"https://raw.githubusercontent.com/greensock/gsap-skills/main/skills/gsap-core/SKILL.md\")",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

@@ -1,26 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { supabase } from "@/lib/supabase";
 
 export function AuthCallbackPage() {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    // Check if the URL hash indicates a password recovery flow.
+    // Supabase encodes the token type in the URL fragment before processing it.
+    const hashParams = new URLSearchParams(
+      window.location.hash.substring(1),
+    );
+    const isRecovery = hashParams.get("type") === "recovery";
+
     supabase.auth.getSession().then(({ data: { session }, error: err }) => {
       if (err) {
         setError(err.message);
-        setTimeout(() => navigate("/login"), 3000);
+        const timeout = setTimeout(() => navigate("/login"), 3000);
+        cleanupRef.current = () => clearTimeout(timeout);
         return;
       }
       if (session) {
-        navigate("/", { replace: true });
+        // If the session was already established and it's a recovery flow,
+        // redirect to the reset password form instead of the dashboard.
+        if (isRecovery) {
+          navigate("/reset-password", { replace: true });
+        } else {
+          navigate("/", { replace: true });
+        }
       } else {
         // No session yet — Supabase may still be processing the hash
-        // Listen for auth state change
         const {
           data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        } = supabase.auth.onAuthStateChange((event, newSession) => {
+          if (event === "PASSWORD_RECOVERY") {
+            // Don't go to dashboard — send to reset password form
+            subscription.unsubscribe();
+            navigate("/reset-password", { replace: true });
+            return;
+          }
           if (newSession) {
             subscription.unsubscribe();
             navigate("/", { replace: true });
@@ -28,12 +48,21 @@ export function AuthCallbackPage() {
         });
 
         // Timeout fallback
-        setTimeout(() => {
+        const timeout = setTimeout(() => {
           subscription.unsubscribe();
           navigate("/login", { replace: true });
         }, 5000);
+
+        cleanupRef.current = () => {
+          clearTimeout(timeout);
+          subscription.unsubscribe();
+        };
       }
     });
+
+    return () => {
+      cleanupRef.current?.();
+    };
   }, [navigate]);
 
   if (error) {
@@ -52,13 +81,7 @@ export function AuthCallbackPage() {
   return (
     <div className="flex items-center justify-center h-screen bg-background">
       <div className="flex flex-col items-center gap-3">
-        <div
-          className="w-10 h-10 rounded-full border-2 border-t-transparent animate-spin"
-          style={{
-            borderColor: "var(--primary)",
-            borderTopColor: "transparent",
-          }}
-        />
+        <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         <p className="text-sm text-muted-foreground">
           Confirming your email...
         </p>

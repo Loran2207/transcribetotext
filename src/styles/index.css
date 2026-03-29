@@ -3,96 +3,36 @@
 @import './theme.css';
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Auth Illustration — CSS Keyframes (all animation is CSS, no JS runtime)
+   Auth Illustration — CSS Keyframes
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Marquee — infinite horizontal scroll */
-@keyframes marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.logos-marquee {
-  overflow: hidden;
-  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
-}
-
-.logos-track {
-  display: flex;
-  gap: 12px;
-  width: max-content;
-  animation: marquee 25s linear infinite;
-}
-
-/* Waveform bars — fixed scaleY values, variety comes from duration/delay */
-@keyframes bar-wave {
-  0%, 100% { transform: scaleY(0.25); }
+@keyframes wave-bar-test {
+  0%, 100% { transform: scaleY(0.2); }
   50%      { transform: scaleY(1); }
 }
 
-/* Typewriter — steps-based width reveal */
-@keyframes typing {
-  from { width: 0; }
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+@keyframes blob-move {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(30px, -20px) scale(1.05); }
+  66%      { transform: translate(-20px, 10px) scale(0.95); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes progress {
+  from { width: 0%; }
   to   { width: 100%; }
 }
 
-/* Cursor blink on typewriter text */
-@keyframes blink-cursor {
-  50% { border-color: transparent; }
-}
-
-/* Live dot pulse */
-@keyframes blink-dot {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.2; }
-}
-
-/* Shimmer slide for skeleton loaders */
-@keyframes shimmer-slide {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(300%); }
-}
-
-/* Floating ambient orbs */
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0px); }
-  50%      { transform: translateY(-10px); }
-}
-
-@keyframes float-medium {
-  0%, 100% { transform: translateY(-5px); }
-  50%      { transform: translateY(5px); }
-}
-
-@keyframes float-fast {
-  0%, 100% { transform: translateY(0px); }
-  50%      { transform: translateY(-7px); }
-}
-
-/* Pill fade-in on load */
-@keyframes fade-up {
+@keyframes fadeInUp {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   Accessibility — respect reduced motion
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-@media (prefers-reduced-motion: reduce) {
-  .logos-track,
-  .wave-bar,
-  .live-dot-css,
-  .shimmer-bar-css,
-  .ambient-orb,
-  .typewriter-text,
-  .feature-pill-animated {
-    animation: none !important;
-  }
-
-  .typewriter-text {
-    width: 100% !important;
-    border-right: none !important;
-  }
 }
