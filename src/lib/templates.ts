@@ -8,6 +8,7 @@ export interface TemplateSection {
   id: string;
   title: string;
   instruction: string;
+  iconId?: string;
 }
 
 export type TemplateType = 'built_in' | 'custom';

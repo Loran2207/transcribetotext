@@ -16,6 +16,30 @@ import {
   Delete01Icon,
   Layers,
   ArrowTurnBackwardIcon,
+  BookmarkIcon,
+  BulbIcon,
+  ChatIcon,
+  Chart01Icon,
+  ClockIcon,
+  CodeIcon,
+  FlagIcon,
+  GlobeIcon,
+  IdeaIcon,
+  LinkIcon,
+  ListViewIcon,
+  MailIcon,
+  Megaphone01Icon,
+  MessageIcon,
+  Microphone,
+  PieChart01Icon,
+  Presentation01Icon,
+  Rocket01Icon,
+  SearchIcon,
+  ShieldIcon,
+  TagIcon,
+  TaskDone01Icon,
+  UserGroupIcon,
+  Analytics01Icon,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
@@ -34,6 +58,9 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/app/components/ui/popover";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -76,7 +103,7 @@ function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 }
 
-const SECTION_ICONS = [
+const SECTION_ICONS_KW = [
   { kw: ["summary", "overview"], icon: TextAlignLeftIcon },
   { kw: ["action", "task", "todo"], icon: CheckListIcon },
   { kw: ["decision", "key", "verdict"], icon: Target01Icon },
@@ -84,9 +111,47 @@ const SECTION_ICONS = [
   { kw: ["outline", "topic", "custom", "prompt"], icon: NoteEditIcon },
 ] as const;
 
-function sectionIcon(title: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SECTION_ICON_OPTIONS: { id: string; label: string; icon: any }[] = [
+  { id: "summary", label: "Summary", icon: TextAlignLeftIcon },
+  { id: "checklist", label: "Checklist", icon: CheckListIcon },
+  { id: "target", label: "Target", icon: Target01Icon },
+  { id: "stars", label: "Insights", icon: StarsIcon },
+  { id: "note", label: "Notes", icon: NoteEditIcon },
+  { id: "menu", label: "Default", icon: Menu01Icon },
+  { id: "bookmark", label: "Bookmark", icon: BookmarkIcon },
+  { id: "bulb", label: "Idea", icon: BulbIcon },
+  { id: "chat", label: "Chat", icon: ChatIcon },
+  { id: "chart", label: "Chart", icon: Chart01Icon },
+  { id: "clock", label: "Time", icon: ClockIcon },
+  { id: "code", label: "Code", icon: CodeIcon },
+  { id: "flag", label: "Flag", icon: FlagIcon },
+  { id: "globe", label: "Global", icon: GlobeIcon },
+  { id: "idea", label: "Lightbulb", icon: IdeaIcon },
+  { id: "link", label: "Link", icon: LinkIcon },
+  { id: "list", label: "List", icon: ListViewIcon },
+  { id: "mail", label: "Email", icon: MailIcon },
+  { id: "megaphone", label: "Announce", icon: Megaphone01Icon },
+  { id: "message", label: "Message", icon: MessageIcon },
+  { id: "mic", label: "Audio", icon: Microphone },
+  { id: "pie", label: "Analytics", icon: PieChart01Icon },
+  { id: "presentation", label: "Slides", icon: Presentation01Icon },
+  { id: "rocket", label: "Launch", icon: Rocket01Icon },
+  { id: "search", label: "Search", icon: SearchIcon },
+  { id: "shield", label: "Security", icon: ShieldIcon },
+  { id: "tag", label: "Tag", icon: TagIcon },
+  { id: "taskdone", label: "Done", icon: TaskDone01Icon },
+  { id: "users", label: "People", icon: UserGroupIcon },
+  { id: "analytics", label: "Metrics", icon: Analytics01Icon },
+];
+
+const ICON_BY_ID: Record<string, any> = {};
+for (const opt of SECTION_ICON_OPTIONS) ICON_BY_ID[opt.id] = opt.icon;
+
+function sectionIcon(title: string, iconId?: string) {
+  if (iconId && ICON_BY_ID[iconId]) return ICON_BY_ID[iconId];
   const l = title.toLowerCase();
-  return SECTION_ICONS.find((e) => e.kw.some((k) => l.includes(k)))?.icon ?? Menu01Icon;
+  return SECTION_ICONS_KW.find((e) => e.kw.some((k) => l.includes(k)))?.icon ?? Menu01Icon;
 }
 
 // ---------------------------------------------------------------------------
@@ -291,7 +356,7 @@ function DraggableSectionBlock({
   });
   drag(drop(ref));
 
-  const ico = sectionIcon(section.title);
+  const ico = sectionIcon(section.title, section.iconId);
 
   return (
     <div
@@ -312,7 +377,36 @@ function DraggableSectionBlock({
             <div className="flex gap-[2px]"><div className="size-[3px] rounded-full bg-muted-foreground/30" /><div className="size-[3px] rounded-full bg-muted-foreground/30" /></div>
           </div>
         )}
-        <Icon icon={ico} size={20} className="text-muted-foreground shrink-0 mt-0.5" />
+        {/* Icon — clickable picker when editable */}
+        {!isReadOnly ? (
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="shrink-0 mt-0.5 p-1 -m-1 rounded-md hover:bg-accent transition-colors" title="Change icon">
+                <Icon icon={ico} size={20} className="text-muted-foreground" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[280px] p-3" align="start" side="bottom">
+              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Choose icon</p>
+              <div className="grid grid-cols-6 gap-1">
+                {SECTION_ICON_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => onUpdate({ ...section, iconId: opt.id })}
+                    className={cn(
+                      "flex items-center justify-center size-[38px] rounded-lg transition-colors",
+                      section.iconId === opt.id ? "bg-primary/10 text-primary" : "hover:bg-accent text-muted-foreground",
+                    )}
+                    title={opt.label}
+                  >
+                    <Icon icon={opt.icon} size={18} />
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <Icon icon={ico} size={20} className="text-muted-foreground shrink-0 mt-0.5" />
+        )}
         <div className="flex-1 min-w-0">
           {isEditing && !isReadOnly ? (
             <div className="flex flex-col gap-2">
@@ -525,7 +619,7 @@ function Preview({ sections, selectedRecordId, onChangeRecord }: {
             sections.map((s, i) => (
               <div key={s.id} className={i > 0 ? "mt-6" : ""}>
                 <div className="flex items-center gap-2 mb-2">
-                  <Icon icon={sectionIcon(s.title)} size={15} className="text-foreground/60" />
+                  <Icon icon={sectionIcon(s.title, s.iconId)} size={15} className="text-foreground/60" />
                   <h4 className="text-[14px] font-semibold text-foreground">{s.title || `Section ${i + 1}`}</h4>
                 </div>
                 <p className="text-[13px] text-muted-foreground leading-[1.7]">
