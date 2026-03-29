@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import {
   Upload,
   LanguageCircleIcon,
@@ -6,19 +6,14 @@ import {
   Link,
   Mic,
   FileAudioIcon,
-  ArrowRight01Icon,
   CheckCircle,
   Globe,
 } from "@hugeicons/core-free-icons"
 import { Icon } from "@/app/components/ui/icon"
 
-interface Feature {
-  id: string
-  icon: React.ReactNode
-  title: string
-  subtitle: string
-  demo: React.ReactNode
-}
+/* ═══════════════════════════════════════════════════════════════════════════
+   Feature demos
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 function FileUploadDemo() {
   const [progress, setProgress] = useState(0)
@@ -28,50 +23,55 @@ function FileUploadDemo() {
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          if (stage === "uploading") {
-            setStage("processing")
-            return 0
-          } else if (stage === "processing") {
-            setStage("done")
-            return 100
-          }
+          if (stage === "uploading") { setStage("processing"); return 0 }
+          if (stage === "processing") { setStage("done"); return 100 }
           return 100
         }
-        return prev + (stage === "uploading" ? 4 : 6)
+        return prev + (stage === "uploading" ? 2.5 : 4)
       })
-    }, 80)
+    }, 50)
     return () => clearInterval(interval)
   }, [stage])
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ background: "rgba(88,101,242,0.2)" }}>
-          <Icon icon={FileAudioIcon} size={20} style={{ color: "var(--primary)" }} />
+    <div className="space-y-6">
+      {/* File card */}
+      <div className="relative overflow-hidden rounded-2xl p-5 transition-all duration-500" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex items-start gap-4">
+          <div className="relative">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "linear-gradient(135deg, rgba(139,149,255,0.2), rgba(139,149,255,0.05))", border: "1px solid rgba(139,149,255,0.1)" }}>
+              <Icon icon={FileAudioIcon} size={20} style={{ color: "#8B95FF" }} />
+            </div>
+            {stage === "done" && (
+              <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "rgba(52,211,153,0.9)", boxShadow: "0 0 0 2px #060818" }}>
+                <svg className="h-3 w-3 text-white" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0 pt-0.5">
+            <p className="text-[15px] font-medium text-white/95 tracking-[-0.01em]">quarterly_review.mp4</p>
+            <p className="text-[13px] text-white/40 mt-0.5">248.3 MB</p>
+          </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">quarterly_meeting.mp4</p>
-          <p className="text-xs text-white/50">248 MB</p>
-        </div>
-        {stage === "done" && <Icon icon={CheckCircle} size={20} style={{ color: "#34d399" }} />}
       </div>
 
-      <div className="space-y-2">
-        <div className="flex justify-between text-xs">
-          <span className="text-white/50">
-            {stage === "uploading" ? "Uploading..." : stage === "processing" ? "Transcribing..." : "Complete"}
-          </span>
-          <span className="text-white font-mono">{stage === "done" ? "100" : progress}%</span>
+      {/* Progress */}
+      <div className="space-y-3 px-1">
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] text-white/50">{stage === "uploading" ? "Uploading" : stage === "processing" ? "Transcribing" : "Complete"}</span>
+          <span className="text-[13px] font-mono text-white/70 tabular-nums">{stage === "done" ? "100" : progress.toFixed(0)}%</span>
         </div>
-        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
-          <div
-            className="h-full rounded-full transition-all duration-200"
-            style={{
-              width: `${stage === "done" ? 100 : progress}%`,
-              background: "linear-gradient(to right, var(--primary), #60A5FA)",
-            }}
-          />
+        <div className="relative h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.04)" }}>
+          <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out" style={{ width: `${stage === "done" ? 100 : progress}%`, background: "linear-gradient(to right, rgba(139,149,255,0.8), #8B95FF, rgba(139,149,255,0.8))" }} />
+          <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out" style={{ width: `${stage === "done" ? 100 : progress}%`, background: "rgba(255,255,255,0.2)", filter: "blur(4px)" }} />
         </div>
+      </div>
+
+      {/* Formats */}
+      <div className="flex items-center gap-2 px-1">
+        {["MP3", "MP4", "WAV", "M4A", "WEBM"].map((fmt) => (
+          <span key={fmt} className="text-[11px] font-medium tracking-wide text-white/30 uppercase">{fmt}</span>
+        ))}
       </div>
     </div>
   )
@@ -80,159 +80,193 @@ function FileUploadDemo() {
 function TranslationDemo() {
   const [currentLang, setCurrentLang] = useState(0)
   const languages = [
-    { code: "EN", name: "English", text: "The quarterly results exceeded expectations..." },
-    { code: "ES", name: "Spanish", text: "Los resultados trimestrales superaron las expectativas..." },
-    { code: "DE", name: "German", text: "Die Quartalsergebnisse übertrafen die Erwartungen..." },
-    { code: "JA", name: "Japanese", text: "四半期の業績は予想を上回りました..." },
-    { code: "ZH", name: "Chinese", text: "季度业绩超出预期..." },
+    { code: "ES", name: "Spanish", text: "Los resultados trimestrales superaron las expectativas con un crecimiento del 23%." },
+    { code: "DE", name: "German", text: "Die Quartalsergebnisse übertrafen die Erwartungen mit einem Wachstum von 23%." },
+    { code: "JA", name: "Japanese", text: "四半期の業績は23%の成長で予想を上回りました。" },
+    { code: "FR", name: "French", text: "Les résultats trimestriels ont dépassé les attentes avec une croissance de 23%." },
   ]
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentLang((prev) => (prev + 1) % languages.length)
-    }, 2000)
+    }, 3000)
     return () => clearInterval(interval)
   }, [languages.length])
 
+  const current = languages[currentLang]
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Icon icon={Globe} size={16} style={{ color: "var(--primary)" }} />
-        <span className="text-xs text-white/50">100+ languages supported</span>
-      </div>
-
+    <div className="space-y-6">
+      {/* Language selector */}
       <div className="flex items-center gap-3">
-        <div className="flex h-8 items-center gap-1.5 px-3 rounded-lg" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.1)" }}>
-          <span className="text-xs font-medium text-white">EN</span>
+        <div className="flex h-9 items-center gap-2 px-4 rounded-xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <span className="text-[13px] font-medium text-white/90">EN</span>
+          <span className="text-[11px] text-white/40">English</span>
         </div>
-        <Icon icon={ArrowRight01Icon} size={16} className="text-white/50" />
-        <div className="flex h-8 items-center gap-1.5 px-3 rounded-lg" style={{ background: "rgba(88,101,242,0.2)", border: "1px solid rgba(88,101,242,0.3)" }}>
-          <span className="text-xs font-bold" style={{ color: "var(--primary)" }}>{languages[currentLang].code}</span>
+        <div className="flex items-center gap-1">
+          <div className="w-6 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent)" }} />
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(139,149,255,0.6)" }} />
+          <div className="w-6 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent)" }} />
+        </div>
+        <div className="flex h-9 items-center gap-2 px-4 rounded-xl" style={{ background: "rgba(139,149,255,0.08)", border: "1px solid rgba(139,149,255,0.2)" }}>
+          <span className="text-[13px] font-semibold" style={{ color: "#8B95FF" }}>{current.code}</span>
+          <span className="text-[11px]" style={{ color: "rgba(139,149,255,0.7)" }}>{current.name}</span>
         </div>
       </div>
 
-      <div className="p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-        <p className="text-xs text-white/50 mb-1">{languages[currentLang].name}</p>
-        <p className="text-sm text-white leading-relaxed" key={currentLang} style={{ animation: "fadeInUp 0.5s ease forwards" }}>
-          {languages[currentLang].text}
+      {/* Translation card */}
+      <div className="relative overflow-hidden rounded-2xl p-5" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <p key={currentLang} className="text-[15px] text-white/85 leading-relaxed" style={{ animation: "fadeInUp 0.5s ease forwards" }}>
+          {current.text}
         </p>
+        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(139,149,255,0.2), transparent)" }} />
+      </div>
+
+      {/* Languages count */}
+      <div className="flex items-center gap-3 px-1">
+        <Icon icon={Globe} size={14} style={{ color: "rgba(255,255,255,0.35)" }} />
+        <span className="text-[12px] text-white/35">100+ languages supported</span>
       </div>
     </div>
   )
 }
 
 function LiveMeetingDemo() {
-  const [dots, setDots] = useState("")
   const [time, setTime] = useState(0)
+  const [pulseOpacity, setPulseOpacity] = useState(1)
 
   useEffect(() => {
-    const dotsInterval = setInterval(() => {
-      setDots((prev) => (prev.length >= 3 ? "" : prev + "."))
-    }, 400)
-    const timeInterval = setInterval(() => {
-      setTime((prev) => prev + 1)
-    }, 1000)
-    return () => {
-      clearInterval(dotsInterval)
-      clearInterval(timeInterval)
-    }
+    const timeTimer = setInterval(() => setTime((t) => t + 1), 1000)
+    const pulseTimer = setInterval(() => setPulseOpacity((o) => (o === 1 ? 0.4 : 1)), 800)
+    return () => { clearInterval(timeTimer); clearInterval(pulseTimer) }
   }, [])
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60)
+    const sec = s % 60
+    return `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`
   }
 
+  const participants = [
+    { initials: "SC", name: "Sarah", color: "linear-gradient(135deg, rgba(96,165,250,0.8), rgba(59,130,246,0.8))" },
+    { initials: "MR", name: "Marcus", color: "linear-gradient(135deg, rgba(52,211,153,0.8), rgba(16,185,129,0.8))" },
+    { initials: "AK", name: "Alex", color: "linear-gradient(135deg, rgba(251,191,36,0.8), rgba(245,158,11,0.8))" },
+  ]
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Recording header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex items-center justify-center">
+            <span className="absolute h-2 w-2 rounded-full bg-red-500 transition-opacity duration-500" style={{ opacity: pulseOpacity }} />
+            <span className="h-2 w-2 rounded-full bg-red-500" />
           </span>
-          <span className="text-xs font-medium text-red-400">Recording</span>
+          <span className="text-[13px] font-medium text-red-400/90">Recording</span>
         </div>
-        <span className="text-xs font-mono text-white">{formatTime(time)}</span>
+        <span className="text-[13px] font-mono text-white/60 tabular-nums">{formatTime(time)}</span>
       </div>
 
-      <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-        <div className="flex -space-x-2">
-          {["S", "M", "A"].map((initial, i) => (
-            <div
-              key={i}
-              className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#060818] text-xs font-medium text-white"
-              style={{ background: "rgba(88,101,242,0.3)" }}
-            >
-              {initial}
-            </div>
+      {/* Participants card */}
+      <div className="rounded-2xl p-5" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-[12px] text-white/35 uppercase tracking-wider">Participants</span>
+          <span className="text-[12px] text-white/40">{participants.length}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex -space-x-2">
+            {participants.map((p, i) => (
+              <div
+                key={i}
+                className="flex h-9 w-9 items-center justify-center rounded-full"
+                style={{ background: p.color, zIndex: participants.length - i, boxShadow: "0 0 0 2px #060818" }}
+              >
+                <span className="text-[11px] font-semibold text-white">{p.initials}</span>
+              </div>
+            ))}
+          </div>
+          <span className="text-[13px] text-white/60">{participants.map((p) => p.name).join(", ")}</span>
+        </div>
+      </div>
+
+      {/* Transcribing indicator */}
+      <div className="flex items-center gap-3 px-1">
+        <div className="flex gap-1">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="w-1 h-3 rounded-full" style={{ background: "rgba(139,149,255,0.6)", animation: `pulse 1.2s ease-in-out ${i * 0.15}s infinite` }} />
           ))}
         </div>
-        <span className="text-xs text-white/50 ml-1">3 participants</span>
-      </div>
-
-      <div className="p-3 rounded-xl" style={{ background: "rgba(88,101,242,0.1)", border: "1px solid rgba(88,101,242,0.2)" }}>
-        <p className="text-sm text-white">Transcribing in real-time{dots}</p>
+        <span className="text-[13px] text-white/40">Transcribing in real-time</span>
       </div>
     </div>
   )
 }
 
 function UrlDemo() {
-  const [status, setStatus] = useState<"paste" | "fetching" | "done">("paste")
-  const [showUrl, setShowUrl] = useState(false)
+  const [phase, setPhase] = useState<"idle" | "typing" | "loading" | "done">("idle")
+  const [typedUrl, setTypedUrl] = useState("")
+  const fullUrl = "youtube.com/watch?v=dQw4w..."
 
   useEffect(() => {
     const sequence = async () => {
-      await new Promise((r) => setTimeout(r, 500))
-      setShowUrl(true)
-      await new Promise((r) => setTimeout(r, 800))
-      setStatus("fetching")
-      await new Promise((r) => setTimeout(r, 1500))
-      setStatus("done")
+      await new Promise((r) => setTimeout(r, 600))
+      setPhase("typing")
+      for (let i = 0; i <= fullUrl.length; i++) {
+        await new Promise((r) => setTimeout(r, 35))
+        setTypedUrl(fullUrl.slice(0, i))
+      }
+      await new Promise((r) => setTimeout(r, 400))
+      setPhase("loading")
+      await new Promise((r) => setTimeout(r, 1800))
+      setPhase("done")
     }
     sequence()
   }, [])
 
   return (
-    <div className="space-y-4">
-      <div className="relative">
-        <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-          <Icon icon={Link} size={16} className="text-white/50 flex-shrink-0" />
+    <div className="space-y-6">
+      {/* URL input */}
+      <div className="rounded-2xl p-4 overflow-hidden transition-all duration-500" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center gap-3">
+          <Icon icon={Link} size={16} style={{ color: "rgba(255,255,255,0.35)" }} />
           <div className="flex-1 min-w-0">
-            {showUrl ? (
-              <span className="text-sm text-white truncate block" style={{ animation: "fadeInUp 0.3s ease forwards" }}>
-                youtube.com/watch?v=dQw4w9WgXcQ
-              </span>
+            {phase === "idle" ? (
+              <span className="text-[14px] text-white/30">Paste any video URL...</span>
             ) : (
-              <span className="text-sm text-white/50">Paste any video URL...</span>
+              <span className="text-[14px] text-white/80">
+                {typedUrl}
+                {phase === "typing" && <span className="inline-block w-0.5 h-4 ml-0.5 animate-pulse" style={{ background: "rgba(139,149,255,0.8)" }} />}
+              </span>
             )}
           </div>
         </div>
       </div>
 
-      {status !== "paste" && (
-        <div className="flex items-center gap-3 p-3 rounded-xl" style={{ background: "rgba(88,101,242,0.1)", border: "1px solid rgba(88,101,242,0.2)", animation: "fadeInUp 0.3s ease forwards" }}>
-          {status === "fetching" ? (
-            <>
-              <div className="h-4 w-4 rounded-full border-2 animate-spin" style={{ borderColor: "var(--primary)", borderTopColor: "transparent" }} />
-              <span className="text-sm text-white">Fetching video...</span>
-            </>
-          ) : (
-            <>
-              <Icon icon={CheckCircle} size={16} style={{ color: "#34d399" }} />
-              <span className="text-sm text-white">Ready to transcribe</span>
-            </>
-          )}
+      {/* Status card */}
+      {phase !== "idle" && phase !== "typing" && (
+        <div className="rounded-2xl p-4" style={{ background: "rgba(139,149,255,0.05)", border: "1px solid rgba(139,149,255,0.1)", animation: "fadeInUp 0.5s ease forwards" }}>
+          <div className="flex items-center gap-3">
+            {phase === "loading" ? (
+              <>
+                <div className="h-4 w-4 rounded-full border-[1.5px] animate-spin" style={{ borderColor: "rgba(139,149,255,0.6)", borderTopColor: "transparent" }} />
+                <span className="text-[14px] text-white/60">Fetching video metadata...</span>
+              </>
+            ) : (
+              <>
+                <div className="flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "rgba(52,211,153,0.2)" }}>
+                  <svg className="h-3 w-3" viewBox="0 0 16 16" fill="none"><path d="M3 8.5L6.5 12L13 4" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" /></svg>
+                </div>
+                <span className="text-[14px] text-white/60">Ready to transcribe</span>
+              </>
+            )}
+          </div>
         </div>
       )}
 
-      <div className="flex gap-2">
-        {["YouTube", "Vimeo", "Loom"].map((platform) => (
-          <span key={platform} className="px-2 py-1 text-xs rounded-md text-white/50" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
-            {platform}
-          </span>
+      {/* Supported platforms */}
+      <div className="flex items-center gap-3 px-1">
+        {["YouTube", "Vimeo", "Loom", "Drive"].map((p, i) => (
+          <span key={p} className="text-[11px] text-white/30 font-medium tracking-wide" style={{ opacity: 0.4 + i * 0.15 }}>{p}</span>
         ))}
       </div>
     </div>
@@ -240,171 +274,207 @@ function UrlDemo() {
 }
 
 function MicrophoneDemo() {
-  const [isRecording, setIsRecording] = useState(false)
-  const [waveHeights, setWaveHeights] = useState<number[]>(Array(12).fill(0.2))
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isActive, setIsActive] = useState(false)
 
   useEffect(() => {
-    const startTimeout = setTimeout(() => setIsRecording(true), 500)
-    return () => clearTimeout(startTimeout)
+    const timer = setTimeout(() => setIsActive(true), 500)
+    return () => clearTimeout(timer)
   }, [])
 
   useEffect(() => {
-    if (!isRecording) return
-    const interval = setInterval(() => {
-      setWaveHeights(Array(12).fill(0).map(() => 0.2 + Math.random() * 0.8))
-    }, 100)
-    return () => clearInterval(interval)
-  }, [isRecording])
+    if (!isActive) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    let animationId: number
+    let time = 0
+
+    const draw = () => {
+      const width = canvas.width
+      const height = canvas.height
+      ctx.clearRect(0, 0, width, height)
+      const centerY = height / 2
+      const bars = 32
+      const barWidth = width / bars
+      const maxHeight = height * 0.7
+
+      for (let i = 0; i < bars; i++) {
+        const x = i * barWidth + barWidth / 2
+        const distFromCenter = Math.abs(i - bars / 2) / (bars / 2)
+        const baseAmplitude = 1 - distFromCenter * 0.6
+        const wave = Math.sin(i * 0.3 + time * 0.08) * 0.5 + 0.5
+        const amplitude = baseAmplitude * wave * (0.3 + Math.random() * 0.4)
+        const barHeight = Math.max(2, amplitude * maxHeight)
+
+        const gradient = ctx.createLinearGradient(x, centerY - barHeight / 2, x, centerY + barHeight / 2)
+        gradient.addColorStop(0, `rgba(99, 102, 241, ${0.2 + amplitude * 0.6})`)
+        gradient.addColorStop(0.5, `rgba(139, 149, 255, ${0.3 + amplitude * 0.5})`)
+        gradient.addColorStop(1, `rgba(99, 102, 241, ${0.2 + amplitude * 0.6})`)
+
+        ctx.fillStyle = gradient
+        ctx.beginPath()
+        ctx.roundRect(x - 1.5, centerY - barHeight / 2, 3, barHeight, 1.5)
+        ctx.fill()
+      }
+
+      time++
+      animationId = requestAnimationFrame(draw)
+    }
+
+    draw()
+    return () => cancelAnimationFrame(animationId)
+  }, [isActive])
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Mic button */}
       <div className="flex items-center justify-center">
-        <button
-          className={`relative flex h-16 w-16 items-center justify-center rounded-full transition-all duration-300 ${
-            isRecording ? "border-2 border-red-500" : "border-2"
-          }`}
-          style={{
-            background: isRecording ? "rgba(239,68,68,0.2)" : "rgba(88,101,242,0.2)",
-            borderColor: isRecording ? undefined : "var(--primary)",
-          }}
-        >
-          {isRecording && <span className="absolute inset-0 rounded-full animate-ping" style={{ background: "rgba(239,68,68,0.2)" }} />}
-          <Icon icon={Mic} size={24} style={{ color: isRecording ? "#f87171" : "var(--primary)" }} />
-        </button>
+        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl transition-all duration-700" style={{
+          background: isActive ? "rgba(139,149,255,0.1)" : "rgba(255,255,255,0.03)",
+          border: isActive ? "1px solid rgba(139,149,255,0.2)" : "1px solid rgba(255,255,255,0.06)",
+        }}>
+          {isActive && <div className="absolute inset-0 rounded-2xl animate-ping" style={{ background: "rgba(139,149,255,0.05)", animationDuration: "2s" }} />}
+          <Icon icon={Mic} size={24} style={{ color: isActive ? "#8B95FF" : "rgba(255,255,255,0.35)" }} />
+        </div>
       </div>
 
-      {isRecording && (
-        <div className="flex items-center justify-center gap-1 h-8">
-          {waveHeights.map((height, i) => (
-            <div
-              key={i}
-              className="w-1 rounded-full transition-all duration-100"
-              style={{ height: `${height * 100}%`, background: "linear-gradient(to top, var(--primary), #60A5FA)" }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Waveform */}
+      <div className="flex items-center justify-center h-12">
+        {isActive && <canvas ref={canvasRef} width={280} height={48} style={{ animation: "fadeInUp 0.5s ease forwards" }} />}
+      </div>
 
-      <p className="text-center text-sm text-white/50">
-        {isRecording ? "Listening and transcribing..." : "Click to start recording"}
-      </p>
+      {/* Status */}
+      <p className="text-center text-[13px] text-white/40">{isActive ? "Listening and transcribing..." : "Click to start"}</p>
     </div>
   )
 }
 
-const features: Feature[] = [
-  {
-    id: "upload",
-    icon: <Icon icon={Upload} size={20} />,
-    title: "Any File Format",
-    subtitle: "MP3, MP4, WAV, M4A, and more",
-    demo: <FileUploadDemo />,
-  },
-  {
-    id: "translate",
-    icon: <Icon icon={LanguageCircleIcon} size={20} />,
-    title: "Instant Translation",
-    subtitle: "Transcribe and translate simultaneously",
-    demo: <TranslationDemo />,
-  },
-  {
-    id: "meeting",
-    icon: <Icon icon={CameraVideoIcon} size={20} />,
-    title: "Live Meetings",
-    subtitle: "Real-time meeting transcription",
-    demo: <LiveMeetingDemo />,
-  },
-  {
-    id: "url",
-    icon: <Icon icon={Link} size={20} />,
-    title: "URL Import",
-    subtitle: "Paste any video link",
-    demo: <UrlDemo />,
-  },
-  {
-    id: "mic",
-    icon: <Icon icon={Mic} size={20} />,
-    title: "Voice Recording",
-    subtitle: "Record directly from your mic",
-    demo: <MicrophoneDemo />,
-  },
+/* ═══════════════════════════════════════════════════════════════════════════
+   Feature tabs config
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+interface FeatureTab {
+  id: string
+  icon: React.ReactNode
+  label: string
+}
+
+const featureTabs: FeatureTab[] = [
+  { id: "upload", icon: <Icon icon={Upload} size={16} />, label: "Files" },
+  { id: "translate", icon: <Icon icon={LanguageCircleIcon} size={16} />, label: "Translate" },
+  { id: "meeting", icon: <Icon icon={CameraVideoIcon} size={16} />, label: "Meetings" },
+  { id: "url", icon: <Icon icon={Link} size={16} />, label: "URL" },
+  { id: "mic", icon: <Icon icon={Mic} size={16} />, label: "Record" },
 ]
 
-export function FeatureShowcase() {
-  const [activeIndex, setActiveIndex] = useState(0)
-  const [key, setKey] = useState(0)
+const demos: Record<string, React.ReactNode> = {
+  upload: <FileUploadDemo />,
+  translate: <TranslationDemo />,
+  meeting: <LiveMeetingDemo />,
+  url: <UrlDemo />,
+  mic: <MicrophoneDemo />,
+}
 
-  const nextFeature = useCallback(() => {
-    setActiveIndex((prev) => (prev + 1) % features.length)
-    setKey((prev) => prev + 1)
+/* ═══════════════════════════════════════════════════════════════════════════
+   Main FeatureShowcase
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const DURATION = 6000
+
+export function FeatureShowcase() {
+  const [activeIdx, setActiveIdx] = useState(0)
+  const [demoKey, setDemoKey] = useState(0)
+  const [progress, setProgress] = useState(0)
+  const intervalRef = useRef<ReturnType<typeof setInterval>>()
+  const progressRef = useRef<ReturnType<typeof setInterval>>()
+
+  const goToFeature = useCallback((idx: number) => {
+    setActiveIdx(idx)
+    setDemoKey((k) => k + 1)
+    setProgress(0)
+  }, [])
+
+  const startTimers = useCallback(() => {
+    clearInterval(intervalRef.current)
+    clearInterval(progressRef.current)
+    intervalRef.current = setInterval(() => {
+      setActiveIdx((i) => (i + 1) % featureTabs.length)
+      setDemoKey((k) => k + 1)
+      setProgress(0)
+    }, DURATION)
+    progressRef.current = setInterval(() => {
+      setProgress((p) => Math.min(p + 100 / (DURATION / 50), 100))
+    }, 50)
   }, [])
 
   useEffect(() => {
-    const interval = setInterval(nextFeature, 5000)
-    return () => clearInterval(interval)
-  }, [nextFeature])
+    startTimers()
+    return () => { clearInterval(intervalRef.current); clearInterval(progressRef.current) }
+  }, [startTimers])
 
-  const activeFeature = features[activeIndex]
+  const handleClick = (idx: number) => {
+    goToFeature(idx)
+    startTimers()
+  }
 
   return (
-    <div className="relative">
-      {/* Glass card container */}
-      <div className="relative rounded-2xl border border-white/10 backdrop-blur-xl overflow-hidden" style={{ background: "rgba(255,255,255,0.03)" }}>
-        {/* Header with feature tabs */}
-        <div className="flex items-center gap-1 p-2 border-b border-white/5 overflow-x-auto">
-          {features.map((feature, index) => (
+    <div className="relative w-full">
+      {/* Main card */}
+      <div className="relative overflow-hidden rounded-3xl" style={{ border: "1px solid rgba(255,255,255,0.08)", background: "linear-gradient(to bottom, rgba(255,255,255,0.04), rgba(255,255,255,0.01))", backdropFilter: "blur(40px)" }}>
+        {/* Top gradient line */}
+        <div className="absolute top-0 left-8 right-8 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent)" }} />
+
+        {/* Navigation tabs */}
+        <div className="flex items-center p-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+          {featureTabs.map((feature, idx) => (
             <button
               key={feature.id}
-              onClick={() => {
-                setActiveIndex(index)
-                setKey((prev) => prev + 1)
-              }}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg flex-shrink-0"
-              style={{
-                transition: "all 0.25s ease",
-                background: index === activeIndex ? "var(--primary)" : undefined,
-                color: index === activeIndex ? "white" : "rgba(255,255,255,0.45)",
-              }}
+              onClick={() => handleClick(idx)}
+              className="relative flex items-center gap-1.5 px-3 py-2 rounded-lg transition-all duration-500"
+              style={{ color: idx === activeIdx ? "white" : "rgba(255,255,255,0.4)" }}
             >
-              {feature.icon}
-              <span className="text-xs font-medium hidden sm:inline">{feature.title.split(" ")[0]}</span>
+              {idx === activeIdx && (
+                <div className="absolute inset-0 rounded-lg" style={{ background: "rgba(255,255,255,0.06)", animation: "fadeInUp 0.3s ease forwards" }} />
+              )}
+              <span className="relative z-10 flex-shrink-0">{feature.icon}</span>
+              <span className="relative z-10 text-[11px] font-medium whitespace-nowrap">{feature.label}</span>
             </button>
           ))}
         </div>
 
-        {/* Feature content */}
-        <div className="p-6" key={key}>
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-white mb-1">{activeFeature.title}</h3>
-            <p className="text-sm text-white/50">{activeFeature.subtitle}</p>
+        {/* Demo content */}
+        <div className="p-6 min-h-[300px]" key={demoKey}>
+          <div style={{ animation: "fadeInUp 0.5s ease forwards" }}>
+            {demos[featureTabs[activeIdx].id]}
           </div>
-          <div style={{ animation: "fadeInUp 0.4s ease forwards" }}>{activeFeature.demo}</div>
         </div>
 
-        {/* Progress indicator */}
-        <div className="flex gap-1.5 p-4 pt-0">
-          {features.map((_, index) => (
-            <div key={index} className="h-1 flex-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
-              <div
-                className="h-full rounded-full transition-all duration-300"
-                style={
-                  index < activeIndex
-                    ? { width: "100%", background: "rgba(88,101,242,0.5)" }
-                    : index === activeIndex
-                      ? { background: "var(--primary)", animation: "progress 5s linear forwards" }
-                      : { width: 0 }
-                }
-              />
-            </div>
-          ))}
+        {/* Progress bar */}
+        <div className="h-0.5" style={{ background: "rgba(255,255,255,0.02)" }}>
+          <div
+            className="h-full transition-all duration-100 ease-linear"
+            style={{ width: `${progress}%`, background: "linear-gradient(to right, rgba(139,149,255,0.4), rgba(139,149,255,0.6), rgba(139,149,255,0.4))" }}
+          />
         </div>
       </div>
 
-      {/* Outer glow */}
-      <div
-        className="absolute -inset-1 rounded-2xl blur-xl -z-10"
-        style={{ background: "linear-gradient(to right, rgba(88,101,242,0.2), rgba(59,130,246,0.1), rgba(88,101,242,0.2))", opacity: 0.4 }}
-      />
+      {/* Ambient glow behind card */}
+      <div className="absolute inset-0 rounded-3xl blur-2xl -z-10" style={{ background: "rgba(139,149,255,0.03)", transform: "scale(1.05)" }} />
+
+      {/* Keyframe animations */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
+          50% { transform: scaleY(1); opacity: 1; }
+        }
+        @keyframes progress {
+          from { width: 0; }
+          to { width: 100%; }
+        }
+      `}</style>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { FeatureShowcase } from "./feature-showcase"
 import {
   siZoom,
@@ -25,13 +25,12 @@ const platformLogos = [
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Main Component
+   Animated Waveform — 3-layer canvas (light blue/indigo palette)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-export function AuthIllustration() {
+function AnimatedWaveform() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
-  // Canvas waveform animation
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -42,54 +41,97 @@ export function AuthIllustration() {
     let time = 0
 
     const resize = () => {
-      canvas.width = canvas.offsetWidth * window.devicePixelRatio
-      canvas.height = canvas.offsetHeight * window.devicePixelRatio
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
+      const dpr = Math.min(window.devicePixelRatio, 2)
+      canvas.width = canvas.offsetWidth * dpr
+      canvas.height = canvas.offsetHeight * dpr
+      ctx.scale(dpr, dpr)
     }
+
     resize()
     window.addEventListener("resize", resize)
+
+    const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2
 
     const draw = () => {
       const width = canvas.offsetWidth
       const height = canvas.offsetHeight
       ctx.clearRect(0, 0, width, height)
-      const centerY = height / 2
-      const bars = 80
-      const barWidth = width / bars
-      const maxHeight = height * 0.6
 
+      const centerY = height * 0.5
+      const bars = 120
+      const barWidth = width / bars
+      const maxHeight = height * 0.65
+
+      // Layer 1 — Main prominent waveform
       for (let i = 0; i < bars; i++) {
         const x = i * barWidth + barWidth / 2
-        const wave1 = Math.sin(i * 0.15 + time * 0.02) * 0.5
-        const wave2 = Math.sin(i * 0.08 + time * 0.015) * 0.3
-        const wave3 = Math.sin(i * 0.25 + time * 0.025) * 0.2
-        const amplitude = (wave1 + wave2 + wave3 + 1) / 2
-        const barHeight = Math.max(4, amplitude * maxHeight)
+        const normalizedX = i / bars
+        const distFromCenter = Math.abs(normalizedX - 0.5) * 2
+        const centerFalloff = 1 - easeInOutSine(distFromCenter) * 0.3
+
+        const wave1 = Math.sin(i * 0.08 + time * 0.006) * 0.4
+        const wave2 = Math.sin(i * 0.05 + time * 0.004 + Math.PI * 0.5) * 0.45
+        const wave3 = Math.sin(i * 0.15 + time * 0.009) * 0.3
+        const wave4 = Math.sin(i * 0.03 + time * 0.002) * 0.2
+        const amplitude = ((wave1 + wave2 + wave3 + wave4 + 1.6) / 3.5) * centerFalloff
+        const barHeight = Math.max(6, amplitude * maxHeight)
 
         const gradient = ctx.createLinearGradient(x, centerY - barHeight / 2, x, centerY + barHeight / 2)
-        gradient.addColorStop(0, `rgba(99, 102, 241, ${0.12 + amplitude * 0.35})`)
-        gradient.addColorStop(0.5, `rgba(129, 140, 248, ${0.18 + amplitude * 0.45})`)
-        gradient.addColorStop(1, `rgba(99, 102, 241, ${0.12 + amplitude * 0.35})`)
+        const alpha = 0.15 + amplitude * 0.5
+        gradient.addColorStop(0, `rgba(59, 130, 246, ${alpha * 0.3})`)
+        gradient.addColorStop(0.2, `rgba(99, 102, 241, ${alpha * 0.8})`)
+        gradient.addColorStop(0.5, `rgba(139, 149, 255, ${alpha})`)
+        gradient.addColorStop(0.8, `rgba(99, 102, 241, ${alpha * 0.8})`)
+        gradient.addColorStop(1, `rgba(59, 130, 246, ${alpha * 0.3})`)
 
         ctx.fillStyle = gradient
         ctx.beginPath()
-        ctx.roundRect(
-          x - barWidth * 0.3,
-          centerY - barHeight / 2,
-          barWidth * 0.6,
-          barHeight,
-          barWidth * 0.3
-        )
+        ctx.roundRect(x - barWidth * 0.35, centerY - barHeight / 2, barWidth * 0.7, barHeight, barWidth * 0.35)
         ctx.fill()
-
-        ctx.shadowColor = "rgba(99, 102, 241, 0.4)"
-        ctx.shadowBlur = 15
       }
+
+      // Layer 2 — Ghost waveform above
+      for (let i = 0; i < bars; i++) {
+        const x = i * barWidth + barWidth / 2
+        const normalizedX = i / bars
+        const distFromCenter = Math.abs(normalizedX - 0.5) * 2
+        const centerFalloff = 1 - easeInOutSine(distFromCenter) * 0.5
+
+        const wave1 = Math.sin(i * 0.07 + time * 0.005 + 0.5) * 0.35
+        const wave2 = Math.sin(i * 0.11 + time * 0.008 + Math.PI) * 0.3
+        const amplitude = ((wave1 + wave2 + 1) / 2.5) * centerFalloff
+        const barHeight = Math.max(3, amplitude * maxHeight * 0.5)
+
+        ctx.fillStyle = `rgba(139, 149, 255, ${0.06 + amplitude * 0.12})`
+        ctx.beginPath()
+        ctx.roundRect(x - barWidth * 0.2, centerY - barHeight / 2 - maxHeight * 0.35, barWidth * 0.4, barHeight, barWidth * 0.2)
+        ctx.fill()
+      }
+
+      // Layer 3 — Ghost waveform below
+      for (let i = 0; i < bars; i++) {
+        const x = i * barWidth + barWidth / 2
+        const normalizedX = i / bars
+        const distFromCenter = Math.abs(normalizedX - 0.5) * 2
+        const centerFalloff = 1 - easeInOutSine(distFromCenter) * 0.6
+
+        const wave1 = Math.sin(i * 0.09 + time * 0.007 - 0.3) * 0.3
+        const wave2 = Math.sin(i * 0.13 + time * 0.006 + Math.PI * 0.7) * 0.25
+        const amplitude = ((wave1 + wave2 + 1) / 2.5) * centerFalloff
+        const barHeight = Math.max(2, amplitude * maxHeight * 0.4)
+
+        ctx.fillStyle = `rgba(99, 102, 241, ${0.04 + amplitude * 0.08})`
+        ctx.beginPath()
+        ctx.roundRect(x - barWidth * 0.15, centerY - barHeight / 2 + maxHeight * 0.4, barWidth * 0.3, barHeight, barWidth * 0.15)
+        ctx.fill()
+      }
+
       time++
       animationId = requestAnimationFrame(draw)
     }
 
     draw()
+
     return () => {
       window.removeEventListener("resize", resize)
       cancelAnimationFrame(animationId)
@@ -97,27 +139,151 @@ export function AuthIllustration() {
   }, [])
 
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden p-8 lg:p-12" style={{ background: "linear-gradient(160deg, #060818 0%, #030410 100%)" }}>
-      {/* Animated waveform background */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
-        style={{ opacity: 0.6, filter: "blur(1px)" }}
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full"
+      style={{ opacity: 0.9 }}
+    />
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Light Beams — subtle moonlight effects
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function LightBeams() {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+  if (!mounted) return null
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Main moonlight beam */}
+      <div
+        className="absolute"
+        style={{
+          width: "250%",
+          height: 180,
+          top: "-5%",
+          right: "-80%",
+          background: "linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.01) 15%, rgba(220,230,255,0.04) 30%, rgba(255,255,255,0.08) 45%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.08) 55%, rgba(220,230,255,0.04) 70%, rgba(255,255,255,0.01) 85%, transparent 100%)",
+          transform: "rotate(-35deg)",
+          transformOrigin: "top right",
+          filter: "blur(40px)",
+          animation: "moonbeam 12s ease-in-out infinite",
+        }}
       />
 
-      {/* Dark gradient overlays */}
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to bottom, #060818 0%, transparent 30%, transparent 70%, #030410 100%)" }} />
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to right, rgba(6,8,24,0.6) 0%, transparent 40%, transparent 60%, rgba(3,4,16,0.6) 100%)" }} />
+      {/* Secondary moonbeam */}
+      <div
+        className="absolute"
+        style={{
+          width: "220%",
+          height: 120,
+          top: "10%",
+          right: "-70%",
+          background: "linear-gradient(180deg, transparent 0%, rgba(200,210,255,0.02) 25%, rgba(255,255,255,0.06) 50%, rgba(200,210,255,0.02) 75%, transparent 100%)",
+          transform: "rotate(-35deg)",
+          transformOrigin: "top right",
+          filter: "blur(50px)",
+          animation: "moonbeam 16s ease-in-out 2s infinite",
+        }}
+      />
 
-      {/* Subtle radial glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-3xl pointer-events-none" style={{ background: "rgba(88,101,242,0.05)" }} />
+      {/* Soft highlight flicker */}
+      <div
+        className="absolute"
+        style={{
+          width: "200%",
+          height: 100,
+          top: "2%",
+          right: "-75%",
+          background: "linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.03) 60%, transparent 100%)",
+          transform: "rotate(-35deg)",
+          transformOrigin: "top right",
+          filter: "blur(30px)",
+          animation: "flicker 4s ease-in-out infinite",
+        }}
+      />
+
+      {/* Moon glow source in top right */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: 400,
+          height: 400,
+          top: -150,
+          right: -100,
+          background: "radial-gradient(circle, rgba(220,230,255,0.15) 0%, rgba(180,200,255,0.05) 40%, transparent 70%)",
+          filter: "blur(60px)",
+          animation: "pulseGlow 6s ease-in-out infinite",
+        }}
+      />
+
+      {/* Ambient glow at bottom left */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: 350,
+          height: 350,
+          bottom: "0%",
+          left: "-5%",
+          background: "radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 60%)",
+          filter: "blur(50px)",
+          animation: "pulseGlow 8s ease-in-out 3s infinite",
+        }}
+      />
+
+      {/* Floating dust particles */}
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width: 1 + (i % 2),
+            height: 1 + (i % 2),
+            left: `${15 + i * 14}%`,
+            top: `${20 + (i % 3) * 25}%`,
+            background: "rgba(220,230,255,0.4)",
+            boxShadow: "0 0 6px rgba(180,200,255,0.3)",
+            animation: `float ${8 + i * 2}s ease-in-out ${i * 1.5}s infinite`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Main Component
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+export function AuthIllustration() {
+  return (
+    <div className="relative flex h-full flex-col justify-between overflow-hidden p-8 lg:p-12" style={{ background: "linear-gradient(160deg, #060818 0%, #030410 100%)" }}>
+      {/* 3-layer animated waveform background */}
+      <AnimatedWaveform />
+
+      {/* Light beam effects */}
+      <LightBeams />
+
+      {/* Layered gradient overlays for depth */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to bottom, rgba(6,8,24,0.7) 0%, rgba(6,8,24,0.4) 30%, rgba(6,8,24,0.4) 70%, rgba(3,4,16,0.7) 100%)" }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to right, rgba(6,8,24,0.6) 0%, transparent 40%, transparent 60%, rgba(3,4,16,0.6) 100%)" }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 0%, rgba(4,6,18,1) 80%)" }} />
+
+      {/* Central accent glow — light blue/indigo */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full blur-[100px] pointer-events-none" style={{ background: "rgba(99,102,241,0.04)" }} />
+
+      {/* Top edge highlight */}
+      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: "linear-gradient(to right, transparent, rgba(139,149,255,0.2), transparent)" }} />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: 32 }}>
           <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em", color: "white" }}>
-            TRANSCRIBETOTEXT<span style={{ color: "var(--primary)" }}>.AI</span>
+            TRANSCRIBETOTEXT<span style={{ color: "#8B95FF" }}>.AI</span>
           </span>
         </div>
 
@@ -125,18 +291,21 @@ export function AuthIllustration() {
         <div className="flex-1 flex flex-col justify-center">
           {/* Headline */}
           <div className="mb-8 lg:mb-10">
-            <h1 style={{ color: "white", fontSize: 48, fontWeight: 800, lineHeight: 1.1, margin: 0 }}>
+            <h1 style={{ color: "white", fontSize: 48, fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.03em" }}>
               Audio & Video to Text
               <br />
-              <span style={{ color: "var(--primary)" }}>in Seconds</span>
+              <span style={{ background: "linear-gradient(to right, #8B95FF, #60A5FA, #8B95FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                in Seconds
+              </span>
             </h1>
-            <p className="mt-4 text-base lg:text-lg max-w-md leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
-              Transcribe files, translate to 100+ languages, record meetings, and capture voice notes. All powered by AI.
+            <p className="mt-5 text-[15px] lg:text-base max-w-[400px] leading-[1.6]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.01em" }}>
+              Transcribe files, translate to 100+ languages, record meetings,
+              and capture voice notes. All powered by AI.
             </p>
           </div>
 
           {/* Feature showcase carousel */}
-          <div className="max-w-lg">
+          <div className="max-w-[520px]">
             <FeatureShowcase />
           </div>
         </div>
@@ -144,47 +313,74 @@ export function AuthIllustration() {
         {/* Bottom section: Rating and platforms */}
         <div className="relative z-10 mt-auto" style={{ paddingTop: 24 }}>
           {/* Star rating */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-            <div style={{ display: "flex", gap: 2 }}>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
-                <span key={i} style={{ color: "#FBBF24", fontSize: 18 }}>&#9733;</span>
+                <span key={i} style={{ color: "rgba(251,191,36,0.9)", fontSize: 14 }}>&#9733;</span>
               ))}
             </div>
-            <span style={{ color: "white", fontSize: 15, fontWeight: 700 }}>4.9</span>
-            <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 14 }}>from 2,400+ reviews</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[13px] font-medium" style={{ color: "rgba(255,255,255,0.8)" }}>4.9</span>
+              <span className="text-[13px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                from 2,400+ reviews
+              </span>
+            </div>
           </div>
 
           {/* Platform logos */}
-          <div>
-            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const }}>
+          <div className="flex flex-col gap-3">
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const }}>
               Integrates with
             </span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
               {platformLogos.map((platform) => (
                 <div
                   key={platform.name}
+                  className="group"
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 8,
-                    padding: "8px 14px",
-                    borderRadius: 8,
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    background: "rgba(255,255,255,0.04)",
+                    justifyContent: "center",
+                    width: 36,
+                    height: 36,
+                    borderRadius: 12,
+                    border: "1px solid rgba(255,255,255,0.06)",
+                    background: "rgba(255,255,255,0.02)",
+                    transition: "all 0.5s",
                   }}
+                  title={platform.name}
                 >
-                  <svg viewBox="0 0 24 24" width={18} height={18} fill="rgba(255,255,255,0.55)">
+                  <svg viewBox="0 0 24 24" width={16} height={16} fill="rgba(255,255,255,0.45)">
                     <path d={"si" in platform ? platform.si.path : platform.path} />
                   </svg>
-                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", fontWeight: 500, whiteSpace: "nowrap" }}>
-                    {platform.name}
-                  </span>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Keyframe animations */}
+      <style>{`
+        @keyframes moonbeam {
+          0%, 100% { opacity: 0.6; transform: rotate(-35deg) translateY(0); }
+          50% { opacity: 1; transform: rotate(-35deg) translateY(-10px); }
+        }
+        @keyframes flicker {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 1; }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 0.7; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.05); }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+          25% { transform: translateY(-15px) translateX(5px); opacity: 0.7; }
+          50% { transform: translateY(-8px) translateX(-3px); opacity: 0.5; }
+          75% { transform: translateY(-20px) translateX(8px); opacity: 0.6; }
+        }
+      `}</style>
     </div>
   )
 }
