@@ -177,7 +177,7 @@ export function ResetPasswordPage() {
               type={showPassword ? "text" : "password"}
               placeholder="At least 6 characters"
               autoComplete="new-password"
-              className={`pr-10 rounded-full ${errors.password ? "border-destructive" : ""}`}
+              className={`pr-10 ${errors.password ? "border-destructive" : ""}`}
               disabled={isSubmitting}
               aria-invalid={!!errors.password}
               {...register("password", {
@@ -212,7 +212,7 @@ export function ResetPasswordPage() {
               type={showConfirmPassword ? "text" : "password"}
               placeholder="Re-enter your password"
               autoComplete="new-password"
-              className={`pr-10 rounded-full ${errors.confirmPassword ? "border-destructive" : ""}`}
+              className={`pr-10 ${errors.confirmPassword ? "border-destructive" : ""}`}
               disabled={isSubmitting}
               aria-invalid={!!errors.confirmPassword}
               {...register("confirmPassword", {
@@ -240,7 +240,7 @@ export function ResetPasswordPage() {
         <motion.div {...animProps(0.32)}>
           <Button
             type="submit"
-            className="w-full rounded-full"
+            className="w-full rounded-[12px]"
             size="lg"
             disabled={isSubmitting}
           >

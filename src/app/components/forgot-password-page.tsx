@@ -128,7 +128,7 @@ export function ForgotPasswordPage() {
             type="email"
             placeholder="you@example.com"
             autoComplete="email"
-            className={`rounded-full ${errors.email ? "border-destructive" : ""}`}
+            className={errors.email ? "border-destructive" : ""}
             disabled={isSubmitting}
             aria-invalid={!!errors.email}
             {...register("email", {
@@ -147,7 +147,7 @@ export function ForgotPasswordPage() {
         <motion.div {...animProps(0.24)}>
           <Button
             type="submit"
-            className="w-full rounded-full"
+            className="w-full rounded-[12px]"
             size="lg"
             disabled={isSubmitting}
           >

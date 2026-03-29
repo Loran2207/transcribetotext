@@ -107,7 +107,7 @@ export function LoginPage() {
             type="button"
             variant="outline"
             size="lg"
-            className="w-full rounded-full"
+            className="w-full rounded-[12px]"
             onClick={handleGoogleSignIn}
             disabled={isFormDisabled}
           >
@@ -144,7 +144,7 @@ export function LoginPage() {
             type="email"
             placeholder="you@example.com"
             autoComplete="email"
-            className={`rounded-full ${errors.email ? "border-destructive" : ""}`}
+            className={errors.email ? "border-destructive" : ""}
             disabled={isFormDisabled}
             aria-invalid={!!errors.email}
             {...register("email", { required: "Email is required" })}
@@ -171,7 +171,7 @@ export function LoginPage() {
               type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
               autoComplete="current-password"
-              className={`pr-10 rounded-full ${errors.password ? "border-destructive" : ""}`}
+              className={`pr-10 ${errors.password ? "border-destructive" : ""}`}
               disabled={isFormDisabled}
               aria-invalid={!!errors.password}
               {...register("password", { required: "Password is required" })}
@@ -197,7 +197,7 @@ export function LoginPage() {
         <motion.div {...animProps(0.38)}>
           <Button
             type="submit"
-            className="w-full rounded-full"
+            className="w-full rounded-[12px]"
             size="lg"
             disabled={isFormDisabled}
           >
