@@ -27,3 +27,12 @@
   100% { background-position: 200% 0; }
 }
 
+@keyframes progress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
