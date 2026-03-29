@@ -119,10 +119,46 @@ function TH() {
   return (
     <div className="flex items-center h-[36px] border-b border-border">
       <div className={cn("flex-[2.2] min-w-0 px-[12px]", c)}>Name</div>
+      <div className={cn("w-[32px] shrink-0", c)} />
       <div className={cn("flex-[1.5] min-w-0 px-[12px]", c)}>Description</div>
       <div className={cn("flex-[0.8] min-w-0 px-[12px]", c)}>Created by</div>
       <div className={cn("flex-[0.8] min-w-0 px-[12px]", c)}>Actions</div>
       <div className={cn("w-[130px] shrink-0 px-[8px]", c)}>Date</div>
+    </div>
+  );
+}
+
+function TemplateRowActions({ isStarred, onStar, onEdit, onTrash }: {
+  isStarred: boolean; onStar: () => void; onEdit: () => void; onTrash: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setMenuOpen(false); }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-[2px] relative" ref={ref}>
+      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="Edit" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+        <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M11.333 2a1.886 1.886 0 012.667 2.667L5.333 13.333 2 14l.667-3.333L11.333 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground" /></svg>
+      </Button>
+      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title={isStarred ? "Unstar" : "Star"} onClick={(e) => { e.stopPropagation(); onStar(); }}>
+        <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={isStarred ? "" : "text-muted-foreground"} /></svg>
+      </Button>
+      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="More" onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}>
+        <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.2" fill="currentColor" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="8" cy="13" r="1.2" fill="currentColor" /></svg>
+      </Button>
+      {menuOpen && (
+        <div className="absolute right-0 top-[calc(100%+4px)] w-[180px] rounded-[10px] py-[4px] z-50 bg-popover border border-border shadow-md">
+          <Button variant="ghost" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onTrash(); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] transition-colors hover:bg-destructive/10 rounded-none justify-start">
+            <svg className="size-[15px] shrink-0 text-destructive" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span className="text-[13px] text-destructive">Delete</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -146,27 +182,17 @@ function TR({ t, isHovered, isStarred, isTrashed, folderName, onMouseEnter, onMo
         <span className="text-[16px] shrink-0 leading-none">{emoji}</span>
         <p className="truncate font-medium text-[14px] text-foreground tracking-[-0.154px]">{t.name}</p>
 
-        {/* Hover actions overlay */}
+        {/* Hover actions overlay — positioned within Name cell only */}
         {!isTrashed && (
           <div
             className={cn(
-              "absolute top-0 bottom-0 z-20 flex items-center justify-end pr-[4px] transition-opacity duration-150",
+              "absolute top-0 bottom-0 right-0 z-20 flex items-center justify-end pr-[4px] transition-opacity duration-150",
               isHovered ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
             )}
-            style={{ right: "-26px", width: "160px", background: "linear-gradient(to right, transparent 0px, var(--background) 48px)" }}
+            style={{ width: "180px", background: "linear-gradient(to right, transparent 0px, var(--background) 48px)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-[2px]">
-              <Button variant="ghost" size="icon" className="size-[28px] rounded-full" title="Edit" onClick={onEdit}>
-                <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M11.333 2a1.886 1.886 0 012.667 2.667L5.333 13.333 2 14l.667-3.333L11.333 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground" /></svg>
-              </Button>
-              <Button variant="ghost" size="icon" className="size-[28px] rounded-full" title={isStarred ? "Unstar" : "Star"} onClick={onStar}>
-                <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={isStarred ? "" : "text-muted-foreground"} /></svg>
-              </Button>
-              <Button variant="ghost" size="icon" className="size-[28px] rounded-full" title="Move to trash" onClick={onTrash}>
-                <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              </Button>
-            </div>
+            <TemplateRowActions isStarred={isStarred} onStar={onStar} onEdit={onEdit} onTrash={onTrash} />
           </div>
         )}
 
@@ -174,16 +200,25 @@ function TR({ t, isHovered, isStarred, isTrashed, folderName, onMouseEnter, onMo
         {isTrashed && (
           <div
             className={cn(
-              "absolute top-0 bottom-0 z-20 flex items-center justify-end pr-[4px] transition-opacity duration-150",
+              "absolute top-0 bottom-0 right-0 z-20 flex items-center justify-end pr-[4px] transition-opacity duration-150",
               isHovered ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
             )}
-            style={{ right: "-26px", width: "120px", background: "linear-gradient(to right, transparent 0px, var(--background) 48px)" }}
+            style={{ width: "120px", background: "linear-gradient(to right, transparent 0px, var(--background) 48px)" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <Button variant="ghost" size="icon" className="size-[28px] rounded-full" title="Restore" onClick={onRestore}>
+            <Button variant="ghost" size="icon" className="size-[28px] rounded-full" title="Restore" onClick={(e) => { e.stopPropagation(); onRestore(); }}>
               <Icon icon={ArrowTurnBackwardIcon} size={15} className="text-muted-foreground" />
             </Button>
           </div>
+        )}
+      </div>
+
+      {/* Star column — shows filled star when starred, regardless of hover */}
+      <div className="w-[32px] shrink-0 flex items-center justify-center">
+        {!isTrashed && isStarred && (
+          <svg className="size-[15px] shrink-0 pointer-events-none" fill="#F59E0B" viewBox="0 0 16 16">
+            <path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" />
+          </svg>
         )}
       </div>
 

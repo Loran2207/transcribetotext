@@ -1673,11 +1673,11 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
             onUpgradeClick={() => setUpgradeOpen(true)}
           />
 
-          <div className="flex items-center justify-between gap-[8px]">
-            <div style={{ minWidth: 0, maxWidth: "220px" }}>
+          <div className="flex flex-col gap-[10px]">
+            <div style={{ maxWidth: "220px" }}>
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
-            <div className="flex items-center gap-[8px] shrink-0">
+            <div className="flex items-center justify-end gap-[8px]">
               <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
@@ -1856,17 +1856,17 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           </div>
 
-          {/* Footer: folder + template picker (left) + Cancel + Start (right) */}
-          <div className="flex items-center justify-between gap-[8px]">
-            <div className="flex items-center gap-[8px]" style={{ minWidth: 0 }}>
-              <div style={{ maxWidth: "180px" }}>
+          {/* Footer: folder + template row, then Cancel + Start row */}
+          <div className="flex flex-col gap-[10px]">
+            <div className="flex items-center gap-[8px]">
+              <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
               </div>
-              <div style={{ maxWidth: "180px" }}>
+              <div className="flex-1 min-w-0">
                 <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} compact />
               </div>
             </div>
-            <div className="flex items-center gap-[8px] shrink-0">
+            <div className="flex items-center justify-end gap-[8px]">
               <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
@@ -2054,11 +2054,11 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-[8px]">
-            <div style={{ minWidth: 0, maxWidth: "200px" }}>
+          <div className="flex flex-col gap-[10px]">
+            <div style={{ maxWidth: "200px" }}>
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
-            <div className="flex items-center gap-[8px] shrink-0">
+            <div className="flex items-center justify-end gap-[8px]">
               <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
@@ -2220,11 +2220,11 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-[8px]">
-            <div style={{ minWidth: 0, maxWidth: "200px" }}>
+          <div className="flex flex-col gap-[10px]">
+            <div style={{ maxWidth: "200px" }}>
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
-            <div className="flex items-center gap-[8px] shrink-0">
+            <div className="flex items-center justify-end gap-[8px]">
               <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
@@ -2526,15 +2526,15 @@ function RecordingReviewModal() {
 
           <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
 
-          <div className="flex items-center justify-between gap-[8px]">
-            <div style={{ minWidth: 0, maxWidth: "200px" }}>
+          <div className="flex flex-col gap-[10px]">
+            <div style={{ maxWidth: "200px" }}>
               <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
             </div>
-            <div className="flex items-center gap-[8px] shrink-0">
+            <div className="flex items-center justify-end gap-[8px]">
               <Button variant="pill-outline" onClick={handleCancel} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
-<Button onClick={handleSubmit}
+              <Button onClick={handleSubmit}
                 className="h-[36px] px-[18px] rounded-full transition-all bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <span className="font-semibold text-[13px]">Start transcription</span>
