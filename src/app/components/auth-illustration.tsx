@@ -50,15 +50,19 @@ interface TranscriptLine {
   complete: boolean;
 }
 
+// Pre-split words so we never create new arrays inside render/effect
+const TRANSCRIPT_WORDS = TRANSCRIPT.map((t) => t.text.split(" "));
+
 function useStreamingTranscript() {
   const [lines, setLines] = useState<TranscriptLine[]>([]);
   const [sentenceIndex, setSentenceIndex] = useState(0);
   const [wordIndex, setWordIndex] = useState(-1); // -1 = not started
 
-  const entry = TRANSCRIPT[sentenceIndex % TRANSCRIPT.length];
-  const words = entry.text.split(" ");
-
   useEffect(() => {
+    const idx = sentenceIndex % TRANSCRIPT.length;
+    const entry = TRANSCRIPT[idx];
+    const words = TRANSCRIPT_WORDS[idx];
+
     if (wordIndex === -1) {
       // Create new line, then start adding words
       const timer = setTimeout(() => {
@@ -98,18 +102,20 @@ function useStreamingTranscript() {
 
     if (wordIndex === words.length) {
       // Sentence done — mark complete, wait, advance
-      setLines((prev) =>
-        prev.map((line) =>
-          line.id === sentenceIndex ? { ...line, complete: true } : line
-        )
-      );
       const timer = setTimeout(() => {
-        setSentenceIndex((prev) => prev + 1);
-        setWordIndex(-1);
-      }, 1500);
+        setLines((prev) =>
+          prev.map((line) =>
+            line.id === sentenceIndex ? { ...line, complete: true } : line
+          )
+        );
+        setTimeout(() => {
+          setSentenceIndex((prev) => prev + 1);
+          setWordIndex(-1);
+        }, 1500);
+      }, 0);
       return () => clearTimeout(timer);
     }
-  }, [sentenceIndex, wordIndex, words, entry]);
+  }, [sentenceIndex, wordIndex]);
 
   return lines;
 }
