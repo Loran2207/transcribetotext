@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   siZoom,
@@ -12,71 +12,76 @@ import {
    Data
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const TRANSCRIPT = [
-  { speaker: "Alex", color: "#60A5FA", text: "The Q3 results exceeded all our targets by 23 percent" },
-  { speaker: "Maria", color: "#A78BFA", text: "What drove the growth in the enterprise segment" },
-  { speaker: "Kevin", color: "#34D399", text: "Mainly the new contracts signed in September and October" },
-  { speaker: "Alex", color: "#60A5FA", text: "We should double down on that channel for Q4" },
+const SPEAKERS = [
+  {
+    name: "Sarah Chen",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=face",
+    initials: "SC",
+    color: "#3B82F6",
+    text: "The Q3 results exceeded all our targets by 23 percent",
+  },
+  {
+    name: "Marcus Webb",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face",
+    initials: "MW",
+    color: "#8B5CF6",
+    text: "What drove the growth in the enterprise segment",
+  },
+  {
+    name: "Sarah Chen",
+    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=face",
+    initials: "SC",
+    color: "#3B82F6",
+    text: "Mainly the new contracts signed in September and October",
+  },
+  {
+    name: "Marcus Webb",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face",
+    initials: "MW",
+    color: "#8B5CF6",
+    text: "We should double down on that channel for Q4",
+  },
 ];
 
-// Microsoft Teams SVG path (not in simple-icons)
 const TEAMS_PATH =
   "M20.625 3.6h-7.5a1.125 1.125 0 00-1.125 1.125v7.5A1.125 1.125 0 0013.125 13.35h7.5A1.125 1.125 0 0021.75 12.225v-7.5A1.125 1.125 0 0020.625 3.6zm-1.5 6.75h-1.5v3h-1.5v-3h-1.5V8.85h4.5v1.5zM17.25 3.15a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6zm5.25 4.2a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm.75.9h-2.7v4.5a2.25 2.25 0 01-2.25 2.25h-4.05a3.6 3.6 0 003.45 2.55h3.3a2.25 2.25 0 002.25-2.25v-5.1a1.95 1.95 0 00-2-1.95zM9.75 14.475v-9a2.25 2.25 0 012.25-2.25h4.35a3.6 3.6 0 00-3.6-3.075H5.4A2.25 2.25 0 003.15 2.4v10.35a3.6 3.6 0 003.075 3.563 3.6 3.6 0 003.525-1.838z";
 
 const LOGOS: { path: string; name: string }[] = [
   { path: siZoom.path, name: "Zoom" },
-  { path: siGooglemeet.path, name: "Google Meet" },
+  { path: siGooglemeet.path, name: "Meet" },
   { path: siYoutube.path, name: "YouTube" },
   { path: TEAMS_PATH, name: "Teams" },
   { path: siGoogledrive.path, name: "Drive" },
   { path: siDropbox.path, name: "Dropbox" },
 ];
 
-const TESTIMONIALS = [
-  { quote: "We save 3 hours per week on meeting notes", name: "Sarah K.", role: "Head of Product" },
-  { quote: "Accuracy is unreal. Even with my accent.", name: "Dmitri V.", role: "Engineer" },
-  { quote: "Game changer for our sales calls", name: "Amanda L.", role: "VP Sales" },
-];
-
 /* ═══════════════════════════════════════════════════════════════════════════
-   Live transcript hook
+   Streaming transcript hook (working version — stable deps)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 interface TranscriptLine {
   id: number;
-  speaker: string;
-  color: string;
+  speaker: typeof SPEAKERS[number];
   words: string[];
   complete: boolean;
 }
 
-// Pre-split words so we never create new arrays inside render/effect
-const TRANSCRIPT_WORDS = TRANSCRIPT.map((t) => t.text.split(" "));
+const SPEAKER_WORDS = SPEAKERS.map((s) => s.text.split(" "));
 
 function useStreamingTranscript() {
   const [lines, setLines] = useState<TranscriptLine[]>([]);
   const [sentenceIndex, setSentenceIndex] = useState(0);
-  const [wordIndex, setWordIndex] = useState(-1); // -1 = not started
+  const [wordIndex, setWordIndex] = useState(-1);
 
   useEffect(() => {
-    const idx = sentenceIndex % TRANSCRIPT.length;
-    const entry = TRANSCRIPT[idx];
-    const words = TRANSCRIPT_WORDS[idx];
+    const idx = sentenceIndex % SPEAKERS.length;
+    const speaker = SPEAKERS[idx];
+    const words = SPEAKER_WORDS[idx];
 
     if (wordIndex === -1) {
-      // Create new line, then start adding words
       const timer = setTimeout(() => {
         setLines((prev) => {
-          const next = [
-            ...prev,
-            {
-              id: sentenceIndex,
-              speaker: entry.speaker,
-              color: entry.color,
-              words: [],
-              complete: false,
-            },
-          ];
+          const next = [...prev, { id: sentenceIndex, speaker, words: [], complete: false }];
           return next.length > 3 ? next.slice(-3) : next;
         });
         setWordIndex(0);
@@ -85,14 +90,11 @@ function useStreamingTranscript() {
     }
 
     if (wordIndex < words.length) {
-      // Add next word
       const timer = setTimeout(() => {
         const count = wordIndex + 1;
         setLines((prev) =>
           prev.map((line) =>
-            line.id === sentenceIndex
-              ? { ...line, words: words.slice(0, count) }
-              : line
+            line.id === sentenceIndex ? { ...line, words: words.slice(0, count) } : line
           )
         );
         setWordIndex(count);
@@ -101,7 +103,6 @@ function useStreamingTranscript() {
     }
 
     if (wordIndex === words.length) {
-      // Sentence done — mark complete, wait, advance
       const timer = setTimeout(() => {
         setLines((prev) =>
           prev.map((line) =>
@@ -121,21 +122,6 @@ function useStreamingTranscript() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Testimonial rotator
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-function useTestimonialRotator() {
-  const [index, setIndex] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => {
-      setIndex((prev) => (prev + 1) % TESTIMONIALS.length);
-    }, 4000);
-    return () => clearInterval(id);
-  }, []);
-  return TESTIMONIALS[index];
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
    Star
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -152,239 +138,465 @@ function Star() {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export function AuthIllustration() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const lines = useStreamingTranscript();
-  const testimonial = useTestimonialRotator();
+
+  // Canvas waveform animation
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animationId: number;
+    let time = 0;
+
+    const resize = () => {
+      canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+      canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const draw = () => {
+      const width = canvas.offsetWidth;
+      const height = canvas.offsetHeight;
+      ctx.clearRect(0, 0, width, height);
+      const centerY = height / 2;
+      const bars = 80;
+      const barWidth = width / bars;
+      const maxHeight = height * 0.6;
+
+      for (let i = 0; i < bars; i++) {
+        const x = i * barWidth + barWidth / 2;
+        const wave1 = Math.sin(i * 0.15 + time * 0.02) * 0.5;
+        const wave2 = Math.sin(i * 0.08 + time * 0.015) * 0.3;
+        const wave3 = Math.sin(i * 0.25 + time * 0.025) * 0.2;
+        const amplitude = (wave1 + wave2 + wave3 + 1) / 2;
+        const barHeight = Math.max(4, amplitude * maxHeight);
+
+        const gradient = ctx.createLinearGradient(
+          x, centerY - barHeight / 2, x, centerY + barHeight / 2
+        );
+        gradient.addColorStop(0, `rgba(79, 70, 229, ${0.15 + amplitude * 0.4})`);
+        gradient.addColorStop(0.5, `rgba(99, 102, 241, ${0.2 + amplitude * 0.5})`);
+        gradient.addColorStop(1, `rgba(79, 70, 229, ${0.15 + amplitude * 0.4})`);
+
+        ctx.shadowColor = "rgba(99, 102, 241, 0.4)";
+        ctx.shadowBlur = 15;
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.roundRect(
+          x - barWidth * 0.3,
+          centerY - barHeight / 2,
+          barWidth * 0.6,
+          barHeight,
+          barWidth * 0.3
+        );
+        ctx.fill();
+      }
+      time++;
+      animationId = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => {
+      window.removeEventListener("resize", resize);
+      cancelAnimationFrame(animationId);
+    };
+  }, []);
 
   return (
     <div
       style={{
+        position: "relative",
+        height: "100%",
+        overflow: "hidden",
+        background: "linear-gradient(160deg, #060818 0%, #030410 100%)",
         display: "flex",
         flexDirection: "column",
-        height: "100%",
-        width: "100%",
-        padding: "72px 40px 32px",
-        position: "relative",
-        overflow: "hidden",
+        justifyContent: "space-between",
+        padding: 40,
       }}
     >
-      {/* ── Background blobs ── */}
-      <div
-        className="bg-blob"
+      {/* Canvas waveform — full background */}
+      <canvas
+        ref={canvasRef}
         style={{
           position: "absolute",
-          width: 400,
-          height: 400,
-          borderRadius: "50%",
-          background: "rgba(59,130,246,0.12)",
-          filter: "blur(80px)",
-          top: "-5%",
-          left: "-10%",
-          pointerEvents: "none",
-          zIndex: 0,
-          animation: "blob-move 12s ease infinite",
-        }}
-      />
-      <div
-        className="bg-blob"
-        style={{
-          position: "absolute",
-          width: 300,
-          height: 300,
-          borderRadius: "50%",
-          background: "rgba(139,92,246,0.10)",
-          filter: "blur(60px)",
-          bottom: "-5%",
-          right: "-5%",
-          pointerEvents: "none",
-          zIndex: 0,
-          animation: "blob-move 15s ease infinite reverse",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          opacity: 0.6,
+          filter: "blur(1px)",
         }}
       />
 
-      {/* ── Waveform ── */}
-      <div style={{ position: "relative", zIndex: 1, marginBottom: 4 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 2,
-            height: 60,
-          }}
-        >
-          {Array.from({ length: 48 }, (_, i) => (
-              <div
-                key={i}
-                style={{
-                  width: 3,
-                  height: 36,
-                  background: "white",
-                  borderRadius: 2,
-                  transformOrigin: "center",
-                  flexShrink: 0,
-                  animation: "wave-bar-test 0.6s ease-in-out infinite",
-                  animationDelay: `${i * 0.05}s`,
-                }}
-              />
-          ))}
-        </div>
-        <p
-          style={{
-            textAlign: "center",
-            fontSize: 11,
-            color: "rgba(255,255,255,0.35)",
-            marginTop: 8,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-          }}
-        >
-          Transcribing...
-        </p>
-      </div>
-
-      {/* ── Live transcription stream ── */}
+      {/* Dark gradient overlays for depth */}
       <div
         style={{
-          position: "relative",
-          zIndex: 1,
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-start",
-          gap: 16,
-          minHeight: 0,
-          overflow: "hidden",
-          paddingTop: 12,
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(to bottom, #040510 0%, transparent 30%, transparent 70%, #040510 100%)",
+          pointerEvents: "none",
         }}
-      >
-        <AnimatePresence mode="popLayout">
-          {lines.map((line) => (
-            <motion.div
-              key={line.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              style={{ display: "flex", flexDirection: "column", gap: 4 }}
-            >
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: line.color,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                {line.speaker}
-              </span>
-              <div
-                style={{
-                  fontSize: 18,
-                  lineHeight: 1.7,
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "0 6px",
-                  alignItems: "baseline",
-                }}
-              >
-                {line.words.map((word, wi) => (
-                  <motion.span
-                    key={`${line.id}-${wi}`}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.15 }}
-                    style={{
-                      color:
-                        wi === line.words.length - 1 && !line.complete
-                          ? "rgba(255,255,255,1)"
-                          : "rgba(255,255,255,0.85)",
-                    }}
-                  >
-                    {word}
-                  </motion.span>
-                ))}
-                {!line.complete && (
-                  <span
-                    className="cursor-blink"
-                    style={{
-                      display: "inline-block",
-                      width: 2,
-                      height: 20,
-                      background: "var(--primary)",
-                      marginLeft: 2,
-                      animation: "cursor-blink 1s step-end infinite",
-                      verticalAlign: "text-bottom",
-                    }}
-                  />
-                )}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(to right, rgba(3,4,15,0.7) 0%, transparent 40%, transparent 60%, rgba(3,4,15,0.7) 100%)",
+          pointerEvents: "none",
+        }}
+      />
 
-      {/* ── Trust strip ── */}
+      {/* ── Content layer ── */}
       <div
         style={{
           position: "relative",
           zIndex: 1,
           display: "flex",
           flexDirection: "column",
-          gap: 14,
-          paddingTop: 20,
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          height: "100%",
         }}
       >
-        {/* Stars */}
+        {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ display: "flex", gap: 2 }}>
-            {Array.from({ length: 5 }, (_, i) => (
-              <Star key={i} />
-            ))}
-          </div>
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.45)" }}>
-            4.9 / 5 from 2,847 reviews
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              letterSpacing: "0.05em",
+              color: "white",
+            }}
+          >
+            TRANSCRIBETOTEXT
+            <span style={{ color: "var(--primary)" }}>.AI</span>
           </span>
         </div>
 
-        {/* Logos */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-          {LOGOS.map((item, i) => (
-            <span key={item.name} style={{ display: "flex", alignItems: "center" }}>
-              {i > 0 && (
-                <span style={{ color: "rgba(255,255,255,0.2)", fontSize: 10, margin: "0 6px" }}>
-                  ·
-                </span>
-              )}
-              <svg viewBox="0 0 24 24" width={16} height={16} fill="white" opacity={0.45} style={{ flexShrink: 0 }}>
-                <path d={item.path} />
-              </svg>
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginLeft: 4 }}>
-                {item.name}
-              </span>
-            </span>
-          ))}
-        </div>
+        {/* Center — headline + transcript card */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            gap: 32,
+          }}
+        >
+          {/* Headline */}
+          <div>
+            <h1
+              style={{
+                fontSize: 42,
+                fontWeight: 800,
+                color: "white",
+                lineHeight: 1.15,
+                margin: "0 0 16px",
+              }}
+            >
+              Transform voice into
+              <br />
+              <span style={{ color: "var(--primary)" }}>actionable insights</span>
+            </h1>
+            <p
+              style={{
+                marginTop: 12,
+                color: "rgba(255,255,255,0.5)",
+                fontSize: 15,
+                lineHeight: 1.6,
+                margin: "12px 0 0",
+              }}
+            >
+              Enterprise-grade transcription powered by AI.
+              <br />
+              99.7% accuracy across 100+ languages.
+            </p>
+          </div>
 
-        {/* Testimonial */}
-        <div style={{ minHeight: 36 }}>
-          <p
-            key={testimonial.name}
+          {/* Glass transcript card */}
+          <div
             style={{
-              fontSize: 13,
-              color: "rgba(255,255,255,0.45)",
-              fontStyle: "italic",
-              margin: 0,
-              lineHeight: 1.5,
-              transition: "opacity 0.5s ease",
+              maxWidth: 480,
+              background: "rgba(255,255,255,0.05)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              border: "1px solid rgba(255,255,255,0.10)",
+              borderRadius: 20,
+              padding: "20px 24px",
+              boxShadow:
+                "0 0 0 1px rgba(255,255,255,0.05), 0 20px 40px rgba(0,0,0,0.4), 0 0 80px rgba(79,70,229,0.15)",
             }}
           >
-            &ldquo;{testimonial.quote}&rdquo;
-            <span style={{ fontStyle: "normal", color: "rgba(255,255,255,0.6)", marginLeft: 8 }}>
-              — {testimonial.name}, {testimonial.role}
+            {/* Card header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 14,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: "50%",
+                    background: "rgba(99,102,241,0.2)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="2" width="6" height="11" rx="3" />
+                    <path d="M5 10a7 7 0 0 0 14 0" />
+                    <line x1="12" y1="19" x2="12" y2="22" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", fontWeight: 500 }}>
+                  Live Transcription
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#ef4444",
+                    animation: "cursor-blink 1.5s ease-in-out infinite",
+                  }}
+                />
+                <span style={{ fontSize: 10, fontWeight: 600, color: "#ef4444", letterSpacing: "0.05em" }}>
+                  REC
+                </span>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div style={{ height: 1, background: "rgba(255,255,255,0.07)", marginBottom: 16 }} />
+
+            {/* Speaker rows */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 14,
+                minHeight: 170,
+                overflow: "hidden",
+              }}
+            >
+              <AnimatePresence mode="popLayout">
+                {lines.map((line) => (
+                  <motion.div
+                    key={line.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    style={{ display: "flex", gap: 12 }}
+                  >
+                    {/* Avatar with photo + fallback */}
+                    <div style={{ position: "relative", flexShrink: 0 }}>
+                      <img
+                        src={line.speaker.avatar}
+                        alt={line.speaker.name}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          border: "1px solid rgba(255,255,255,0.15)",
+                        }}
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          target.style.display = "none";
+                          const fallback = target.nextElementSibling as HTMLElement | null;
+                          if (fallback) fallback.style.display = "flex";
+                        }}
+                      />
+                      <div
+                        style={{
+                          display: "none",
+                          width: 32,
+                          height: 32,
+                          borderRadius: "50%",
+                          background: `linear-gradient(135deg, ${line.speaker.color}, ${line.speaker.color}99)`,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "white",
+                        }}
+                      >
+                        {line.speaker.initials}
+                      </div>
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: -1,
+                          right: -1,
+                          width: 8,
+                          height: 8,
+                          borderRadius: "50%",
+                          background: "#22c55e",
+                          border: "2px solid #040510",
+                        }}
+                      />
+                    </div>
+
+                    {/* Name + text */}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "white" }}>
+                          {line.speaker.name}
+                        </span>
+                        <span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", fontFamily: "monospace" }}>
+                          00:{(12 + (line.id % SPEAKERS.length) * 12).toString().padStart(2, "0")}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 15,
+                          lineHeight: 1.6,
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "0 5px",
+                          alignItems: "baseline",
+                        }}
+                      >
+                        {line.words.map((word, wi) => (
+                          <motion.span
+                            key={`${line.id}-${wi}`}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.15 }}
+                            style={{
+                              color:
+                                wi === line.words.length - 1 && !line.complete
+                                  ? "rgb(99,179,237)"
+                                  : "rgba(255,255,255,0.9)",
+                            }}
+                          >
+                            {word}
+                          </motion.span>
+                        ))}
+                        {!line.complete && (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              width: 2,
+                              height: 16,
+                              background: "var(--primary)",
+                              marginLeft: 2,
+                              animation: "cursor-blink 1s step-end infinite",
+                              verticalAlign: "text-bottom",
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {/* AI Summary shimmer — shows after 3 lines appear */}
+            {lines.length >= 3 && (
+              <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                  &#10022; Generating AI summary...
+                </span>
+                <div
+                  style={{
+                    height: 8,
+                    borderRadius: 4,
+                    marginTop: 8,
+                    width: "70%",
+                    background: "linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 75%)",
+                    backgroundSize: "200% 100%",
+                    animation: "shimmer 2s infinite",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Bottom: trust signals ── */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: "auto", paddingTop: 16 }}>
+          {/* Stars */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", gap: 2 }}>
+              {Array.from({ length: 5 }, (_, i) => (
+                <Star key={i} />
+              ))}
+            </div>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)" }}>
+              4.9 from 2,847 reviews
             </span>
-          </p>
+          </div>
+
+          {/* Platform logos */}
+          <div>
+            <p
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.1em",
+                color: "rgba(255,255,255,0.25)",
+                textTransform: "uppercase",
+                marginBottom: 12,
+                margin: "0 0 12px",
+              }}
+            >
+              Integrates with
+            </p>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
+              {LOGOS.map((item) => (
+                <div
+                  key={item.name}
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: 6,
+                    opacity: 0.6,
+                    transition: "opacity 0.2s",
+                    cursor: "default",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = "1"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = "0.6"; }}
+                >
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 10,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      background: "rgba(255,255,255,0.05)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" width={22} height={22} fill="white">
+                      <path d={item.path} />
+                    </svg>
+                  </div>
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontWeight: 500 }}>
+                    {item.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

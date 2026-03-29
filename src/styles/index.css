@@ -22,3 +22,8 @@
   66%      { transform: translate(-20px, 10px) scale(0.95); }
 }
 
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
