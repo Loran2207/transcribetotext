@@ -25,10 +25,10 @@
   animation: marquee 25s linear infinite;
 }
 
-/* Waveform bars — each bar uses CSS custom props for unique timing */
+/* Waveform bars — fixed scaleY values, variety comes from duration/delay */
 @keyframes bar-wave {
-  0%, 100% { transform: scaleY(var(--bar-min)); }
-  50%      { transform: scaleY(var(--bar-max)); }
+  0%, 100% { transform: scaleY(0.25); }
+  50%      { transform: scaleY(1); }
 }
 
 /* Typewriter — steps-based width reveal */

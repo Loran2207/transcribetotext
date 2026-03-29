@@ -47,11 +47,9 @@ export function AuthIllustration() {
   const bars = useMemo(
     () =>
       Array.from({ length: 32 }, (_, i) => ({
-        min: (Math.random() * 0.2 + 0.1).toFixed(2),
-        max: (Math.random() * 0.6 + 0.4).toFixed(2),
-        duration: (Math.random() * 0.6 + 0.4).toFixed(2),
-        delay: (i * 0.04).toFixed(2),
-        opacity: (0.4 + (1 - Math.abs(i - 16) / 16) * 0.6).toFixed(2),
+        duration: (0.4 + Math.random() * 0.5).toFixed(2),
+        delay: (i * 0.05).toFixed(2),
+        opacity: (0.3 + (1 - Math.abs(i - 16) / 16) * 0.7).toFixed(2),
       })),
     []
   );
@@ -118,17 +116,15 @@ export function AuthIllustration() {
                 className="wave-bar"
                 style={{
                   width: 3,
-                  height: 40,
+                  height: 36,
                   background: "var(--primary)",
                   borderRadius: 2,
                   transformOrigin: "center",
                   flexShrink: 0,
                   opacity: Number(bar.opacity),
-                  "--bar-min": bar.min,
-                  "--bar-max": bar.max,
                   animation: `bar-wave ${bar.duration}s ease-in-out infinite`,
                   animationDelay: `${bar.delay}s`,
-                } as React.CSSProperties}
+                }}
               />
             ))}
           </div>
