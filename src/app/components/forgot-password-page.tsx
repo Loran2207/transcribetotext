@@ -147,7 +147,7 @@ export function ForgotPasswordPage() {
         <motion.div {...animProps(0.24)}>
           <Button
             type="submit"
-            className="w-full rounded-[12px]"
+            className="w-full rounded-full"
             size="lg"
             disabled={isSubmitting}
           >

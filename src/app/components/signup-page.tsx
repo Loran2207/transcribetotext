@@ -161,7 +161,7 @@ export function SignupPage() {
             type="button"
             variant="outline"
             size="lg"
-            className="w-full rounded-[12px]"
+            className="w-full rounded-full"
             onClick={handleGoogleSignIn}
             disabled={isFormDisabled}
           >
@@ -327,7 +327,7 @@ export function SignupPage() {
         <motion.div {...animProps(0.54)}>
           <Button
             type="submit"
-            className="w-full rounded-[12px]"
+            className="w-full rounded-full"
             size="lg"
             disabled={isFormDisabled}
           >

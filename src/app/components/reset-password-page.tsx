@@ -240,7 +240,7 @@ export function ResetPasswordPage() {
         <motion.div {...animProps(0.32)}>
           <Button
             type="submit"
-            className="w-full rounded-[12px]"
+            className="w-full rounded-full"
             size="lg"
             disabled={isSubmitting}
           >
