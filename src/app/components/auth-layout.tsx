@@ -44,7 +44,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
         className="hidden lg:flex w-[55%] flex-col relative overflow-hidden"
         style={{
           background:
-            "radial-gradient(ellipse 80% 50% at 20% 30%, oklch(0.22 0.07 264) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 70%, oklch(0.16 0.05 280) 0%, transparent 50%), oklch(0.08 0.01 264)",
+            "radial-gradient(ellipse 70% 50% at 15% 20%, oklch(0.28 0.09 264) 0%, transparent 55%), radial-gradient(ellipse 50% 40% at 85% 75%, oklch(0.20 0.07 280) 0%, transparent 50%), oklch(0.07 0.01 264)",
         }}
       >
         {/* Top: Logo */}
