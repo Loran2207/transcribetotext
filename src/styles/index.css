@@ -22,14 +22,3 @@
   66%      { transform: translate(-20px, 10px) scale(0.95); }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   Accessibility
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-@media (prefers-reduced-motion: reduce) {
-  .wave-bar,
-  .cursor-blink,
-  .bg-blob {
-    animation: none !important;
-  }
-}

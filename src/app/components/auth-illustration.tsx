@@ -212,27 +212,21 @@ export function AuthIllustration() {
             height: 60,
           }}
         >
-          {Array.from({ length: 48 }, (_, i) => {
-            const center = 23.5;
-            const dist = Math.abs(i - center) / center;
-            return (
+          {Array.from({ length: 48 }, (_, i) => (
               <div
                 key={i}
-                className="wave-bar"
                 style={{
                   width: 3,
-                  height: 60,
+                  height: 36,
                   background: "white",
                   borderRadius: 2,
                   transformOrigin: "center",
                   flexShrink: 0,
-                  opacity: 0.3 + (1 - dist) * 0.7,
-                  animation: `wave-bar-test ${(0.4 + i * 0.04).toFixed(2)}s ease-in-out infinite`,
-                  animationDelay: `${(i * 0.05).toFixed(2)}s`,
+                  animation: "wave-bar-test 0.6s ease-in-out infinite",
+                  animationDelay: `${i * 0.05}s`,
                 }}
               />
-            );
-          })}
+          ))}
         </div>
         <p
           style={{
