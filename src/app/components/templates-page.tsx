@@ -8,16 +8,16 @@ import {
   ArrowUp01Icon,
   ArrowDown01Icon,
   Search01Icon,
-  LockIcon,
+  Layers,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
-import { Badge } from "@/app/components/ui/badge";
 import { Switch } from "@/app/components/ui/switch";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { Label } from "@/app/components/ui/label";
+import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -38,6 +38,7 @@ import {
 } from "@/app/components/ui/alert-dialog";
 import { cn } from "@/app/components/ui/utils";
 import { useTemplates } from "@/hooks/use-templates";
+import { useAuth } from "./auth-context";
 import type {
   Template,
   TemplateSection,
@@ -52,89 +53,92 @@ function makeEmptySection(): TemplateSection {
   return { id: crypto.randomUUID(), title: "", instruction: "" };
 }
 
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
+}
+
 // ---------------------------------------------------------------------------
-// Table Row
+// Table — matches RecordsTable pattern exactly
 // ---------------------------------------------------------------------------
 
-function TemplateRow({
+function TemplateTableHeader() {
+  return (
+    <div className="flex items-center h-[36px] border-b border-border">
+      {/* Name */}
+      <div className="flex-[2.2] min-w-0 px-[12px] flex items-center">
+        <span className="uppercase tracking-[0.3404px] font-medium text-[11px] text-foreground">Name</span>
+      </div>
+      {/* Description */}
+      <div className="flex-[2] min-w-0 px-[12px] flex items-center">
+        <span className="uppercase tracking-[0.3404px] font-medium text-[11px] text-foreground">Description</span>
+      </div>
+      {/* Created by */}
+      <div className="flex-[0.8] min-w-0 px-[12px] flex items-center">
+        <span className="uppercase tracking-[0.3404px] font-medium text-[11px] text-foreground">Created by</span>
+      </div>
+      {/* Date */}
+      <div className="w-[130px] shrink-0 px-[8px] flex items-center">
+        <span className="uppercase tracking-[0.3404px] font-medium text-[11px] text-foreground">Date</span>
+      </div>
+    </div>
+  );
+}
+
+function TemplateTableRow({
   template,
   onClick,
 }: {
   template: Template;
   onClick: () => void;
 }) {
-  const sectionCount = template.sections?.length ?? 0;
+  const isSystem = template.type === "built_in";
 
   return (
     <div
       onClick={onClick}
-      className={cn(
-        "flex items-center h-[52px] border-b border-border px-[16px] cursor-pointer transition-colors hover:bg-accent/50",
-        template.is_locked && "opacity-60",
-      )}
+      className="flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer border-b border-border hover:bg-accent"
     >
       {/* Name */}
-      <div className="flex-[2] min-w-0 flex items-center gap-2">
-        {template.is_locked && (
-          <Icon icon={LockIcon} size={13} className="shrink-0 text-muted-foreground" />
-        )}
-        <span className="text-sm font-medium text-foreground truncate">{template.name}</span>
+      <div className="flex-[2.2] min-w-0 px-[12px] flex items-center gap-[8px]">
+        <div className="flex items-center justify-center size-[24px] shrink-0 rounded-md bg-primary/10">
+          <Icon icon={Layers} size={14} className="text-primary" />
+        </div>
+        <p className="truncate leading-[20px] font-medium text-[14px] text-foreground tracking-[-0.154px]">
+          {template.name}
+        </p>
       </div>
 
       {/* Description */}
       <div className="flex-[2] min-w-0 px-[12px]">
-        <span className="text-xs text-muted-foreground truncate block">
-          {template.description || "—"}
-        </span>
+        <p className="truncate text-[13px] text-muted-foreground">{template.description || "—"}</p>
       </div>
 
-      {/* Type */}
-      <div className="flex-[0.8] min-w-0 px-[12px]">
-        <Badge variant={template.type === "built_in" ? "secondary" : "outline"} className="text-[10px]">
-          {template.type === "built_in" ? "Built-in" : "Custom"}
-        </Badge>
+      {/* Created by */}
+      <div className="flex-[0.8] min-w-0 px-[12px] flex items-center gap-[6px]">
+        {isSystem ? (
+          <div className="flex items-center gap-[6px]">
+            <div className="size-[22px] rounded-full bg-primary/10 flex items-center justify-center">
+              <Icon icon={Layers} size={11} className="text-primary" />
+            </div>
+            <span className="text-[12px] text-muted-foreground">System</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-[6px]">
+            <Avatar className="size-[22px]">
+              <AvatarFallback className="text-[9px] bg-accent text-accent-foreground">Me</AvatarFallback>
+            </Avatar>
+            <span className="text-[12px] text-muted-foreground">Me</span>
+          </div>
+        )}
       </div>
 
-      {/* Sections */}
-      <div className="flex-[0.8] min-w-0 px-[12px]">
-        <span className="text-xs text-muted-foreground">{sectionCount} sections</span>
+      {/* Date */}
+      <div className="w-[130px] shrink-0 px-[8px]">
+        <p className="leading-[20px] whitespace-nowrap text-[13px] text-muted-foreground tracking-[-0.154px]">
+          {formatDate(template.created_at)}
+        </p>
       </div>
-
-      {/* Usage */}
-      <div className="flex-[0.6] min-w-0 px-[12px] text-right">
-        <span className="text-xs text-muted-foreground">{template.usage_count}x</span>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Table Header
-// ---------------------------------------------------------------------------
-
-function TableHeader() {
-  const headerClass = "text-[11px] font-medium text-muted-foreground uppercase tracking-[0.5px]";
-  return (
-    <div className="flex items-center h-[36px] border-b border-border bg-muted/30 px-[16px]">
-      <div className={cn("flex-[2] min-w-0", headerClass)}>Name</div>
-      <div className={cn("flex-[2] min-w-0 px-[12px]", headerClass)}>Description</div>
-      <div className={cn("flex-[0.8] min-w-0 px-[12px]", headerClass)}>Type</div>
-      <div className={cn("flex-[0.8] min-w-0 px-[12px]", headerClass)}>Sections</div>
-      <div className={cn("flex-[0.6] min-w-0 px-[12px] text-right", headerClass)}>Usage</div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Section Divider
-// ---------------------------------------------------------------------------
-
-function SectionDivider({ label, count }: { label: string; count: number }) {
-  return (
-    <div className="flex items-center h-[32px] px-[16px] bg-muted/20 border-b border-border">
-      <span className="text-[11px] font-medium text-muted-foreground">
-        {label} &middot; {count}
-      </span>
     </div>
   );
 }
@@ -154,9 +158,9 @@ function TemplatesSkeleton() {
             <Skeleton className="h-9 w-[140px] rounded-full" />
           </div>
         </div>
-        <Skeleton className="h-[36px] w-full mb-1" />
+        <Skeleton className="h-[36px] w-full mb-px" />
         {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-[52px] w-full mb-px" />
+          <Skeleton key={i} className="h-[40px] w-full mb-px" />
         ))}
       </div>
     </div>
@@ -319,7 +323,6 @@ function TemplateDetail({
             {/* Left — Editor */}
             <div className="flex-1 min-w-0 flex flex-col gap-5">
 
-              {/* Name */}
               <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Name</Label>
                 <Input
@@ -332,7 +335,6 @@ function TemplateDetail({
                 />
               </div>
 
-              {/* Description */}
               <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Description</Label>
                 <Input
@@ -343,7 +345,6 @@ function TemplateDetail({
                 />
               </div>
 
-              {/* Instructions */}
               <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">AI Instructions</Label>
                 <Textarea
@@ -357,22 +358,16 @@ function TemplateDetail({
 
               {/* Sections */}
               <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    Sections ({enabledSections.length} active)
-                  </Label>
-                </div>
+                <Label className="text-xs font-medium text-muted-foreground">
+                  Sections ({enabledSections.length} active)
+                </Label>
 
                 {form.sections.map((section, idx) => {
                   const isExpanded = expandedSection === section.id;
                   const isOn = form.sectionToggles[section.id] !== false;
 
                   return (
-                    <div
-                      key={section.id}
-                      className="rounded-lg border border-border bg-card"
-                    >
-                      {/* Section header row */}
+                    <div key={section.id} className="rounded-lg border border-border bg-card">
                       <div className="flex items-center gap-2 px-3 h-[44px]">
                         {!isReadOnly && (
                           <div className="flex flex-col">
@@ -392,14 +387,12 @@ function TemplateDetail({
                             </button>
                           </div>
                         )}
-
                         <button
                           className="flex-1 text-left text-sm font-medium text-foreground truncate"
                           onClick={() => setExpandedSection(isExpanded ? null : section.id)}
                         >
                           {section.title || `Section ${idx + 1}`}
                         </button>
-
                         <Switch
                           checked={isOn}
                           onCheckedChange={(checked) => toggleSection(section.id, checked)}
@@ -407,7 +400,6 @@ function TemplateDetail({
                         />
                       </div>
 
-                      {/* Expanded detail */}
                       {isExpanded && !isReadOnly && (
                         <div className="px-3 pb-3 flex flex-col gap-2 border-t border-border pt-3">
                           <Input
@@ -453,9 +445,7 @@ function TemplateDetail({
               <div className="flex items-center gap-3 pt-4 border-t border-border">
                 {isReadOnly ? (
                   <>
-                    <p className="flex-1 text-xs text-muted-foreground">
-                      Built-in templates are read-only
-                    </p>
+                    <p className="flex-1 text-xs text-muted-foreground">Built-in templates are read-only</p>
                     <Button variant="pill-outline" onClick={onDuplicate} className="h-9 px-[16px] gap-[7px]">
                       <Icon icon={Copy01Icon} size={14} />
                       Duplicate &amp; edit
@@ -474,9 +464,7 @@ function TemplateDetail({
                       </Button>
                     )}
                     <div className="flex-1" />
-                    <Button variant="ghost" onClick={onBack} className="text-sm">
-                      Cancel
-                    </Button>
+                    <Button variant="ghost" onClick={onBack} className="text-sm">Cancel</Button>
                     <Button
                       onClick={handleSave}
                       disabled={!form.name.trim()}
@@ -493,11 +481,8 @@ function TemplateDetail({
             <div className="w-[400px] shrink-0">
               <div className="sticky top-6 rounded-xl border border-border bg-card p-6">
                 <p className="text-sm font-medium text-muted-foreground mb-4">Preview</p>
-
                 {enabledSections.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">
-                    Enable at least one section to see the preview
-                  </p>
+                  <p className="text-xs text-muted-foreground italic">Enable at least one section to see the preview</p>
                 ) : (
                   <div className="flex flex-col">
                     {enabledSections.map((s, i) => (
@@ -511,9 +496,6 @@ function TemplateDetail({
                         <p className="text-xs text-muted-foreground italic leading-relaxed">
                           AI-generated content for &ldquo;{s.title || `Section ${i + 1}`}&rdquo;
                           will appear here based on the transcription content.
-                          {s.instruction && (
-                            <> The AI will follow these instructions: &ldquo;{s.instruction.slice(0, 80)}{s.instruction.length > 80 ? "..." : ""}&rdquo;</>
-                          )}
                         </p>
                       </div>
                     ))}
@@ -525,7 +507,6 @@ function TemplateDetail({
         </div>
       </div>
 
-      {/* Delete confirmation */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -555,8 +536,8 @@ function TemplateDetail({
 
 export function TemplatesPage() {
   const { templates, isLoading, create, update, remove } = useTemplates();
+  const { user } = useAuth();
 
-  // null = list view, "new" = create mode, Template = edit mode
   const [detailTarget, setDetailTarget] = useState<Template | "new" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -564,7 +545,6 @@ export function TemplatesPage() {
   const editTemplate = detailTarget !== null && detailTarget !== "new" ? detailTarget : null;
   const isCreateMode = detailTarget === "new";
 
-  // Filter templates by search
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return templates;
     const q = searchQuery.toLowerCase();
@@ -578,10 +558,6 @@ export function TemplatesPage() {
   const custom = filtered.filter((t) => t.type === "custom");
 
   const handleRowClick = useCallback((t: Template) => {
-    if (t.is_locked) {
-      toast("Upgrade to Pro to use this template");
-      return;
-    }
     setDetailTarget(t);
   }, []);
 
@@ -592,14 +568,10 @@ export function TemplatesPage() {
   const handleSave = useCallback(async (data: CreateTemplateData) => {
     if (isCreateMode) {
       const result = await create(data);
-      if (result) {
-        setDetailTarget(null);
-      }
+      if (result) setDetailTarget(null);
     } else if (editTemplate) {
       const result = await update(editTemplate.id, data);
-      if (result) {
-        setDetailTarget(null);
-      }
+      if (result) setDetailTarget(null);
     }
   }, [isCreateMode, editTemplate, create, update]);
 
@@ -613,22 +585,17 @@ export function TemplatesPage() {
       auto_assign_keywords: [...editTemplate.auto_assign_keywords],
       is_default: false,
     });
-    if (result) {
-      setDetailTarget(result);
-    }
+    if (result) setDetailTarget(result);
   }, [editTemplate, create]);
 
   const handleDelete = useCallback(async () => {
     if (!editTemplate) return;
     const success = await remove(editTemplate.id);
-    if (success) {
-      setDetailTarget(null);
-    }
+    if (success) setDetailTarget(null);
   }, [editTemplate, remove]);
 
   if (isLoading) return <TemplatesSkeleton />;
 
-  // Detail view
   if (isDetailView) {
     return (
       <TemplateDetail
@@ -642,13 +609,12 @@ export function TemplatesPage() {
     );
   }
 
-  // List view
   return (
     <div className="flex-1 overflow-auto min-w-0">
       <div className="px-[32px] pt-[28px] pb-[24px]">
 
-        {/* Header */}
-        <div className="flex items-center justify-between gap-[12px] mb-6">
+        {/* Header — matches MyRecordsPage */}
+        <div className="flex items-center justify-between gap-[12px] mb-[24px]">
           <p
             className="whitespace-nowrap text-foreground"
             style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}
@@ -657,7 +623,6 @@ export function TemplatesPage() {
           </p>
 
           <div className="flex items-center gap-[8px]">
-            {/* Search */}
             <div className="relative">
               <Icon
                 icon={Search01Icon}
@@ -672,11 +637,9 @@ export function TemplatesPage() {
               />
             </div>
 
-            {/* New template */}
             <Button
-              variant="pill-outline"
               onClick={() => setDetailTarget("new")}
-              className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
+              className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
             >
               <Icon icon={Add01Icon} size={14} />
               <span className="font-medium text-[13px]">New template</span>
@@ -685,38 +648,23 @@ export function TemplatesPage() {
         </div>
 
         {/* Table */}
-        <div className="border border-border rounded-xl overflow-hidden">
-          <TableHeader />
+        <div className="border border-border rounded-xl overflow-hidden bg-card">
+          <TemplateTableHeader />
 
-          {/* Built-in section */}
-          {builtIn.length > 0 && (
-            <>
-              <SectionDivider label="Built-in" count={builtIn.length} />
-              {builtIn.map((t) => (
-                <TemplateRow key={t.id} template={t} onClick={() => handleRowClick(t)} />
-              ))}
-            </>
-          )}
+          {builtIn.length > 0 && builtIn.map((t) => (
+            <TemplateTableRow key={t.id} template={t} onClick={() => handleRowClick(t)} />
+          ))}
 
-          {/* Custom section */}
-          <SectionDivider label="My templates" count={custom.length} />
-          {custom.length > 0 ? (
-            custom.map((t) => (
-              <TemplateRow key={t.id} template={t} onClick={() => handleRowClick(t)} />
-            ))
-          ) : (
-            <div className="flex items-center justify-center h-[80px] text-xs text-muted-foreground">
-              No custom templates yet
+          {custom.length > 0 && custom.map((t) => (
+            <TemplateTableRow key={t.id} template={t} onClick={() => handleRowClick(t)} />
+          ))}
+
+          {filtered.length === 0 && (
+            <div className="flex items-center justify-center h-[120px] text-sm text-muted-foreground">
+              {searchQuery.trim() ? `No templates match "${searchQuery}"` : "No templates yet"}
             </div>
           )}
         </div>
-
-        {/* Empty search state */}
-        {filtered.length === 0 && searchQuery.trim() && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="text-sm text-muted-foreground">No templates match &ldquo;{searchQuery}&rdquo;</p>
-          </div>
-        )}
       </div>
     </div>
   );
