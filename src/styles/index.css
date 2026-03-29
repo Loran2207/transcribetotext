@@ -1,108 +1,34 @@
-@keyframes wave-bar-test {
-  0%, 100% { transform: scaleY(0.2); }
-  50%      { transform: scaleY(1); }
-}
-
-@keyframes marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Auth Illustration — CSS Keyframes (all animation is CSS, no JS runtime)
+   Auth Illustration — CSS Keyframes
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Marquee — infinite horizontal scroll */
-@keyframes marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.logos-marquee {
-  overflow: hidden;
-  mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
-}
-
-.logos-track {
-  display: flex;
-  gap: 12px;
-  width: max-content;
-  animation: marquee 25s linear infinite;
-}
-
-/* Waveform bars */
-@keyframes wave-bar {
-  0%, 100% { transform: scaleY(0.3); }
+@keyframes wave-bar-test {
+  0%, 100% { transform: scaleY(0.2); }
   50%      { transform: scaleY(1); }
 }
 
-/* Typewriter — steps-based width reveal */
-@keyframes typing {
-  from { width: 0; }
-  to   { width: 100%; }
-}
-
-/* Cursor blink on typewriter text */
-@keyframes blink-cursor {
-  50% { border-color: transparent; }
-}
-
-/* Live dot pulse */
-@keyframes blink-dot {
+@keyframes cursor-blink {
   0%, 100% { opacity: 1; }
-  50%      { opacity: 0.3; }
+  50%      { opacity: 0; }
 }
 
-/* Shimmer slide for skeleton loaders */
-@keyframes shimmer-slide {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(300%); }
-}
-
-/* Floating ambient orbs */
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0px); }
-  50%      { transform: translateY(-8px); }
-}
-
-@keyframes float-medium {
-  0%, 100% { transform: translateY(-5px); }
-  50%      { transform: translateY(5px); }
-}
-
-@keyframes float-fast {
-  0%, 100% { transform: translateY(0px); }
-  50%      { transform: translateY(-7px); }
-}
-
-/* Pill fade-in on load */
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.8); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Accessibility — respect reduced motion
+   Accessibility
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @media (prefers-reduced-motion: reduce) {
-  .logos-track,
   .wave-bar,
-  .live-dot-css,
-  .shimmer-bar-css,
-  .ambient-orb,
-  .typewriter-text,
-  .feature-pill-animated {
+  .cursor-blink,
+  .pulse-dot {
     animation: none !important;
-  }
-
-  .typewriter-text {
-    width: 100% !important;
-    border-right: none !important;
   }
 }

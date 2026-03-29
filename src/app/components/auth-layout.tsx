@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { motion, useReducedMotion } from "motion/react";
 import svgPaths from "../../imports/svg-i3wf63n6gj";
 import { AuthIllustration } from "./auth-illustration";
 
@@ -32,62 +31,24 @@ function AuthLogo() {
   );
 }
 
-const FEATURE_PILLS = ["Record", "Upload", "Link"];
-
 export function AuthLayout({ children }: { children: ReactNode }) {
-  const prefersReducedMotion = useReducedMotion();
-
   return (
     <div className="flex flex-row w-full min-h-screen">
-      {/* Left panel — dark branded side, hidden on mobile */}
+      {/* Left panel — immersive dark branded side, hidden on mobile */}
       <div
         className="hidden lg:flex w-[55%] flex-col relative overflow-hidden"
         style={{
           background:
-            "radial-gradient(ellipse 70% 50% at 15% 20%, oklch(0.28 0.09 264) 0%, transparent 55%), radial-gradient(ellipse 50% 40% at 85% 75%, oklch(0.20 0.07 280) 0%, transparent 50%), oklch(0.07 0.01 264)",
+            "radial-gradient(ellipse 60% 40% at 20% 30%, rgba(59,130,246,0.18) 0%, transparent 60%), radial-gradient(ellipse 50% 35% at 80% 70%, rgba(139,92,246,0.12) 0%, transparent 55%), radial-gradient(ellipse 40% 30% at 50% 10%, rgba(16,185,129,0.06) 0%, transparent 50%), #050508",
         }}
       >
-        {/* Top: Logo */}
-        <div className="p-8 relative z-10">
+        {/* Top-left: Logo */}
+        <div className="absolute top-8 left-10 z-10">
           <AuthLogo />
         </div>
 
-        {/* Center: Illustration */}
-        <div className="flex-1 flex items-center justify-center px-10 relative z-10">
-          <motion.div
-            className="w-full flex justify-center"
-            initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.96 }}
-            animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2, duration: 0.5, ease: "easeOut" }}
-          >
-            <AuthIllustration />
-          </motion.div>
-        </div>
-
-        {/* Bottom: Tagline + Feature pills */}
-        <div className="p-8 pb-10 relative z-10">
-          <p
-            className="text-xl font-semibold mb-4"
-            style={{ color: "rgba(255,255,255,0.95)" }}
-          >
-            Turn audio into text instantly
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            {FEATURE_PILLS.map((pill) => (
-              <span
-                key={pill}
-                className="px-3 py-1.5 rounded-full text-xs font-medium"
-                style={{
-                  background: "rgba(255,255,255,0.08)",
-                  color: "rgba(255,255,255,0.65)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-              >
-                {pill}
-              </span>
-            ))}
-          </div>
-        </div>
+        {/* Full-panel illustration */}
+        <AuthIllustration />
       </div>
 
       {/* Right panel — form */}
