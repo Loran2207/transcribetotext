@@ -469,3 +469,534 @@ import { motion } from "motion/react";
 | `npm run build` | Production build (output: `dist/`) |
 | `npx playwright test` | Run E2E tests (from `e2e-tests/`) |
 | `npx shadcn add <component>` | Add a new shadcn/ui component |
+
+---
+
+## 7. UI PATTERNS & CONVENTIONS
+
+### 7a. Modals & Dialogs
+
+**Two patterns coexist in this codebase:**
+
+**Pattern 1 — Portal-based custom modals** (used by large Figma-generated components):
+Files: `transcription-modals.tsx`, `search-modal.tsx`, `records-table.tsx`, `app-sidebar.tsx`, `my-records-page.tsx`
+```tsx
+import { createPortal } from "react-dom";
+
+const [open, setOpen] = useState(false);
+
+{open && createPortal(
+  <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/40" onClick={() => setOpen(false)} />
+    <div className="relative bg-card rounded-2xl shadow-md p-6">
+      {/* content */}
+    </div>
+  </div>,
+  document.body
+)}
+```
+
+**Pattern 2 — shadcn Dialog** (preferred for new features):
+Files: `templates-page.tsx`, `settings-modal.tsx`
+```tsx
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+
+const [open, setOpen] = useState(false);
+
+<Dialog open={open} onOpenChange={setOpen}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>Title</DialogTitle>
+    </DialogHeader>
+    {/* content */}
+  </DialogContent>
+</Dialog>
+```
+
+**Rule:** For new modals, always use shadcn `Dialog`. Only use `createPortal` if integrating into existing Figma-generated components that already use that pattern.
+
+### 7b. Confirmation Dialogs (AlertDialog)
+
+Files: `templates-page.tsx`, `records-table.tsx`, `settings-modal.tsx`, `my-records-page.tsx`
+```tsx
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
+
+<AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Delete this item?</AlertDialogTitle>
+      <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+**Rule:** Always use `AlertDialog` for destructive confirmations. Never use `window.confirm()`.
+
+### 7c. Dropdown Menus
+
+Files: `templates-page.tsx`, `records-table.tsx`, `transcription-detail-page.tsx`, `my-records-page.tsx`
+```tsx
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
+
+<DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="ghost" size="icon"><Icon icon={MoreVertical} size={16} /></Button>
+  </DropdownMenuTrigger>
+  <DropdownMenuContent align="end">
+    <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
+    <DropdownMenuItem onClick={handleDelete} className="text-destructive">Delete</DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+```
+
+**Rule:** Always use shadcn `DropdownMenu`. Never build custom dropdown logic.
+
+### 7d. Tabs
+
+Files: `templates-page.tsx`, `transcription-detail-page.tsx`, `transcription-modals.tsx`, `records-table.tsx`, `design-system-page.tsx`
+```tsx
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/app/components/ui/tabs";
+
+<Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="tab1">
+  <TabsList>
+    <TabsTrigger value="tab1">Tab 1</TabsTrigger>
+    <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+  </TabsList>
+  <TabsContent value="tab1">Content 1</TabsContent>
+  <TabsContent value="tab2">Content 2</TabsContent>
+</Tabs>
+```
+
+### 7e. Forms (Auth Pages Pattern)
+
+Files: `login-page.tsx`, `signup-page.tsx`, `forgot-password-page.tsx`, `reset-password-page.tsx`
+```tsx
+import { useForm } from "react-hook-form";
+import { Button } from "@/app/components/ui/button";
+import { Input } from "@/app/components/ui/input";
+import { Label } from "@/app/components/ui/label";
+
+interface FormValues { email: string; password: string; }
+
+const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({ mode: "onBlur" });
+
+const [isSubmitting, setIsSubmitting] = useState(false);
+const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+const onSubmit = async (data: FormValues) => {
+  setIsSubmitting(true);
+  setErrorMessage(null);
+  const { error } = await signIn(data.email, data.password);
+  if (error) { setErrorMessage(error.message); setIsSubmitting(false); return; }
+  navigate("/");
+};
+```
+
+**Rules:**
+- Use `react-hook-form` with `mode: "onBlur"` for validation timing
+- Track `isSubmitting` state manually (no formState.isSubmitting for async)
+- Show error messages via a `errorMessage` state string, displayed in a styled div
+- Disable form fields during submission with `isFormDisabled` flag
+- No zod/yup — validation is inline via `register()` rules
+
+### 7f. Notifications (Toast)
+
+Files: `transcription-modals.tsx`, `settings-modal.tsx`, `signup-page.tsx`, `email-confirmation-page.tsx`, `templates-page.tsx`, `transcription-detail-page.tsx`
+```tsx
+import { toast } from "sonner";
+
+toast.success("Template saved");
+toast.error("Failed to load templates");
+toast("Reply sent");
+```
+
+**Rule:** Always use `sonner`. Never use `window.alert()` or custom toast implementations.
+
+### 7g. Loading States
+
+**Skeleton loading** (for data-heavy views):
+Files: `templates-page.tsx`, `transcription-detail-page.tsx`
+```tsx
+import { Skeleton } from "@/app/components/ui/skeleton";
+
+{isLoading ? (
+  <div className="space-y-3">
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-12 w-full" />
+  </div>
+) : (
+  <ActualContent />
+)}
+```
+
+**Button loading** (for form submissions):
+Files: `login-page.tsx`, `signup-page.tsx`, `forgot-password-page.tsx`
+```tsx
+import { Loading01Icon } from "@hugeicons/core-free-icons";
+
+<Button disabled={isSubmitting}>
+  {isSubmitting && <Icon icon={Loading01Icon} size={16} className="animate-spin mr-2" />}
+  Submit
+</Button>
+```
+
+**Rule:** Use `Skeleton` for content loading. Use spinner icon + disabled button for form submissions. Never leave async operations without visible loading feedback.
+
+### 7h. Empty States
+
+**Coming Soon pages** (for unbuilt features):
+Files: `app-layout.tsx`, `calendar-page.tsx`
+```tsx
+<div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 px-6">
+  <div className="size-[72px] rounded-2xl bg-primary/5 flex items-center justify-center">
+    <HugeiconsIcon icon={Puzzle} size={32} className="text-primary/60" />
+  </div>
+  <div className="text-center">
+    <h2 className="text-xl font-semibold text-foreground">Coming Soon</h2>
+    <p className="text-[14px] text-muted-foreground mt-1.5 max-w-[320px]">
+      Feature is under development.
+    </p>
+  </div>
+</div>
+```
+
+**Search empty state** (no results):
+Files: `search-modal.tsx`, `records-table.tsx`
+Pattern: Centered text with muted color, relevant icon above.
+
+### 7i. Animation
+
+Files: `dashboard-page.tsx`, `login-page.tsx`, `signup-page.tsx`, `forgot-password-page.tsx`, `reset-password-page.tsx`, `email-confirmation-page.tsx`
+```tsx
+import { motion, useReducedMotion } from "motion/react";
+
+const prefersReducedMotion = useReducedMotion();
+
+const animProps = (delay: number) =>
+  prefersReducedMotion ? {} : {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] },
+  };
+
+<motion.div {...animProps(0.1)}>Content</motion.div>
+```
+
+**Hover animations** (cards, interactive elements):
+```tsx
+<motion.div
+  animate={hovered ? { y: -3, scale: 1.05 } : { y: 0, scale: 1 }}
+  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+/>
+```
+
+**Rules:**
+- Import from `"motion/react"` (NOT `"framer-motion"`)
+- Always check `useReducedMotion()` for accessibility
+- Use spring physics for hover/interactive animations
+- Use duration-based easing for page entrance animations
+- Stagger delay: ~0.08s between sequential elements
+
+### 7j. Sheets (Slide-in Panels)
+
+Files: `transcription-detail-page.tsx`, `source-icons.tsx`
+```tsx
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/app/components/ui/sheet";
+
+<Sheet open={open} onOpenChange={setOpen}>
+  <SheetContent side="right">
+    <SheetHeader>
+      <SheetTitle>Panel Title</SheetTitle>
+    </SheetHeader>
+    {/* content */}
+  </SheetContent>
+</Sheet>
+```
+
+### 7k. Select Dropdowns
+
+Files: `transcription-modals.tsx`, `templates-page.tsx`, `records-table.tsx`
+```tsx
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
+
+<Select value={value} onValueChange={setValue}>
+  <SelectTrigger className="w-full">
+    <SelectValue placeholder="Choose..." />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="option1">Option 1</SelectItem>
+    <SelectItem value="option2">Option 2</SelectItem>
+  </SelectContent>
+</Select>
+```
+
+### 7l. Breadcrumb Navigation
+
+Files: `templates-page.tsx`, `my-records-page.tsx`
+```tsx
+import {
+  Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/app/components/ui/breadcrumb";
+
+<Breadcrumb>
+  <BreadcrumbList>
+    <BreadcrumbItem><BreadcrumbLink onClick={goBack}>Parent</BreadcrumbLink></BreadcrumbItem>
+    <BreadcrumbSeparator />
+    <BreadcrumbItem><BreadcrumbPage>Current Page</BreadcrumbPage></BreadcrumbItem>
+  </BreadcrumbList>
+</Breadcrumb>
+```
+
+### 7m. Popover
+
+Files: `templates-page.tsx`, `records-table.tsx`
+```tsx
+import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
+
+<Popover>
+  <PopoverTrigger asChild>
+    <Button variant="outline">Open</Button>
+  </PopoverTrigger>
+  <PopoverContent className="w-80" align="start">
+    {/* content */}
+  </PopoverContent>
+</Popover>
+```
+
+### 7n. Tooltip
+
+Files: `transcription-detail-page.tsx`
+```tsx
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/app/components/ui/tooltip";
+
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild><Button variant="ghost">Hover me</Button></TooltipTrigger>
+    <TooltipContent>Tooltip text</TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+```
+
+### 7o. Drag & Drop
+
+Files: `templates-page.tsx`, `records-table.tsx`
+```tsx
+import { useDrag, useDrop, DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+
+<DndProvider backend={HTML5Backend}>
+  {/* Draggable items use useDrag/useDrop hooks */}
+</DndProvider>
+```
+
+**Rule:** Use `react-dnd` with `HTML5Backend`. Do not introduce alternative DnD libraries.
+
+---
+
+## 8. FILE STRUCTURE
+
+```
+src/
+├── app/
+│   ├── components/              # All application components
+│   │   ├── ui/                  # shadcn/ui base components (DO NOT EDIT)
+│   │   ├── figma/               # Figma-generated helpers
+│   │   ├── *-page.tsx           # Page components (dashboard, records, calendar, etc.)
+│   │   ├── *-context.tsx        # React Context providers
+│   │   ├── *-modal.tsx          # Modal components
+│   │   ├── auth-*.tsx           # Auth-related components
+│   │   └── *.tsx                # Feature components
+│   ├── App.tsx                  # Root with provider nesting
+│   └── routes.tsx               # React Router definitions
+├── hooks/                       # Custom React hooks (e.g., use-templates.ts)
+├── lib/                         # Service/query functions (e.g., supabase.ts, templates.ts)
+├── assets/                      # Static images
+├── imports/                     # Figma auto-generated (DO NOT EDIT)
+└── styles/                      # CSS (theme.css, fonts.css, tailwind.css, index.css)
+public/images/                   # Public static assets
+e2e-tests/                       # Playwright E2E tests
+.claude/agents/                  # Claude subagent definitions
+```
+
+**Conventions:**
+- `src/lib/` — Supabase query functions, one file per domain (e.g., `templates.ts`)
+- `src/hooks/` — React hooks that wrap `src/lib/` functions (e.g., `use-templates.ts`)
+- Page components go in `src/app/components/` with `*-page.tsx` naming
+- Context providers go in `src/app/components/` with `*-context.tsx` naming
+- Never put Supabase calls directly in components — always go through `src/lib/`
+
+---
+
+## 9. AUTHENTICATION & ROUTING
+
+### Auth Architecture
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| `AuthProvider` | `auth-context.tsx` | Wraps app, provides `useAuth()` hook |
+| `ProtectedRoute` | `protected-route.tsx` | Redirects unauthenticated users to `/login` |
+| `AuthLayout` | `auth-layout.tsx` | Shared layout for login/signup/forgot-password |
+
+**Auth flow:**
+- Supabase Auth with email/password + Google OAuth
+- `AuthProvider` listens to `onAuthStateChange` and provides `user`, `session`, `loading`
+- Protected routes use `<ProtectedRoute>` wrapper
+- Auth pages redirect authenticated users away with `<Navigate to="/" replace />`
+
+**Routes (updated):**
+
+| Path | Component | Auth Required |
+|------|-----------|--------------|
+| `/` | `AppLayout` (via `ProtectedRoute`) | Yes |
+| `/transcriptions/:id` | `TranscriptionDetailPage` | Yes |
+| `/login` | `LoginPage` | No |
+| `/signup` | `SignupPage` | No |
+| `/check-email` | `EmailConfirmationPage` | No |
+| `/auth/callback` | `AuthCallbackPage` | No |
+| `/forgot-password` | `ForgotPasswordPage` | No |
+| `/reset-password` | `ResetPasswordPage` | No |
+| `/design-system` | `DesignSystemPage` | No |
+
+---
+
+## 10. AGENT ORCHESTRATION — HOW TO USE AGENTS
+
+Before starting ANY feature or fix, evaluate which agents to use.
+
+**Available agents in `.claude/agents/`:**
+
+| Agent | Use for |
+|-------|---------|
+| `@supabase-developer` | All DB work: tables, RLS, migrations, queries |
+| `@ui-developer` | All UI: components, pages, layouts, styling |
+| `@qa-tester` | Testing: verify every scenario after implementation |
+| `@code-reviewer` | Code quality: types, patterns, no console.log, no hardcoded colors |
+| `@feature-planner` | Planning: break down complex features before starting |
+
+### When to Spawn Agent Teams (parallel)
+
+Spawn multiple agents simultaneously when work can be done in parallel:
+- DB changes (`supabase-developer`) + UI changes (`ui-developer`) → parallel
+- Multiple independent UI components → parallel `ui-developer` instances
+- `qa-tester` + `code-reviewer` → always run in parallel at the end
+
+### Mandatory Workflow for EVERY Task
+
+1. `@feature-planner` → plan the implementation, list files to change
+2. Spawn parallel teams for implementation
+3. `@qa-tester` → test every scenario from the QA checklist below
+4. `@code-reviewer` → verify code quality
+5. If QA passes AND code-reviewer passes → commit (see Deploy Gate below)
+6. If any agent reports issues → fix before committing
+
+### QA Checklist (must pass before every push)
+
+- [ ] Feature works as described
+- [ ] Loading states exist on all async operations
+- [ ] Error states handled (not just happy path)
+- [ ] Empty states handled (no data scenario)
+- [ ] No hardcoded colors (theme.css variables only)
+- [ ] No TypeScript errors (`npm run build` passes)
+- [ ] No `console.log` in production code
+- [ ] Mobile/responsive layout not broken
+- [ ] Existing features not broken by changes
+
+### Deploy Gate — Commit Only After QA Green Light
+
+After `@qa-tester` confirms ALL scenarios pass AND `@code-reviewer` gives approval AND `npm run build` has zero errors:
+
+```bash
+git add <specific-files>
+git commit -m "<type>: <description>"
+git push origin main
+```
+
+**Commit message types:** `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
+
+**ONLY push if:**
+- `@qa-tester`: "All X/X scenarios PASS"
+- `@code-reviewer`: "No issues found" or all issues fixed
+- `npm run build`: zero errors, zero warnings
+
+If ANY of the above fails → do NOT push → fix first → re-test.
+
+---
+
+## 11. PATTERN DISCOVERY PROTOCOL
+
+When working on any task, Claude must actively watch for new patterns.
+A "new pattern" is anything that:
+- Appears for the first time in the codebase
+- Solves a problem in a way not yet documented in this file
+- Is likely to be reused in future features
+- Differs from what is already documented here
+
+### When Claude spots a new pattern, it must STOP and ask:
+
+After completing the task (not during — finish the work first),
+Claude adds a message like this:
+
+---
+
+**Pattern Discovery**
+
+I noticed a new pattern while working on this task that isn't
+documented in CLAUDE.md yet:
+
+**Pattern:** [name of the pattern]
+**Where I saw it:** [file path]
+**What it does:** [1-2 sentence description]
+**Example:**
+```
+[short code snippet]
+```
+
+Should I add this to CLAUDE.md?
+- Yes — I'll add it to the relevant section
+- No — I'll skip it
+- Modify — Tell me how you want it documented
+
+---
+
+### Examples of what triggers a pattern discovery question:
+
+- A new way of handling a loading state that differs from existing ones
+- A new component composition pattern
+- A new way of structuring a Supabase query
+- A new error handling approach
+- A new animation or transition pattern
+- A reusable utility function that could apply elsewhere
+- A new folder or file organization that differs from conventions
+
+### Rules:
+
+- Claude asks ONCE per task at the end — not multiple times mid-task
+- If there are multiple new patterns, list them all in ONE message
+- Claude never auto-adds to CLAUDE.md without asking first
+- If the user says "yes" → Claude adds it immediately and confirms
+- If the user says "no" → Claude moves on without asking again
+- Pattern questions come AFTER the QA gate passes, not before
+
+### Format for adding to CLAUDE.md after user confirms:
+
+Claude finds the most relevant existing section in CLAUDE.md
+and adds the pattern there with:
+- A clear title
+- When to use it
+- A minimal code example from the actual project
+- Any gotchas or things to avoid
+
+This keeps CLAUDE.md as a living document that grows
+with the project automatically.
