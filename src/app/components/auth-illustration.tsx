@@ -294,7 +294,7 @@ export function AuthIllustration() {
             <h1 style={{ color: "white", fontSize: 48, fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.03em" }}>
               Audio & Video to Text
               <br />
-              <span style={{ background: "linear-gradient(to right, #0061FF, #3B82F6, #60A5FA)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              <span style={{ background: "linear-gradient(to right, #0061FF, #3B82F6, #60A5FA)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", color: "transparent" }}>
                 in Seconds
               </span>
             </h1>
