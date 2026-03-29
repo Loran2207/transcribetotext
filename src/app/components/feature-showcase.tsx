@@ -359,10 +359,11 @@ export function FeatureShowcase() {
                 setActiveIndex(index)
                 setKey((prev) => prev + 1)
               }}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 flex-shrink-0"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg flex-shrink-0"
               style={{
-                background: index === activeIndex ? "rgba(88,101,242,0.2)" : undefined,
-                color: index === activeIndex ? "var(--primary)" : "rgba(255,255,255,0.45)",
+                transition: "all 0.25s ease",
+                background: index === activeIndex ? "var(--primary)" : undefined,
+                color: index === activeIndex ? "white" : "rgba(255,255,255,0.45)",
               }}
             >
               {feature.icon}
@@ -377,7 +378,7 @@ export function FeatureShowcase() {
             <h3 className="text-lg font-semibold text-white mb-1">{activeFeature.title}</h3>
             <p className="text-sm text-white/50">{activeFeature.subtitle}</p>
           </div>
-          <div style={{ animation: "fadeInUp 0.5s ease forwards" }}>{activeFeature.demo}</div>
+          <div style={{ animation: "fadeInUp 0.4s ease forwards" }}>{activeFeature.demo}</div>
         </div>
 
         {/* Progress indicator */}

@@ -115,15 +115,8 @@ export function AuthIllustration() {
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 32 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(88,101,242,0.2)", border: "1px solid rgba(88,101,242,0.4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-              <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-              <line x1="12" x2="12" y1="19" y2="22" />
-            </svg>
-          </div>
-          <span style={{ fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", color: "white" }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 32 }}>
+          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em", color: "white" }}>
             TRANSCRIBETOTEXT<span style={{ color: "var(--primary)" }}>.AI</span>
           </span>
         </div>
@@ -132,7 +125,7 @@ export function AuthIllustration() {
         <div className="flex-1 flex flex-col justify-center">
           {/* Headline */}
           <div className="mb-8 lg:mb-10">
-            <h1 className="text-3xl lg:text-4xl xl:text-[2.75rem] font-semibold tracking-tight leading-[1.15] text-balance" style={{ color: "white" }}>
+            <h1 style={{ color: "white", fontSize: 48, fontWeight: 800, lineHeight: 1.1, margin: 0 }}>
               Audio & Video to Text
               <br />
               <span style={{ color: "var(--primary)" }}>in Seconds</span>
@@ -149,24 +142,24 @@ export function AuthIllustration() {
         </div>
 
         {/* Bottom section: Rating and platforms */}
-        <div className="relative z-10 mt-auto pt-8 lg:pt-10">
+        <div className="relative z-10 mt-auto" style={{ paddingTop: 24 }}>
           {/* Star rating */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
             <div style={{ display: "flex", gap: 2 }}>
               {[...Array(5)].map((_, i) => (
-                <span key={i} style={{ color: "#FBBF24", fontSize: 15 }}>&#9733;</span>
+                <span key={i} style={{ color: "#FBBF24", fontSize: 18 }}>&#9733;</span>
               ))}
             </div>
-            <span style={{ color: "white", fontSize: 13, fontWeight: 600 }}>4.9</span>
-            <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 13 }}>from 2,400+ reviews</span>
+            <span style={{ color: "white", fontSize: 15, fontWeight: 700 }}>4.9</span>
+            <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 14 }}>from 2,400+ reviews</span>
           </div>
 
           {/* Platform logos */}
           <div>
-            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const }}>
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const }}>
               Integrates with
             </span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "10px 16px", marginTop: 12 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16 }}>
               {platformLogos.map((platform) => (
                 <div
                   key={platform.name}
@@ -174,16 +167,16 @@ export function AuthIllustration() {
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    padding: "6px 12px",
+                    padding: "8px 14px",
                     borderRadius: 8,
                     border: "1px solid rgba(255,255,255,0.08)",
                     background: "rgba(255,255,255,0.04)",
                   }}
                 >
-                  <svg viewBox="0 0 24 24" width={16} height={16} fill="rgba(255,255,255,0.55)">
+                  <svg viewBox="0 0 24 24" width={18} height={18} fill="rgba(255,255,255,0.55)">
                     <path d={"si" in platform ? platform.si.path : platform.path} />
                   </svg>
-                  <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", fontWeight: 500, whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", fontWeight: 500, whiteSpace: "nowrap" }}>
                     {platform.name}
                   </span>
                 </div>
