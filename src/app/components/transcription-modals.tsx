@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
+import { Layers } from "@hugeicons/core-free-icons";
+import { useTemplates } from "@/hooks/use-templates";
 import { router } from "../routes";
 
 // ════════════════════════════════════════════════════════════
@@ -968,6 +970,58 @@ function FolderSelector({
   );
 }
 
+// ── Template Selector ─────────────────────────────────────
+
+function TemplateSelector({
+  value,
+  onChange,
+  compact = false,
+}: {
+  value: string | null;
+  onChange: (templateId: string | null) => void;
+  compact?: boolean;
+}) {
+  const { templates } = useTemplates();
+  const builtIn = templates.filter((t) => t.type === "built_in" && !t.is_locked);
+  const custom = templates.filter((t) => t.type === "custom");
+
+  return (
+    <div>
+      {!compact && <SectionLabel>Template</SectionLabel>}
+      <Select value={value ?? "__none__"} onValueChange={(val) => onChange(val === "__none__" ? null : val)}>
+        <SelectTrigger
+          className={`w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "h-[36px]" : "h-[40px]"}`}
+        >
+          <SelectValue placeholder="Select template" className="text-[13px]" />
+        </SelectTrigger>
+        <SelectContent className="z-[300]">
+          <SelectItem value="__none__" className="text-[13px]">
+            <span className="flex items-center gap-[7px]">
+              <Icon icon={Layers} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
+              No template
+            </span>
+          </SelectItem>
+          {builtIn.map((t) => (
+            <SelectItem key={t.id} value={t.id} className="text-[13px]">
+              {t.name}
+            </SelectItem>
+          ))}
+          {custom.length > 0 && (
+            <>
+              <SelectSeparator />
+              {custom.map((t) => (
+                <SelectItem key={t.id} value={t.id} className="text-[13px]">
+                  {t.name}
+                </SelectItem>
+              ))}
+            </>
+          )}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 // ── Languages ──────────────────────────────────────────────
 
 const LANGUAGES = [
@@ -1652,6 +1706,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   const [dragActive, setDragActive] = useState(false);
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -1801,10 +1856,15 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           </div>
 
-          {/* Footer: folder picker (left) + Cancel + Start (right) */}
+          {/* Footer: folder + template picker (left) + Cancel + Start (right) */}
           <div className="flex items-center justify-between gap-[8px]">
-            <div style={{ minWidth: 0, maxWidth: "200px" }}>
-              <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
+            <div className="flex items-center gap-[8px]" style={{ minWidth: 0 }}>
+              <div style={{ maxWidth: "180px" }}>
+                <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} compact />
+              </div>
+              <div style={{ maxWidth: "180px" }}>
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} compact />
+              </div>
             </div>
             <div className="flex items-center gap-[8px] shrink-0">
               <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
