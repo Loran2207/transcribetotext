@@ -1754,7 +1754,7 @@ function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isH
 
   const dateVisible = visibleColumns.includes("date");
   const rowBg = isSelected && !isTrash ? "bg-primary/5" : "";
-  const hoverBg = "hsl(var(--accent))";
+  const hoverBg = "var(--accent)";
   // Color for the actions overlay background — matches the current row state
   const actionsBg = isSelected ? "#f0f4ff" : hoverBg;
   const [showSummary, setShowSummary] = useState(false);

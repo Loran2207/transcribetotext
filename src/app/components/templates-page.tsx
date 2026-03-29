@@ -178,14 +178,14 @@ function TR({ t, isHovered, isStarred, isTrashed, folderName, onMouseEnter, onMo
         <span className="text-[16px] shrink-0 leading-none">{emoji}</span>
         <p className="truncate font-medium text-[14px] text-foreground tracking-[-0.154px]">{t.name}</p>
 
-        {/* Hover actions overlay — positioned within Name cell only */}
+        {/* Hover actions overlay — extends into star column (right: -26px), matching records-table pattern */}
         {!isTrashed && (
           <div
             className={cn(
-              "absolute top-0 bottom-0 right-0 z-20 flex items-center justify-end pr-[4px] transition-opacity duration-150",
+              "absolute top-0 bottom-0 z-20 flex items-center justify-end pr-[4px] transition-opacity duration-150",
               isHovered ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
             )}
-            style={{ width: "180px", background: "linear-gradient(to right, transparent 0px, var(--background) 48px)" }}
+            style={{ right: "-26px", width: "180px", background: "linear-gradient(to right, transparent 0px, var(--accent) 48px)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <TemplateRowActions isStarred={isStarred} onStar={onStar} onEdit={onEdit} onTrash={onTrash} />
@@ -196,10 +196,10 @@ function TR({ t, isHovered, isStarred, isTrashed, folderName, onMouseEnter, onMo
         {isTrashed && (
           <div
             className={cn(
-              "absolute top-0 bottom-0 right-0 z-20 flex items-center justify-end pr-[4px] transition-opacity duration-150",
+              "absolute top-0 bottom-0 z-20 flex items-center justify-end pr-[6px] transition-opacity duration-150",
               isHovered ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
             )}
-            style={{ width: "120px", background: "linear-gradient(to right, transparent 0px, var(--background) 48px)" }}
+            style={{ right: "-26px", width: "120px", background: "linear-gradient(to right, transparent 0px, var(--accent) 48px)" }}
             onClick={(e) => e.stopPropagation()}
           >
             <Button variant="ghost" size="icon" className="size-[28px] rounded-full" title="Restore" onClick={(e) => { e.stopPropagation(); onRestore(); }}>
@@ -661,12 +661,13 @@ function TemplateDetail({
                 onBlur={() => { if (form.name.trim()) setIsEditingName(false); }}
                 onKeyDown={(e) => { if (e.key === "Enter" && form.name.trim()) setIsEditingName(false); if (e.key === "Escape") setIsEditingName(false); }}
                 placeholder="Template name"
-                className="text-[28px] font-bold h-auto border-0 shadow-none focus-visible:ring-0 px-0 py-0 bg-transparent tracking-[-0.56px]"
+                className="h-auto border-none bg-transparent p-0 text-2xl font-bold shadow-none focus-visible:ring-0"
+                style={{ fontSize: "24px", lineHeight: "1.3" }}
                 autoFocus
               />
             ) : (
               <h1
-                className="text-[28px] font-bold text-foreground tracking-[-0.56px] cursor-text hover:text-foreground/80 transition-colors"
+                className="text-2xl font-bold text-foreground leading-tight cursor-text hover:text-foreground/80 transition-colors"
                 onClick={() => setIsEditingName(true)}
               >
                 {form.name || "Untitled template"}
