@@ -25,9 +25,9 @@
   animation: marquee 25s linear infinite;
 }
 
-/* Waveform bars — fixed scaleY values, variety comes from duration/delay */
-@keyframes bar-wave {
-  0%, 100% { transform: scaleY(0.25); }
+/* Waveform bars */
+@keyframes wave-bar {
+  0%, 100% { transform: scaleY(0.3); }
   50%      { transform: scaleY(1); }
 }
 
@@ -45,7 +45,7 @@
 /* Live dot pulse */
 @keyframes blink-dot {
   0%, 100% { opacity: 1; }
-  50%      { opacity: 0.2; }
+  50%      { opacity: 0.3; }
 }
 
 /* Shimmer slide for skeleton loaders */
@@ -57,7 +57,7 @@
 /* Floating ambient orbs */
 @keyframes float-slow {
   0%, 100% { transform: translateY(0px); }
-  50%      { transform: translateY(-10px); }
+  50%      { transform: translateY(-8px); }
 }
 
 @keyframes float-medium {

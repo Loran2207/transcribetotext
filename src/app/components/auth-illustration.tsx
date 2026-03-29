@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import {
   siZoom,
   siGooglemeet,
@@ -43,17 +42,6 @@ const FEATURE_PILLS = ["98% accuracy", "50+ languages", "Instant export"];
    ═══════════════════════════════════════════════════════════════════════════ */
 
 export function AuthIllustration() {
-  // Generate random waveform bar params once, stable across re-renders
-  const bars = useMemo(
-    () =>
-      Array.from({ length: 32 }, (_, i) => ({
-        duration: (0.4 + Math.random() * 0.5).toFixed(2),
-        delay: (i * 0.05).toFixed(2),
-        opacity: (0.3 + (1 - Math.abs(i - 16) / 16) * 0.7).toFixed(2),
-      })),
-    []
-  );
-
   const doubledLogos = [...LOGOS, ...LOGOS];
 
   return (
@@ -110,9 +98,9 @@ export function AuthIllustration() {
 
           {/* Waveform bars */}
           <div style={{ display: "flex", alignItems: "center", gap: 2, height: 40, flex: 1 }}>
-            {bars.map((bar, i) => (
+            {Array.from({ length: 32 }, (_, i) => i).map((index) => (
               <div
-                key={i}
+                key={index}
                 className="wave-bar"
                 style={{
                   width: 3,
@@ -121,9 +109,8 @@ export function AuthIllustration() {
                   borderRadius: 2,
                   transformOrigin: "center",
                   flexShrink: 0,
-                  opacity: Number(bar.opacity),
-                  animation: `bar-wave ${bar.duration}s ease-in-out infinite`,
-                  animationDelay: `${bar.delay}s`,
+                  animation: `wave-bar ${(0.4 + index * 0.04).toFixed(2)}s ease-in-out infinite`,
+                  animationDelay: `${(index * 0.05).toFixed(2)}s`,
                 }}
               />
             ))}
