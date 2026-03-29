@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -31,6 +31,9 @@ import {
 import {
   Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator,
 } from "@/app/components/ui/breadcrumb";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/app/components/ui/dropdown-menu";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -131,34 +134,27 @@ function TH() {
 function TemplateRowActions({ isStarred, onStar, onEdit, onTrash }: {
   isStarred: boolean; onStar: () => void; onEdit: () => void; onTrash: () => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setMenuOpen(false); }
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
   return (
-    <div className="flex items-center gap-[2px] relative" ref={ref}>
+    <div className="flex items-center gap-[2px]">
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="Edit" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M11.333 2a1.886 1.886 0 012.667 2.667L5.333 13.333 2 14l.667-3.333L11.333 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground" /></svg>
       </Button>
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title={isStarred ? "Unstar" : "Star"} onClick={(e) => { e.stopPropagation(); onStar(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={isStarred ? "" : "text-muted-foreground"} /></svg>
       </Button>
-      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="More" onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}>
-        <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.2" fill="currentColor" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="8" cy="13" r="1.2" fill="currentColor" /></svg>
-      </Button>
-      {menuOpen && (
-        <div className="absolute right-0 top-[calc(100%+4px)] w-[180px] rounded-[10px] py-[4px] z-50 bg-popover border border-border shadow-md">
-          <Button variant="ghost" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onTrash(); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] transition-colors hover:bg-destructive/10 rounded-none justify-start">
-            <svg className="size-[15px] shrink-0 text-destructive" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <span className="text-[13px] text-destructive">Delete</span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="More" onClick={(e) => e.stopPropagation()}>
+            <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.2" fill="currentColor" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="8" cy="13" r="1.2" fill="currentColor" /></svg>
           </Button>
-        </div>
-      )}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-[180px]">
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTrash(); }} className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-[10px]">
+            <svg className="size-[15px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
@@ -217,7 +213,7 @@ function TR({ t, isHovered, isStarred, isTrashed, folderName, onMouseEnter, onMo
       <div className="w-[32px] shrink-0 flex items-center justify-center">
         {!isTrashed && isStarred && (
           <svg className="size-[15px] shrink-0 pointer-events-none" fill="#F59E0B" viewBox="0 0 16 16">
-            <path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" />
+            <path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke="#F59E0B" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </div>
@@ -434,8 +430,18 @@ function RulesSection({ rules, onChange, readOnly }: { rules: Rule[]; onChange: 
 
 interface Action { id: string; type: string; folderId: string | null }
 
+function flattenFolders(items: { id: string; name: string; children?: { id: string; name: string; children?: any[] }[] }[], depth = 0): { id: string; name: string; depth: number }[] {
+  const result: { id: string; name: string; depth: number }[] = [];
+  for (const f of items) {
+    result.push({ id: f.id, name: f.name, depth });
+    if (f.children) result.push(...flattenFolders(f.children, depth + 1));
+  }
+  return result;
+}
+
 function ActionsSection({ actions, onChange, readOnly }: { actions: Action[]; onChange: (a: Action[]) => void; readOnly: boolean }) {
   const { folders } = useFolders();
+  const allFolders = useMemo(() => flattenFolders(folders), [folders]);
   return (
     <div className="flex flex-col gap-4">
       <div>
@@ -455,9 +461,9 @@ function ActionsSection({ actions, onChange, readOnly }: { actions: Action[]; on
           <Select value={a.folderId ?? ""} onValueChange={(v) => onChange(actions.map((x) => x.id === a.id ? { ...x, folderId: v || null } : x))} disabled={readOnly}>
             <SelectTrigger className="flex-1 h-9 rounded-lg"><SelectValue placeholder="Select a folder" /></SelectTrigger>
             <SelectContent>
-              {folders.map((f) => (
+              {allFolders.map((f) => (
                 <SelectItem key={f.id} value={f.id}>
-                  <span className="flex items-center gap-2"><Icon icon={Folder01Icon} size={13} className="text-muted-foreground" />{f.name}</span>
+                  <span className="flex items-center gap-2" style={{ paddingLeft: f.depth * 12 }}><Icon icon={Folder01Icon} size={13} className="text-muted-foreground" />{f.name}</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -979,7 +985,7 @@ export function TemplatesPage() {
           onMouseLeave={() => setHoveredRow(null)}
           onClick={() => { if (!isTrashTab) setDetailTarget(t); }}
           onStar={() => toggleStar(t.id)}
-          onEdit={() => setDetailTarget(t)}
+          onEdit={() => { if (!isTrashTab) setDetailTarget(t); }}
           onTrash={() => trashOne(t.id)}
           onRestore={() => restoreOne(t.id)}
         />
