@@ -209,9 +209,9 @@ function TR({ t, isHovered, isStarred, isTrashed, folderName, onMouseEnter, onMo
         )}
       </div>
 
-      {/* Star column — shows filled star when starred, regardless of hover */}
+      {/* Star column — shows filled star when starred, hidden during hover (hover actions have their own star) */}
       <div className="w-[32px] shrink-0 flex items-center justify-center">
-        {!isTrashed && isStarred && (
+        {!isTrashed && isStarred && !isHovered && (
           <svg className="size-[15px] shrink-0 pointer-events-none" fill="#F59E0B" viewBox="0 0 16 16">
             <path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke="#F59E0B" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
