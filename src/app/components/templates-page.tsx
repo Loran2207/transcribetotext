@@ -7,7 +7,6 @@ import {
   Delete02Icon,
   ArrowUp01Icon,
   ArrowDown01Icon,
-  Search01Icon,
   Layers,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
@@ -18,6 +17,7 @@ import { Switch } from "@/app/components/ui/switch";
 import { Skeleton } from "@/app/components/ui/skeleton";
 import { Label } from "@/app/components/ui/label";
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -539,23 +539,20 @@ export function TemplatesPage() {
   const { user } = useAuth();
 
   const [detailTarget, setDetailTarget] = useState<Template | "new" | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<"all" | "built_in" | "custom">("all");
 
   const isDetailView = detailTarget !== null;
   const editTemplate = detailTarget !== null && detailTarget !== "new" ? detailTarget : null;
   const isCreateMode = detailTarget === "new";
 
-  const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return templates;
-    const q = searchQuery.toLowerCase();
-    return templates.filter((t) =>
-      t.name.toLowerCase().includes(q) ||
-      t.description?.toLowerCase().includes(q),
-    );
-  }, [templates, searchQuery]);
+  const builtIn = templates.filter((t) => t.type === "built_in");
+  const custom = templates.filter((t) => t.type === "custom");
 
-  const builtIn = filtered.filter((t) => t.type === "built_in");
-  const custom = filtered.filter((t) => t.type === "custom");
+  const displayTemplates = useMemo(() => {
+    if (activeTab === "built_in") return builtIn;
+    if (activeTab === "custom") return custom;
+    return templates;
+  }, [templates, builtIn, custom, activeTab]);
 
   const handleRowClick = useCallback((t: Template) => {
     setDetailTarget(t);
@@ -623,20 +620,6 @@ export function TemplatesPage() {
           </p>
 
           <div className="flex items-center gap-[8px]">
-            <div className="relative">
-              <Icon
-                icon={Search01Icon}
-                size={15}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
-              />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search templates..."
-                className="w-[200px] pl-9 h-9 rounded-full"
-              />
-            </div>
-
             <Button
               onClick={() => setDetailTarget("new")}
               className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
@@ -647,24 +630,34 @@ export function TemplatesPage() {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="border border-border rounded-xl overflow-hidden bg-card">
-          <TemplateTableHeader />
+        {/* Tabs — same pattern as RecordsTable */}
+        <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "all" | "built_in" | "custom")} className="flex-1 min-w-0 gap-0">
+          <TabsList variant="line" className="gap-6">
+            <TabsTrigger value="all" variant="line">
+              All <span className="opacity-50 font-[inherit]">{templates.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="built_in" variant="line">
+              Built-in <span className="opacity-50 font-[inherit]">{builtIn.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="custom" variant="line">
+              My templates <span className="opacity-50 font-[inherit]">{custom.length}</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
 
-          {builtIn.length > 0 && builtIn.map((t) => (
+        {/* Table header */}
+        <TemplateTableHeader />
+
+        {/* Table rows */}
+        {displayTemplates.length > 0 ? (
+          displayTemplates.map((t) => (
             <TemplateTableRow key={t.id} template={t} onClick={() => handleRowClick(t)} />
-          ))}
-
-          {custom.length > 0 && custom.map((t) => (
-            <TemplateTableRow key={t.id} template={t} onClick={() => handleRowClick(t)} />
-          ))}
-
-          {filtered.length === 0 && (
-            <div className="flex items-center justify-center h-[120px] text-sm text-muted-foreground">
-              {searchQuery.trim() ? `No templates match "${searchQuery}"` : "No templates yet"}
-            </div>
-          )}
-        </div>
+          ))
+        ) : (
+          <div className="flex items-center justify-center h-[120px] text-sm text-muted-foreground">
+            No templates yet
+          </div>
+        )}
       </div>
     </div>
   );
