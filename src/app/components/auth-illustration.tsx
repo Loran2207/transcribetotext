@@ -78,11 +78,11 @@ function AnimatedWaveform() {
 
         const gradient = ctx.createLinearGradient(x, centerY - barHeight / 2, x, centerY + barHeight / 2)
         const alpha = 0.15 + amplitude * 0.5
-        gradient.addColorStop(0, `rgba(59, 130, 246, ${alpha * 0.3})`)
-        gradient.addColorStop(0.2, `rgba(99, 102, 241, ${alpha * 0.8})`)
-        gradient.addColorStop(0.5, `rgba(139, 149, 255, ${alpha})`)
-        gradient.addColorStop(0.8, `rgba(99, 102, 241, ${alpha * 0.8})`)
-        gradient.addColorStop(1, `rgba(59, 130, 246, ${alpha * 0.3})`)
+        gradient.addColorStop(0, `rgba(0, 97, 255, ${alpha * 0.3})`)
+        gradient.addColorStop(0.2, `rgba(37, 99, 235, ${alpha * 0.8})`)
+        gradient.addColorStop(0.5, `rgba(59, 130, 246, ${alpha})`)
+        gradient.addColorStop(0.8, `rgba(37, 99, 235, ${alpha * 0.8})`)
+        gradient.addColorStop(1, `rgba(0, 97, 255, ${alpha * 0.3})`)
 
         ctx.fillStyle = gradient
         ctx.beginPath()
@@ -102,7 +102,7 @@ function AnimatedWaveform() {
         const amplitude = ((wave1 + wave2 + 1) / 2.5) * centerFalloff
         const barHeight = Math.max(3, amplitude * maxHeight * 0.5)
 
-        ctx.fillStyle = `rgba(139, 149, 255, ${0.06 + amplitude * 0.12})`
+        ctx.fillStyle = `rgba(59, 130, 246, ${0.06 + amplitude * 0.12})`
         ctx.beginPath()
         ctx.roundRect(x - barWidth * 0.2, centerY - barHeight / 2 - maxHeight * 0.35, barWidth * 0.4, barHeight, barWidth * 0.2)
         ctx.fill()
@@ -120,7 +120,7 @@ function AnimatedWaveform() {
         const amplitude = ((wave1 + wave2 + 1) / 2.5) * centerFalloff
         const barHeight = Math.max(2, amplitude * maxHeight * 0.4)
 
-        ctx.fillStyle = `rgba(99, 102, 241, ${0.04 + amplitude * 0.08})`
+        ctx.fillStyle = `rgba(37, 99, 235, ${0.04 + amplitude * 0.08})`
         ctx.beginPath()
         ctx.roundRect(x - barWidth * 0.15, centerY - barHeight / 2 + maxHeight * 0.4, barWidth * 0.3, barHeight, barWidth * 0.15)
         ctx.fill()
@@ -228,7 +228,7 @@ function LightBeams() {
           height: 350,
           bottom: "0%",
           left: "-5%",
-          background: "radial-gradient(circle, rgba(99,102,241,0.06) 0%, transparent 60%)",
+          background: "radial-gradient(circle, rgba(0,97,255,0.06) 0%, transparent 60%)",
           filter: "blur(50px)",
           animation: "pulseGlow 8s ease-in-out 3s infinite",
         }}
@@ -272,18 +272,18 @@ export function AuthIllustration() {
       <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to right, rgba(6,8,24,0.6) 0%, transparent 40%, transparent 60%, rgba(3,4,16,0.6) 100%)" }} />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 0%, rgba(4,6,18,1) 80%)" }} />
 
-      {/* Central accent glow — light blue/indigo */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full blur-[100px] pointer-events-none" style={{ background: "rgba(99,102,241,0.04)" }} />
+      {/* Central accent glow — blue */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full blur-[100px] pointer-events-none" style={{ background: "rgba(0,97,255,0.04)" }} />
 
       {/* Top edge highlight */}
-      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: "linear-gradient(to right, transparent, rgba(139,149,255,0.2), transparent)" }} />
+      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none" style={{ background: "linear-gradient(to right, transparent, rgba(59,130,246,0.2), transparent)" }} />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: 32 }}>
           <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em", color: "white" }}>
-            TRANSCRIBETOTEXT<span style={{ color: "#8B95FF" }}>.AI</span>
+            TRANSCRIBETOTEXT<span style={{ color: "#3B82F6" }}>.AI</span>
           </span>
         </div>
 
@@ -294,7 +294,7 @@ export function AuthIllustration() {
             <h1 style={{ color: "white", fontSize: 48, fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.03em" }}>
               Audio & Video to Text
               <br />
-              <span style={{ background: "linear-gradient(to right, #8B95FF, #60A5FA, #8B95FF)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              <span style={{ background: "linear-gradient(to right, #0061FF, #3B82F6, #60A5FA)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                 in Seconds
               </span>
             </h1>
@@ -327,32 +327,31 @@ export function AuthIllustration() {
             </div>
           </div>
 
-          {/* Platform logos */}
+          {/* Platform logos — large cards with icon + name */}
           <div className="flex flex-col gap-3">
-            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const }}>
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const }}>
               Integrates with
             </span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 4 }}>
               {platformLogos.map((platform) => (
                 <div
                   key={platform.name}
-                  className="group"
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    width: 36,
-                    height: 36,
-                    borderRadius: 12,
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    background: "rgba(255,255,255,0.02)",
-                    transition: "all 0.5s",
+                    gap: 8,
+                    padding: "8px 14px",
+                    borderRadius: 8,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.04)",
                   }}
-                  title={platform.name}
                 >
-                  <svg viewBox="0 0 24 24" width={16} height={16} fill="rgba(255,255,255,0.45)">
+                  <svg viewBox="0 0 24 24" width={18} height={18} fill="rgba(255,255,255,0.55)">
                     <path d={"si" in platform ? platform.si.path : platform.path} />
                   </svg>
+                  <span style={{ fontSize: 13, color: "rgba(255,255,255,0.55)", fontWeight: 500, whiteSpace: "nowrap" }}>
+                    {platform.name}
+                  </span>
                 </div>
               ))}
             </div>

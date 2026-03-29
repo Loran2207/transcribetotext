@@ -39,8 +39,8 @@ function FileUploadDemo() {
       <div className="relative overflow-hidden rounded-2xl p-5 transition-all duration-500" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)" }}>
         <div className="flex items-start gap-4">
           <div className="relative">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "linear-gradient(135deg, rgba(139,149,255,0.2), rgba(139,149,255,0.05))", border: "1px solid rgba(139,149,255,0.1)" }}>
-              <Icon icon={FileAudioIcon} size={20} style={{ color: "#8B95FF" }} />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ background: "linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.05))", border: "1px solid rgba(59,130,246,0.1)" }}>
+              <Icon icon={FileAudioIcon} size={20} style={{ color: "#3B82F6" }} />
             </div>
             {stage === "done" && (
               <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full" style={{ background: "rgba(52,211,153,0.9)", boxShadow: "0 0 0 2px #060818" }}>
@@ -62,7 +62,7 @@ function FileUploadDemo() {
           <span className="text-[13px] font-mono text-white/70 tabular-nums">{stage === "done" ? "100" : progress.toFixed(0)}%</span>
         </div>
         <div className="relative h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.04)" }}>
-          <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out" style={{ width: `${stage === "done" ? 100 : progress}%`, background: "linear-gradient(to right, rgba(139,149,255,0.8), #8B95FF, rgba(139,149,255,0.8))" }} />
+          <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out" style={{ width: `${stage === "done" ? 100 : progress}%`, background: "linear-gradient(to right, rgba(59,130,246,0.8), #3B82F6, rgba(59,130,246,0.8))" }} />
           <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-300 ease-out" style={{ width: `${stage === "done" ? 100 : progress}%`, background: "rgba(255,255,255,0.2)", filter: "blur(4px)" }} />
         </div>
       </div>
@@ -105,12 +105,12 @@ function TranslationDemo() {
         </div>
         <div className="flex items-center gap-1">
           <div className="w-6 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent)" }} />
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(139,149,255,0.6)" }} />
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(59,130,246,0.6)" }} />
           <div className="w-6 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent)" }} />
         </div>
-        <div className="flex h-9 items-center gap-2 px-4 rounded-xl" style={{ background: "rgba(139,149,255,0.08)", border: "1px solid rgba(139,149,255,0.2)" }}>
-          <span className="text-[13px] font-semibold" style={{ color: "#8B95FF" }}>{current.code}</span>
-          <span className="text-[11px]" style={{ color: "rgba(139,149,255,0.7)" }}>{current.name}</span>
+        <div className="flex h-9 items-center gap-2 px-4 rounded-xl" style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)" }}>
+          <span className="text-[13px] font-semibold" style={{ color: "#3B82F6" }}>{current.code}</span>
+          <span className="text-[11px]" style={{ color: "rgba(59,130,246,0.7)" }}>{current.name}</span>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ function TranslationDemo() {
         <p key={currentLang} className="text-[15px] text-white/85 leading-relaxed" style={{ animation: "fadeInUp 0.5s ease forwards" }}>
           {current.text}
         </p>
-        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(139,149,255,0.2), transparent)" }} />
+        <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: "linear-gradient(to right, transparent, rgba(59,130,246,0.2), transparent)" }} />
       </div>
 
       {/* Languages count */}
@@ -193,7 +193,7 @@ function LiveMeetingDemo() {
       <div className="flex items-center gap-3 px-1">
         <div className="flex gap-1">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="w-1 h-3 rounded-full" style={{ background: "rgba(139,149,255,0.6)", animation: `pulse 1.2s ease-in-out ${i * 0.15}s infinite` }} />
+            <div key={i} className="w-1 h-3 rounded-full" style={{ background: "rgba(59,130,246,0.6)", animation: `pulse 1.2s ease-in-out ${i * 0.15}s infinite` }} />
           ))}
         </div>
         <span className="text-[13px] text-white/40">Transcribing in real-time</span>
@@ -235,7 +235,7 @@ function UrlDemo() {
             ) : (
               <span className="text-[14px] text-white/80">
                 {typedUrl}
-                {phase === "typing" && <span className="inline-block w-0.5 h-4 ml-0.5 animate-pulse" style={{ background: "rgba(139,149,255,0.8)" }} />}
+                {phase === "typing" && <span className="inline-block w-0.5 h-4 ml-0.5 animate-pulse" style={{ background: "rgba(59,130,246,0.8)" }} />}
               </span>
             )}
           </div>
@@ -244,11 +244,11 @@ function UrlDemo() {
 
       {/* Status card */}
       {phase !== "idle" && phase !== "typing" && (
-        <div className="rounded-2xl p-4" style={{ background: "rgba(139,149,255,0.05)", border: "1px solid rgba(139,149,255,0.1)", animation: "fadeInUp 0.5s ease forwards" }}>
+        <div className="rounded-2xl p-4" style={{ background: "rgba(59,130,246,0.05)", border: "1px solid rgba(59,130,246,0.1)", animation: "fadeInUp 0.5s ease forwards" }}>
           <div className="flex items-center gap-3">
             {phase === "loading" ? (
               <>
-                <div className="h-4 w-4 rounded-full border-[1.5px] animate-spin" style={{ borderColor: "rgba(139,149,255,0.6)", borderTopColor: "transparent" }} />
+                <div className="h-4 w-4 rounded-full border-[1.5px] animate-spin" style={{ borderColor: "rgba(59,130,246,0.6)", borderTopColor: "transparent" }} />
                 <span className="text-[14px] text-white/60">Fetching video metadata...</span>
               </>
             ) : (
@@ -310,9 +310,9 @@ function MicrophoneDemo() {
         const barHeight = Math.max(2, amplitude * maxHeight)
 
         const gradient = ctx.createLinearGradient(x, centerY - barHeight / 2, x, centerY + barHeight / 2)
-        gradient.addColorStop(0, `rgba(99, 102, 241, ${0.2 + amplitude * 0.6})`)
-        gradient.addColorStop(0.5, `rgba(139, 149, 255, ${0.3 + amplitude * 0.5})`)
-        gradient.addColorStop(1, `rgba(99, 102, 241, ${0.2 + amplitude * 0.6})`)
+        gradient.addColorStop(0, `rgba(37, 99, 235, ${0.2 + amplitude * 0.6})`)
+        gradient.addColorStop(0.5, `rgba(59, 130, 246, ${0.3 + amplitude * 0.5})`)
+        gradient.addColorStop(1, `rgba(37, 99, 235, ${0.2 + amplitude * 0.6})`)
 
         ctx.fillStyle = gradient
         ctx.beginPath()
@@ -333,11 +333,11 @@ function MicrophoneDemo() {
       {/* Mic button */}
       <div className="flex items-center justify-center">
         <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl transition-all duration-700" style={{
-          background: isActive ? "rgba(139,149,255,0.1)" : "rgba(255,255,255,0.03)",
-          border: isActive ? "1px solid rgba(139,149,255,0.2)" : "1px solid rgba(255,255,255,0.06)",
+          background: isActive ? "rgba(59,130,246,0.1)" : "rgba(255,255,255,0.03)",
+          border: isActive ? "1px solid rgba(59,130,246,0.2)" : "1px solid rgba(255,255,255,0.06)",
         }}>
-          {isActive && <div className="absolute inset-0 rounded-2xl animate-ping" style={{ background: "rgba(139,149,255,0.05)", animationDuration: "2s" }} />}
-          <Icon icon={Mic} size={24} style={{ color: isActive ? "#8B95FF" : "rgba(255,255,255,0.35)" }} />
+          {isActive && <div className="absolute inset-0 rounded-2xl animate-ping" style={{ background: "rgba(59,130,246,0.05)", animationDuration: "2s" }} />}
+          <Icon icon={Mic} size={24} style={{ color: isActive ? "#3B82F6" : "rgba(255,255,255,0.35)" }} />
         </div>
       </div>
 
@@ -456,13 +456,13 @@ export function FeatureShowcase() {
         <div className="h-0.5" style={{ background: "rgba(255,255,255,0.02)" }}>
           <div
             className="h-full transition-all duration-100 ease-linear"
-            style={{ width: `${progress}%`, background: "linear-gradient(to right, rgba(139,149,255,0.4), rgba(139,149,255,0.6), rgba(139,149,255,0.4))" }}
+            style={{ width: `${progress}%`, background: "linear-gradient(to right, rgba(59,130,246,0.4), rgba(59,130,246,0.6), rgba(59,130,246,0.4))" }}
           />
         </div>
       </div>
 
       {/* Ambient glow behind card */}
-      <div className="absolute inset-0 rounded-3xl blur-2xl -z-10" style={{ background: "rgba(139,149,255,0.03)", transform: "scale(1.05)" }} />
+      <div className="absolute inset-0 rounded-3xl blur-2xl -z-10" style={{ background: "rgba(59,130,246,0.03)", transform: "scale(1.05)" }} />
 
       {/* Keyframe animations */}
       <style>{`
