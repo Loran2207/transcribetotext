@@ -35,24 +35,12 @@ export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-row w-full min-h-screen">
       {/* Left panel — immersive dark branded side, hidden on mobile */}
-      <div
-        className="hidden lg:flex w-[55%] flex-col relative overflow-hidden"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 40% at 20% 30%, rgba(59,130,246,0.18) 0%, transparent 60%), radial-gradient(ellipse 50% 35% at 80% 70%, rgba(139,92,246,0.12) 0%, transparent 55%), radial-gradient(ellipse 40% 30% at 50% 10%, rgba(16,185,129,0.06) 0%, transparent 50%), #050508",
-        }}
-      >
-        {/* Top-left: Logo */}
-        <div className="absolute top-8 left-10 z-10">
-          <AuthLogo />
-        </div>
-
-        {/* Full-panel illustration */}
+      <div className="hidden lg:block relative overflow-hidden" style={{ flex: "none", width: "55%" }}>
         <AuthIllustration />
       </div>
 
       {/* Right panel — form */}
-      <div className="w-full lg:w-[45%] flex items-center justify-center p-6 bg-background overflow-y-auto">
+      <div className="flex-1 flex items-center justify-center p-6 bg-background overflow-y-auto">
         <div className="w-full max-w-sm">{children}</div>
       </div>
     </div>

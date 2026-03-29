@@ -89,6 +89,9 @@
   --sidebar-border: oklch(0.92 0.004 286.32);
   /* The default color for focus rings, outlines, and other focus indicators in sidebars and navigation menus. */
   --sidebar-ring: oklch(0.705 0.015 286.067);
+  /* Password strength indicator colors */
+  --strength-medium: oklch(0.795 0.184 86.047);
+  --strength-strong: oklch(0.723 0.219 149.579);
 }
 
 @theme inline {

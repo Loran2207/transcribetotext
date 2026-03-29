@@ -11,6 +11,7 @@ import { useStarred } from "./starred-context";
 import { SourceIcon } from "./source-icons";
 import { useFolders } from "./folder-context";
 import { useLanguage, LANGUAGES } from "./language-context";
+import { useAuth } from "./auth-context";
 import {
   Sidebar,
   SidebarContent,
@@ -120,6 +121,10 @@ function ProfileMenu({ onNavigate }: { onNavigate: (page: string) => void }) {
   const [langOpen, setLangOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const { lang, setLang, t } = useLanguage();
+  const { signOut, user } = useAuth();
+
+  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
+  const userEmail = user?.email || "";
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -146,8 +151,8 @@ function ProfileMenu({ onNavigate }: { onNavigate: (page: string) => void }) {
               <img alt="" className="absolute inset-0 size-full object-cover rounded-full" src={imgEllipse52} />
             </div>
             <div className="flex-1 min-w-0 flex flex-col items-start">
-              <p className="truncate w-full text-left text-[14px] font-medium leading-[19.6px] text-sidebar-foreground">Kirill Kuts</p>
-              <p className="truncate w-full text-left text-[12px] font-normal leading-[15.6px] text-muted-foreground">k.kuts@gmail.com</p>
+              <p className="truncate w-full text-left text-[14px] font-medium leading-[19.6px] text-sidebar-foreground">{userName}</p>
+              <p className="truncate w-full text-left text-[12px] font-normal leading-[15.6px] text-muted-foreground">{userEmail}</p>
             </div>
           </div>
         </div>
@@ -158,7 +163,7 @@ function ProfileMenu({ onNavigate }: { onNavigate: (page: string) => void }) {
           <div className="flex items-center gap-[10px] px-[14px] py-[8px] mb-[2px]">
             <img alt="" className="shrink-0 size-[32px] rounded-full object-cover" src={imgEllipse52} />
             <div className="flex flex-col min-w-0">
-              <p className="truncate text-[13px] font-medium text-foreground">Kirill Kuts</p>
+              <p className="truncate text-[13px] font-medium text-foreground">{userName}</p>
               <p className="truncate text-[11px] font-normal text-muted-foreground">{t("profile.proPlan")}</p>
             </div>
           </div>
@@ -187,7 +192,7 @@ function ProfileMenu({ onNavigate }: { onNavigate: (page: string) => void }) {
             )}
           </div>
           <div className="h-px mx-[10px] my-[2px] bg-sidebar-border" />
-          <Button variant="ghost" onClick={() => setOpen(false)} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] rounded-none justify-start hover:bg-destructive/5">
+          <Button variant="ghost" onClick={() => { setOpen(false); signOut(); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] rounded-none justify-start hover:bg-destructive/5">
             <Icon icon={LogOut} className="size-[16px] shrink-0 text-destructive" strokeWidth={1.5} />
             <span className="text-[13px] font-normal text-destructive">{t("profile.logOut")}</span>
           </Button>

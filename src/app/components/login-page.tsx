@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, Navigate, useLocation } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
 import { EyeIcon, ViewOffIcon, Loading01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
@@ -16,8 +16,9 @@ interface LoginFormValues {
 }
 
 export function LoginPage() {
-  const { signIn, signInWithGoogle } = useAuth();
+  const { signIn, signInWithGoogle, user, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -25,7 +26,22 @@ export function LoginPage() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginFormValues>({ mode: "onBlur" });
+
+  // Pre-fill email from router state (e.g., from signup "Log in instead" link)
+  useEffect(() => {
+    const state = location.state as { prefillEmail?: string } | null;
+    if (state?.prefillEmail) {
+      setValue("email", state.prefillEmail);
+      // Clear the state so it doesn't persist on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, setValue]);
+
+  // BUG 10 fix: redirect already-authenticated users away from login
+  if (!loading && user) {
+    return <Navigate to="/" replace />;
+  }
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsSubmitting(true);
@@ -51,6 +67,12 @@ export function LoginPage() {
       setIsGoogleLoading(false);
     }
   };
+
+  const handleForgotPassword = () => {
+    navigate("/forgot-password");
+  };
+
+  const isFormDisabled = isSubmitting || isGoogleLoading;
 
   const animProps = (delay: number) =>
     prefersReducedMotion
@@ -87,7 +109,7 @@ export function LoginPage() {
             size="lg"
             className="w-full rounded-full"
             onClick={handleGoogleSignIn}
-            disabled={isGoogleLoading || isSubmitting}
+            disabled={isFormDisabled}
           >
             {isGoogleLoading ? (
               <>
@@ -122,7 +144,9 @@ export function LoginPage() {
             type="email"
             placeholder="you@example.com"
             autoComplete="email"
-            className="rounded-full"
+            className={`rounded-full ${errors.email ? "border-destructive" : ""}`}
+            disabled={isFormDisabled}
+            aria-invalid={!!errors.email}
             {...register("email", { required: "Email is required" })}
           />
           {errors.email && (
@@ -131,14 +155,25 @@ export function LoginPage() {
         </motion.div>
 
         <motion.div className="flex flex-col gap-2" {...animProps(0.30)}>
-          <Label htmlFor="password">Password</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Password</Label>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-xs text-primary hover:underline"
+            >
+              Forgot password?
+            </button>
+          </div>
           <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
               autoComplete="current-password"
-              className="pr-10 rounded-full"
+              className={`pr-10 rounded-full ${errors.password ? "border-destructive" : ""}`}
+              disabled={isFormDisabled}
+              aria-invalid={!!errors.password}
               {...register("password", { required: "Password is required" })}
             />
             <button
@@ -164,7 +199,7 @@ export function LoginPage() {
             type="submit"
             className="w-full rounded-full"
             size="lg"
-            disabled={isSubmitting}
+            disabled={isFormDisabled}
           >
             {isSubmitting ? (
               <>

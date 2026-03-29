@@ -16,6 +16,9 @@ import {
   AlertDialogCancel,
 } from "./ui/alert-dialog";
 import { useUserProfile } from "./user-profile-context";
+import { useAuth } from "./auth-context";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -273,46 +276,76 @@ function ChangeEmailDialog({ currentEmail, onClose }: ChangeEmailDialogProps) {
   );
 }
 
-// ── Set Password Dialog ───────────────────────────────────────
-interface SetPasswordDialogProps {
+// ── Change Password Dialog ───────────────────────────────────
+interface ChangePasswordDialogProps {
   email: string;
   onClose: () => void;
 }
-function SetPasswordDialog({ email, onClose }: SetPasswordDialogProps) {
-  const [code,      setCode]      = useState("");
-  const [codeSent,  setCodeSent]  = useState(false);
-  const [password,  setPassword]  = useState("");
-  const [confirm,   setConfirm]   = useState("");
-  const [showPw,    setShowPw]    = useState(false);
-  const [showConf,  setShowConf]  = useState(false);
-  const [pwFocused, setPwFocused] = useState(false);
-  const [saved,     setSaved]     = useState(false);
+function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
+  const [currentPw,  setCurrentPw]  = useState("");
+  const [password,   setPassword]   = useState("");
+  const [confirm,    setConfirm]    = useState("");
+  const [showCurr,   setShowCurr]   = useState(false);
+  const [showPw,     setShowPw]     = useState(false);
+  const [showConf,   setShowConf]   = useState(false);
+  const [pwFocused,  setPwFocused]  = useState(false);
+  const [saving,     setSaving]     = useState(false);
+  const [error,      setError]      = useState<string | null>(null);
 
-  const allFilled = code.trim() !== "" && password !== "" && confirm !== "" && password === confirm;
+  const passwordsMatch = password !== "" && confirm !== "" && password === confirm;
+  const canSubmit = currentPw.trim() !== "" && password.length >= 6 && passwordsMatch && !saving;
+
+  async function handleSave() {
+    if (!canSubmit) return;
+    setSaving(true);
+    setError(null);
+
+    // Verify current password by re-authenticating
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPw,
+    });
+    if (verifyError) {
+      setError("Current password is incorrect");
+      setSaving(false);
+      return;
+    }
+
+    // Update to new password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password,
+    });
+    if (updateError) {
+      setError(updateError.message);
+      setSaving(false);
+      return;
+    }
+
+    toast.success("Password changed successfully");
+    onClose();
+  }
 
   return (
-    <DialogShell title="Set Password" onClose={onClose}>
+    <DialogShell title="Change Password" onClose={onClose}>
       <div className="px-6 flex flex-col gap-4">
-        <InfoBanner>
-          Click <strong>Send</strong> to receive a verification code at{" "}
-          <strong>{email}</strong>
-        </InfoBanner>
+        {error && (
+          <p className="text-[13px] text-destructive">{error}</p>
+        )}
 
-        {/* Verification code */}
+        {/* Current password */}
         <div>
-          <FieldLabel label="Verification code" />
+          <FieldLabel label="Current password" />
           <div className="flex items-center rounded-[12px] overflow-hidden border border-border bg-background">
             <div className="flex items-center gap-2 flex-1 px-4">
-              <Icon icon={Shield} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
-              <Input value={code} onChange={e => setCode(e.target.value)}
-                placeholder="Enter the code from your email"
+              <Icon icon={Lock} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
+              <Input type={showCurr?"text":"password"} value={currentPw}
+                onChange={e => { setCurrentPw(e.target.value); setError(null); }}
+                placeholder="Enter your current password"
                 className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-2.5 text-sm h-auto rounded-none"/>
             </div>
-            <Button variant="ghost" onClick={() => setCodeSent(true)} disabled={codeSent}
-              className={`px-4 py-2.5 text-[13px] font-semibold shrink-0 rounded-none border-l border-border h-auto ${
-                codeSent ? "text-muted-foreground" : "text-primary"
-              }`}>
-              {codeSent ? "Sent \u2713" : "Send"}
+            <Button variant="ghost" type="button" onClick={() => setShowCurr(v=>!v)}
+              className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
+              {showCurr ? <Icon icon={EyeOff} className="size-4"/> : <Icon icon={Eye} className="size-4"/>}
             </Button>
           </div>
         </div>
@@ -337,26 +370,16 @@ function SetPasswordDialog({ email, onClose }: SetPasswordDialogProps) {
             </div>
             {pwFocused && <PasswordRequirements value={password}/>}
           </div>
-          {/* Inline requirements when not focused */}
-          {!pwFocused && password && (
-            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 px-1">
-              {PW_RULES.map(rule => (
-                <span key={rule.label} className={`flex items-center gap-1.5 text-[11px] ${
-                  rule.test(password) ? "text-green-600" : "text-muted-foreground"
-                }`}>
-                  <span className={`size-1.5 rounded-full shrink-0 ${
-                    rule.test(password) ? "bg-green-600" : "bg-muted-foreground/30"
-                  }`}/>
-                  {rule.label}
-                </span>
-              ))}
-            </div>
+          {password && password.length < 6 && !pwFocused && (
+            <p className="text-[11px] mt-1.5 px-1 text-destructive">
+              Password must be at least 6 characters
+            </p>
           )}
         </div>
 
         {/* Confirm password */}
         <div>
-          <FieldLabel label="Confirm password" />
+          <FieldLabel label="Confirm new password" />
           <div className={`flex items-center rounded-[12px] overflow-hidden bg-background ${
             confirm && confirm !== password ? "border border-destructive" : "border border-border"
           }`}>
@@ -364,7 +387,7 @@ function SetPasswordDialog({ email, onClose }: SetPasswordDialogProps) {
               <Icon icon={Lock} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
               <Input type={showConf?"text":"password"} value={confirm}
                 onChange={e => setConfirm(e.target.value)}
-                placeholder="Re-enter your password"
+                placeholder="Re-enter your new password"
                 className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-2.5 text-sm h-auto rounded-none"/>
             </div>
             <Button variant="ghost" type="button" onClick={() => setShowConf(v=>!v)}
@@ -383,9 +406,9 @@ function SetPasswordDialog({ email, onClose }: SetPasswordDialogProps) {
       <div className="h-4" />
       <DialogFooter
         onCancel={onClose}
-        onConfirm={() => { if (allFilled) { setSaved(true); setTimeout(onClose, 900); } }}
-        confirmLabel={saved ? "Password set!" : "Set password"}
-        confirmDisabled={!allFilled}
+        onConfirm={handleSave}
+        confirmLabel={saving ? "Saving..." : "Change password"}
+        confirmDisabled={!canSubmit}
       />
     </DialogShell>
   );
@@ -414,7 +437,7 @@ function ConfirmDialog({ title, description, confirmLabel, onConfirm, onClose }:
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
-            className="h-9 px-5 rounded-full text-[13px] font-semibold bg-destructive text-white hover:bg-destructive/90"
+            className="h-9 px-5 rounded-full text-[13px] font-semibold bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={onConfirm}>
             {confirmLabel}
           </AlertDialogAction>
@@ -426,17 +449,24 @@ function ConfirmDialog({ title, description, confirmLabel, onConfirm, onClose }:
 
 // ── Account Tab ───────────────────────────────────────────────
 function AccountPage() {
-  const { displayName: name, avatarSrc, setDisplayName: setName, setAvatarSrc } = useUserProfile();
+  const { displayName: localName, avatarSrc, setDisplayName: setLocalName, setAvatarSrc } = useUserProfile();
+  const { user, signOut } = useAuth();
+
+  // Use Supabase user data, fall back to local profile
+  const authName = user?.user_metadata?.full_name as string | undefined;
+  const name = authName || localName;
+  const EMAIL = user?.email || "";
+
   const [editingName,  setEditingName]  = useState(false);
   const [draftName,    setDraftName]    = useState(name);
   const [showSetPw,    setShowSetPw]    = useState(false);
   const [showChgEmail, setShowChgEmail] = useState(false);
   const [showSignOut,  setShowSignOut]  = useState(false);
   const [showDeleteAcc,setShowDeleteAcc]= useState(false);
+  const [savingName,   setSavingName]   = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
-  const EMAIL   = "kutskrikirill@gmail.com";
 
   useEffect(() => {
     if (editingName && nameRef.current) {
@@ -444,7 +474,7 @@ function AccountPage() {
       nameRef.current.focus();
       nameRef.current.select();
     }
-  }, [editingName]);
+  }, [editingName, name]);
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -453,28 +483,38 @@ function AccountPage() {
     e.target.value = "";
   }
 
-  function saveName() {
+  async function saveName() {
     if (!draftName.trim()) return;
-    setName(draftName.trim());
+    setSavingName(true);
+    const { error } = await supabase.auth.updateUser({
+      data: { full_name: draftName.trim() },
+    });
+    setSavingName(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setLocalName(draftName.trim());
     setEditingName(false);
+    toast.success("Profile updated");
   }
 
   return (
     <>
-      {showSetPw     && <SetPasswordDialog   email={EMAIL} onClose={() => setShowSetPw(false)} />}
+      {showSetPw     && <ChangePasswordDialog email={EMAIL} onClose={() => setShowSetPw(false)} />}
       {showChgEmail  && <ChangeEmailDialog currentEmail={EMAIL} onClose={() => setShowChgEmail(false)} />}
       {showSignOut   && <ConfirmDialog
         title="Are you sure you want to log out?"
         description="You'll need to sign in again to access your account."
         confirmLabel="Log Out"
-        onConfirm={() => setShowSignOut(false)}
+        onConfirm={() => { setShowSignOut(false); signOut(); }}
         onClose={() => setShowSignOut(false)}
       />}
       {showDeleteAcc && <ConfirmDialog
         title="Are you sure you want to delete your account?"
         description="This action is permanent and cannot be undone. All your data will be deleted."
         confirmLabel="Delete Account"
-        onConfirm={() => setShowDeleteAcc(false)}
+        onConfirm={() => { setShowDeleteAcc(false); toast("Account deletion coming soon."); }}
         onClose={() => setShowDeleteAcc(false)}
       />}
 
@@ -565,7 +605,7 @@ function AccountPage() {
             <Label className="text-xs font-medium mb-1.5 px-1 text-muted-foreground">Password</Label>
             <div className="flex items-center gap-2">
               <DisplayField value="placeholder" type="password" />
-              <ActionBtn label="Set password" onClick={() => setShowSetPw(true)} />
+              <ActionBtn label="Change password" onClick={() => setShowSetPw(true)} />
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import { useLanguage, LANGUAGES } from "./language-context";
 import { SearchModal } from "./search-modal";
 import { useUserProfile } from "./user-profile-context";
+import { useAuth } from "./auth-context";
 
 // Profile and avatar synced via UserProfileContext
 interface TopBarProps {
@@ -18,6 +19,8 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
   const ref = useRef<HTMLDivElement>(null);
   const { lang, setLang, t } = useLanguage();
   const { displayName, avatarSrc } = useUserProfile();
+  const { signOut, user } = useAuth();
+  const userEmail = user?.email || "";
 
   useEffect(() => {
     function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setLangOpen(false); } }
@@ -38,7 +41,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
         </div>
         <div className="flex flex-col items-start">
           <span className="flex items-center gap-[4px] font-medium text-[12.5px] text-foreground whitespace-nowrap">
-            kutskrikirill@gmail.com
+            {userEmail}
             <Icon icon={ChevronDown} className="size-[10px] text-muted-foreground" strokeWidth={2} />
           </span>
           <span className="font-normal text-[10.5px] text-muted-foreground whitespace-nowrap">Free Plan</span>
@@ -79,7 +82,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
             )}
           </div>
           <div className="h-px mx-[10px] my-[2px] bg-border" />
-          <Button variant="ghost" onClick={() => setOpen(false)} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] rounded-none justify-start hover:bg-destructive/5">
+          <Button variant="ghost" onClick={() => { setOpen(false); signOut(); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] rounded-none justify-start hover:bg-destructive/5">
             <Icon icon={LogOut} className="size-[16px] shrink-0 text-destructive" strokeWidth={1.5} />
             <span className="font-normal text-[13px] text-destructive">{t("profile.logOut")}</span>
           </Button>
