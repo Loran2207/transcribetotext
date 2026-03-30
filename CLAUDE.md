@@ -932,6 +932,18 @@ git push origin main
 
 If ANY of the above fails → do NOT push → fix first → re-test.
 
+### Branch & Merge Policy
+
+All changes that have passed QA approval must first be merged into the `stage` branch — **never directly into `main`**. Merging into `main` is only allowed when Kirill explicitly instructs it.
+
+**Automated flow after QA sign-off:**
+1. Implement changes
+2. `@qa-tester` confirms all scenarios pass
+3. `@code-reviewer` approves
+4. Merge to `stage`
+
+**Merging `stage` → `main` is a manual step triggered only by Kirill's direct instruction.**
+
 ---
 
 ## 11. PATTERN DISCOVERY PROTOCOL

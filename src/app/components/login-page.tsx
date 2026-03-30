@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, Navigate, useLocation } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
+import { toast } from "sonner";
 import { EyeIcon, ViewOffIcon, Loading01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
@@ -68,6 +69,10 @@ export function LoginPage() {
     }
   };
 
+  const handleMicrosoftSignIn = () => {
+    toast("This feature is coming soon");
+  };
+
   const handleForgotPassword = () => {
     navigate("/forgot-password");
   };
@@ -130,8 +135,27 @@ export function LoginPage() {
           </Button>
         </motion.div>
 
+        {/* Microsoft Sign In */}
+        <motion.div {...animProps(0.14)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full rounded-full opacity-60 cursor-not-allowed"
+            onClick={handleMicrosoftSignIn}
+          >
+            <svg width="18" height="18" viewBox="0 0 21 21" className="shrink-0">
+              <rect x="1" y="1" width="9" height="9" fill="#F25022"/>
+              <rect x="11" y="1" width="9" height="9" fill="#7FBA00"/>
+              <rect x="1" y="11" width="9" height="9" fill="#00A4EF"/>
+              <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
+            </svg>
+            Continue with Microsoft
+          </Button>
+        </motion.div>
+
         {/* Divider */}
-        <motion.div className="flex items-center gap-3" {...animProps(0.14)}>
+        <motion.div className="flex items-center gap-3" {...animProps(0.16)}>
           <div className="flex-1 h-px bg-border" />
           <span className="text-xs text-muted-foreground">or</span>
           <div className="flex-1 h-px bg-border" />
