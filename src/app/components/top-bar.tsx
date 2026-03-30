@@ -128,7 +128,7 @@ export function TopBar({ onNavigate }: TopBarProps) {
       {/* Trial CTA */}
       <Button variant="ghost" className="flex items-center gap-[6px] h-[30px] px-[14px] rounded-full shrink-0 bg-primary/[0.06] hover:bg-primary/[0.1]">
         <Icon icon={Zap} className="size-[12px] text-primary" strokeWidth={2} style={{ fill: "var(--primary)" }} />
-        <span className="font-semibold text-[12px] text-primary whitespace-nowrap">Start my 3-day free trial now</span>
+        <span className="font-semibold text-[12px] text-primary whitespace-nowrap">Start my trial now</span>
       </Button>
 
       {/* Icon buttons */}

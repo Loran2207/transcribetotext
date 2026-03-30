@@ -299,7 +299,7 @@ function FreePlanCard() {
           <span className="text-primary-foreground" style={{ fontWeight: 600, fontSize: "13px", letterSpacing: "0.1px" }}>Upgrade to Pro</span>
         </Button>
         <Button variant="link" className="gap-[2px] opacity-85 hover:opacity-100 h-auto p-0">
-          <span className="text-primary" style={{ fontWeight: 500, fontSize: "12px" }}>Start my 3-day free trial now</span>
+          <span className="text-primary" style={{ fontWeight: 500, fontSize: "12px" }}>Start my trial now</span>
           <Icon icon={ChevronRight} className="size-[14px] text-primary" strokeWidth={2} />
         </Button>
       </div>
