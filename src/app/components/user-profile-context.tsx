@@ -1,4 +1,5 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
+import { useAuth } from "./auth-context";
 
 interface UserProfileValue {
   displayName: string;
@@ -16,8 +17,28 @@ export function useUserProfile() {
 }
 
 export function UserProfileProvider({ children }: { children: React.ReactNode }) {
-  const [displayName, setDisplayName] = useState("Kirill Kuts");
-  const [avatarSrc, setAvatarSrc] = useState("/images/avatar.png");
+  const { user } = useAuth();
+
+  // Derive initial name from auth user metadata, fallback to email, then default
+  const authName =
+    user?.user_metadata?.full_name ??
+    user?.user_metadata?.name ??
+    user?.email?.split("@")[0] ??
+    "User";
+
+  const authAvatar =
+    user?.user_metadata?.avatar_url ??
+    user?.user_metadata?.picture ??
+    "/images/avatar.png";
+
+  const [displayName, setDisplayName] = useState(authName);
+  const [avatarSrc, setAvatarSrc] = useState(authAvatar);
+
+  // Sync when auth user changes (login/logout/profile update)
+  useEffect(() => {
+    setDisplayName(authName);
+    setAvatarSrc(authAvatar);
+  }, [authName, authAvatar]);
 
   return (
     <UserProfileCtx.Provider value={{ displayName, avatarSrc, setDisplayName, setAvatarSrc }}>

@@ -33,6 +33,9 @@ import { useTranscriptionModals, type TranscriptionJob } from "./transcription-m
 import { useTemplates } from "@/hooks/use-templates";
 import type { Template } from "@/lib/templates";
 import { ShareDialog } from "./share-dialog";
+import { SharedUsersAvatars } from "./shared-users-avatars";
+import { useShares } from "@/hooks/use-shares";
+import type { Share } from "@/lib/shares";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -1227,6 +1230,7 @@ interface PageHeaderProps {
   meta: PageHeaderMeta;
   source?: SourceType;
   folders: PageHeaderFolderOption[];
+  shares: Share[];
   onShare: () => void;
   onCopyLink: () => void;
   onCopySummary: () => void;
@@ -1245,6 +1249,7 @@ function PageHeader({
   meta,
   source,
   folders,
+  shares,
   onShare,
   onCopyLink,
   onCopySummary,
@@ -1280,6 +1285,7 @@ function PageHeader({
           )}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <SharedUsersAvatars shares={shares} />
           <Button size="sm" className="h-8 rounded-full gap-2 px-4 text-sm" onClick={onShare}>
             <Icon icon={Share} className="size-4" strokeWidth={1.7} />
             Share
@@ -1473,6 +1479,7 @@ export function TranscriptionDetailPage() {
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [isRightPanelResizing, setIsRightPanelResizing] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const { shares: transcriptionShares } = useShares("transcription", selectedRecord?.id ?? id ?? "");
   const activeTranslationMeta = useMemo(
     () => TRANSLATION_LANGUAGES.find((language) => language.code === activeTranslationLang) ?? null,
     [activeTranslationLang],
@@ -2289,6 +2296,7 @@ export function TranscriptionDetailPage() {
           meta={pageMeta}
           source={selectedRecord?.source}
           folders={folders}
+          shares={transcriptionShares}
           onShare={() => setShareDialogOpen(true)}
           onCopyLink={copyTranscriptLink}
           onCopySummary={copySummary}

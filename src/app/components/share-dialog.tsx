@@ -80,7 +80,7 @@ export function ShareDialog({
   resourceId,
   resourceName,
 }: ShareDialogProps) {
-  // All hooks MUST be called unconditionally (Rules of Hooks)
+  // All hooks called unconditionally (Rules of Hooks)
   const { user } = useAuth();
   const { t } = useLanguage();
   const isMobile = useIsMobile();
@@ -114,6 +114,9 @@ export function ShareDialog({
     () => new Set(shares.map((s) => s.shared_with_email.toLowerCase())),
     [shares],
   );
+
+  const linkIsActive = shareLink?.is_active ?? false;
+  const accessMode = linkIsActive ? "anyone" : "only_invited";
 
   // -- Validate a single email --
   const validateEmail = useCallback(
@@ -156,10 +159,23 @@ export function ShareDialog({
     [validateEmail],
   );
 
+  // -- Ref to allow handleChipKeyDown to call handleSend without circular deps --
+  const sendRef = useRef<() => void>(() => {});
+
   // -- Handle key events in chip input --
   const handleChipKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" || e.key === " ") {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        // If there are chips and input is empty — send invitations
+        if (!chipInputValue.trim() && emailChips.length > 0) {
+          sendRef.current();
+          return;
+        }
+        if (chipInputValue.trim()) {
+          addChipsFromInput(chipInputValue);
+        }
+      } else if (e.key === " ") {
         e.preventDefault();
         if (chipInputValue.trim()) {
           addChipsFromInput(chipInputValue);
@@ -168,7 +184,7 @@ export function ShareDialog({
         setEmailChips((prev) => prev.slice(0, -1));
       }
     },
-    [chipInputValue, addChipsFromInput],
+    [chipInputValue, emailChips.length, addChipsFromInput],
   );
 
   // -- Handle paste --
@@ -218,7 +234,7 @@ export function ShareDialog({
           ? `${window.location.origin}/share/${shareLink.token}`
           : undefined,
       }).catch(() => {
-        // Email delivery is best-effort — share record is the source of truth
+        // Email delivery is best-effort
       });
     }
 
@@ -226,15 +242,15 @@ export function ShareDialog({
       toast.error(`Failed to share with: ${failed.join(", ")}`);
     }
 
-    // Clear only succeeded chips, keep failed ones for retry
     setEmailChips(failed);
     setIsSending(false);
   }, [emailChips, addShareBatch, resourceType, resourceId, resourceName, ownerEmail, shareLink, t]);
 
-  // -- General access toggle --
-  const linkAccessMode = shareLink?.is_active ? "anyone" : "restricted";
+  // Keep sendRef in sync
+  sendRef.current = handleSend;
 
-  const handleGeneralAccessChange = useCallback(
+  // -- General access toggle --
+  const handleAccessModeChange = useCallback(
     async (value: string) => {
       setIsTogglingLink(true);
       if (value === "anyone") {
@@ -330,104 +346,102 @@ export function ShareDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {/* ── Section 1: Add People (chip-based input) ── */}
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-foreground">
-            {t("share.addPeople")}
-          </p>
-
-          {/* Chip input container */}
-          <div
-            className="flex flex-wrap items-center gap-1.5 rounded-[12px] border border-input bg-input-background min-h-[42px] px-3 py-2 cursor-text"
-            onClick={() => inputRef.current?.focus()}
-          >
-            <AnimatePresence mode="popLayout">
-              {emailChips.map((email) => (
-                <motion.div
-                  key={email}
-                  initial={prefersReducedMotion ? undefined : { scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={prefersReducedMotion ? undefined : { scale: 0.8, opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <Badge
-                    variant="secondary"
-                    className="rounded-full gap-1 pr-1 text-xs font-normal"
+        {/* ── Section 1: Add People (chip input + send button inline) ── */}
+        <div className="space-y-1.5">
+          <div className="flex gap-2 items-start">
+            {/* Chip input container */}
+            <div
+              className="flex-1 flex flex-wrap items-center gap-1.5 rounded-[12px] border border-input bg-input-background min-h-[42px] px-3 py-2 cursor-text"
+              onClick={() => inputRef.current?.focus()}
+            >
+              <AnimatePresence mode="popLayout">
+                {emailChips.map((email) => (
+                  <motion.div
+                    key={email}
+                    initial={prefersReducedMotion ? undefined : { scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={prefersReducedMotion ? undefined : { scale: 0.8, opacity: 0 }}
+                    transition={{ duration: 0.15 }}
                   >
-                    {email}
-                    <button
-                      type="button"
-                      className="size-4 rounded-full inline-flex items-center justify-center hover:bg-muted-foreground/20 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeChip(email);
-                      }}
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full gap-1 pr-1 text-xs font-normal"
                     >
-                      <Icon icon={Cancel01Icon} size={10} />
-                    </button>
-                  </Badge>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                      {email}
+                      <button
+                        type="button"
+                        className="size-4 rounded-full inline-flex items-center justify-center hover:bg-muted-foreground/20 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeChip(email);
+                        }}
+                      >
+                        <Icon icon={Cancel01Icon} size={10} />
+                      </button>
+                    </Badge>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
 
-            <input
-              ref={inputRef}
-              type="email"
-              placeholder={
-                emailChips.length === 0 ? t("share.emailPlaceholder") : ""
-              }
-              value={chipInputValue}
-              onChange={(e) => {
-                setChipInputValue(e.target.value);
-                if (emailError) setEmailError(null);
-              }}
-              onKeyDown={handleChipKeyDown}
-              onPaste={handlePaste}
-              onBlur={handleBlur}
-              disabled={isSending}
-              className="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
-            />
+              <input
+                ref={inputRef}
+                type="email"
+                placeholder={
+                  emailChips.length === 0 ? t("share.emailPlaceholder") : ""
+                }
+                value={chipInputValue}
+                onChange={(e) => {
+                  setChipInputValue(e.target.value);
+                  if (emailError) setEmailError(null);
+                }}
+                onKeyDown={handleChipKeyDown}
+                onPaste={handlePaste}
+                onBlur={handleBlur}
+                disabled={isSending}
+                className="flex-1 min-w-[120px] bg-transparent outline-none text-sm text-foreground placeholder:text-muted-foreground"
+              />
+            </div>
+
+            {/* Send button — compact, right of input */}
+            <AnimatePresence>
+              {emailChips.length > 0 && (
+                <motion.div
+                  initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.15 }}
+                  className="shrink-0"
+                >
+                  <Button
+                    onClick={handleSend}
+                    disabled={isSending}
+                    className="rounded-[12px] h-[42px] gap-1.5 px-4"
+                  >
+                    {isSending ? (
+                      <Icon icon={Loading01Icon} size={16} className="animate-spin" />
+                    ) : (
+                      <Icon icon={MailSend01Icon} size={16} />
+                    )}
+                    {t("share.send")}
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {emailError && (
-            <p className="text-xs text-destructive">{emailError}</p>
+          {emailError ? (
+            <p className="text-xs text-destructive pl-1">{emailError}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground/60 pl-1">
+              {t("share.emailHint")}
+            </p>
           )}
-
-          {/* Send button — only when chips exist */}
-          <AnimatePresence>
-            {emailChips.length > 0 && (
-              <motion.div
-                initial={prefersReducedMotion ? undefined : { opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={prefersReducedMotion ? undefined : { opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Button
-                  onClick={handleSend}
-                  disabled={isSending}
-                  className="rounded-full gap-2 w-full"
-                >
-                  {isSending ? (
-                    <Icon icon={Loading01Icon} size={16} className="animate-spin" />
-                  ) : (
-                    <Icon icon={MailSend01Icon} size={16} />
-                  )}
-                  {t("share.send")}
-                  {emailChips.length > 1 && (
-                    <span className="text-primary-foreground/70">
-                      ({emailChips.length})
-                    </span>
-                  )}
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
-        {/* ── Section 2: People with access (no owner, no access level) ── */}
+        {/* ── Section 2: People with access ── */}
         {(isLoading || shares.length > 0) && (
           <>
-            <Separator />
+            <Separator className="opacity-40" />
 
             <div className="space-y-2">
               <p className="text-sm font-medium text-foreground">
@@ -436,7 +450,6 @@ export function ShareDialog({
 
               <ScrollArea className="max-h-[200px]">
                 <div className="space-y-1">
-                  {/* Loading skeleton */}
                   {isLoading && (
                     <>
                       {[0, 1].map((i) => (
@@ -449,7 +462,6 @@ export function ShareDialog({
                     </>
                   )}
 
-                  {/* Collaborator rows */}
                   {!isLoading && (
                     <AnimatePresence mode="popLayout">
                       {shares.map((share, index) => (
@@ -487,64 +499,47 @@ export function ShareDialog({
           </>
         )}
 
-        <Separator />
+        <Separator className="opacity-40" />
 
-        {/* ── Section 3: General access (simplified) ── */}
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-foreground">
-            {t("share.generalAccess")}
-          </p>
-
-          <div className="flex items-center gap-3">
-            <div className="size-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-              {linkAccessMode === "anyone" ? (
-                <Icon icon={Globe02Icon} size={18} className="text-primary" />
+        {/* ── Footer: Access mode (left) + Copy link (right) ── */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <div className="size-7 rounded-full bg-muted flex items-center justify-center shrink-0">
+              {accessMode === "anyone" ? (
+                <Icon icon={Globe02Icon} size={14} className="text-primary" />
               ) : (
-                <Icon icon={LockIcon} size={18} className="text-muted-foreground" />
+                <Icon icon={LockIcon} size={14} className="text-muted-foreground" />
               )}
             </div>
-
-            <div className="flex-1 min-w-0 space-y-0.5">
-              <Select
-                value={linkAccessMode}
-                onValueChange={handleGeneralAccessChange}
-                disabled={isTogglingLink}
-              >
-                <SelectTrigger className="w-full h-8 rounded-full text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="restricted">
-                    {t("share.restricted")}
-                  </SelectItem>
-                  <SelectItem value="anyone">
-                    {t("share.anyoneWithLink")}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              <p className="text-xs text-muted-foreground px-1">
-                {linkAccessMode === "anyone"
-                  ? t("share.anyoneWithLinkCanView")
-                  : t("share.restrictedDesc")}
-              </p>
-            </div>
+            <Select
+              value={accessMode}
+              onValueChange={handleAccessModeChange}
+              disabled={isTogglingLink}
+            >
+              <SelectTrigger className="h-8 w-auto min-w-[140px] rounded-[12px] text-xs border-border/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="only_invited">
+                  {t("share.onlyInvited")}
+                </SelectItem>
+                <SelectItem value="anyone">
+                  {t("share.anyoneCanView")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
 
-        <Separator />
-
-        {/* ── Footer: Copy link only ── */}
-        <div className="flex justify-center">
           <Button
             variant="outline"
-            className="rounded-full gap-2"
+            className="rounded-full gap-2 text-xs h-8"
             onClick={handleCopyLink}
+            disabled={accessMode !== "anyone"}
           >
-            {shareLink ? (
-              <Icon icon={Link01Icon} size={16} />
+            {linkIsActive ? (
+              <Icon icon={Link01Icon} size={14} />
             ) : (
-              <Icon icon={Copy01Icon} size={16} />
+              <Icon icon={Copy01Icon} size={14} />
             )}
             {t("share.copyLink")}
           </Button>

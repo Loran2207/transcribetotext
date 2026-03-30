@@ -18,6 +18,17 @@ export interface Share {
   access_level: AccessLevel;
   created_at: string;
   updated_at: string;
+  last_viewed_at: string | null;
+}
+
+/** Derived status for UI display. */
+export type ShareStatus = 'pending' | 'active' | 'viewed';
+
+/** Derive a display status from a share record. */
+export function getShareStatus(share: Share): ShareStatus {
+  if (share.last_viewed_at) return 'viewed';
+  if (share.shared_with_user_id) return 'active';
+  return 'pending';
 }
 
 export interface ShareLink {
@@ -76,6 +87,22 @@ export async function createShare(
 
   if (error) throw error;
   return data as Share;
+}
+
+/** Record that the current user viewed a shared resource. */
+export async function recordShareView(
+  resourceType: ResourceType,
+  resourceId: string,
+): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) return;
+
+  await supabase
+    .from('shares')
+    .update({ last_viewed_at: new Date().toISOString() })
+    .eq('resource_type', resourceType)
+    .eq('resource_id', resourceId)
+    .eq('shared_with_email', user.email.toLowerCase());
 }
 
 /** Remove a share (revoke access for a person). */
