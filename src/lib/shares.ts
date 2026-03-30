@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase, supabaseMisconfigured } from './supabase';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -230,9 +230,19 @@ export async function sendShareInvitationEmails(params: {
   senderEmail: string;
   shareLink?: string;
 }): Promise<void> {
-  await supabase.functions.invoke('send-share-invitation', {
+  if (supabaseMisconfigured) {
+    console.warn('[shares] Supabase not configured — skipping email invitations');
+    return;
+  }
+
+  const { error } = await supabase.functions.invoke('send-share-invitation', {
     body: params,
   });
+
+  if (error) {
+    console.error('[shares] Failed to send invitation emails:', error);
+    throw error;
+  }
 }
 
 /** Validate a share link token and return the link if valid. */

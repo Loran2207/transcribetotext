@@ -176,6 +176,8 @@ Deno.serve(async (req: Request) => {
       results.push({ email, status: "skipped" });
     }
   } else {
+    console.log(`[send-share-invitation] Sending ${emails.length} email(s) via Resend from ${FROM_EMAIL}`);
+
     // Send via Resend API
     for (const email of emails) {
       try {
@@ -196,11 +198,12 @@ Deno.serve(async (req: Request) => {
           }),
         });
 
+        const resBody = await res.text();
         if (!res.ok) {
-          const errText = await res.text();
-          console.error(`[send-share-invitation] Resend error for ${email}: ${errText}`);
+          console.error(`[send-share-invitation] Resend error for ${email} (${res.status}): ${resBody}`);
           results.push({ email, status: "skipped" });
         } else {
+          console.log(`[send-share-invitation] Sent to ${email}: ${resBody}`);
           results.push({ email, status: "sent" });
         }
       } catch (err) {

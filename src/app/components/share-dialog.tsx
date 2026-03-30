@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router";
 
 import {
+  ArrowReloadHorizontalIcon,
   Cancel01Icon,
   Copy01Icon,
   Globe02Icon,
@@ -41,7 +42,7 @@ import { useLanguage } from "@/app/components/language-context";
 import { useShares } from "@/hooks/use-shares";
 import { useIsMobile } from "@/app/components/ui/use-mobile";
 import { getInitials } from "@/lib/format";
-import { sendShareInvitationEmails } from "@/lib/shares";
+import { sendShareInvitationEmails, getShareStatus } from "@/lib/shares";
 import type { ResourceType } from "@/lib/shares";
 
 // ---------------------------------------------------------------------------
@@ -233,8 +234,8 @@ export function ShareDialog({
         shareLink: shareLink?.token
           ? `${window.location.origin}/share/${shareLink.token}`
           : undefined,
-      }).catch(() => {
-        // Email delivery is best-effort
+      }).catch((err) => {
+        console.error("[ShareDialog] Email invitation failed:", err);
       });
     }
 
@@ -276,6 +277,32 @@ export function ShareDialog({
       if (success) toast.success(t("share.removed"));
     },
     [removeShare, t],
+  );
+
+  // -- Resend invitation --
+  const [resendingEmail, setResendingEmail] = useState<string | null>(null);
+
+  const handleResend = useCallback(
+    async (email: string) => {
+      setResendingEmail(email);
+      try {
+        await sendShareInvitationEmails({
+          emails: [email],
+          resourceType,
+          resourceId,
+          resourceName,
+          senderEmail: ownerEmail,
+          shareLink: shareLink?.token
+            ? `${window.location.origin}/share/${shareLink.token}`
+            : undefined,
+        });
+        toast.success(t("share.invitationResent").replace("{email}", email));
+      } catch {
+        toast.error("Failed to resend invitation");
+      }
+      setResendingEmail(null);
+    },
+    [resourceType, resourceId, resourceName, ownerEmail, shareLink, t],
   );
 
   // -- Animation helpers --
@@ -415,7 +442,7 @@ export function ShareDialog({
                   <Button
                     onClick={handleSend}
                     disabled={isSending}
-                    className="rounded-[12px] h-[42px] gap-1.5 px-4"
+                    className="rounded-full h-[42px] gap-1.5 px-4"
                   >
                     {isSending ? (
                       <Icon icon={Loading01Icon} size={16} className="animate-spin" />
@@ -464,33 +491,65 @@ export function ShareDialog({
 
                   {!isLoading && (
                     <AnimatePresence mode="popLayout">
-                      {shares.map((share, index) => (
-                        <motion.div
-                          key={share.id}
-                          {...listItemAnim(index)}
-                          layout={!prefersReducedMotion}
-                          className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-accent/50 transition-colors"
-                        >
-                          <Avatar className="size-8">
-                            <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                              {getInitials(share.shared_with_email)}
-                            </AvatarFallback>
-                          </Avatar>
+                      {shares.map((share, index) => {
+                        const status = getShareStatus(share);
+                        const statusKey =
+                          status === "viewed"
+                            ? "share.statusViewed"
+                            : status === "active"
+                              ? "share.statusActive"
+                              : "share.statusPending";
 
-                          <p className="flex-1 min-w-0 text-sm text-foreground truncate">
-                            {share.shared_with_email}
-                          </p>
-
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 rounded-full text-muted-foreground hover:text-destructive"
-                            onClick={() => handleRemove(share.id)}
+                        return (
+                          <motion.div
+                            key={share.id}
+                            {...listItemAnim(index)}
+                            layout={!prefersReducedMotion}
+                            className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-accent/50 transition-colors"
                           >
-                            <Icon icon={Cancel01Icon} size={16} />
-                          </Button>
-                        </motion.div>
-                      ))}
+                            <Avatar className="size-8">
+                              <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                                {getInitials(share.shared_with_email)}
+                              </AvatarFallback>
+                            </Avatar>
+
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-foreground truncate">
+                                {share.shared_with_email}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                {t(statusKey)}
+                              </p>
+                            </div>
+
+                            {/* Resend button */}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 rounded-full text-muted-foreground hover:text-primary"
+                              onClick={() => handleResend(share.shared_with_email)}
+                              disabled={resendingEmail === share.shared_with_email}
+                              title={t("share.resend")}
+                            >
+                              {resendingEmail === share.shared_with_email ? (
+                                <Icon icon={Loading01Icon} size={14} className="animate-spin" />
+                              ) : (
+                                <Icon icon={ArrowReloadHorizontalIcon} size={14} />
+                              )}
+                            </Button>
+
+                            {/* Remove button */}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-7 rounded-full text-muted-foreground hover:text-destructive"
+                              onClick={() => handleRemove(share.id)}
+                            >
+                              <Icon icon={Cancel01Icon} size={14} />
+                            </Button>
+                          </motion.div>
+                        );
+                      })}
                     </AnimatePresence>
                   )}
                 </div>
