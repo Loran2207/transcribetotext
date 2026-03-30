@@ -36,6 +36,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/app/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/app/components/ui/tooltip";
 
 import { useAuth } from "@/app/components/auth-context";
 import { useLanguage } from "@/app/components/language-context";
@@ -449,7 +454,7 @@ export function ShareDialog({
                     ) : (
                       <Icon icon={MailSend01Icon} size={16} />
                     )}
-                    {t("share.send")}
+                    {t("share.invite")}
                   </Button>
                 </motion.div>
               )}
@@ -563,13 +568,6 @@ export function ShareDialog({
         {/* ── Footer: Access mode (left) + Copy link (right) ── */}
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="size-7 rounded-full bg-muted flex items-center justify-center shrink-0">
-              {accessMode === "anyone" ? (
-                <Icon icon={Globe02Icon} size={14} className="text-primary" />
-              ) : (
-                <Icon icon={LockIcon} size={14} className="text-muted-foreground" />
-              )}
-            </div>
             <Select
               value={accessMode}
               onValueChange={handleAccessModeChange}
@@ -589,19 +587,30 @@ export function ShareDialog({
             </Select>
           </div>
 
-          <Button
-            variant="outline"
-            className="rounded-full gap-2 text-xs h-8"
-            onClick={handleCopyLink}
-            disabled={accessMode !== "anyone"}
-          >
-            {linkIsActive ? (
-              <Icon icon={Link01Icon} size={14} />
-            ) : (
-              <Icon icon={Copy01Icon} size={14} />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-flex">
+                <Button
+                  variant="pill-outline"
+                  className="gap-2 text-xs h-8"
+                  onClick={handleCopyLink}
+                  disabled={accessMode !== "anyone"}
+                >
+                  {linkIsActive ? (
+                    <Icon icon={Link01Icon} size={14} />
+                  ) : (
+                    <Icon icon={Copy01Icon} size={14} />
+                  )}
+                  {t("share.copyLink")}
+                </Button>
+              </span>
+            </TooltipTrigger>
+            {accessMode !== "anyone" && (
+              <TooltipContent>
+                {t("share.copyLinkHint")}
+              </TooltipContent>
             )}
-            {t("share.copyLink")}
-          </Button>
+          </Tooltip>
         </div>
       </DialogContent>
     </Dialog>

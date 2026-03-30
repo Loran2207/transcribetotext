@@ -109,9 +109,12 @@ export function SharedWithMePage() {
     <div className="flex-1 overflow-auto">
       <div className="px-8 pt-8 pb-4">
         <motion.div {...animProps(0)}>
-          <h1 className="text-2xl font-semibold text-foreground">
+          <p
+            className="whitespace-nowrap text-foreground"
+            style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}
+          >
             {t("nav.sharedWithMe")}
-          </h1>
+          </p>
           <p className="text-[14px] text-muted-foreground mt-1">
             {t("shared.subtitle")}
           </p>
