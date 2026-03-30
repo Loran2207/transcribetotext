@@ -41,31 +41,51 @@ interface AppSidebarProps {
 const FOLDER_PATH = "M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z";
 
 /* ── Logo SVG ── */
-function Logo() {
+function FullLogo() {
   return (
-    <div className="h-[30px] overflow-clip relative shrink-0 w-[180px]">
-      <svg className="absolute block size-full" fill="none" preserveAspectRatio="none" viewBox="0 0 180 30">
-        <path d={svgPaths.p2badec00} fill="var(--sidebar-primary)" />
-        <path d={svgPaths.p1a0b7800} fill="var(--sidebar-primary)" />
-        <path clipRule="evenodd" d={svgPaths.p27195800} fill="var(--sidebar-primary)" fillRule="evenodd" />
-        <path d={svgPaths.p13614280} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p11015500} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p1f84c200} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p3c365b00} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p10e82600} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.pc3be80} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p1b650100} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p2868a650} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p284dfb60} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p1bf24200} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p3f098bc0} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p27b8300} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p2a7a24b0} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p13ca3e70} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.padf6a00} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p4d43600} fill="var(--sidebar-foreground)" />
-        <path d={svgPaths.p81b6100} fill="var(--sidebar-foreground)" />
-      </svg>
+    <svg className="block w-[180px] h-[30px] shrink-0" fill="none" viewBox="0 0 180 30">
+      <path d={svgPaths.p2badec00} fill="var(--sidebar-primary)" />
+      <path d={svgPaths.p1a0b7800} fill="var(--sidebar-primary)" />
+      <path clipRule="evenodd" d={svgPaths.p27195800} fill="var(--sidebar-primary)" fillRule="evenodd" />
+      <path d={svgPaths.p13614280} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p11015500} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p1f84c200} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p3c365b00} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p10e82600} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.pc3be80} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p1b650100} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p2868a650} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p284dfb60} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p1bf24200} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p3f098bc0} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p27b8300} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p2a7a24b0} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p13ca3e70} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.padf6a00} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p4d43600} fill="var(--sidebar-foreground)" />
+      <path d={svgPaths.p81b6100} fill="var(--sidebar-foreground)" />
+    </svg>
+  );
+}
+
+/* ── Icon-only logo (AI icon from the full logo, for collapsed sidebar) ── */
+function IconLogo() {
+  return (
+    <svg className="block w-[26px] h-[30px] shrink-0" fill="none" viewBox="134 0 26 30">
+      <path d={svgPaths.p2badec00} fill="var(--sidebar-primary)" />
+      <path d={svgPaths.p1a0b7800} fill="var(--sidebar-primary)" />
+      <path clipRule="evenodd" d={svgPaths.p27195800} fill="var(--sidebar-primary)" fillRule="evenodd" />
+    </svg>
+  );
+}
+
+function Logo() {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+
+  return (
+    <div className="overflow-hidden">
+      {collapsed ? <IconLogo /> : <FullLogo />}
     </div>
   );
 }
