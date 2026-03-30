@@ -2,6 +2,41 @@ import { createContext, useContext, useEffect, useState, useCallback, type React
 import type { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
+const DEMO_EMAIL = "admin@test.com";
+const DEMO_PASSWORD = "admin123";
+
+const isProduction = typeof window !== "undefined"
+  && window.location.hostname === "transcribetotext.com";
+
+function createDemoUser(): User {
+  return {
+    id: "demo-admin-00000000-0000-0000-0000-000000000000",
+    aud: "authenticated",
+    role: "authenticated",
+    email: DEMO_EMAIL,
+    email_confirmed_at: new Date().toISOString(),
+    phone: "",
+    confirmed_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    app_metadata: { provider: "email", providers: ["email"] },
+    user_metadata: { full_name: "Admin (Demo)" },
+    identities: [],
+    is_anonymous: false,
+  } as User;
+}
+
+function createDemoSession(user: User): Session {
+  return {
+    access_token: "demo-access-token",
+    refresh_token: "demo-refresh-token",
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    token_type: "bearer",
+    user,
+  } as Session;
+}
+
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
@@ -41,6 +76,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string): Promise<{ error: Error | null }> => {
+    // Demo login bypass — works everywhere except production domain
+    if (!isProduction && email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
+      const demoUser = createDemoUser();
+      const demoSession = createDemoSession(demoUser);
+      setUser(demoUser);
+      setSession(demoSession);
+      return { error: null };
+    }
+
     // Send credentials exactly as typed — no trim/transform on password
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (!error) return { error: null };
@@ -93,13 +137,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Demo session — just clear state, no Supabase call needed
+    if (user?.id.startsWith("demo-")) {
+      setUser(null);
+      setSession(null);
+      window.location.href = '/login';
+      return { error: null };
+    }
+
     const { error } = await supabase.auth.signOut();
     if (!error) {
-      // Navigate to login after successful sign out
       window.location.href = '/login';
     }
     return { error };
-  }, []);
+  }, [user]);
 
   const signInWithGoogle = useCallback(async () => {
     const { error } = await supabase.auth.signInWithOAuth({
