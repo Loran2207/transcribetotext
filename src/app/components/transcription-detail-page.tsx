@@ -32,6 +32,7 @@ import { Skeleton } from "./ui/skeleton";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
 import { useTemplates } from "@/hooks/use-templates";
 import type { Template } from "@/lib/templates";
+import { ShareDialog } from "./share-dialog";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -1471,6 +1472,7 @@ export function TranscriptionDetailPage() {
   const [translatedSummary, setTranslatedSummary] = useState("");
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [isRightPanelResizing, setIsRightPanelResizing] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const activeTranslationMeta = useMemo(
     () => TRANSLATION_LANGUAGES.find((language) => language.code === activeTranslationLang) ?? null,
     [activeTranslationLang],
@@ -2287,7 +2289,7 @@ export function TranscriptionDetailPage() {
           meta={pageMeta}
           source={selectedRecord?.source}
           folders={folders}
-          onShare={() => { void shareTranscript(); }}
+          onShare={() => setShareDialogOpen(true)}
           onCopyLink={copyTranscriptLink}
           onCopySummary={copySummary}
           onMoveToFolder={moveToFolder}
@@ -2297,6 +2299,14 @@ export function TranscriptionDetailPage() {
           onRegenerateSummary={regenerateSummary}
           onSyncTextToAudio={syncTextToAudio}
           onDelete={deleteTranscript}
+        />
+
+        <ShareDialog
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          resourceType="transcription"
+          resourceId={selectedRecord?.id ?? id ?? ""}
+          resourceName={title}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8 flex flex-1 flex-col overflow-hidden">

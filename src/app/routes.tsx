@@ -9,6 +9,7 @@ import { AuthCallbackPage } from "./components/auth-callback-page";
 import { ForgotPasswordPage } from "./components/forgot-password-page";
 import { ResetPasswordPage } from "./components/reset-password-page";
 import { ProtectedRoute } from "./components/protected-route";
+import { ShareViewPage } from "./components/share-view-page";
 
 function ProtectedAppLayout() {
   return (
@@ -32,5 +33,6 @@ export const router = createBrowserRouter([
   { path: "/auth/callback", Component: AuthCallbackPage },
   { path: "/forgot-password", Component: ForgotPasswordPage },
   { path: "/reset-password", Component: ResetPasswordPage },
+  { path: "/share/:token", Component: ShareViewPage },
   { path: "/design-system", Component: DesignSystemPage },
 ]);

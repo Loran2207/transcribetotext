@@ -7,6 +7,7 @@ import { DashboardPage } from "./dashboard-page";
 import { CalendarPage } from "./calendar-page";
 import { MyRecordsPage } from "./my-records-page";
 import { TemplatesPage } from "./templates-page";
+import { SharedWithMePage } from "./shared-with-me-page";
 import { useLanguage } from "./language-context";
 import { TopBar } from "./top-bar";
 import { SettingsPage } from "./settings-modal";
@@ -57,9 +58,10 @@ export function AppLayout() {
                 )}
                 {!isSettings && activePage === "dashboard" && <DashboardPage onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />}
                 {!isSettings && activePage === "records" && <MyRecordsPage initialFolderId={initialFolderId} onFolderConsumed={() => setInitialFolderId(null)} />}
+                {!isSettings && activePage === "shared" && <SharedWithMePage />}
                 {!isSettings && activePage === "calendar" && <CalendarPage />}
                 {!isSettings && activePage === "templates" && <TemplatesPage />}
-                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "calendar" && activePage !== "templates" && (
+                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && (
                   <PagePlaceholder activePage={activePage} />
                 )}
               </>

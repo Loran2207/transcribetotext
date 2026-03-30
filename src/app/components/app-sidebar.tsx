@@ -1,4 +1,4 @@
-import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText } from "@hugeicons/core-free-icons";
+import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -206,6 +206,7 @@ function ProfileMenu({ onNavigate }: { onNavigate: (page: string) => void }) {
 const NAV_ITEMS = [
   { id: "dashboard", labelKey: "nav.home", icon: House },
   { id: "records", labelKey: "nav.myRecords", icon: FileText },
+  { id: "shared", labelKey: "nav.sharedWithMe", icon: UserMultiple02Icon },
   { id: "calendar", labelKey: "nav.calendar", icon: Calendar },
   { id: "templates", labelKey: "nav.templates", icon: Layers },
 ] as const;

@@ -10,6 +10,7 @@ import { useFolders, type FolderItem as CtxFolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
 import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit } from "@hugeicons/core-free-icons";
+import { ShareDialog } from "./share-dialog";
 import { Icon } from "./ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
@@ -828,296 +829,9 @@ function InlineFolderEditDialog({ open, folder, onClose, onSave }: { open: boole
 }
 
 /* ══════════════════════════════════════════════
-   Share Config + Toggle + Dialog
+   Share (new ShareDialog is imported from ./share-dialog)
    ══════════════════════════════════════════════ */
 
-interface ShareConfig {
-  isPublic: boolean;
-  shareTranscript: boolean;
-  shareAINotes: boolean;
-  hideVideo: boolean;
-  expiration: string;
-  addPassword: boolean;
-  searchIndexing: boolean;
-}
-
-const DEFAULT_SHARE_CONFIG: ShareConfig = {
-  isPublic: false,
-  shareTranscript: true,
-  shareAINotes: true,
-  hideVideo: false,
-  expiration: "never",
-  addPassword: false,
-  searchIndexing: false,
-};
-
-function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
-  return (
-    <Button
-      variant="ghost"
-      onClick={(e) => { e.stopPropagation(); onChange(); }}
-      className={`relative inline-flex shrink-0 h-[22px] w-[40px] rounded-full transition-colors duration-200 focus:outline-none ${checked ? "bg-primary" : "bg-muted-foreground/30"}`}
-    >
-      <span
-        className="absolute size-[18px] rounded-full bg-white shadow transition-transform duration-200"
-        style={{ transform: checked ? "translateX(20px)" : "translateX(2px)", top: "2px" }}
-      />
-    </Button>
-  );
-}
-
-const EXPIRATION_OPTIONS = [
-  { id: "never", label: "never" },
-  { id: "1d", label: "1 day" },
-  { id: "7d", label: "7 days" },
-  { id: "30d", label: "30 days" },
-];
-
-function ShareDialog({ open, onClose, recordName, config, onSave }: {
-  open: boolean; onClose: () => void; recordName: string; config: ShareConfig; onSave: (cfg: ShareConfig) => void;
-}) {
-  const [cfg, setCfg] = useState<ShareConfig>(config);
-  const [copied, setCopied] = useState(false);
-  const [expirationOpen, setExpirationOpen] = useState(false);
-  const [passwordValue, setPasswordValue] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const expirationRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => { if (open) { setCfg(config); setPasswordValue(""); setShowPassword(false); } }, [open]);
-  useEffect(() => {
-    function h(e: MouseEvent) { if (expirationRef.current && !expirationRef.current.contains(e.target as Node)) setExpirationOpen(false); }
-    document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  function update<K extends keyof ShareConfig>(key: K, value: ShareConfig[K]) {
-    const next = { ...cfg, [key]: value };
-    setCfg(next);
-    onSave(next);
-  }
-
-  function copyLink() {
-    const mockUrl = `https://app.transcribetotext.ai/share/${Math.random().toString(36).slice(2, 10)}`;
-    navigator.clipboard.writeText(mockUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
-    const next = { ...cfg, isPublic: true };
-    setCfg(next);
-    onSave(next);
-  }
-
-  if (!open) return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[3px]" onClick={() => { onSave(cfg); onClose(); }} />
-      <div className="relative rounded-[20px] w-[460px] overflow-hidden bg-popover" style={{ boxShadow: "0px 32px 72px rgba(0,0,0,0.22), 0px 4px 16px rgba(0,0,0,0.08)" }}>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-[24px] pt-[20px] pb-[16px]">
-          <h2 className="font-bold text-[17px] text-foreground">Share publicly</h2>
-          <div className="flex items-center gap-[2px]">
-
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-[30px] rounded-full flex items-center justify-center transition-colors hover:bg-accent"
-              onClick={() => { onSave(cfg); onClose(); }}
-              title="Close"
-            >
-              <svg className="size-[13px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
-                <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
-              </svg>
-            </Button>
-          </div>
-        </div>
-
-        {/* Public sharing toggle — always visible */}
-        <div className="mx-[16px] mb-[8px]">
-          <div
-            className={`flex items-center gap-[14px] px-[16px] py-[13px] rounded-[12px] transition-all border ${
-              cfg.isPublic ? "bg-primary/5 border-primary/30" : "bg-secondary border-border"
-            }`}
-          >
-            <div className={`size-[36px] rounded-full flex items-center justify-center shrink-0 ${cfg.isPublic ? "bg-primary/10" : "bg-muted"}`}>
-              <svg className={`size-[18px] ${cfg.isPublic ? "text-primary" : "text-muted-foreground"}`} fill="none" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="1.4"/>
-                <path d="M3 12h18M12 3c-2.5 3-4 5.7-4 9s1.5 6 4 9M12 3c2.5 3 4 5.7 4 9s-1.5 6-4 9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className={`font-semibold text-[14px] ${cfg.isPublic ? "text-primary" : "text-foreground"}`}>Public sharing</p>
-              <p className="text-[12px] text-muted-foreground">Anyone with the link can view without login</p>
-            </div>
-            <ToggleSwitch checked={cfg.isPublic} onChange={() => update("isPublic", !cfg.isPublic)} />
-          </div>
-        </div>
-
-        {/* Expandable content — only when public sharing is ON */}
-        {cfg.isPublic && (
-          <>
-            {/* What to share */}
-            <div className="px-[24px] pt-[10px] pb-[4px]">
-              <p className="font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.6px]">What to share</p>
-              <div className="grid grid-cols-2 gap-[8px] mt-[10px]">
-                <Button
-                  variant="ghost"
-                  onClick={() => update("shareTranscript", !cfg.shareTranscript)}
-                  className={`flex items-center justify-between px-[12px] py-[11px] rounded-[10px] border transition-all ${
-                    cfg.shareTranscript ? "border-primary bg-primary/5" : "border-border"
-                  }`}
-                >
-                  <div className="flex items-center gap-[8px]">
-                    <svg className={`size-[16px] shrink-0 ${cfg.shareTranscript ? "text-primary" : "text-muted-foreground"}`} fill="none" viewBox="0 0 24 24">
-                      <rect x="3" y="3" width="18" height="18" rx="2.5" stroke="currentColor" strokeWidth="1.4"/>
-                      <path d="M7 8h10M7 12h10M7 16h6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                    </svg>
-                    <span className={`font-medium text-[13px] ${cfg.shareTranscript ? "text-primary" : "text-foreground"}`}>Transcript</span>
-                  </div>
-                  <div className={`size-[16px] rounded-[4px] border flex items-center justify-center shrink-0 ${cfg.shareTranscript ? "bg-primary border-primary" : "bg-background border-border"}`}>
-                    {cfg.shareTranscript && <svg className="size-[9px]" fill="none" viewBox="0 0 12 9"><path d="M1 4.5L4.5 8L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                  </div>
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => update("shareAINotes", !cfg.shareAINotes)}
-                  className={`flex items-center justify-between px-[12px] py-[11px] rounded-[10px] border transition-all ${
-                    cfg.shareAINotes ? "border-primary bg-primary/5" : "border-border"
-                  }`}
-                >
-                  <div className="flex items-center gap-[8px]">
-                    <svg className={`size-[16px] shrink-0 ${cfg.shareAINotes ? "text-primary" : "text-muted-foreground"}`} fill="none" viewBox="0 0 24 24">
-                      <path d="M4 6h16M4 10h10M4 14h12M4 18h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                    </svg>
-                    <span className={`font-medium text-[13px] ${cfg.shareAINotes ? "text-primary" : "text-foreground"}`}>AI Notes</span>
-                  </div>
-                  <div className={`size-[16px] rounded-[4px] border flex items-center justify-center shrink-0 ${cfg.shareAINotes ? "bg-primary border-primary" : "bg-background border-border"}`}>
-                    {cfg.shareAINotes && <svg className="size-[9px]" fill="none" viewBox="0 0 12 9"><path d="M1 4.5L4.5 8L11 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                  </div>
-                </Button>
-              </div>
-            </div>
-
-            {/* Copy Link button */}
-            <div className="px-[24px] pt-[14px] pb-[16px]">
-              <Button
-                onClick={copyLink}
-                className={`w-full h-[44px] rounded-full flex items-center justify-center gap-[8px] transition-all text-white ${copied ? "bg-green-600" : "bg-primary hover:bg-primary/90"}`}
-              >
-                {copied ? (
-                  <>
-                    <svg className="size-[16px]" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    <span className="font-semibold text-[14px]">Link copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="size-[16px]" fill="none" viewBox="0 0 16 16">
-                      <path d="M6.667 8.667a3.333 3.333 0 004.893.52l2-2a3.333 3.333 0 00-4.713-4.713L7.78 3.54" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M9.333 7.333a3.333 3.333 0 00-4.893-.52l-2 2a3.333 3.333 0 004.713 4.713l1.06-1.06" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    <span className="font-semibold text-[14px]">Copy Link</span>
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {/* Settings rows */}
-            <div className="border-t border-border">
-              {/* Hide video */}
-              <div className="flex items-center justify-between h-[50px] px-[24px] border-b border-border">
-                <span className="text-[14px] text-foreground">Hide video</span>
-                <ToggleSwitch checked={cfg.hideVideo} onChange={() => update("hideVideo", !cfg.hideVideo)} />
-              </div>
-
-              {/* Link expiration */}
-              <div className="flex items-center justify-between h-[50px] px-[24px] border-b border-border" ref={expirationRef}>
-                <span className="text-[14px] text-foreground">Link expiration</span>
-                <div className="relative">
-                  <Button
-                    variant="pill-outline"
-                    onClick={(e) => { e.stopPropagation(); setExpirationOpen(!expirationOpen); }}
-                    className="flex items-center gap-[5px] h-[28px] px-[10px] transition-colors"
-                  >
-                    <span className="font-medium text-[13px] text-foreground">
-                      {EXPIRATION_OPTIONS.find(o => o.id === cfg.expiration)?.label ?? "never"}
-                    </span>
-                    <svg className={`size-[12px] transition-transform text-muted-foreground ${expirationOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16">
-                      <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </Button>
-                  {expirationOpen && (
-                    <div className="absolute right-0 bottom-[calc(100%+4px)] w-[140px] rounded-[10px] py-[4px] z-50 bg-popover border border-border shadow-md">
-                      {EXPIRATION_OPTIONS.map(opt => (
-                        <Button
-                          variant="ghost"
-                          key={opt.id}
-                          onClick={(e) => { e.stopPropagation(); update("expiration", opt.id); setExpirationOpen(false); }}
-                          className="flex items-center justify-between w-full px-[14px] h-[34px] transition-colors hover:bg-accent rounded-none justify-start"
-                        >
-                          <span className={`text-[13px] ${cfg.expiration === opt.id ? "font-medium text-primary" : "text-foreground"}`}>{opt.label}</span>
-                          {cfg.expiration === opt.id && <svg className="size-[13px] shrink-0 text-primary" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Add password */}
-              <div className="px-[24px]">
-                <div className={`flex items-center justify-between h-[50px] ${cfg.addPassword ? "border-b border-border" : ""}`}>
-                  <div className="flex items-center gap-[8px]">
-
-                    <span className="text-[14px] text-foreground">Add password</span>
-                  </div>
-                  <ToggleSwitch checked={cfg.addPassword} onChange={() => { update("addPassword", !cfg.addPassword); if (cfg.addPassword) setPasswordValue(""); }} />
-                </div>
-                {cfg.addPassword && (
-                  <div className="pb-[14px]">
-                    <div className="relative flex items-center">
-                      <svg className="absolute left-[12px] size-[14px] pointer-events-none text-muted-foreground" fill="none" viewBox="0 0 24 24">
-                        <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.4"/>
-                        <path d="M8 11V7a4 4 0 018 0v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                      </svg>
-                      <Input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Enter a password..."
-                        value={passwordValue}
-                        onChange={e => setPasswordValue(e.target.value)}
-                        className="border-0 bg-transparent shadow-none focus-visible:ring-0 w-full h-[38px] pl-[36px] pr-[42px] rounded-[10px] text-[13px]"
-                        autoFocus
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        type="button"
-                        onClick={() => setShowPassword(v => !v)}
-                        className="absolute right-[10px] size-[22px] rounded-full flex items-center justify-center transition-colors hover:bg-accent"
-                        tabIndex={-1}
-                      >
-                        {showPassword ? (
-                          <svg className="size-[13px] text-muted-foreground" fill="none" viewBox="0 0 24 24">
-                            <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19M3 3l18 18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                          </svg>
-                        ) : (
-                          <svg className="size-[13px] text-muted-foreground" fill="none" viewBox="0 0 24 24">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-                            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.4"/>
-                          </svg>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Bottom padding */}
-        <div className="h-[16px]" />
-      </div>
-    </div>,
-    document.body
-  );
-}
 
 /* ══════════════════════════════════════════════
    Data
@@ -1317,13 +1031,8 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [editingViewId, setEditingViewId] = useState<string | null>(null);
   const [columnOrder, setColumnOrder] = useState<ColumnId[]>([...DEFAULT_COLUMN_ORDER]);
   const [hiddenColumns, setHiddenColumns] = useState<Set<ColumnId>>(new Set());
-  const [sharedConfigs, setSharedConfigs] = useState<Map<string, ShareConfig>>(new Map());
   const [shareDialogRecord, setShareDialogRecord] = useState<string | null>(null);
   const { starred, toggleStar, renameRecord, getName } = useStarred();
-
-  function handleSaveShare(recordId: string, cfg: ShareConfig) {
-    setSharedConfigs(prev => { const next = new Map(prev); if (cfg.isPublic) { next.set(recordId, cfg); } else { next.delete(recordId); } return next; });
-  }
 
   function toggleColumnVisibility(col: ColumnId) {
     setHiddenColumns((prev) => { const next = new Set(prev); if (next.has(col)) next.delete(col); else next.add(col); return next; });
@@ -1396,7 +1105,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   let filteredRecords = activeTab === "Trash" ? scopedTrashRecords : scopedActiveRecords;
   if (searchQuery) filteredRecords = filteredRecords.filter((r) => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
   if (activeTab === "Starred") filteredRecords = filteredRecords.filter((r) => starred.has(r.id));
-  if (activeTab === "Shared") filteredRecords = filteredRecords.filter((r) => sharedIds.has(r.id) || sharedConfigs.has(r.id));
+  if (activeTab === "Shared") filteredRecords = filteredRecords.filter((r) => sharedIds.has(r.id) || false);
   if (activeTab !== "Trash") {
     if (typeFilter.size > 0) filteredRecords = filteredRecords.filter((r) => typeFilter.has(r.source));
     if (templateFilter.size > 0) filteredRecords = filteredRecords.filter((r) => templateFilter.has(r.template));
@@ -1416,7 +1125,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
   const hasSelection = selectedRows.size > 0 && activeTab !== "Trash";
 
-  const sharedCount = scopedActiveRecords.filter((r) => sharedIds.has(r.id) || sharedConfigs.has(r.id)).length;
+  const sharedCount = scopedActiveRecords.filter((r) => sharedIds.has(r.id) || false).length;
 
   // Tab counts
   const recentCount = scopedActiveRecords.length;
@@ -1478,15 +1187,13 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {shareDialogRecord && (
-        <ShareDialog
-          open={!!shareDialogRecord}
-          onClose={() => setShareDialogRecord(null)}
-          recordName={displayRecords.find(r => r.id === shareDialogRecord)?.name ?? ""}
-          config={sharedConfigs.get(shareDialogRecord) ?? DEFAULT_SHARE_CONFIG}
-          onSave={(cfg) => handleSaveShare(shareDialogRecord, cfg)}
-        />
-      )}
+      <ShareDialog
+        open={!!shareDialogRecord}
+        onOpenChange={(open) => { if (!open) setShareDialogRecord(null); }}
+        resourceType="transcription"
+        resourceId={shareDialogRecord ?? ""}
+        resourceName={displayRecords.find(r => r.id === shareDialogRecord)?.name ?? ""}
+      />
 
       {/* Tabs */}
       <div className="relative">
@@ -1557,16 +1264,8 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                 onShare={() => {
                   const selectedIds = Array.from(selectedRows);
                   if (!selectedIds.length) return;
-                  if (selectedIds.length === 1) {
-                    setShareDialogRecord(selectedIds[0]);
-                    return;
-                  }
-                  const bulkCfg = { ...DEFAULT_SHARE_CONFIG, isPublic: true };
-                  setSharedConfigs(prev => {
-                    const next = new Map(prev);
-                    selectedIds.forEach(id => next.set(id, bulkCfg));
-                    return next;
-                  });
+                  // Open share dialog for first selected record
+                  setShareDialogRecord(selectedIds[0]);
                 }}
                 onCopySummary={() => {
                   const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => `${r.name}: ${r.summary}`).join("\n\n");
@@ -1612,7 +1311,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                 <div key={group.label}>
                   <DateSeparator label={group.label} />
                   {group.records.map((record) => (
-                    <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={starred.has(record.id)} isShared={sharedConfigs.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
+                    <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
                       onToggleRow={() => toggleRow(record.id)} onMouseEnter={() => setHoveredRow(record.id)} onMouseLeave={() => setHoveredRow(null)}
                       onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
                       onShare={() => setShareDialogRecord(record.id)}
@@ -1690,7 +1389,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                   </div>
                 ))}
                 {filteredRecords.map((record) => (
-                  <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={starred.has(record.id)} isShared={sharedConfigs.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
+                  <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
                     onToggleRow={() => toggleRow(record.id)} onMouseEnter={() => setHoveredRow(record.id)} onMouseLeave={() => setHoveredRow(null)}
                     onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
                     onShare={() => setShareDialogRecord(record.id)}
