@@ -253,7 +253,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
   return (
     <Sidebar collapsible="icon">
       {/* ═══════════ Header: Logo ═══════════ */}
-      <SidebarHeader className="h-[56px] justify-center px-[16px]">
+      <SidebarHeader className="h-[56px] justify-center px-[16px] group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
         <Logo />
       </SidebarHeader>
 
