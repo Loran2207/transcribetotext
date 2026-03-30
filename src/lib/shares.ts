@@ -52,12 +52,11 @@ export async function getSharesForResource(
   return (data ?? []) as Share[];
 }
 
-/** Create a new share (invite a person by email). */
+/** Create a new share (invite a person by email). Always viewer access. */
 export async function createShare(
   resourceType: ResourceType,
   resourceId: string,
   email: string,
-  accessLevel: AccessLevel,
 ): Promise<Share> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
@@ -70,26 +69,13 @@ export async function createShare(
       owner_id: user.id,
       owner_email: user.email ?? null,
       shared_with_email: email.trim().toLowerCase(),
-      access_level: accessLevel,
+      access_level: 'viewer',
     })
     .select()
     .single();
 
   if (error) throw error;
   return data as Share;
-}
-
-/** Update the access level of an existing share. */
-export async function updateShareAccessLevel(
-  shareId: string,
-  accessLevel: AccessLevel,
-): Promise<void> {
-  const { error } = await supabase
-    .from('shares')
-    .update({ access_level: accessLevel, updated_at: new Date().toISOString() })
-    .eq('id', shareId);
-
-  if (error) throw error;
 }
 
 /** Remove a share (revoke access for a person). */
@@ -112,7 +98,6 @@ export async function removeShare(shareId: string): Promise<void> {
 export async function getOrCreateShareLink(
   resourceType: ResourceType,
   resourceId: string,
-  accessLevel: AccessLevel,
 ): Promise<ShareLink> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
@@ -128,18 +113,10 @@ export async function getOrCreateShareLink(
   if (fetchError) throw fetchError;
 
   if (existing) {
-    // Determine whether the row needs an update
-    const needsReactivation = !existing.is_active;
-    const needsAccessChange = existing.access_level !== accessLevel;
-
-    if (needsReactivation || needsAccessChange) {
-      const payload: Record<string, unknown> = {};
-      if (needsReactivation) payload.is_active = true;
-      if (needsAccessChange) payload.access_level = accessLevel;
-
+    if (!existing.is_active) {
       const { data: updated, error: updateError } = await supabase
         .from('share_links')
-        .update(payload)
+        .update({ is_active: true })
         .eq('id', existing.id)
         .select()
         .single();
@@ -160,7 +137,7 @@ export async function getOrCreateShareLink(
       resource_id: resourceId,
       owner_id: user.id,
       token,
-      access_level: accessLevel,
+      access_level: 'viewer',
       is_active: true,
     })
     .select()
@@ -168,23 +145,6 @@ export async function getOrCreateShareLink(
 
   if (createError) throw createError;
   return created as ShareLink;
-}
-
-/** Update a share link's properties. */
-export async function updateShareLink(
-  linkId: string,
-  updates: { accessLevel?: AccessLevel; isActive?: boolean },
-): Promise<void> {
-  const payload: Record<string, unknown> = {};
-  if (updates.accessLevel !== undefined) payload.access_level = updates.accessLevel;
-  if (updates.isActive !== undefined) payload.is_active = updates.isActive;
-
-  const { error } = await supabase
-    .from('share_links')
-    .update(payload)
-    .eq('id', linkId);
-
-  if (error) throw error;
 }
 
 /** Deactivate all share links for a resource. */
@@ -232,6 +192,20 @@ export async function getSharedWithMe(): Promise<Share[]> {
 
   if (error) throw error;
   return (data ?? []) as Share[];
+}
+
+/** Send email invitations via Edge Function (fire-and-forget, best-effort). */
+export async function sendShareInvitationEmails(params: {
+  emails: string[];
+  resourceType: ResourceType;
+  resourceId: string;
+  resourceName: string;
+  senderEmail: string;
+  shareLink?: string;
+}): Promise<void> {
+  await supabase.functions.invoke('send-share-invitation', {
+    body: params,
+  });
 }
 
 /** Validate a share link token and return the link if valid. */

@@ -4,10 +4,8 @@ import {
   type Share,
   type ShareLink,
   type ResourceType,
-  type AccessLevel,
   getSharesForResource,
   createShare,
-  updateShareAccessLevel,
   removeShare as removeShareApi,
   getOrCreateShareLink,
   deactivateShareLink,
@@ -19,10 +17,9 @@ interface UseSharesReturn {
   shareLink: ShareLink | null;
   isLoading: boolean;
   error: Error | null;
-  addShare: (email: string, accessLevel: AccessLevel) => Promise<Share | null>;
-  updateAccess: (shareId: string, accessLevel: AccessLevel) => Promise<boolean>;
+  addShareBatch: (emails: string[]) => Promise<{ succeeded: string[]; failed: string[] }>;
   removeShare: (shareId: string) => Promise<boolean>;
-  enableLinkSharing: (accessLevel: AccessLevel) => Promise<ShareLink | null>;
+  enableLinkSharing: () => Promise<ShareLink | null>;
   disableLinkSharing: () => Promise<boolean>;
   copyLink: () => void;
   refresh: () => Promise<void>;
@@ -59,34 +56,24 @@ export function useShares(
     refresh();
   }, [refresh]);
 
-  const addShare = useCallback(
-    async (email: string, accessLevel: AccessLevel): Promise<Share | null> => {
-      try {
-        const created = await createShare(resourceType, resourceId, email, accessLevel);
-        await refresh();
-        return created;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to send invitation';
-        toast.error(message);
-        return null;
+  const addShareBatch = useCallback(
+    async (emails: string[]): Promise<{ succeeded: string[]; failed: string[] }> => {
+      const succeeded: string[] = [];
+      const failed: string[] = [];
+
+      for (const email of emails) {
+        try {
+          await createShare(resourceType, resourceId, email);
+          succeeded.push(email);
+        } catch {
+          failed.push(email);
+        }
       }
+
+      await refresh();
+      return { succeeded, failed };
     },
     [resourceType, resourceId, refresh],
-  );
-
-  const updateAccess = useCallback(
-    async (shareId: string, accessLevel: AccessLevel): Promise<boolean> => {
-      try {
-        await updateShareAccessLevel(shareId, accessLevel);
-        await refresh();
-        return true;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to update access';
-        toast.error(message);
-        return false;
-      }
-    },
-    [refresh],
   );
 
   const removeShareFn = useCallback(
@@ -105,9 +92,9 @@ export function useShares(
   );
 
   const enableLinkSharing = useCallback(
-    async (accessLevel: AccessLevel): Promise<ShareLink | null> => {
+    async (): Promise<ShareLink | null> => {
       try {
-        const link = await getOrCreateShareLink(resourceType, resourceId, accessLevel);
+        const link = await getOrCreateShareLink(resourceType, resourceId);
         setShareLink(link);
         return link;
       } catch (err) {
@@ -146,8 +133,7 @@ export function useShares(
     shareLink,
     isLoading,
     error,
-    addShare,
-    updateAccess,
+    addShareBatch,
     removeShare: removeShareFn,
     enableLinkSharing,
     disableLinkSharing,

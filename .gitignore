@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# MCP config (contains secrets)
+.mcp.json
+
 # Build output
 dist/
 dist-ssr/

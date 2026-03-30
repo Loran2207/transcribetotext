@@ -1,4 +1,4 @@
-import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon } from "@hugeicons/core-free-icons";
+import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -6,6 +6,7 @@ import { Label } from "./ui/label";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import svgPaths from "../../imports/svg-i3wf63n6gj";
+import { ShareDialog } from "./share-dialog";
 const imgEllipse52 = "/images/avatar.png";
 import { useStarred } from "./starred-context";
 import { SourceIcon } from "./source-icons";
@@ -215,6 +216,8 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
   const [starredOpen, setStarredOpen] = useState(true);
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
+  const [shareFolderId, setShareFolderId] = useState<string | null>(null);
+  const [shareFolderName, setShareFolderName] = useState<string | null>(null);
   const { starredRecords } = useStarred();
   const { folders: userFolders, addFolder } = useFolders();
   const { t } = useLanguage();
@@ -306,16 +309,30 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
           {foldersOpen && (
             <SidebarMenuSub>
               {folders.map((folder) => (
-                <SidebarMenuSubItem key={folder.id}>
+                <SidebarMenuSubItem key={folder.id} className="group/folder">
                   <SidebarMenuSubButton
                     onClick={userFolders.length > 0 ? () => { onNavigate("records"); onOpenFolder?.(folder.id); } : undefined}
-                    className={userFolders.length > 0 ? "cursor-pointer" : ""}
+                    className={`${userFolders.length > 0 ? "cursor-pointer" : ""} pr-8`}
                   >
                     <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16">
                       <path d={FOLDER_PATH} fill={folder.color} />
                     </svg>
-                    <span>{folder.name}</span>
+                    <span className="truncate">{folder.name}</span>
                   </SidebarMenuSubButton>
+                  {userFolders.length > 0 && (
+                    <button
+                      type="button"
+                      title={t("share.shareFolder")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShareFolderId(folder.id);
+                        setShareFolderName(folder.name);
+                      }}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 size-6 rounded-md flex items-center justify-center opacity-0 group-hover/folder:opacity-100 text-sidebar-foreground/50 hover:text-sidebar-foreground transition-all"
+                    >
+                      <Icon icon={UserGroupIcon} className="size-3.5" />
+                    </button>
+                  )}
                 </SidebarMenuSubItem>
               ))}
             </SidebarMenuSub>
@@ -348,6 +365,20 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
 
       {/* Create Folder Dialog */}
       <CreateFolderDialog open={folderDialogOpen} onClose={() => setFolderDialogOpen(false)} onCreate={(name, color) => addFolder(name, color)} />
+
+      {/* Share Folder Dialog */}
+      <ShareDialog
+        open={shareFolderId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShareFolderId(null);
+            setShareFolderName(null);
+          }
+        }}
+        resourceType="folder"
+        resourceId={shareFolderId ?? ""}
+        resourceName={shareFolderName ?? ""}
+      />
     </Sidebar>
   );
 }
