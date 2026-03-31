@@ -35,7 +35,7 @@ import type { Template } from "@/lib/templates";
 import { ShareDialog } from "./share-dialog";
 import { SharedUsersAvatars } from "./shared-users-avatars";
 import { useShares } from "@/hooks/use-shares";
-import type { Share } from "@/lib/shares";
+import type { Share as ShareRecord } from "@/lib/shares";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -1230,7 +1230,7 @@ interface PageHeaderProps {
   meta: PageHeaderMeta;
   source?: SourceType;
   folders: PageHeaderFolderOption[];
-  shares: Share[];
+  shares: ShareRecord[];
   onShare: () => void;
   onCopyLink: () => void;
   onCopySummary: () => void;

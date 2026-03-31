@@ -47,7 +47,7 @@ import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Switch } from "@/app/components/ui/switch";
 import { Skeleton } from "@/app/components/ui/skeleton";
-import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -69,6 +69,7 @@ import { cn } from "@/app/components/ui/utils";
 import { useTemplates } from "@/hooks/use-templates";
 import { useFolders } from "./folder-context";
 import { useAuth } from "./auth-context";
+import { useUserProfile } from "./user-profile-context";
 import { records } from "./records-table";
 import type { Template, TemplateSection, CreateTemplateData } from "@/lib/templates";
 
@@ -190,7 +191,6 @@ function TH() {
       <div className={cn("w-[32px] shrink-0", c)} />
       <div className={cn("flex-[1.5] min-w-0 px-[12px]", c)}>Description</div>
       <div className={cn("flex-[0.8] min-w-0 px-[12px]", c)}>Created by</div>
-      <div className={cn("flex-[0.8] min-w-0 px-[12px]", c)}>Actions</div>
       <div className={cn("w-[130px] shrink-0 px-[8px]", c)}>Date</div>
     </div>
   );
@@ -224,12 +224,13 @@ function TemplateRowActions({ isStarred, onStar, onEdit, onTrash }: {
   );
 }
 
-function TR({ t, isHovered, isStarred, isTrashed, folderName, onMouseEnter, onMouseLeave, onClick, onStar, onEdit, onTrash, onRestore }: {
-  t: Template; isHovered: boolean; isStarred: boolean; isTrashed: boolean; folderName: string | null;
+function TR({ t, isHovered, isStarred, isTrashed, onMouseEnter, onMouseLeave, onClick, onStar, onEdit, onTrash, onRestore }: {
+  t: Template; isHovered: boolean; isStarred: boolean; isTrashed: boolean;
   onMouseEnter: () => void; onMouseLeave: () => void; onClick: () => void;
   onStar: () => void; onEdit: () => void; onTrash: () => void; onRestore: () => void;
 }) {
   const sys = t.type === "built_in";
+  const { displayName, avatarSrc } = useUserProfile();
   const emoji = templateEmoji(t.name);
   return (
     <div
@@ -291,31 +292,18 @@ function TR({ t, isHovered, isStarred, isTrashed, folderName, onMouseEnter, onMo
       {/* Created by */}
       <div className="flex-[0.8] min-w-0 px-[12px] flex items-center gap-[6px]">
         {sys ? (
-          <>
-            <Icon icon={Layers} size={14} className="text-primary shrink-0" />
-            <span className="text-[12px] text-muted-foreground">System</span>
-          </>
+          <span className="text-[12px] text-muted-foreground">System</span>
         ) : (
           <>
             <Avatar className="size-[22px]">
-              <AvatarFallback className="text-[9px] bg-accent text-accent-foreground">Me</AvatarFallback>
+              <AvatarImage src={avatarSrc} alt={displayName} />
+              <AvatarFallback className="text-[9px] bg-accent text-accent-foreground">{displayName.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
-            <span className="text-[12px] text-muted-foreground">Me</span>
+            <span className="text-[12px] text-muted-foreground">{displayName}</span>
           </>
         )}
       </div>
 
-      {/* Actions (folder) */}
-      <div className="flex-[0.8] min-w-0 px-[12px] flex items-center gap-[6px]">
-        {folderName ? (
-          <>
-            <Icon icon={Folder01Icon} size={13} className="text-muted-foreground shrink-0" />
-            <span className="truncate text-[12px] text-muted-foreground">{folderName}</span>
-          </>
-        ) : (
-          <span className="text-[12px] text-muted-foreground">\u2014</span>
-        )}
-      </div>
 
       {/* Date */}
       <div className="w-[130px] shrink-0 px-[8px]">
@@ -944,21 +932,6 @@ export function TemplatesPage() {
   // Template actions (folder assignments)
   const [templateActions, setTemplateActions] = useState<Record<string, StoredAction[]>>(loadActions);
 
-  // Folder name lookup for actions column
-  const folderNameById = useMemo(() => {
-    const map: Record<string, string> = {};
-    function walk(items: typeof folders) { for (const f of items) { map[f.id] = f.name; if (f.children) walk(f.children); } }
-    walk(folders);
-    return map;
-  }, [folders]);
-
-  function getFolderName(templateId: string): string | null {
-    const acts = templateActions[templateId];
-    if (!acts?.length) return null;
-    const moveAction = acts.find((a) => a.type === "move_to_folder" && a.folderId);
-    return moveAction?.folderId ? (folderNameById[moveAction.folderId] ?? null) : null;
-  }
-
   const editTemplate = detailTarget !== null && detailTarget !== "new" ? detailTarget : null;
   const isCreateMode = detailTarget === "new";
 
@@ -1077,7 +1050,6 @@ export function TemplatesPage() {
           isHovered={hoveredRow === t.id}
           isStarred={starredIds.has(t.id)}
           isTrashed={isTrashTab}
-          folderName={getFolderName(t.id)}
           onMouseEnter={() => setHoveredRow(t.id)}
           onMouseLeave={() => setHoveredRow(null)}
           onClick={() => { if (!isTrashTab) setDetailTarget(t); }}

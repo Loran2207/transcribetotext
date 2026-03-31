@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useFolders, type FolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
+import { useTranscriptionModals } from "./transcription-modals";
 import { RecordsTable } from "./records-table";
 import {
   AlertDialog,
@@ -25,7 +26,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Icon } from "./ui/icon";
-import { FolderOpen, Edit, Trash, MoreHorizontal, Upload } from "@hugeicons/core-free-icons";
+import { FolderOpen, Edit, Trash, MoreHorizontal, Upload, ChevronDown, Microphone, Link, Video, CloudUpload } from "@hugeicons/core-free-icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -268,6 +269,7 @@ function FolderPlusIcon() {
 export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFolderId?: string | null; onFolderConsumed?: () => void } = {}) {
   const { t } = useLanguage();
   const { folders, folderAssignments, addFolder, deleteFolder, renameFolder, changeFolderColor, moveFolder } = useFolders();
+  const { setOpenModal, openUploadWithFiles, setDefaultFolderId } = useTranscriptionModals();
 
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
@@ -282,6 +284,43 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   // Move folder dialog
   const [movingFolder, setMovingFolder] = useState<FolderItem | null>(null);
+
+  // Drag & drop state
+  const [dragOver, setDragOver] = useState(false);
+  const dragCounterRef = useRef(0);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    if (dragCounterRef.current === 1) setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current === 0) setDragOver(false);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current = 0;
+    setDragOver(false);
+    const dropped = Array.from(e.dataTransfer.files);
+    if (dropped.length) {
+      if (activeFolderId) setDefaultFolderId(activeFolderId);
+      openUploadWithFiles(dropped);
+    }
+  }, [activeFolderId, openUploadWithFiles, setDefaultFolderId]);
+
+  /** Open a modal with the current folder pre-selected */
+  const openModalInFolder = useCallback((modal: "upload" | "record" | "link" | "meeting") => {
+    if (activeFolderId) setDefaultFolderId(activeFolderId);
+    setOpenModal(modal);
+  }, [activeFolderId, setDefaultFolderId, setOpenModal]);
 
   // Consume initialFolderId from dashboard navigation
   useEffect(() => {
@@ -310,7 +349,22 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
   );
 
   return (
-    <div className="flex-1 overflow-auto min-w-0">
+    <div
+      className={`flex-1 overflow-auto min-w-0 relative ${dragOver ? "bg-primary/[0.04]" : ""}`}
+      style={{ transition: "background-color 0.15s ease" }}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag-over border highlight */}
+      {dragOver && (
+        <div
+          className="absolute inset-0 pointer-events-none z-40 border-2 border-dashed border-primary"
+          style={{ inset: "6px", borderRadius: "12px" }}
+        />
+      )}
+
       <div className="px-[32px] pt-[28px] pb-[24px]">
 
         {/* Header row */}
@@ -366,6 +420,36 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                 <span className="font-medium text-[13px]">Edit folder</span>
               </Button>
             )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="pill-outline"
+                  className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
+                >
+                  <Icon icon={CloudUpload} className="size-[15px] text-foreground" strokeWidth={1.5} />
+                  <span className="font-medium text-[13px] text-foreground">Upload</span>
+                  <Icon icon={ChevronDown} className="size-[14px] text-muted-foreground -ml-[2px]" strokeWidth={1.5} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" sideOffset={6} className="w-[200px]">
+                <DropdownMenuItem className="gap-2" onClick={() => openModalInFolder("upload")}>
+                  <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.5} />
+                  Audio & video files
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2" onClick={() => openModalInFolder("record")}>
+                  <Icon icon={Microphone} className="size-4 text-muted-foreground" strokeWidth={1.5} />
+                  Instant speech
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2" onClick={() => openModalInFolder("link")}>
+                  <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.5} />
+                  Transcribe from link
+                </DropdownMenuItem>
+                <DropdownMenuItem className="gap-2" onClick={() => openModalInFolder("meeting")}>
+                  <Icon icon={Video} className="size-4 text-muted-foreground" strokeWidth={1.5} />
+                  Record meeting
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               variant="pill-outline"
               onClick={() => setCreateOpen(true)}
@@ -590,6 +674,37 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Drop zone pill — appears at bottom center while dragging */}
+      {dragOver && (
+        <div
+          className="absolute bottom-[28px] left-1/2 -translate-x-1/2 z-50 pointer-events-none"
+          style={{ animation: "dropPillIn 0.22s cubic-bezier(0.16,1,0.3,1) both" }}
+        >
+          <div
+            className="flex items-center gap-[12px] px-[24px] py-[14px] rounded-full"
+            style={{
+              background: "#1d4ed8",
+              boxShadow: "0 8px 32px rgba(29,78,216,0.45), 0 2px 8px rgba(0,0,0,0.18)",
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M12 16V4m0 0L8 8m4-4l4 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span style={{ fontWeight: 600, fontSize: "14px", color: "white", letterSpacing: "-0.1px" }}>
+              Drop files to transcribe
+            </span>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes dropPillIn {
+          from { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.92); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1);    }
+        }
+      `}</style>
     </div>
   );
 }

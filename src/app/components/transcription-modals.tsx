@@ -146,6 +146,8 @@ interface CtxValue {
   submitInstantRecording: (opts?: InstantRecordingSubmitOptions) => void;
   openUploadWithFiles: (files: File[]) => void;
   consumePreloadedFiles: () => File[];
+  setDefaultFolderId: (folderId: string | null) => void;
+  consumeDefaultFolderId: () => string | null;
 }
 
 const Ctx = createContext<CtxValue | null>(null);
@@ -169,6 +171,19 @@ export function TranscriptionModalsProvider({
   const jobsRef = useRef<TranscriptionJob[]>([]);
   const currentUploadBatchIdRef = useRef<string | null>(null);
   const meetingCounterRef = useRef(1);
+
+  // ── Default folder for modals opened from folder context ──
+  const defaultFolderIdRef = useRef<string | null>(null);
+
+  function setDefaultFolderId(folderId: string | null) {
+    defaultFolderIdRef.current = folderId;
+  }
+
+  function consumeDefaultFolderId() {
+    const id = defaultFolderIdRef.current;
+    defaultFolderIdRef.current = null;
+    return id;
+  }
 
   // ── Upload preload state ───────────────────────────────────
   const preloadedFilesRef = useRef<File[]>([]);
@@ -660,7 +675,7 @@ export function TranscriptionModalsProvider({
   }
 
   return (
-    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles }}>
+    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId }}>
       {children}
       <AllModals />
       <RecordingPill />
@@ -1623,7 +1638,7 @@ async function detectVideoHasAudioTrack(file: File): Promise<boolean | null> {
 }
 
 function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { startInstantRecording, userPlan } = useTranscriptionModals();
+  const { startInstantRecording, userPlan, consumeDefaultFolderId } = useTranscriptionModals();
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -1633,7 +1648,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
   useEffect(() => {
     if (!open) return;
     setSettings(DEFAULT_SETTINGS);
-    setSelectedFolderId(null);
+    setSelectedFolderId(consumeDefaultFolderId());
     setIsStarting(false);
   }, [open]);
 
@@ -1706,7 +1721,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
 }
 
 function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan, consumePreloadedFiles } = useTranscriptionModals();
+  const { addJob, userPlan, consumePreloadedFiles, consumeDefaultFolderId } = useTranscriptionModals();
 
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -1718,6 +1733,8 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
 
   useEffect(() => {
     if (open) {
+      const defaultFolder = consumeDefaultFolderId();
+      if (defaultFolder) setSelectedFolderId(defaultFolder);
       const preloaded = consumePreloadedFiles();
       if (preloaded.length) {
         setFiles(prev => {
@@ -1994,7 +2011,7 @@ function LinkInputIcons() {
 }
 
 function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan } = useTranscriptionModals();
+  const { addJob, userPlan, consumeDefaultFolderId } = useTranscriptionModals();
 
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
@@ -2002,6 +2019,14 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      const defaultFolder = consumeDefaultFolderId();
+      if (defaultFolder) setSelectedFolderId(defaultFolder);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function resetForm() { setUrl(""); setUrlError(""); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
   function handleClose() { resetForm(); onClose(); }
@@ -2093,7 +2118,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 // ════════════════════════════════════════════════════════════
 
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, meetingCounterRef } = useTranscriptionModals();
+  const { addJob, meetingCounterRef, consumeDefaultFolderId } = useTranscriptionModals();
 
   const [meetingUrl, setMeetingUrl] = useState("");
   const [meetingUrlError, setMeetingUrlError] = useState("");
@@ -2110,6 +2135,14 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   const [notifyMessage, setNotifyMessage] = useState("I'm recording this meeting with TranscribeToText for note-taking purposes.");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      const defaultFolder = consumeDefaultFolderId();
+      if (defaultFolder) setSelectedFolderId(defaultFolder);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function resetForm() {
     setMeetingUrl(""); setMeetingUrlError(""); meetingCounterRef.current += 1;
