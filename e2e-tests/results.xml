@@ -1,27 +1,56 @@
-<testsuites id="" name="" tests="7" failures="0" skipped="0" errors="0" time="21.944504999999996">
-<testsuite name="upload-dropdown.spec.ts" timestamp="2026-03-31T06:07:38.113Z" hostname="chromium" tests="7" failures="0" skipped="0" time="20.819" errors="0">
-<testcase name="Upload Dropdown — My Records Page › 1: Upload button is visible in the page header" classname="upload-dropdown.spec.ts" time="2.334">
+<testsuites id="" name="" tests="12" failures="0" skipped="0" errors="0" time="19.129883000000003">
+<testsuite name="upload-dropdown-modals.spec.ts" timestamp="2026-04-01T05:30:08.290Z" hostname="chromium" tests="5" failures="0" skipped="0" time="16.26" errors="0">
+<testcase name="Upload Dropdown — Each Modal Opens Correctly › &quot;Audio &amp; video files&quot; opens upload modal with drag-drop zone" classname="upload-dropdown-modals.spec.ts" time="2.284">
+<system-out>
+<![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-modals\01-audio-video-files-modal.png
+]]>
+</system-out>
+</testcase>
+<testcase name="Upload Dropdown — Each Modal Opens Correctly › &quot;Instant speech&quot; opens the instant speech setup modal" classname="upload-dropdown-modals.spec.ts" time="2.777">
+<system-out>
+<![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-modals\02-instant-speech-modal.png
+  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-modals\02-instant-speech-closed.png
+]]>
+</system-out>
+</testcase>
+<testcase name="Upload Dropdown — Each Modal Opens Correctly › &quot;Transcribe from link&quot; opens the link modal" classname="upload-dropdown-modals.spec.ts" time="2.614">
+<system-out>
+<![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-modals\03-transcribe-from-link-modal.png
+]]>
+</system-out>
+</testcase>
+<testcase name="Upload Dropdown — Each Modal Opens Correctly › &quot;Record meeting&quot; opens the meeting bot modal" classname="upload-dropdown-modals.spec.ts" time="2.528">
+<system-out>
+<![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-modals\04-record-meeting-modal.png
+]]>
+</system-out>
+</testcase>
+<testcase name="Upload Dropdown — Each Modal Opens Correctly › no console errors when opening all 4 modals sequentially" classname="upload-dropdown-modals.spec.ts" time="6.057">
+</testcase>
+</testsuite>
+<testsuite name="upload-dropdown.spec.ts" timestamp="2026-04-01T05:30:08.290Z" hostname="chromium" tests="7" failures="0" skipped="0" time="18.083" errors="0">
+<testcase name="Upload Dropdown — My Records Page › 1: Upload button is visible in the page header" classname="upload-dropdown.spec.ts" time="1.86">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-dropdown\01-upload-button-visible.png
   Upload button found and visible
 ]]>
 </system-out>
 </testcase>
-<testcase name="Upload Dropdown — My Records Page › 2: Clicking Upload opens dropdown with 4 items" classname="upload-dropdown.spec.ts" time="2.231">
+<testcase name="Upload Dropdown — My Records Page › 2: Clicking Upload opens dropdown with 4 items" classname="upload-dropdown.spec.ts" time="2.03">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-dropdown\02-upload-dropdown-open.png
   Dropdown opened with 4 items
 ]]>
 </system-out>
 </testcase>
-<testcase name="Upload Dropdown — My Records Page › 3: &quot;Audio &amp; video files&quot; item opens the upload modal" classname="upload-dropdown.spec.ts" time="2.518">
+<testcase name="Upload Dropdown — My Records Page › 3: &quot;Audio &amp; video files&quot; item opens the upload modal" classname="upload-dropdown.spec.ts" time="2.232">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-dropdown\03-upload-modal-open.png
   Upload modal opened successfully
 ]]>
 </system-out>
 </testcase>
-<testcase name="Upload Dropdown — My Records Page › 4: Upload modal can be closed with the X button" classname="upload-dropdown.spec.ts" time="2.423">
+<testcase name="Upload Dropdown — My Records Page › 4: Upload modal can be closed with the X button" classname="upload-dropdown.spec.ts" time="2.219">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-dropdown\04-upload-modal-before-close.png
   [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-dropdown\04-upload-modal-closed.png
@@ -29,14 +58,14 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="Upload Dropdown — My Records Page › 5: Dropdown closes when Escape is pressed (no modal opens)" classname="upload-dropdown.spec.ts" time="2.515">
+<testcase name="Upload Dropdown — My Records Page › 5: Dropdown closes when Escape is pressed (no modal opens)" classname="upload-dropdown.spec.ts" time="2.009">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-dropdown\05-dropdown-closed-escape.png
   Dropdown closed with Escape; no modal opened
 ]]>
 </system-out>
 </testcase>
-<testcase name="Upload Dropdown — My Records Page › 6: Instant speech, Transcribe from link, and Record meeting items open without crash" classname="upload-dropdown.spec.ts" time="5.904">
+<testcase name="Upload Dropdown — My Records Page › 6: Instant speech, Transcribe from link, and Record meeting items open without crash" classname="upload-dropdown.spec.ts" time="4.994">
 <system-out>
 <![CDATA[  [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-dropdown\06a-instant-speech-modal.png
   [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-dropdown\06b-transcribe-from-link-modal.png
@@ -45,7 +74,7 @@
 ]]>
 </system-out>
 </testcase>
-<testcase name="Upload Dropdown — My Records Page › 7: Upload &gt; Audio &amp; video files inside a folder pre-selects that folder in the modal" classname="upload-dropdown.spec.ts" time="2.894">
+<testcase name="Upload Dropdown — My Records Page › 7: Upload &gt; Audio &amp; video files inside a folder pre-selects that folder in the modal" classname="upload-dropdown.spec.ts" time="2.739">
 <system-out>
 <![CDATA[  Opening folder: "Sprint Planning"
   [screenshot] C:\Users\kutsk\transcribe2text\e2e-tests\screenshots\upload-dropdown\07a-inside-folder.png
