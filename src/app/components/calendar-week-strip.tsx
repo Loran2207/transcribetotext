@@ -30,47 +30,55 @@ export function CalendarWeekStrip({
   }
 
   return (
-    <div className="flex items-center">
+    <div className="flex items-center border-b border-border/30 pb-4">
       {days.map((day) => {
         const isToday = day.dateISO === todayISO;
-        const isSelected = day.dateISO === selectedDate && !isToday;
-        const dotCount = Math.min(meetingCounts[day.dateISO] ?? 0, 3);
+        const isSelected = day.dateISO === selectedDate;
 
         return (
           <button
             key={day.dateISO}
             onClick={() => onDaySelect(day.dateISO)}
-            className={cn(
-              "flex flex-col items-center flex-1 py-3 rounded-xl gap-1 transition-colors duration-100 cursor-pointer",
-              isSelected && "bg-accent/60",
-              !isSelected && !isToday && "hover:bg-accent/30",
-            )}
+            className="flex items-center justify-center gap-1.5 flex-1 py-1 cursor-pointer transition-colors duration-100"
           >
+            {/* Day name */}
             <span
               className={cn(
-                "text-[11px] font-semibold uppercase tracking-wider",
-                isToday ? "text-primary" : day.isWeekend ? "text-muted-foreground/40" : "text-muted-foreground/70",
+                "text-[13px] transition-colors",
+                isSelected || isToday
+                  ? "font-semibold text-foreground"
+                  : day.isWeekend
+                    ? "font-normal text-muted-foreground/40"
+                    : "font-normal text-muted-foreground/60",
               )}
             >
               {day.dayName}
             </span>
-            <span
-              className={cn(
-                "flex items-center justify-center size-9 rounded-full text-[16px] font-semibold transition-all duration-150",
-                isToday && "bg-primary text-primary-foreground",
-                isSelected && !isToday && "text-foreground",
-                !isSelected && !isToday && day.isWeekend && "text-muted-foreground/50",
-                !isSelected && !isToday && !day.isWeekend && "text-foreground",
-              )}
-            >
-              {day.dayNum}
-            </span>
-            {/* Event dots */}
-            <div className="flex items-center gap-[3px] h-[5px]">
-              {dotCount > 0 && Array.from({ length: dotCount }).map((_, idx) => (
-                <div key={idx} className="size-[3px] rounded-full bg-primary/50" />
-              ))}
-            </div>
+
+            {/* Day number */}
+            {isToday || isSelected ? (
+              <span
+                className={cn(
+                  "flex items-center justify-center size-6 rounded-md text-[13px] font-semibold",
+                  isSelected && isToday && "bg-primary text-primary-foreground",
+                  isSelected && !isToday && "bg-primary text-primary-foreground",
+                  !isSelected && isToday && "border-[1.5px] border-primary text-primary bg-transparent",
+                )}
+              >
+                {day.dayNum}
+              </span>
+            ) : (
+              <span
+                className={cn(
+                  "text-[13px] transition-colors",
+                  day.isWeekend
+                    ? "font-normal text-muted-foreground/40"
+                    : "font-normal text-muted-foreground/60",
+                )}
+              >
+                {day.dayNum}
+              </span>
+            )}
           </button>
         );
       })}

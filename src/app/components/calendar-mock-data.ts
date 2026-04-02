@@ -2,6 +2,17 @@ import type { LangCode } from "./language-context";
 
 export type CalendarPlatform = "google-meet" | "zoom" | "teams";
 
+export interface CalendarAttendee {
+  name: string;
+  email: string;
+  avatarUrl?: string;
+}
+
+/** Deterministic avatar URL from email */
+export function getAvatarUrl(email: string): string {
+  return `https://i.pravatar.cc/80?u=${encodeURIComponent(email)}`;
+}
+
 export interface CalendarMeeting {
   id: string;
   date: string; // ISO date string "YYYY-MM-DD"
@@ -12,6 +23,8 @@ export interface CalendarMeeting {
   organizerEmail: string;
   autoJoin: boolean;
   language: LangCode;
+  attendees: CalendarAttendee[];
+  videoLink?: string;
 }
 
 export interface DayGroup {
@@ -19,12 +32,19 @@ export interface DayGroup {
   meetings: CalendarMeeting[];
 }
 
+/** Map of meeting IDs to transcript URLs (past meetings that were transcribed) */
+export const TRANSCRIPT_MAP: Record<string, string> = {
+  m1: "/transcriptions/sprint-planning-mar30",
+  m2: "/transcriptions/vektor-daily-mar30",
+  m3: "/transcriptions/design-review-mar31",
+  m5: "/transcriptions/client-demo-apr01",
+};
+
 /**
  * Generate mock meetings for a given date range.
  * Creates realistic recurring and one-off meetings.
  */
 export function generateMockMeetings(): CalendarMeeting[] {
-  // Base date: 2026-03-30 (Monday) to 2026-04-17 (Friday) — ~3 weeks
   const meetings: CalendarMeeting[] = [
     // Week 1: Mar 30 - Apr 3
     {
@@ -37,6 +57,13 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "sarah@company.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Sarah Chen", email: "sarah@company.com" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Alex Tech", email: "alex.tech@company.com" },
+        { name: "Maria Lopez", email: "maria@company.com" },
+      ],
+      videoLink: "https://meet.google.com/abc-defg-hij",
     },
     {
       id: "m2",
@@ -48,6 +75,15 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "kirill@vektortms.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Maxim V.", email: "maxim@veido.com" },
+        { name: "Anna Design", email: "anna.design@company.com" },
+        { name: "David Park", email: "david@ql.io" },
+        { name: "Lisa Wang", email: "lisa@ql.io" },
+        { name: "Tom Brown", email: "tom@ql.io" },
+      ],
+      videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     {
       id: "m3",
@@ -59,6 +95,12 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "anna.design@company.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Anna Design", email: "anna.design@company.com" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Sarah Chen", email: "sarah@company.com" },
+      ],
+      videoLink: "https://zoom.us/j/12345678",
     },
     {
       id: "m4",
@@ -70,6 +112,11 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "alex.tech@company.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Alex Tech", email: "alex.tech@company.com" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+      ],
+      videoLink: "https://teams.microsoft.com/l/meetup/19:abc",
     },
     {
       id: "m5",
@@ -81,9 +128,18 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "sales@client.co",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Sales Rep", email: "sales@client.co" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Sarah Chen", email: "sarah@company.com" },
+        { name: "Alex Tech", email: "alex.tech@company.com" },
+        { name: "Client PM", email: "pm@client.co" },
+        { name: "Client CTO", email: "cto@client.co" },
+        { name: "Maria Lopez", email: "maria@company.com" },
+      ],
+      videoLink: "https://zoom.us/j/87654321",
     },
-    // Apr 2 (Thursday — "today")
-    // no meetings — shows empty state
+    // Apr 2 (Thursday — "today") — no meetings
     {
       id: "m6",
       date: "2026-04-03",
@@ -94,6 +150,12 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "kirill@vektortms.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Maxim V.", email: "maxim@veido.com" },
+        { name: "David Park", email: "david@ql.io" },
+      ],
+      videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     // Week 2: Apr 6-10
     {
@@ -106,6 +168,12 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "kirill@vektortms.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Maxim V.", email: "maxim@veido.com" },
+        { name: "David Park", email: "david@ql.io" },
+      ],
+      videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     {
       id: "m8",
@@ -117,6 +185,14 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "maxim@veido.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Maxim V.", email: "maxim@veido.com" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Anna Design", email: "anna.design@company.com" },
+        { name: "Sarah Chen", email: "sarah@company.com" },
+        { name: "Tom Brown", email: "tom@ql.io" },
+      ],
+      videoLink: "https://meet.google.com/pqr-stuv-wxy",
     },
     {
       id: "m9",
@@ -128,6 +204,12 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "kirill@vektortms.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Maxim V.", email: "maxim@veido.com" },
+        { name: "David Park", email: "david@ql.io" },
+      ],
+      videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     // Apr 9 — no meetings
     {
@@ -140,6 +222,12 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "kirill@vektortms.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Maxim V.", email: "maxim@veido.com" },
+        { name: "David Park", email: "david@ql.io" },
+      ],
+      videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     // Week 3: Apr 13-17
     {
@@ -152,6 +240,13 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "sarah@company.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Sarah Chen", email: "sarah@company.com" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Alex Tech", email: "alex.tech@company.com" },
+        { name: "Maria Lopez", email: "maria@company.com" },
+      ],
+      videoLink: "https://meet.google.com/abc-defg-hij",
     },
     {
       id: "m12",
@@ -163,6 +258,15 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "kirill@vektortms.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Maxim V.", email: "maxim@veido.com" },
+        { name: "David Park", email: "david@ql.io" },
+        { name: "Lisa Wang", email: "lisa@ql.io" },
+        { name: "Tom Brown", email: "tom@ql.io" },
+        { name: "Sarah Chen", email: "sarah@company.com" },
+      ],
+      videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     {
       id: "m13",
@@ -174,6 +278,17 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "cto@company.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "CTO", email: "cto@company.com" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Sarah Chen", email: "sarah@company.com" },
+        { name: "Alex Tech", email: "alex.tech@company.com" },
+        { name: "Anna Design", email: "anna.design@company.com" },
+        { name: "Maria Lopez", email: "maria@company.com" },
+        { name: "Tom Brown", email: "tom@ql.io" },
+        { name: "David Park", email: "david@ql.io" },
+      ],
+      videoLink: "https://zoom.us/j/11223344",
     },
     {
       id: "m14",
@@ -185,6 +300,12 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "partnerships@partner.io",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Partnerships", email: "partnerships@partner.io" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Alex Tech", email: "alex.tech@company.com" },
+      ],
+      videoLink: "https://teams.microsoft.com/l/meetup/19:xyz",
     },
     {
       id: "m15",
@@ -196,6 +317,13 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "anna.design@company.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Anna Design", email: "anna.design@company.com" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Sarah Chen", email: "sarah@company.com" },
+        { name: "Maria Lopez", email: "maria@company.com" },
+      ],
+      videoLink: "https://zoom.us/j/55667788",
     },
     {
       id: "m16",
@@ -207,10 +335,49 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "kirill@vektortms.com",
       autoJoin: false,
       language: "en",
+      attendees: [
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Maxim V.", email: "maxim@veido.com" },
+        { name: "David Park", email: "david@ql.io" },
+      ],
+      videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
   ];
 
   return meetings;
+}
+
+/** Compute a human-readable duration string from start/end times */
+export function formatDuration(startTime: string, endTime: string): string {
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const totalMin = (eh * 60 + em) - (sh * 60 + sm);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h${m}m`;
+}
+
+/** Get initials from a name (first letter of first and last name) */
+export function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+/** Find the next upcoming meeting from a list, given a reference date */
+export function findNextMeeting(
+  meetings: ReadonlyArray<CalendarMeeting>,
+  todayISO: string,
+): CalendarMeeting | null {
+  const upcoming = meetings
+    .filter((m) => m.date >= todayISO)
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return a.startTime < b.startTime ? -1 : 1;
+    });
+  return upcoming[0] ?? null;
 }
 
 /**
@@ -248,14 +415,11 @@ export function parseISODate(s: string): Date {
   return new Date(y, m - 1, d);
 }
 
-/** Get the start of the week containing the given date (Thursday-based to match UI) */
+/** Get the start of the week containing the given date (Sunday-based) */
 export function getWeekStart(d: Date): Date {
-  // Use Thursday-based weeks to match the reference UI
   const result = new Date(d);
-  const day = result.getDay();
-  // Thursday = 4. If day < 4, go back to previous Thursday
-  const diff = day >= 4 ? day - 4 : day + 3;
-  result.setDate(result.getDate() - diff);
+  const day = result.getDay(); // 0=Sun
+  result.setDate(result.getDate() - day);
   result.setHours(0, 0, 0, 0);
   return result;
 }
@@ -310,4 +474,19 @@ export function formatWeekendHeader(sat: Date, sun: Date): string {
     return `${mm}/${dd}`;
   };
   return `${fmtDate(sat)} Saturday - ${fmtDate(sun)} Sunday`;
+}
+
+/** Compute "In Xh Ym" countdown from now to a meeting's start time */
+export function formatCountdown(meetingDate: string, startTime: string, now: Date): string {
+  const [y, mo, d] = meetingDate.split("-").map(Number);
+  const [h, m] = startTime.split(":").map(Number);
+  const meetingStart = new Date(y, mo - 1, d, h, m, 0, 0);
+  const diffMs = meetingStart.getTime() - now.getTime();
+  if (diffMs <= 0) return "Starting now";
+  const diffMin = Math.floor(diffMs / 60000);
+  const hours = Math.floor(diffMin / 60);
+  const minutes = diffMin % 60;
+  if (hours === 0) return `In ${minutes}m`;
+  if (minutes === 0) return `In ${hours}h`;
+  return `In ${hours}h ${minutes}m`;
 }
