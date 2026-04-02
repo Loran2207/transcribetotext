@@ -1,19 +1,14 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import {
-  Calendar,
-  Settings,
+  ChevronLeft,
+  ChevronRight,
   ArrowUpRight,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
 import { Skeleton } from "@/app/components/ui/skeleton";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
+import { Calendar as MiniCalendar } from "@/app/components/ui/calendar";
 import { useLanguage, type LangCode } from "./language-context";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 import { CalendarMeetingCard } from "./calendar-meeting-card";
@@ -25,6 +20,7 @@ import {
   parseISODate,
   formatDayHeader,
   formatWeekendHeader,
+  formatMonthYearFull,
   type DayGroup,
 } from "./calendar-mock-data";
 
@@ -48,6 +44,9 @@ export function CalendarPage() {
   // Week navigation
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(TODAY));
   const [selectedDate, setSelectedDate] = useState<string>(TODAY_ISO);
+
+  // Mini calendar month
+  const [calendarMonth, setCalendarMonth] = useState<Date>(TODAY);
 
   // Accessibility
   const prefersReducedMotion = useReducedMotion();
@@ -75,19 +74,17 @@ export function CalendarPage() {
   // Day group refs for scroll-to
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Group meetings for the current week view
-  const dayGroups = useMemo(
-    () => groupMeetingsByDay(MOCK_MEETINGS, weekStart),
-    [weekStart],
-  );
-
-  // Also show meetings beyond the current week (continuous scroll)
+  // Group meetings for the current week view + next week
   const extendedGroups = useMemo(() => {
+    const week1 = groupMeetingsByDay(MOCK_MEETINGS, weekStart);
     const extStart = new Date(weekStart);
     extStart.setDate(extStart.getDate() + 7);
-    const extraWeek = groupMeetingsByDay(MOCK_MEETINGS, extStart);
-    return [...dayGroups, ...extraWeek];
-  }, [dayGroups, weekStart]);
+    const week2 = groupMeetingsByDay(MOCK_MEETINGS, extStart);
+    return [...week1, ...week2];
+  }, [weekStart]);
+
+  // Month/year label derived from weekStart
+  const monthYearLabel = useMemo(() => formatMonthYearFull(weekStart), [weekStart]);
 
   const handleWeekChange = useCallback((direction: "prev" | "next") => {
     setWeekStart((prev) => {
@@ -95,18 +92,37 @@ export function CalendarPage() {
       next.setDate(next.getDate() + (direction === "next" ? 7 : -7));
       return next;
     });
-    // Brief loading effect
     setIsLoading(true);
     setTimeout(() => setIsLoading(false), 300);
   }, []);
 
+  const handleGoToday = useCallback(() => {
+    setWeekStart(getWeekStart(TODAY));
+    setSelectedDate(TODAY_ISO);
+    setCalendarMonth(TODAY);
+    const ref = dayRefs.current[TODAY_ISO];
+    if (ref) ref.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
   const handleDaySelect = useCallback((dateISO: string) => {
     setSelectedDate(dateISO);
-    const ref = dayRefs.current[dateISO];
-    if (ref) {
-      ref.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    // Update week strip if the selected day is outside the current week
+    const selectedD = parseISODate(dateISO);
+    const newWeekStart = getWeekStart(selectedD);
+    setWeekStart(newWeekStart);
+    setCalendarMonth(selectedD);
+    // Scroll to that day
+    setTimeout(() => {
+      const ref = dayRefs.current[dateISO];
+      if (ref) ref.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   }, []);
+
+  const handleMiniCalendarSelect = useCallback((day: Date | undefined) => {
+    if (!day) return;
+    const iso = toISODate(day);
+    handleDaySelect(iso);
+  }, [handleDaySelect]);
 
   const handleAutoJoinToggle = useCallback((meetingId: string, checked: boolean) => {
     setAutoJoinStates((prev) => ({ ...prev, [meetingId]: checked }));
@@ -116,52 +132,64 @@ export function CalendarPage() {
     setMeetingLanguages((prev) => ({ ...prev, [meetingId]: lang }));
   }, []);
 
+  const selectedDateObj = useMemo(() => parseISODate(selectedDate), [selectedDate]);
+
   return (
     <div className="flex-1 overflow-auto">
-      <div className="flex gap-6 px-[32px] pt-[28px] pb-[24px]">
+      <div className="flex gap-8 px-[32px] pt-[28px] pb-[24px]">
         {/* ── Main content ── */}
         <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-center justify-between gap-3">
-            <p
-              className="whitespace-nowrap text-foreground"
-              style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}
-            >
-              {t("calendar.title")}
-            </p>
-            <div className="flex items-center gap-[8px]">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="pill-outline"
-                    className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
-                  >
-                    <Icon icon={Calendar} className="size-[15px] text-foreground" strokeWidth={1.5} />
-                    <span className="font-medium text-[13px] text-foreground">{t("calendar.allCalendars")}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Google Calendar</DropdownMenuItem>
-                  <DropdownMenuItem>Outlook Calendar</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+          {/* Header row */}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p
+                className="whitespace-nowrap text-foreground"
+                style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}
+              >
+                {t("nav.calendar")}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {monthYearLabel}
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 mt-1">
               <Button
                 variant="pill-outline"
-                className="flex items-center gap-[7px] size-9 p-0 shrink-0 transition-colors cursor-pointer"
+                size="icon"
+                className="size-8"
+                onClick={() => handleWeekChange("prev")}
+                aria-label="Previous week"
               >
-                <Icon icon={Settings} className="size-[15px] text-foreground" strokeWidth={1.5} />
+                <Icon icon={ChevronLeft} size={14} />
+              </Button>
+              <Button
+                variant="pill-outline"
+                className="h-8 px-3 text-[13px] font-medium"
+                onClick={handleGoToday}
+              >
+                {t("calendar.today")}
+              </Button>
+              <Button
+                variant="pill-outline"
+                size="icon"
+                className="size-8"
+                onClick={() => handleWeekChange("next")}
+                aria-label="Next week"
+              >
+                <Icon icon={ChevronRight} size={14} />
               </Button>
             </div>
           </div>
 
           {/* Week strip */}
-          <CalendarWeekStrip
-            weekStart={weekStart}
-            selectedDate={selectedDate}
-            todayISO={TODAY_ISO}
-            onWeekChange={handleWeekChange}
-            onDaySelect={handleDaySelect}
-          />
+          <div className="mt-4">
+            <CalendarWeekStrip
+              weekStart={weekStart}
+              selectedDate={selectedDate}
+              todayISO={TODAY_ISO}
+              onDaySelect={handleDaySelect}
+            />
+          </div>
 
           {/* Usage banner */}
           <div className="mt-4 flex items-center justify-between rounded-lg bg-primary/5 px-4 py-2.5">
@@ -191,9 +219,29 @@ export function CalendarPage() {
           </div>
         </div>
 
-        {/* ── Sidebar ── */}
-        <aside className="w-[280px] shrink-0 hidden lg:block">
-          <SchedulerSidebar />
+        {/* ── Right sidebar ── */}
+        <aside className="w-[280px] shrink-0 hidden lg:block pt-1">
+          {/* Mini month calendar */}
+          <MiniCalendar
+            mode="single"
+            selected={selectedDateObj}
+            onSelect={handleMiniCalendarSelect}
+            month={calendarMonth}
+            onMonthChange={setCalendarMonth}
+            today={TODAY}
+            className="rounded-xl border border-border p-3"
+          />
+
+          {/* Scheduler CTA */}
+          <div className="mt-5 px-2">
+            <p className="text-xs text-muted-foreground text-center leading-relaxed">
+              {t("calendar.schedulerDesc")}
+            </p>
+            <Button variant="pill-outline" className="w-full mt-3 gap-1.5">
+              <Icon icon={ArrowUpRight} size={14} />
+              {t("calendar.startScheduling")}
+            </Button>
+          </div>
         </aside>
       </div>
     </div>
@@ -225,7 +273,6 @@ function MeetingList({
 }: MeetingListProps) {
   const { t } = useLanguage();
 
-  // Merge weekend days into combined groups
   const rendered: React.ReactNode[] = [];
   let i = 0;
 
@@ -238,7 +285,6 @@ function MeetingList({
       const sundayGroup = dayGroups[i + 1];
       const sundayDate = parseISODate(sundayGroup.date);
       if (sundayDate.getDay() === 0) {
-        // Combined weekend
         const allMeetings = [...group.meetings, ...sundayGroup.meetings];
         rendered.push(
           <div
@@ -250,7 +296,7 @@ function MeetingList({
           >
             <DayHeader label={formatWeekendHeader(date, sundayDate)} />
             {allMeetings.length === 0 ? (
-              <EmptyDayBanner message={t("calendar.noMeetings")} index={rendered.length} />
+              <EmptyDayBanner message={t("calendar.noMeetings")} />
             ) : (
               allMeetings.map((m) => (
                 <CalendarMeetingCard
@@ -286,7 +332,7 @@ function MeetingList({
       >
         <DayHeader label={formatDayHeader(date)} />
         {group.meetings.length === 0 ? (
-          <EmptyDayBanner message={t("calendar.noMeetings")} index={rendered.length} />
+          <EmptyDayBanner message={t("calendar.noMeetings")} />
         ) : (
           group.meetings.map((m) => (
             <CalendarMeetingCard
@@ -313,20 +359,17 @@ function MeetingList({
 
 function DayHeader({ label }: { label: string }) {
   return (
-    <h3 className="text-[15px] font-semibold text-foreground mt-5 mb-2 first:mt-0">
+    <h3 className="text-[14px] font-semibold text-foreground mt-6 mb-2 pb-2 border-b border-border/50 first:mt-0">
       {label}
     </h3>
   );
 }
 
-function EmptyDayBanner({ message, index }: { message: string; index: number }) {
-  const emojis = ["\u2728", "\u{1F60A}"];
-  const emoji = emojis[index % emojis.length];
-
+function EmptyDayBanner({ message }: { message: string }) {
   return (
-    <div className="flex items-center justify-center rounded-xl bg-primary/[0.03] py-4 px-4 mb-2">
+    <div className="flex items-center justify-center rounded-lg bg-muted/30 py-3.5 px-4 mb-1">
       <span className="text-sm text-muted-foreground">
-        {emoji} {message}
+        {message}
       </span>
     </div>
   );
@@ -348,50 +391,6 @@ function LoadingSkeletons() {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function SchedulerSidebar() {
-  const { t } = useLanguage();
-
-  return (
-    <div className="space-y-4">
-      {/* Scheduler card */}
-      <div className="flex items-center gap-2 mb-2">
-        <Icon icon={Calendar} size={16} className="text-muted-foreground" />
-        <span className="text-sm font-medium text-foreground">
-          {t("calendar.scheduler")}
-        </span>
-      </div>
-
-      {/* Illustration placeholder */}
-      <div className="flex items-center justify-center h-[120px] rounded-xl bg-muted/50 overflow-hidden">
-        <div className="flex items-center gap-2 opacity-40">
-          <div className="w-8 h-10 rounded bg-primary/20" />
-          <div className="flex flex-col gap-1">
-            <div className="w-14 h-1.5 rounded-full bg-primary/30" />
-            <div className="w-10 h-1.5 rounded-full bg-primary/20" />
-            <div className="w-12 h-1.5 rounded-full bg-primary/20" />
-            <div className="w-8 h-1.5 rounded-full bg-primary/10" />
-          </div>
-          <div className="w-2 h-2 rounded-full bg-primary" />
-          <div className="flex flex-col gap-1">
-            <div className="w-10 h-1 rounded-full bg-border" />
-            <div className="w-12 h-1 rounded-full border border-dashed border-border" />
-            <div className="w-10 h-1 rounded-full bg-border" />
-          </div>
-        </div>
-      </div>
-
-      <p className="text-sm text-muted-foreground text-center leading-relaxed px-2">
-        {t("calendar.schedulerDesc")}
-      </p>
-
-      <Button variant="outline" className="w-full rounded-full gap-1.5">
-        <Icon icon={ArrowUpRight} size={14} />
-        {t("calendar.startScheduling")}
-      </Button>
     </div>
   );
 }

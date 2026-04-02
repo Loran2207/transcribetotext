@@ -270,7 +270,7 @@ export function formatMonthYear(d: Date): { month: string; year: string } {
 }
 
 /** Short day names starting from the given date */
-const DAY_NAMES_SHORT = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const DAY_NAMES_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function getDayNameShort(d: Date): string {
   return DAY_NAMES_SHORT[d.getDay()];
@@ -285,11 +285,21 @@ export function getDayNameFull(d: Date): string {
   return DAY_NAMES_FULL[d.getDay()];
 }
 
-/** Format date as "MM/DD DayName", e.g., "04/02 Thursday" */
+/** Format date as "MM/DD · DayName", e.g., "04/02 · Thursday" */
 export function formatDayHeader(d: Date): string {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
-  return `${mm}/${dd} ${getDayNameFull(d)}`;
+  return `${mm}/${dd} \u00b7 ${getDayNameFull(d)}`;
+}
+
+/** Full month name + year, e.g., "April 2026" */
+const MONTH_NAMES_FULL = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+export function formatMonthYearFull(d: Date): string {
+  return `${MONTH_NAMES_FULL[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 /** Format weekend header, e.g., "04/04 Saturday - 04/05 Sunday" */

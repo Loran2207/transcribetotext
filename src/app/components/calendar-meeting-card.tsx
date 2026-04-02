@@ -30,15 +30,13 @@ export function CalendarMeetingCard({
   const { t } = useLanguage();
 
   return (
-    <div className="flex items-start gap-4 py-3 px-1 group">
+    <div className="flex items-start gap-4 py-3.5 px-4 border-l-2 border-primary/60 ml-1 rounded-r-lg hover:bg-accent/30 transition-colors">
       {/* Time column */}
-      <div className="flex items-center gap-2 min-w-[140px] shrink-0">
-        <div className="flex items-center gap-1.5">
-          <SourceIcon source={meeting.platform} />
-          <span className="text-sm text-foreground whitespace-nowrap">
-            {meeting.startTime} ~ {meeting.endTime}
-          </span>
-        </div>
+      <div className="flex items-center gap-2 min-w-[130px] shrink-0">
+        <SourceIcon source={meeting.platform} />
+        <span className="text-sm text-foreground whitespace-nowrap">
+          {meeting.startTime} ~ {meeting.endTime}
+        </span>
       </div>
 
       {/* Auto-join toggle */}
@@ -46,7 +44,7 @@ export function CalendarMeetingCard({
         <Switch
           checked={autoJoin}
           onCheckedChange={onAutoJoinChange}
-          aria-label="Auto-join"
+          aria-label={t("calendar.autoJoin")}
         />
         <span className="text-[10px] text-muted-foreground">{t("calendar.autoJoin")}</span>
       </div>
@@ -56,16 +54,13 @@ export function CalendarMeetingCard({
         <span className="text-sm font-medium text-foreground truncate">
           {meeting.title}
         </span>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">@</span>
-          <span className="text-xs text-muted-foreground truncate">
-            {meeting.organizerEmail}
-          </span>
-        </div>
+        <span className="text-xs text-muted-foreground truncate">
+          {meeting.organizerEmail}
+        </span>
         <div className="flex items-center gap-1.5 mt-0.5">
-          <Icon icon={Globe} size={14} className="text-muted-foreground shrink-0" />
+          <Icon icon={Globe} size={13} className="text-muted-foreground shrink-0" />
           <Select value={language} onValueChange={(v) => onLanguageChange(v as LangCode)}>
-            <SelectTrigger className="h-6 w-auto min-w-[100px] border-none shadow-none bg-transparent px-1 text-xs text-muted-foreground gap-1 hover:bg-accent transition-colors">
+            <SelectTrigger className="h-5 w-auto min-w-[90px] border-none shadow-none bg-transparent px-1 text-xs text-muted-foreground gap-1 hover:bg-accent transition-colors">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
