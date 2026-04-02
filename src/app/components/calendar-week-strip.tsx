@@ -37,9 +37,9 @@ export function CalendarWeekStrip({
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2 mt-5">
       {/* Month / Year label */}
-      <div className="flex flex-col items-center min-w-[40px]">
+      <div className="flex flex-col items-center min-w-[44px]">
         <span className="text-xs font-medium text-muted-foreground">{month}</span>
         <span className="text-sm font-semibold text-foreground">{year}</span>
       </div>
@@ -48,15 +48,15 @@ export function CalendarWeekStrip({
       <Button
         variant="ghost"
         size="icon"
-        className="size-7"
+        className="size-7 shrink-0"
         onClick={() => onWeekChange("prev")}
         aria-label="Previous week"
       >
         <Icon icon={ChevronLeft} size={16} />
       </Button>
 
-      {/* Day cells */}
-      <div className="flex items-center gap-1">
+      {/* Day cells — flex-1 to fill available width */}
+      <div className="flex items-center flex-1">
         {days.map((day) => {
           const isToday = day.dateISO === todayISO;
           const isSelected = day.dateISO === selectedDate;
@@ -67,13 +67,13 @@ export function CalendarWeekStrip({
               variant="ghost"
               onClick={() => onDaySelect(day.dateISO)}
               className={cn(
-                "flex flex-col items-center w-[52px] h-auto py-1.5 rounded-lg",
+                "flex flex-col items-center flex-1 h-auto py-2 rounded-lg",
                 isSelected && !isToday && "bg-accent",
               )}
             >
               <span
                 className={cn(
-                  "text-[11px] font-medium uppercase",
+                  "text-[11px] font-medium uppercase tracking-wide",
                   isToday ? "text-primary" : "text-muted-foreground",
                 )}
               >
@@ -81,7 +81,7 @@ export function CalendarWeekStrip({
               </span>
               <span
                 className={cn(
-                  "mt-0.5 flex items-center justify-center size-7 rounded-full text-sm font-semibold transition-colors",
+                  "mt-1 flex items-center justify-center size-8 rounded-full text-[15px] font-semibold transition-colors",
                   isToday && "bg-primary text-primary-foreground",
                   !isToday && "text-foreground",
                 )}
@@ -97,7 +97,7 @@ export function CalendarWeekStrip({
       <Button
         variant="ghost"
         size="icon"
-        className="size-7"
+        className="size-7 shrink-0"
         onClick={() => onWeekChange("next")}
         aria-label="Next week"
       >

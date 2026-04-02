@@ -118,23 +118,26 @@ export function CalendarPage() {
 
   return (
     <div className="flex-1 overflow-auto">
-      <div className="flex gap-6 p-6">
+      <div className="flex gap-6 px-[32px] pt-[28px] pb-[24px]">
         {/* ── Main content ── */}
         <div className="flex-1 min-w-0">
           {/* Header */}
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <Icon icon={Calendar} size={22} className="text-primary" />
-              <h1 className="text-xl font-semibold text-foreground">
-                {t("calendar.title")}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-3">
+            <p
+              className="whitespace-nowrap text-foreground"
+              style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}
+            >
+              {t("calendar.title")}
+            </p>
+            <div className="flex items-center gap-[8px]">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5 rounded-full">
-                    <Icon icon={Calendar} size={14} />
-                    {t("calendar.allCalendars")}
+                  <Button
+                    variant="pill-outline"
+                    className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
+                  >
+                    <Icon icon={Calendar} className="size-[15px] text-foreground" strokeWidth={1.5} />
+                    <span className="font-medium text-[13px] text-foreground">{t("calendar.allCalendars")}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -142,8 +145,11 @@ export function CalendarPage() {
                   <DropdownMenuItem>Outlook Calendar</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button variant="ghost" size="icon" className="size-8">
-                <Icon icon={Settings} size={16} />
+              <Button
+                variant="pill-outline"
+                className="flex items-center gap-[7px] size-9 p-0 shrink-0 transition-colors cursor-pointer"
+              >
+                <Icon icon={Settings} className="size-[15px] text-foreground" strokeWidth={1.5} />
               </Button>
             </div>
           </div>
