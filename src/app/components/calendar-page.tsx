@@ -158,11 +158,11 @@ export function CalendarPage() {
 
   return (
     <TooltipProvider>
-      <div className="flex-1 overflow-auto">
-        <div className="flex gap-6 px-8 pt-7 pb-6">
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex gap-6 px-8 pt-7 pb-0 flex-1 min-w-0">
           {/* ── Main content ── */}
-          <div className="flex-1 min-w-0">
-            {/* Header */}
+          <div className="flex-1 min-w-0 flex flex-col">
+            {/* Header — sticky */}
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="whitespace-nowrap text-foreground font-bold text-[28px] leading-[33.6px] tracking-[-0.56px]">
@@ -222,28 +222,29 @@ export function CalendarPage() {
               />
             </div>
 
-            {/* Meeting list */}
-            <motion.div
-              key={weekStart.toISOString()}
-              initial={prefersReducedMotion ? undefined : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.2 }}
-              className="mt-6"
-            >
-              <MeetingList
-                dayGroups={extendedGroups}
-                dayRefs={dayRefs}
-                autoJoinStates={autoJoinStates}
-                meetingLanguages={meetingLanguages}
-                onAutoJoinToggle={handleAutoJoinToggle}
-                onLanguageChange={handleLanguageChange}
-                prefersReducedMotion={prefersReducedMotion}
-              />
-            </motion.div>
+            {/* Meeting list — scrollable area */}
+            <div className="flex-1 overflow-y-auto mt-4 pb-6">
+              <motion.div
+                key={weekStart.toISOString()}
+                initial={prefersReducedMotion ? undefined : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
+              >
+                <MeetingList
+                  dayGroups={extendedGroups}
+                  dayRefs={dayRefs}
+                  autoJoinStates={autoJoinStates}
+                  meetingLanguages={meetingLanguages}
+                  onAutoJoinToggle={handleAutoJoinToggle}
+                  onLanguageChange={handleLanguageChange}
+                  prefersReducedMotion={prefersReducedMotion}
+                />
+              </motion.div>
+            </div>
           </div>
 
           {/* ── Right sidebar ── */}
-          <aside className="w-[260px] shrink-0 hidden lg:block space-y-5">
+          <aside className="w-[260px] shrink-0 hidden lg:flex lg:flex-col space-y-5 overflow-y-auto pb-6">
             {/* Mini calendar */}
             <div className="rounded-2xl border border-border/60 bg-card p-2 shadow-sm">
               <MiniCalendar
