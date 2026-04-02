@@ -1,4 +1,3 @@
-import { Button } from "@/app/components/ui/button";
 import { cn } from "@/app/components/ui/utils";
 import { getDayNameShort, toISODate } from "./calendar-mock-data";
 
@@ -31,47 +30,48 @@ export function CalendarWeekStrip({
   }
 
   return (
-    <div className="flex items-center gap-0.5 py-2">
+    <div className="flex items-center">
       {days.map((day) => {
         const isToday = day.dateISO === todayISO;
         const isSelected = day.dateISO === selectedDate && !isToday;
         const dotCount = Math.min(meetingCounts[day.dateISO] ?? 0, 3);
 
         return (
-          <Button
+          <button
             key={day.dateISO}
-            variant="ghost"
             onClick={() => onDaySelect(day.dateISO)}
             className={cn(
-              "flex flex-col items-center flex-1 h-auto py-2.5 rounded-xl gap-0.5 relative",
-              isSelected && "bg-accent ring-1 ring-border",
+              "flex flex-col items-center flex-1 py-3 rounded-xl gap-1 transition-colors duration-100 cursor-pointer",
+              isSelected && "bg-accent/60",
+              !isSelected && !isToday && "hover:bg-accent/30",
             )}
           >
             <span
               className={cn(
-                "text-[12px] font-medium",
-                isToday ? "text-primary" : day.isWeekend ? "text-muted-foreground/50" : "text-muted-foreground",
+                "text-[11px] font-semibold uppercase tracking-wider",
+                isToday ? "text-primary" : day.isWeekend ? "text-muted-foreground/40" : "text-muted-foreground/70",
               )}
             >
               {day.dayName}
             </span>
             <span
               className={cn(
-                "flex items-center justify-center size-8 rounded-full text-[15px] font-semibold transition-colors",
-                isToday && "bg-primary text-primary-foreground ring-2 ring-primary/15",
-                !isToday && day.isWeekend && "text-muted-foreground/60",
-                !isToday && !day.isWeekend && "text-foreground",
+                "flex items-center justify-center size-9 rounded-full text-[16px] font-semibold transition-all duration-150",
+                isToday && "bg-primary text-primary-foreground",
+                isSelected && !isToday && "text-foreground",
+                !isSelected && !isToday && day.isWeekend && "text-muted-foreground/50",
+                !isSelected && !isToday && !day.isWeekend && "text-foreground",
               )}
             >
               {day.dayNum}
             </span>
             {/* Event dots */}
-            <div className="flex items-center gap-0.5 h-[6px] mt-0.5">
+            <div className="flex items-center gap-[3px] h-[5px]">
               {dotCount > 0 && Array.from({ length: dotCount }).map((_, idx) => (
-                <div key={idx} className="size-[4px] rounded-full bg-primary/60" />
+                <div key={idx} className="size-[3px] rounded-full bg-primary/50" />
               ))}
             </div>
-          </Button>
+          </button>
         );
       })}
     </div>

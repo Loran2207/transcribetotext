@@ -23,7 +23,6 @@ import {
   parseISODate,
   formatDayHeader,
   formatWeekendHeader,
-  formatMonthYearFull,
   type CalendarMeeting,
   type DayGroup,
 } from "./calendar-mock-data";
@@ -77,8 +76,6 @@ export function CalendarPage() {
     const week2 = groupMeetingsByDay(MOCK_MEETINGS, extStart);
     return [...week1, ...week2];
   }, [weekStart]);
-
-  const monthYearLabel = useMemo(() => formatMonthYearFull(weekStart), [weekStart]);
 
   const meetingCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -162,16 +159,11 @@ export function CalendarPage() {
         <div className="flex gap-6 px-8 pt-7 pb-0 flex-1 min-w-0">
           {/* ── Main content ── */}
           <div className="flex-1 min-w-0 flex flex-col">
-            {/* Header — sticky */}
+            {/* Header */}
             <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="whitespace-nowrap text-foreground font-bold text-[28px] leading-[33.6px] tracking-[-0.56px]">
-                  {t("nav.calendar")}
-                </p>
-                <p className="text-[13px] text-muted-foreground mt-0.5">
-                  {monthYearLabel} &middot; {weekMeetingCount} {t("calendar.meetingsWeek")}
-                </p>
-              </div>
+              <p className="whitespace-nowrap text-foreground font-bold text-[28px] leading-[33.6px] tracking-[-0.56px]">
+                {t("nav.calendar")}
+              </p>
               <div className="flex items-center gap-1.5">
                 <Button
                   variant="pill-outline"
@@ -246,7 +238,7 @@ export function CalendarPage() {
           {/* ── Right sidebar ── */}
           <aside className="w-[260px] shrink-0 hidden lg:flex lg:flex-col space-y-5 overflow-y-auto pb-6">
             {/* Mini calendar */}
-            <div className="rounded-2xl border border-border/60 bg-card p-2 shadow-sm">
+            <div className="rounded-2xl border border-border/50 bg-card p-2">
               <MiniCalendar
                 mode="single"
                 selected={selectedDateObj}
@@ -275,7 +267,7 @@ export function CalendarPage() {
             </div>
 
             {/* Quick stats */}
-            <div className="rounded-xl border border-border/60 bg-card p-3.5">
+            <div className="rounded-xl border border-border/50 bg-card p-3.5">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[20px] font-semibold text-foreground">{weekMeetingCount}</p>
@@ -428,20 +420,19 @@ function MeetingList({
 
 function DayHeader({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3 mt-8 mb-3 first:mt-0">
-      <h3 className="text-[13px] font-semibold text-foreground whitespace-nowrap">
+    <div className="flex items-center gap-3 mt-7 mb-2 first:mt-2">
+      <h3 className="text-[13px] font-semibold text-foreground/90 whitespace-nowrap tracking-tight">
         {label}
       </h3>
-      <div className="flex-1 h-px bg-border/40" />
+      <div className="flex-1 h-px bg-border/30" />
     </div>
   );
 }
 
 function EmptyDayBanner({ message }: { message: string }) {
   return (
-    <div className="flex items-center gap-2 py-3 px-4">
-      <div className="size-1.5 rounded-full bg-muted-foreground/30" />
-      <span className="text-[13px] text-muted-foreground/70">{message}</span>
+    <div className="py-4 pl-7">
+      <span className="text-[13px] text-muted-foreground/50 italic">{message}</span>
     </div>
   );
 }
