@@ -4,11 +4,14 @@ import {
   ChevronLeft,
   ChevronRight,
   ArrowUpRight,
+  Settings,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
-import { Skeleton } from "@/app/components/ui/skeleton";
 import { Calendar as MiniCalendar } from "@/app/components/ui/calendar";
+import { TooltipProvider } from "@/app/components/ui/tooltip";
+import { cn } from "@/app/components/ui/utils";
+import { toast } from "sonner";
 import { useLanguage, type LangCode } from "./language-context";
 import { CalendarWeekStrip } from "./calendar-week-strip";
 import { CalendarMeetingCard } from "./calendar-meeting-card";
@@ -21,6 +24,7 @@ import {
   formatDayHeader,
   formatWeekendHeader,
   formatMonthYearFull,
+  type CalendarMeeting,
   type DayGroup,
 } from "./calendar-mock-data";
 
@@ -28,11 +32,15 @@ import {
    Constants
    ═══════════════════════════════════════════ */
 
-const TODAY = new Date(2026, 3, 2); // April 2, 2026 — matches reference
+const TODAY = new Date(2026, 3, 2); // April 2, 2026
 const TODAY_ISO = toISODate(TODAY);
 const MOCK_MEETINGS = generateMockMeetings();
-const FREE_LIMIT = 20;
-const FREE_USED = 0;
+
+const PLATFORM_DOT_COLORS: Record<string, string> = {
+  "google-meet": "bg-[#00832D]",
+  "zoom": "bg-[#2D8CFF]",
+  "teams": "bg-[#6264A7]",
+};
 
 /* ═══════════════════════════════════════════
    Calendar Page
@@ -41,40 +49,27 @@ const FREE_USED = 0;
 export function CalendarPage() {
   const { t } = useLanguage();
 
-  // Week navigation
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(TODAY));
   const [selectedDate, setSelectedDate] = useState<string>(TODAY_ISO);
-
-  // Mini calendar month
   const [calendarMonth, setCalendarMonth] = useState<Date>(TODAY);
-
-  // Accessibility
   const prefersReducedMotion = useReducedMotion();
 
   // Per-meeting state (immutable updates)
   const [autoJoinStates, setAutoJoinStates] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
-    for (const m of MOCK_MEETINGS) {
-      initial[m.id] = m.autoJoin;
-    }
+    for (const m of MOCK_MEETINGS) { initial[m.id] = m.autoJoin; }
     return initial;
   });
 
   const [meetingLanguages, setMeetingLanguages] = useState<Record<string, LangCode>>(() => {
     const initial: Record<string, LangCode> = {};
-    for (const m of MOCK_MEETINGS) {
-      initial[m.id] = m.language;
-    }
+    for (const m of MOCK_MEETINGS) { initial[m.id] = m.language; }
     return initial;
   });
 
-  // Loading simulation (brief skeleton on week change)
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Day group refs for scroll-to
   const dayRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Group meetings for the current week view + next week
+  // Computed data
   const extendedGroups = useMemo(() => {
     const week1 = groupMeetingsByDay(MOCK_MEETINGS, weekStart);
     const extStart = new Date(weekStart);
@@ -83,17 +78,48 @@ export function CalendarPage() {
     return [...week1, ...week2];
   }, [weekStart]);
 
-  // Month/year label derived from weekStart
   const monthYearLabel = useMemo(() => formatMonthYearFull(weekStart), [weekStart]);
 
+  const meetingCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const m of MOCK_MEETINGS) { counts[m.date] = (counts[m.date] ?? 0) + 1; }
+    return counts;
+  }, []);
+
+  const weekMeetingCount = useMemo(() => {
+    let count = 0;
+    for (let i = 0; i < 7 && i < extendedGroups.length; i++) {
+      count += extendedGroups[i].meetings.length;
+    }
+    return count;
+  }, [extendedGroups]);
+
+  const totalHoursLabel = useMemo(() => {
+    let totalMinutes = 0;
+    for (let i = 0; i < 7 && i < extendedGroups.length; i++) {
+      for (const m of extendedGroups[i].meetings) {
+        const [sh, sm] = m.startTime.split(":").map(Number);
+        const [eh, em] = m.endTime.split(":").map(Number);
+        totalMinutes += (eh * 60 + em) - (sh * 60 + sm);
+      }
+    }
+    const h = Math.floor(totalMinutes / 60);
+    const min = totalMinutes % 60;
+    return min > 0 ? `${h}h ${min}m` : `${h}h`;
+  }, [extendedGroups]);
+
+  const todayMeetings = useMemo(
+    () => MOCK_MEETINGS.filter((m) => m.date === TODAY_ISO),
+    [],
+  );
+
+  // Handlers
   const handleWeekChange = useCallback((direction: "prev" | "next") => {
     setWeekStart((prev) => {
       const next = new Date(prev);
       next.setDate(next.getDate() + (direction === "next" ? 7 : -7));
       return next;
     });
-    setIsLoading(true);
-    setTimeout(() => setIsLoading(false), 300);
   }, []);
 
   const handleGoToday = useCallback(() => {
@@ -106,12 +132,9 @@ export function CalendarPage() {
 
   const handleDaySelect = useCallback((dateISO: string) => {
     setSelectedDate(dateISO);
-    // Update week strip if the selected day is outside the current week
     const selectedD = parseISODate(dateISO);
-    const newWeekStart = getWeekStart(selectedD);
-    setWeekStart(newWeekStart);
+    setWeekStart(getWeekStart(selectedD));
     setCalendarMonth(selectedD);
-    // Scroll to that day
     setTimeout(() => {
       const ref = dayRefs.current[dateISO];
       if (ref) ref.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -120,8 +143,7 @@ export function CalendarPage() {
 
   const handleMiniCalendarSelect = useCallback((day: Date | undefined) => {
     if (!day) return;
-    const iso = toISODate(day);
-    handleDaySelect(iso);
+    handleDaySelect(toISODate(day));
   }, [handleDaySelect]);
 
   const handleAutoJoinToggle = useCallback((meetingId: string, checked: boolean) => {
@@ -135,74 +157,79 @@ export function CalendarPage() {
   const selectedDateObj = useMemo(() => parseISODate(selectedDate), [selectedDate]);
 
   return (
-    <div className="flex-1 overflow-auto">
-      <div className="flex gap-8 px-[32px] pt-[28px] pb-[24px]">
-        {/* ── Main content ── */}
-        <div className="flex-1 min-w-0">
-          {/* Header row */}
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="whitespace-nowrap text-foreground font-bold text-[28px] leading-[33.6px] tracking-[-0.56px]">
-                {t("nav.calendar")}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {monthYearLabel}
-              </p>
+    <TooltipProvider>
+      <div className="flex-1 overflow-auto">
+        <div className="flex gap-6 px-8 pt-7 pb-6">
+          {/* ── Main content ── */}
+          <div className="flex-1 min-w-0">
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="whitespace-nowrap text-foreground font-bold text-[28px] leading-[33.6px] tracking-[-0.56px]">
+                  {t("nav.calendar")}
+                </p>
+                <p className="text-[13px] text-muted-foreground mt-0.5">
+                  {monthYearLabel} &middot; {weekMeetingCount} {t("calendar.meetingsWeek")}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="pill-outline"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => handleWeekChange("prev")}
+                  aria-label={t("calendar.prevWeek")}
+                >
+                  <Icon icon={ChevronLeft} size={14} />
+                </Button>
+                <Button
+                  variant="pill-outline"
+                  className="h-8 px-3 text-[13px] font-medium"
+                  onClick={handleGoToday}
+                >
+                  {t("calendar.today")}
+                </Button>
+                <Button
+                  variant="pill-outline"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => handleWeekChange("next")}
+                  aria-label={t("calendar.nextWeek")}
+                >
+                  <Icon icon={ChevronRight} size={14} />
+                </Button>
+                <div className="w-px h-5 bg-border mx-1" />
+                <Button
+                  variant="pill-outline"
+                  size="icon"
+                  className="size-8"
+                  onClick={() => toast(t("common.comingSoon"))}
+                  aria-label={t("profile.settings")}
+                >
+                  <Icon icon={Settings} size={14} />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 mt-1">
-              <Button
-                variant="pill-outline"
-                size="icon"
-                className="size-8"
-                onClick={() => handleWeekChange("prev")}
-                aria-label={t("calendar.prevWeek")}
-              >
-                <Icon icon={ChevronLeft} size={14} />
-              </Button>
-              <Button
-                variant="pill-outline"
-                className="h-8 px-3 text-[13px] font-medium"
-                onClick={handleGoToday}
-              >
-                {t("calendar.today")}
-              </Button>
-              <Button
-                variant="pill-outline"
-                size="icon"
-                className="size-8"
-                onClick={() => handleWeekChange("next")}
-                aria-label={t("calendar.nextWeek")}
-              >
-                <Icon icon={ChevronRight} size={14} />
-              </Button>
+
+            {/* Week strip */}
+            <div className="mt-4">
+              <CalendarWeekStrip
+                weekStart={weekStart}
+                selectedDate={selectedDate}
+                todayISO={TODAY_ISO}
+                meetingCounts={meetingCounts}
+                onDaySelect={handleDaySelect}
+              />
             </div>
-          </div>
 
-          {/* Week strip */}
-          <div className="mt-4">
-            <CalendarWeekStrip
-              weekStart={weekStart}
-              selectedDate={selectedDate}
-              todayISO={TODAY_ISO}
-              onDaySelect={handleDaySelect}
-            />
-          </div>
-
-          {/* Usage banner */}
-          <div className="mt-4 flex items-center justify-between rounded-lg bg-primary/5 px-4 py-2.5">
-            <span className="text-sm text-foreground">
-              {FREE_USED}/{FREE_LIMIT} {t("calendar.freeLeft")}
-            </span>
-            <Button variant="link" className="text-sm font-medium p-0 h-auto">
-              {t("calendar.upgrade")}
-            </Button>
-          </div>
-
-          {/* Meeting list */}
-          <div className="mt-5 space-y-1">
-            {isLoading ? (
-              <LoadingSkeletons />
-            ) : (
+            {/* Meeting list */}
+            <motion.div
+              key={weekStart.toISOString()}
+              initial={prefersReducedMotion ? undefined : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2 }}
+              className="mt-6"
+            >
               <MeetingList
                 dayGroups={extendedGroups}
                 dayRefs={dayRefs}
@@ -212,34 +239,79 @@ export function CalendarPage() {
                 onLanguageChange={handleLanguageChange}
                 prefersReducedMotion={prefersReducedMotion}
               />
-            )}
+            </motion.div>
           </div>
+
+          {/* ── Right sidebar ── */}
+          <aside className="w-[260px] shrink-0 hidden lg:block space-y-5">
+            {/* Mini calendar */}
+            <div className="rounded-2xl border border-border/60 bg-card p-2 shadow-sm">
+              <MiniCalendar
+                mode="single"
+                selected={selectedDateObj}
+                onSelect={handleMiniCalendarSelect}
+                month={calendarMonth}
+                onMonthChange={setCalendarMonth}
+                today={TODAY}
+                className="p-1"
+              />
+            </div>
+
+            {/* Today's agenda */}
+            <div className="space-y-2">
+              <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider px-1">
+                {t("calendar.todayAgenda")}
+              </h4>
+              {todayMeetings.length === 0 ? (
+                <p className="text-[13px] text-muted-foreground/60 px-1">
+                  {t("calendar.noMeetingsToday")}
+                </p>
+              ) : (
+                todayMeetings.map((m) => (
+                  <SidebarMeetingItem key={m.id} meeting={m} />
+                ))
+              )}
+            </div>
+
+            {/* Quick stats */}
+            <div className="rounded-xl border border-border/60 bg-card p-3.5">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[20px] font-semibold text-foreground">{weekMeetingCount}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("calendar.thisWeek")}</p>
+                </div>
+                <div>
+                  <p className="text-[20px] font-semibold text-foreground">{totalHoursLabel}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("calendar.hoursTotal")}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Schedule CTA */}
+            <div className="px-1">
+              <Button variant="pill-outline" className="w-full gap-1.5 text-[13px]">
+                <Icon icon={ArrowUpRight} size={14} />
+                {t("calendar.startScheduling")}
+              </Button>
+            </div>
+          </aside>
         </div>
+      </div>
+    </TooltipProvider>
+  );
+}
 
-        {/* ── Right sidebar ── */}
-        <aside className="w-[280px] shrink-0 hidden lg:block pt-1">
-          {/* Mini month calendar */}
-          <MiniCalendar
-            mode="single"
-            selected={selectedDateObj}
-            onSelect={handleMiniCalendarSelect}
-            month={calendarMonth}
-            onMonthChange={setCalendarMonth}
-            today={TODAY}
-            className="rounded-xl border border-border p-3"
-          />
+/* ═══════════════════════════════════════════
+   Sidebar Meeting Item
+   ═══════════════════════════════════════════ */
 
-          {/* Scheduler CTA */}
-          <div className="mt-5 px-2">
-            <p className="text-xs text-muted-foreground text-center leading-relaxed">
-              {t("calendar.schedulerDesc")}
-            </p>
-            <Button variant="pill-outline" className="w-full mt-3 gap-1.5">
-              <Icon icon={ArrowUpRight} size={14} />
-              {t("calendar.startScheduling")}
-            </Button>
-          </div>
-        </aside>
+function SidebarMeetingItem({ meeting }: { meeting: CalendarMeeting }) {
+  return (
+    <div className="flex items-center gap-2.5 px-1 py-1.5 rounded-lg hover:bg-accent/40 transition-colors cursor-pointer">
+      <div className={cn("size-1.5 rounded-full shrink-0", PLATFORM_DOT_COLORS[meeting.platform] ?? "bg-primary")} />
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-medium text-foreground truncate">{meeting.title}</p>
+        <p className="text-[11px] text-muted-foreground">{meeting.startTime} - {meeting.endTime}</p>
       </div>
     </div>
   );
@@ -269,7 +341,6 @@ function MeetingList({
   prefersReducedMotion,
 }: MeetingListProps) {
   const { t } = useLanguage();
-
   const rendered: React.ReactNode[] = [];
   let i = 0;
 
@@ -277,7 +348,7 @@ function MeetingList({
     const group = dayGroups[i];
     const date = parseISODate(group.date);
 
-    // Check for Saturday + Sunday pair
+    // Weekend pair
     if (date.getDay() === 6 && i + 1 < dayGroups.length) {
       const sundayGroup = dayGroups[i + 1];
       const sundayDate = parseISODate(sundayGroup.date);
@@ -356,38 +427,20 @@ function MeetingList({
 
 function DayHeader({ label }: { label: string }) {
   return (
-    <h3 className="text-[14px] font-semibold text-foreground mt-6 mb-2 pb-2 border-b border-border/50 first:mt-0">
-      {label}
-    </h3>
+    <div className="flex items-center gap-3 mt-8 mb-3 first:mt-0">
+      <h3 className="text-[13px] font-semibold text-foreground whitespace-nowrap">
+        {label}
+      </h3>
+      <div className="flex-1 h-px bg-border/40" />
+    </div>
   );
 }
 
 function EmptyDayBanner({ message }: { message: string }) {
   return (
-    <div className="flex items-center justify-center rounded-lg bg-muted/30 py-3.5 px-4 mb-1">
-      <span className="text-sm text-muted-foreground">
-        {message}
-      </span>
-    </div>
-  );
-}
-
-function LoadingSkeletons() {
-  return (
-    <div className="space-y-4 mt-4">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="space-y-3">
-          <Skeleton className="h-5 w-40" />
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-10 w-32" />
-            <Skeleton className="h-10 w-10 rounded-full" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-64" />
-              <Skeleton className="h-3 w-40" />
-            </div>
-          </div>
-        </div>
-      ))}
+    <div className="flex items-center gap-2 py-3 px-4">
+      <div className="size-1.5 rounded-full bg-muted-foreground/30" />
+      <span className="text-[13px] text-muted-foreground/70">{message}</span>
     </div>
   );
 }
