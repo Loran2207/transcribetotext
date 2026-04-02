@@ -142,10 +142,7 @@ export function CalendarPage() {
           {/* Header row */}
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p
-                className="whitespace-nowrap text-foreground"
-                style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}
-              >
+              <p className="whitespace-nowrap text-foreground font-bold text-[28px] leading-[33.6px] tracking-[-0.56px]">
                 {t("nav.calendar")}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
@@ -158,7 +155,7 @@ export function CalendarPage() {
                 size="icon"
                 className="size-8"
                 onClick={() => handleWeekChange("prev")}
-                aria-label="Previous week"
+                aria-label={t("calendar.prevWeek")}
               >
                 <Icon icon={ChevronLeft} size={14} />
               </Button>
@@ -174,7 +171,7 @@ export function CalendarPage() {
                 size="icon"
                 className="size-8"
                 onClick={() => handleWeekChange("next")}
-                aria-label="Next week"
+                aria-label={t("calendar.nextWeek")}
               >
                 <Icon icon={ChevronRight} size={14} />
               </Button>

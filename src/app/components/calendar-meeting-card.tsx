@@ -10,6 +10,8 @@ import {
 } from "@/app/components/ui/select";
 import { SourceIcon } from "./source-icons";
 import { LANGUAGES, useLanguage, type LangCode } from "./language-context";
+
+const LANG_CODES = new Set<string>(LANGUAGES.map((l) => l.code));
 import type { CalendarMeeting } from "./calendar-mock-data";
 
 interface CalendarMeetingCardProps {
@@ -59,7 +61,7 @@ export function CalendarMeetingCard({
         </span>
         <div className="flex items-center gap-1.5 mt-0.5">
           <Icon icon={Globe} size={13} className="text-muted-foreground shrink-0" />
-          <Select value={language} onValueChange={(v) => onLanguageChange(v as LangCode)}>
+          <Select value={language} onValueChange={(v) => { if (LANG_CODES.has(v)) onLanguageChange(v as LangCode); }}>
             <SelectTrigger className="h-5 w-auto min-w-[90px] border-none shadow-none bg-transparent px-1 text-xs text-muted-foreground gap-1 hover:bg-accent transition-colors">
               <SelectValue />
             </SelectTrigger>
