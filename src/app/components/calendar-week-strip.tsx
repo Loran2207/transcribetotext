@@ -30,7 +30,7 @@ export function CalendarWeekStrip({
   }
 
   return (
-    <div className="flex items-center border-b border-border/30 pb-4">
+    <div className="flex items-center pb-3">
       {days.map((day) => {
         const isToday = day.dateISO === todayISO;
         const isSelected = day.dateISO === selectedDate;

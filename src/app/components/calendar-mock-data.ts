@@ -40,6 +40,11 @@ export const TRANSCRIPT_MAP: Record<string, string> = {
   m5: "/transcriptions/client-demo-apr01",
 };
 
+/** Map of meeting IDs to recording error reasons (past meetings that failed) */
+export const RECORDING_ERROR_MAP: Record<string, string> = {
+  m4: "Bot failed to join the meeting",
+};
+
 /**
  * Generate mock meetings for a given date range.
  * Creates realistic recurring and one-off meetings.

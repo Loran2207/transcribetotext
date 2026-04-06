@@ -18,7 +18,7 @@ export const LANGUAGES: { code: LangCode; label: string; short: string }[] = [
 const dict: Record<string, Record<LangCode, string>> = {
   // ── Sidebar nav ──
   "nav.home": { en: "Home", ru: "\u0413\u043b\u0430\u0432\u043d\u0430\u044f", es: "Inicio", de: "Startseite", fr: "Accueil", ja: "\u30db\u30fc\u30e0" },
-  "nav.calendar": { en: "Calendar", ru: "\u041a\u0430\u043b\u0435\u043d\u0434\u0430\u0440\u044c", es: "Calendario", de: "Kalender", fr: "Calendrier", ja: "\u30ab\u30ec\u30f3\u30c0\u30fc" },
+  "nav.calendar": { en: "Meetings", ru: "\u0412\u0441\u0442\u0440\u0435\u0447\u0438", es: "Reuniones", de: "Meetings", fr: "R\u00e9unions", ja: "\u30df\u30fc\u30c6\u30a3\u30f3\u30b0" },
   "nav.templates": { en: "Templates", ru: "\u0428\u0430\u0431\u043b\u043e\u043d\u044b", es: "Plantillas", de: "Vorlagen", fr: "Mod\u00e8les", ja: "\u30c6\u30f3\u30d7\u30ec\u30fc\u30c8" },
   "nav.myRecords": { en: "My Records", ru: "\u041c\u043e\u0438 \u0437\u0430\u043f\u0438\u0441\u0438", es: "Mis grabaciones", de: "Meine Aufnahmen", fr: "Mes enregistrements", ja: "\u30de\u30a4\u30ec\u30b3\u30fc\u30c9" },
   "nav.integrations": { en: "Integrations", ru: "\u0418\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438", es: "Integraciones", de: "Integrationen", fr: "Int\u00e9grations", ja: "\u30a4\u30f3\u30c6\u30b0\u30ec\u30fc\u30b7\u30e7\u30f3" },
@@ -245,7 +245,9 @@ const dict: Record<string, Record<LangCode, string>> = {
   "calendar.myCalendars": { en: "My Calendars", ru: "\u041c\u043e\u0438 \u043a\u0430\u043b\u0435\u043d\u0434\u0430\u0440\u0438", es: "Mis calendarios", de: "Meine Kalender", fr: "Mes calendriers", ja: "\u30de\u30a4\u30ab\u30ec\u30f3\u30c0\u30fc" },
   "calendar.default": { en: "Default", ru: "\u041e\u0441\u043d\u043e\u0432\u043d\u043e\u0439", es: "Predeterminado", de: "Standard", fr: "Par d\u00e9faut", ja: "\u30c7\u30d5\u30a9\u30eb\u30c8" },
   "calendar.addCalendar": { en: "Add calendar", ru: "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c \u043a\u0430\u043b\u0435\u043d\u0434\u0430\u0440\u044c", es: "Agregar calendario", de: "Kalender hinzuf\u00fcgen", fr: "Ajouter un calendrier", ja: "\u30ab\u30ec\u30f3\u30c0\u30fc\u3092\u8ffd\u52a0" },
+  "calendar.syncing": { en: "Syncing\u2026", ru: "\u0421\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f\u2026", es: "Sincronizando\u2026", de: "Synchronisiere\u2026", fr: "Synchronisation\u2026", ja: "\u540c\u671f\u4e2d\u2026" },
   "calendar.joinMeeting": { en: "Join Meeting", ru: "\u041f\u0440\u0438\u0441\u043e\u0435\u0434\u0438\u043d\u0438\u0442\u044c\u0441\u044f", es: "Unirse", de: "Beitreten", fr: "Rejoindre", ja: "\u53c2\u52a0" },
+  "calendar.startRecord": { en: "Start Record", ru: "\u0417\u0430\u043f\u0438\u0441\u044c", es: "Grabar", de: "Aufnahme", fr: "Enregistrer", ja: "\u9332\u97f3" },
   "calendar.transcribed": { en: "Transcribed", ru: "\u0422\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u0431\u0438\u0440\u043e\u0432\u0430\u043d\u043e", es: "Transcrito", de: "Transkribiert", fr: "Transcrit", ja: "\u6587\u5b57\u8d77\u3053\u3057\u6e08\u307f" },
   "calendar.viewTranscript": { en: "View Transcript", ru: "\u041f\u043e\u0441\u043c\u043e\u0442\u0440\u0435\u0442\u044c", es: "Ver transcripci\u00f3n", de: "Transkript ansehen", fr: "Voir la transcription", ja: "\u6587\u5b57\u8d77\u3053\u3057\u3092\u898b\u308b" },
   "calendar.notRecorded": { en: "Not recorded", ru: "\u041d\u0435 \u0437\u0430\u043f\u0438\u0441\u0430\u043d\u043e", es: "No grabado", de: "Nicht aufgenommen", fr: "Non enregistr\u00e9", ja: "\u672a\u9332\u97f3" },

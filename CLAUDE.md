@@ -187,7 +187,21 @@ When implementing any UI, follow this strict priority:
 
 ---
 
-### 2d. Icons — STRICT RULE
+### 2d. Button Variants — STRICT RULE
+
+**Never use the `secondary` variant** for secondary/non-primary actions. The gray filled style (`bg-secondary`) is not used in this project.
+
+**Rules:**
+- **Primary action** (CTA): `variant="default"` — filled blue
+- **Secondary action**: `variant="pill-outline"` — white background, border, rounded-full. This is the standard secondary button style.
+- **Subtle/inline action**: `variant="ghost"` — no border, transparent background
+- **Destructive action**: `variant="destructive"` — filled red
+- **Do NOT use** `variant="secondary"` — it produces a gray filled button which does not match the project design system
+- **Do NOT use** `variant="outline"` for standalone buttons — it lacks a visible border at rest. Use `pill-outline` instead.
+
+---
+
+### 2e. Icons — STRICT RULE
 
 This project uses **Huge Icons** as the primary icon library for application components.
 
@@ -222,7 +236,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 
 ---
 
-### 2e. Colors
+### 2f. Colors
 
 All colors use the **OKLCH color space** and are defined as CSS custom properties in `src/styles/theme.css`.
 
@@ -272,7 +286,7 @@ All colors use the **OKLCH color space** and are defined as CSS custom propertie
 
 ---
 
-### 2f. Typography
+### 2g. Typography
 
 **Font families** (defined in `src/styles/theme.css`):
 - `--font-sans`: `'Inter Variable', sans-serif` — body text
@@ -295,7 +309,7 @@ All colors use the **OKLCH color space** and are defined as CSS custom propertie
 
 ---
 
-### 2g. Spacing & Layout
+### 2h. Spacing & Layout
 
 **Border radius scale** (base `--radius: 0.625rem` = 10px):
 | Token | Calc | Approx |
@@ -314,7 +328,7 @@ All colors use the **OKLCH color space** and are defined as CSS custom propertie
 
 ---
 
-### 2h. Theming & Dark Mode
+### 2i. Theming & Dark Mode
 
 - **Theme engine:** `next-themes` v0.4.6 is installed but currently **light mode only** — no dark mode CSS variables are defined in `theme.css`.
 - **CSS variable strategy:** All theme values are CSS custom properties in `:root`. Tailwind maps them via `@theme inline` block.
