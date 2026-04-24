@@ -159,22 +159,72 @@ function sectionIcon(title: string, iconId?: string) {
 // Emoji mapping for template names
 // ---------------------------------------------------------------------------
 
+// Exact-name emoji overrides — every built-in from the Notta-seeded library has
+// a specific emoji so the card face reads like the design reference.
+const TEMPLATE_EMOJI_EXACT: Record<string, string> = {
+  // Basic
+  "Auto": "\u{2728}",                      // ✨
+  "General": "\u{1F4CB}",                  // 📋
+  "Interview": "\u{1F3A4}",                // 🎤
+  "Team Meeting": "\u{1F91D}",             // 🤝
+  "Brainstorming": "\u{1F4A1}",            // 💡
+  // Sales
+  "Sales Pitch": "\u{1F4E3}",              // 📣
+  "CHAMP": "\u{1F3C6}",                    // 🏆
+  "ANUM": "\u{1F3AF}",                     // 🎯
+  "SPICED": "\u{1F336}\u{FE0F}",           // 🌶️
+  "BANT": "\u{1F4B0}",                     // 💰
+  "GPCT": "\u{1F4CA}",                     // 📊
+  "MEDDIC": "\u{1F50D}",                   // 🔍
+  "FAINT": "\u{1F4B5}",                    // 💵
+  "SPIN": "\u{1F504}",                     // 🔄
+  // HR & Management
+  "Job Interview": "\u{1F454}",            // 👔
+  "1-on-1 Meeting": "\u{1F465}",           // 👥
+  "Exit Interview": "\u{1F44B}",           // 👋
+  // IT & Engineering
+  "User Research Session": "\u{1F52C}",    // 🔬
+  "Daily Stand-up Meeting": "\u{23F1}\u{FE0F}", // ⏱️
+  "Weekly Meeting": "\u{1F4C5}",           // 📅
+  "Sprint Planning": "\u{1F3C3}",          // 🏃
+  "Kick-off Meeting": "\u{1F680}",         // 🚀
+  // Consulting
+  "Consulting Meeting": "\u{1F914}",       // 🤔
+  // Marketing
+  "GTM (Go-to-Market)": "\u{1F5FA}\u{FE0F}", // 🗺️
+  // Medical
+  "SOAP Note": "\u{1F4DD}",                // 📝
+  "Medical Referral Letter": "\u{1F4E8}",  // 📨
+  // Education
+  "Lecture": "\u{1F393}",                  // 🎓
+  "Panel Discussion": "\u{1F5E3}\u{FE0F}", // 🗣️
+  // Writer
+  "Reader Meet-and-Greet": "\u{1F4D6}",    // 📖
+  "Interview Article": "\u{270D}\u{FE0F}", // ✍️
+  // Media & Podcasts
+  "YouTube Video": "\u{1F4FA}",            // 📺
+  // Others
+  "Board Meeting": "\u{1F3DB}\u{FE0F}",    // 🏛️
+};
+
+// Fallback keyword map — used for custom templates whose names don't appear above.
 const TEMPLATE_EMOJI_MAP: { kw: string[]; emoji: string }[] = [
-  { kw: ["general"], emoji: "\u{1F4CB}" },        // 📋
-  { kw: ["sales", "bant", "discovery"], emoji: "\u{1F4B0}" }, // 💰
-  { kw: ["1-on-1", "one-on-one", "1:1"], emoji: "\u{1F465}" }, // 👥
-  { kw: ["team meeting", "team sync"], emoji: "\u{1F91D}" },   // 🤝
-  { kw: ["candidate", "interview"], emoji: "\u{1F3AF}" },      // 🎯
-  { kw: ["research"], emoji: "\u{1F50D}" },        // 🔍
-  { kw: ["standup", "stand-up"], emoji: "\u{23F1}" },   // ⏱
-  { kw: ["retrospective", "retro"], emoji: "\u{1F504}" }, // 🔄
-  { kw: ["brainstorm"], emoji: "\u{1F4A1}" },      // 💡
-  { kw: ["onboarding"], emoji: "\u{1F44B}" },      // 👋
-  { kw: ["training"], emoji: "\u{1F393}" },        // 🎓
-  { kw: ["project"], emoji: "\u{1F4C1}" },         // 📁
+  { kw: ["general"], emoji: "\u{1F4CB}" },                        // 📋
+  { kw: ["sales", "bant", "discovery"], emoji: "\u{1F4B0}" },     // 💰
+  { kw: ["1-on-1", "one-on-one", "1:1"], emoji: "\u{1F465}" },    // 👥
+  { kw: ["team meeting", "team sync"], emoji: "\u{1F91D}" },      // 🤝
+  { kw: ["candidate", "interview"], emoji: "\u{1F3AF}" },         // 🎯
+  { kw: ["research"], emoji: "\u{1F52C}" },                       // 🔬
+  { kw: ["standup", "stand-up"], emoji: "\u{23F1}\u{FE0F}" },     // ⏱️
+  { kw: ["retrospective", "retro"], emoji: "\u{1F504}" },         // 🔄
+  { kw: ["brainstorm"], emoji: "\u{1F4A1}" },                     // 💡
+  { kw: ["onboarding"], emoji: "\u{1F44B}" },                     // 👋
+  { kw: ["training"], emoji: "\u{1F393}" },                       // 🎓
+  { kw: ["project"], emoji: "\u{1F4C1}" },                        // 📁
 ];
 
 function templateEmoji(name: string): string {
+  if (TEMPLATE_EMOJI_EXACT[name]) return TEMPLATE_EMOJI_EXACT[name];
   const l = name.toLowerCase();
   return TEMPLATE_EMOJI_MAP.find((e) => e.kw.some((k) => l.includes(k)))?.emoji ?? "\u{1F4C4}"; // 📄
 }
@@ -183,7 +233,9 @@ function templateEmoji(name: string): string {
 // Categories & hue palette
 // ---------------------------------------------------------------------------
 
-type HueId = "blue" | "green" | "amber" | "purple" | "pink" | "teal" | "peach" | "slate" | "indigo";
+type HueId =
+  | "blue" | "green" | "amber" | "purple" | "pink" | "teal"
+  | "peach" | "slate" | "indigo" | "rose" | "violet" | "gray";
 
 interface HueTokens {
   bg: string;
@@ -202,9 +254,15 @@ const HUE_PALETTE: Record<HueId, HueTokens> = {
   peach:  { bg: "#FEE8DF", bgHover: "#FCDCCC", chip: "#A14819", dot: "#D96823" },
   slate:  { bg: "#EEF0F5", bgHover: "#E3E6EE", chip: "#3D4762", dot: "#5A647D" },
   indigo: { bg: "#E9ECFE", bgHover: "#DEE3FC", chip: "#303FAD", dot: "#4250CC" },
+  rose:   { bg: "#FDE7EC", bgHover: "#FAD6DE", chip: "#B91C4F", dot: "#DC2657" },
+  violet: { bg: "#EDE4FE", bgHover: "#DFCFFB", chip: "#6D28D9", dot: "#7C3AED" },
+  gray:   { bg: "#F3F4F6", bgHover: "#E5E7EB", chip: "#4B5563", dot: "#6B7280" },
 };
 
-type CategoryId = "custom" | "basic" | "sales" | "hr" | "engineering" | "research" | "consulting" | "marketing" | "education";
+type CategoryId =
+  | "custom" | "basic" | "sales" | "hr" | "engineering"
+  | "consulting" | "marketing" | "medical" | "education"
+  | "writer" | "media" | "others";
 
 interface CategoryMeta {
   id: CategoryId;
@@ -214,15 +272,18 @@ interface CategoryMeta {
 }
 
 const TEMPLATE_CATEGORIES: CategoryMeta[] = [
-  { id: "custom",      label: "My templates",     subtitle: "",                                      hue: "purple" },
-  { id: "basic",       label: "Basic",            subtitle: "— versatile formats for any meeting",   hue: "blue"   },
-  { id: "sales",       label: "Sales",            subtitle: "— discovery, demos, deals",             hue: "green"  },
-  { id: "hr",          label: "HR & Management",  subtitle: "— people, performance, hiring",         hue: "amber"  },
-  { id: "engineering", label: "IT & Engineering", subtitle: "— standups, retros, sprint planning",   hue: "slate"  },
-  { id: "research",    label: "Research",         subtitle: "— user interviews, synthesis",          hue: "teal"   },
-  { id: "consulting",  label: "Consulting",       subtitle: "",                                      hue: "peach"  },
-  { id: "marketing",   label: "Marketing",        subtitle: "",                                      hue: "pink"   },
-  { id: "education",   label: "Education",        subtitle: "",                                      hue: "indigo" },
+  { id: "custom",      label: "My templates",     subtitle: "",                                              hue: "purple" },
+  { id: "basic",       label: "Basic",            subtitle: "— versatile formats suitable for any meeting",  hue: "blue"   },
+  { id: "sales",       label: "Sales",            subtitle: "— daily meetings, client meetings",             hue: "green"  },
+  { id: "hr",          label: "HR & Management",  subtitle: "— recruitment, evaluation, management",         hue: "amber"  },
+  { id: "engineering", label: "IT & Engineering", subtitle: "— project updates and technical aspects",       hue: "slate"  },
+  { id: "consulting",  label: "Consulting",       subtitle: "— client needs, analysis, solutions",           hue: "peach"  },
+  { id: "marketing",   label: "Marketing",        subtitle: "— campaigns, promotion, research",              hue: "pink"   },
+  { id: "medical",     label: "Medical",          subtitle: "— clinical notes, referrals, care plans",       hue: "rose"   },
+  { id: "education",   label: "Education",        subtitle: "— lectures, discussions, classroom notes",      hue: "indigo" },
+  { id: "writer",      label: "Writer",           subtitle: "— writing projects, ideas, publication",        hue: "teal"   },
+  { id: "media",       label: "Media & Podcasts", subtitle: "— videos, podcasts, media summaries",           hue: "violet" },
+  { id: "others",      label: "Others",           subtitle: "— general or uncategorized meetings",           hue: "gray"   },
 ];
 
 const CATEGORY_META_BY_ID: Record<CategoryId, CategoryMeta> = TEMPLATE_CATEGORIES.reduce((acc, c) => {
@@ -230,17 +291,20 @@ const CATEGORY_META_BY_ID: Record<CategoryId, CategoryMeta> = TEMPLATE_CATEGORIE
   return acc;
 }, {} as Record<CategoryId, CategoryMeta>);
 
-// Order matters — first match wins. `research` is checked before `hr` so names like
-// "Research interview" / "User research interview" land under Research, not HR. The HR
-// bucket uses specific phrases instead of the bare word "interview" to avoid false matches.
+// Order matters — first match wins. More specific domain keywords (writer, media,
+// medical, others) are checked before broader ones (hr, sales, engineering) so
+// e.g. "Interview Article" lands under Writer, not HR.
 const CATEGORY_KEYWORDS: Array<{ cat: CategoryId; kws: string[] }> = [
-  { cat: "sales",       kws: ["sales", "bant", "discovery", "demo", "prospect"] },
-  { cat: "research",    kws: ["research", "user interview", "usability"] },
-  { cat: "hr",          kws: ["1-on-1", "one-on-one", "1:1", "candidate", "hiring", "job interview", "onboarding", "performance review", "hr"] },
-  { cat: "engineering", kws: ["standup", "stand-up", "retro", "sprint", "incident", "engineering"] },
-  { cat: "consulting",  kws: ["client", "kickoff", "stakeholder", "consulting"] },
-  { cat: "marketing",   kws: ["marketing", "campaign", "creative", "brand"] },
-  { cat: "education",   kws: ["lecture", "class", "course", "study", "education"] },
+  { cat: "writer",      kws: ["reader meet-and-greet", "meet-and-greet", "meet and greet", "interview article", "author"] },
+  { cat: "media",       kws: ["youtube", "video summary", "podcast"] },
+  { cat: "medical",     kws: ["soap", "medical", "clinical", "patient", "referral"] },
+  { cat: "others",      kws: ["board meeting", "board"] },
+  { cat: "hr",          kws: ["1-on-1", "one-on-one", "1:1", "job interview", "exit interview", "candidate", "hiring", "onboarding", "performance review", "hr"] },
+  { cat: "sales",       kws: ["sales", "bant", "champ", "anum", "spiced", "spin", "meddic", "faint", "gpct", "pitch", "prospect", "discovery", "demo"] },
+  { cat: "engineering", kws: ["standup", "stand-up", "sprint", "kick-off", "kickoff", "weekly meeting", "user research", "retro", "incident", "engineering"] },
+  { cat: "consulting",  kws: ["consulting", "client meeting", "stakeholder"] },
+  { cat: "marketing",   kws: ["gtm", "go-to-market", "marketing", "campaign", "creative", "brand"] },
+  { cat: "education",   kws: ["lecture", "panel discussion", "panel", "class", "course", "study", "education"] },
 ];
 
 function categorize(t: Template): CategoryId {
