@@ -87,5 +87,9 @@
       "Bash(git push:*)",
       "Skill(update-config)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ],
+  "enableAllProjectMcpServers": true
 }
