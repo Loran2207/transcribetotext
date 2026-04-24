@@ -324,7 +324,10 @@ function hueForCategory(cat: CategoryId): HueTokens {
 // Card grid — shared class strings
 // ---------------------------------------------------------------------------
 
-const CARD_GRID_CLASS = "grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3";
+// `auto-rows-fr` makes every card in a row stretch to the tallest card, which
+// combined with the card's internal `flex flex-col` + `flex-1` on the preview
+// block keeps the footer pinned to the bottom.
+const CARD_GRID_CLASS = "grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 auto-rows-fr";
 
 // ---------------------------------------------------------------------------
 // Template card
@@ -348,7 +351,6 @@ function TemplateCard({
   const [hovered, setHovered] = useState(false);
   const emoji = templateEmoji(template.name);
   const sys = template.type === "built_in";
-  const chipLabel = sys ? "System" : "Custom";
   const previewSections = template.sections.slice(0, 3);
   const hasMore = template.sections.length > 3;
 
@@ -385,7 +387,7 @@ function TemplateCard({
         }
       } : undefined}
       className={cn(
-        "relative rounded-[18px] transition-all overflow-hidden outline-none",
+        "relative rounded-[18px] transition-all overflow-hidden outline-none flex flex-col h-full",
         "focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2",
         clickable ? "cursor-pointer" : "cursor-default",
       )}
@@ -393,7 +395,7 @@ function TemplateCard({
         background: cardBg,
         boxShadow: cardShadow,
         padding: "18px",
-        minHeight: 280,
+        minHeight: 300,
         transform: hovered ? "translateY(-2px)" : "translateY(0)",
         transitionDuration: "180ms",
         transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
@@ -492,8 +494,8 @@ function TemplateCard({
         )}
       </div>
 
-      {/* File preview block */}
-      <div className="relative mt-[18px]">
+      {/* File preview block — grows to fill, so the footer stays pinned below */}
+      <div className="relative mt-[18px] flex-1 flex flex-col min-h-0">
         <div
           aria-hidden
           className="absolute pointer-events-none"
@@ -514,7 +516,7 @@ function TemplateCard({
         />
 
         <div
-          className="relative"
+          className="relative flex-1 overflow-hidden"
           style={{
             borderRadius: 10,
             background: "#ffffff",
@@ -572,22 +574,11 @@ function TemplateCard({
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between mt-[16px] gap-[8px]">
-        <div
-          className="flex items-center gap-[6px] rounded-full"
-          style={{ background: "rgba(255,255,255,0.7)", padding: "2px 8px" }}
-        >
-          <span
-            aria-hidden
-            className="shrink-0"
-            style={{ width: 5, height: 5, borderRadius: 999, background: hue.dot }}
-          />
-          <span className="font-medium" style={{ fontSize: "10.5px", color: hue.chip }}>
-            {chipLabel}
-          </span>
-        </div>
-
+      {/* Footer — fixed height so hover actions don't push the layout */}
+      <div
+        className="flex items-center justify-end mt-[14px] gap-[8px] shrink-0"
+        style={{ height: 28 }}
+      >
         {isTrashed ? (
           <button
             type="button"
@@ -639,69 +630,26 @@ function TemplateCard({
 }
 
 // ---------------------------------------------------------------------------
-// Create-template card (dashed)
-// ---------------------------------------------------------------------------
-
-function CreateTemplateCard({ onClick }: { onClick: () => void }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className={cn(
-        "flex flex-col items-center justify-center text-center transition-all",
-        hovered ? "bg-accent" : "bg-transparent",
-      )}
-      style={{
-        minHeight: 280,
-        padding: 18,
-        borderRadius: 18,
-        border: `1.5px dashed ${hovered ? "var(--primary)" : "rgba(0,0,0,0.18)"}`,
-        gap: 12,
-      }}
-    >
-      <div
-        className="flex items-center justify-center"
-        style={{
-          width: 44, height: 44, borderRadius: 12,
-          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-          color: "var(--primary)",
-        }}
-      >
-        <Icon icon={Add01Icon} size={22} />
-      </div>
-      <h4 className="font-semibold text-foreground" style={{ fontSize: 15 }}>
-        Create template
-      </h4>
-      <p className="text-muted-foreground" style={{ fontSize: "12.5px", maxWidth: 220 }}>
-        Start from scratch or fork one below
-      </p>
-    </button>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Section header for category groups
 // ---------------------------------------------------------------------------
 
 function SectionHeader({ label, subtitle }: { label: string; subtitle?: string }) {
+  const cleanSubtitle = subtitle?.replace(/^[—–-]\s*/, "");
   return (
-    <div className="flex items-baseline gap-[8px] mb-[14px]">
+    <div className="mb-[16px]">
       <h3
-        className="font-semibold text-muted-foreground"
-        style={{ fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase" }}
+        className="font-semibold text-foreground"
+        style={{ fontSize: 20, letterSpacing: "-0.01em", lineHeight: 1.2 }}
       >
         {label}
       </h3>
-      {subtitle && (
-        <span
-          className="text-muted-foreground/70"
-          style={{ fontSize: 13, letterSpacing: 0, textTransform: "none", fontWeight: 400 }}
+      {cleanSubtitle && (
+        <p
+          className="text-muted-foreground mt-[4px]"
+          style={{ fontSize: 13, lineHeight: 1.45 }}
         >
-          {subtitle}
-        </span>
+          {cleanSubtitle}
+        </p>
       )}
     </div>
   );
@@ -1282,7 +1230,14 @@ function EmptyTabState({ tab }: { tab: string }) {
 // Main
 // ---------------------------------------------------------------------------
 
-type TabValue = "all" | "starred" | "system" | "custom" | "trash";
+// Built-in category IDs we expose as tabs (everything except the implicit "custom"
+// bucket, which is already covered by the `My templates` tab).
+type CategoryTabId = Exclude<CategoryId, "custom">;
+type TabValue = "all" | "starred" | "custom" | "trash" | CategoryTabId;
+
+const CATEGORY_TAB_IDS = TEMPLATE_CATEGORIES
+  .filter((c) => c.id !== "custom")
+  .map((c) => c.id) as CategoryTabId[];
 
 export function TemplatesPage() {
   const { templates, isLoading, create, update, remove } = useTemplates();
@@ -1333,18 +1288,31 @@ export function TemplatesPage() {
   // Tab counts
   const allCount = activeTemplates.length;
   const starredCount = useMemo(() => activeTemplates.filter((t) => starredIds.has(t.id)).length, [activeTemplates, starredIds]);
-  const systemCount = useMemo(() => builtIn.filter((t) => !trashedIds.has(t.id)).length, [builtIn, trashedIds]);
   const customCount = useMemo(() => custom.filter((t) => !trashedIds.has(t.id)).length, [custom, trashedIds]);
   const trashCount = trashedTemplates.length;
+
+  // Count built-ins per category (for category tab badges)
+  const countByCategory = useMemo(() => {
+    const counts = {} as Record<CategoryTabId, number>;
+    for (const id of CATEGORY_TAB_IDS) counts[id] = 0;
+    for (const t of builtIn) {
+      if (trashedIds.has(t.id)) continue;
+      const cat = categorize(t);
+      if (cat !== "custom") counts[cat as CategoryTabId] += 1;
+    }
+    return counts;
+  }, [builtIn, trashedIds]);
 
   // Display
   const display = useMemo(() => {
     switch (activeTab) {
+      case "all":     return activeTemplates;
       case "starred": return activeTemplates.filter((t) => starredIds.has(t.id));
-      case "system": return builtIn.filter((t) => !trashedIds.has(t.id));
-      case "custom": return custom.filter((t) => !trashedIds.has(t.id));
-      case "trash": return trashedTemplates;
-      default: return activeTemplates;
+      case "custom":  return custom.filter((t) => !trashedIds.has(t.id));
+      case "trash":   return trashedTemplates;
+      default:
+        // category tab: show built-ins whose derived category matches
+        return builtIn.filter((t) => !trashedIds.has(t.id) && categorize(t) === activeTab);
     }
   }, [activeTab, activeTemplates, trashedTemplates, builtIn, custom, starredIds, trashedIds]);
 
@@ -1431,25 +1399,9 @@ export function TemplatesPage() {
   const renderGroupedByCategory = () => {
     return TEMPLATE_CATEGORIES.map((cat) => {
       const inCat = display.filter((t) => categorize(t) === cat.id);
-
-      // On the "all" tab, always show "My templates" section with a Create card,
-      // even if the user has no custom templates yet.
-      if (cat.id === "custom" && activeTab === "all") {
-        return (
-          <section key={cat.id} className="mt-8">
-            <SectionHeader label={cat.label} subtitle={cat.subtitle || undefined} />
-            <div className={CARD_GRID_CLASS}>
-              <CreateTemplateCard onClick={() => setDetailTarget("new")} />
-              {inCat.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
-            </div>
-          </section>
-        );
-      }
-
       if (inCat.length === 0) return null;
-
       return (
-        <section key={cat.id} className="mt-8">
+        <section key={cat.id} className="mt-10">
           <SectionHeader label={cat.label} subtitle={cat.subtitle || undefined} />
           <div className={CARD_GRID_CLASS}>
             {inCat.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
@@ -1468,39 +1420,43 @@ export function TemplatesPage() {
         </Button>
       </div>
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex-1 min-w-0 gap-0">
-        <TabsList variant="line" className="gap-6">
-          <TabsTrigger value="all" variant="line">All <span className="opacity-50 font-[inherit]">{allCount}</span></TabsTrigger>
-          <TabsTrigger value="starred" variant="line">Starred <span className="opacity-50 font-[inherit]">{starredCount}</span></TabsTrigger>
-          <TabsTrigger value="system" variant="line">System <span className="opacity-50 font-[inherit]">{systemCount}</span></TabsTrigger>
-          <TabsTrigger value="custom" variant="line">My templates <span className="opacity-50 font-[inherit]">{customCount}</span></TabsTrigger>
-          <TabsTrigger
-            value="trash"
-            variant="line"
-            className={activeTab === "trash" ? "text-destructive data-[state=active]:text-destructive data-[state=active]:after:bg-destructive" : ""}
-          >
-            Trash <span className="opacity-50 font-[inherit]">{trashCount}</span>
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-[32px] px-[32px] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+          <TabsList variant="line" className="gap-5 whitespace-nowrap w-max">
+            <TabsTrigger value="all" variant="line">All <span className="opacity-50 font-[inherit] ml-1">{allCount}</span></TabsTrigger>
+            <TabsTrigger value="starred" variant="line">Starred <span className="opacity-50 font-[inherit] ml-1">{starredCount}</span></TabsTrigger>
+            <TabsTrigger value="custom" variant="line">My templates <span className="opacity-50 font-[inherit] ml-1">{customCount}</span></TabsTrigger>
+            {CATEGORY_TAB_IDS.map((catId) => {
+              const meta = CATEGORY_META_BY_ID[catId];
+              return (
+                <TabsTrigger key={catId} value={catId} variant="line">
+                  {meta.label}
+                  <span className="opacity-50 font-[inherit] ml-1">{countByCategory[catId] ?? 0}</span>
+                </TabsTrigger>
+              );
+            })}
+            <TabsTrigger
+              value="trash"
+              variant="line"
+              className={activeTab === "trash" ? "text-destructive data-[state=active]:text-destructive data-[state=active]:after:bg-destructive" : ""}
+            >
+              Trash <span className="opacity-50 font-[inherit] ml-1">{trashCount}</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
       </Tabs>
 
-      {display.length === 0 && activeTab !== "all" && activeTab !== "custom" ? (
+      {display.length === 0 ? (
         <div className="py-20"><EmptyTabState tab={activeTab} /></div>
-      ) : activeTab === "custom" ? (
-        <div className="mt-8">
-          <div className={CARD_GRID_CLASS}>
-            <CreateTemplateCard onClick={() => setDetailTarget("new")} />
-            {display.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
-          </div>
-        </div>
-      ) : activeTab === "starred" || activeTab === "trash" ? (
-        <div className="mt-8">
-          <div className={CARD_GRID_CLASS}>
-            {display.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
-          </div>
-        </div>
-      ) : (
-        // "all" and "system" — grouped by category
+      ) : activeTab === "all" ? (
+        // Grouped by category with section headers
         renderGroupedByCategory()
+      ) : (
+        // Flat grid: starred, custom, trash, or a single category
+        <div className="mt-8">
+          <div className={CARD_GRID_CLASS}>
+            {display.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
+          </div>
+        </div>
       )}
     </div></div>
   );
