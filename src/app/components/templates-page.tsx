@@ -40,6 +40,7 @@ import {
   TaskDone01Icon,
   UserGroupIcon,
   Analytics01Icon,
+  MoreVerticalIcon,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
@@ -47,7 +48,7 @@ import { Input } from "@/app/components/ui/input";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Switch } from "@/app/components/ui/switch";
 import { Skeleton } from "@/app/components/ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/app/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -69,7 +70,6 @@ import { cn } from "@/app/components/ui/utils";
 import { useTemplates } from "@/hooks/use-templates";
 import { useFolders } from "./folder-context";
 import { useAuth } from "./auth-context";
-import { useUserProfile } from "./user-profile-context";
 import { records } from "./records-table";
 import type { Template, TemplateSection, CreateTemplateData } from "@/lib/templates";
 
@@ -180,135 +180,465 @@ function templateEmoji(name: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Table (list view)
+// Categories & hue palette
 // ---------------------------------------------------------------------------
 
-function TH() {
-  const c = "uppercase tracking-[0.3404px] font-medium text-[11px] text-foreground";
-  return (
-    <div className="flex items-center h-[36px] border-b border-border">
-      <div className={cn("flex-[2.2] min-w-0 px-[12px]", c)}>Name</div>
-      <div className={cn("w-[32px] shrink-0", c)} />
-      <div className={cn("flex-[1.5] min-w-0 px-[12px]", c)}>Description</div>
-      <div className={cn("flex-[0.8] min-w-0 px-[12px]", c)}>Created by</div>
-      <div className={cn("w-[130px] shrink-0 px-[8px]", c)}>Date</div>
-    </div>
-  );
+type HueId = "blue" | "green" | "amber" | "purple" | "pink" | "teal" | "peach" | "slate" | "indigo";
+
+interface HueTokens {
+  bg: string;
+  bgHover: string;
+  chip: string;
+  dot: string;
 }
 
-function TemplateRowActions({ isStarred, onStar, onEdit, onTrash }: {
-  isStarred: boolean; onStar: () => void; onEdit: () => void; onTrash: () => void;
-}) {
-  return (
-    <div className="flex items-center gap-[2px]">
-      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="Edit" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
-        <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M11.333 2a1.886 1.886 0 012.667 2.667L5.333 13.333 2 14l.667-3.333L11.333 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground" /></svg>
-      </Button>
-      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title={isStarred ? "Unstar" : "Star"} onClick={(e) => { e.stopPropagation(); onStar(); }}>
-        <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={isStarred ? "" : "text-muted-foreground"} /></svg>
-      </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="More" onClick={(e) => e.stopPropagation()}>
-            <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.2" fill="currentColor" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="8" cy="13" r="1.2" fill="currentColor" /></svg>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[180px]">
-          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onTrash(); }} className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-[10px]">
-            <svg className="size-[15px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
+const HUE_PALETTE: Record<HueId, HueTokens> = {
+  blue:   { bg: "#EEF3FF", bgHover: "#E4EBFD", chip: "#2657E0", dot: "#2E68EE" },
+  green:  { bg: "#E8F6EE", bgHover: "#DCF0E4", chip: "#137A3D", dot: "#1B9A4E" },
+  amber:  { bg: "#FFF3DD", bgHover: "#FCEACA", chip: "#8A5300", dot: "#C27803" },
+  purple: { bg: "#F1EDFE", bgHover: "#E6DFFC", chip: "#5B34C9", dot: "#6D44E0" },
+  pink:   { bg: "#FCEBF3", bgHover: "#F9DDEA", chip: "#B23A75", dot: "#D14E8D" },
+  teal:   { bg: "#DEF4F1", bgHover: "#CEEDE8", chip: "#076E66", dot: "#0E918A" },
+  peach:  { bg: "#FEE8DF", bgHover: "#FCDCCC", chip: "#A14819", dot: "#D96823" },
+  slate:  { bg: "#EEF0F5", bgHover: "#E3E6EE", chip: "#3D4762", dot: "#5A647D" },
+  indigo: { bg: "#E9ECFE", bgHover: "#DEE3FC", chip: "#303FAD", dot: "#4250CC" },
+};
+
+type CategoryId = "custom" | "basic" | "sales" | "hr" | "engineering" | "research" | "consulting" | "marketing" | "education";
+
+interface CategoryMeta {
+  id: CategoryId;
+  label: string;
+  subtitle: string;
+  hue: HueId;
 }
 
-function TR({ t, isHovered, isStarred, isTrashed, onMouseEnter, onMouseLeave, onClick, onStar, onEdit, onTrash, onRestore }: {
-  t: Template; isHovered: boolean; isStarred: boolean; isTrashed: boolean;
-  onMouseEnter: () => void; onMouseLeave: () => void; onClick: () => void;
-  onStar: () => void; onEdit: () => void; onTrash: () => void; onRestore: () => void;
-}) {
-  const sys = t.type === "built_in";
-  const { displayName, avatarSrc } = useUserProfile();
-  const emoji = templateEmoji(t.name);
+const TEMPLATE_CATEGORIES: CategoryMeta[] = [
+  { id: "custom",      label: "My templates",     subtitle: "",                                      hue: "purple" },
+  { id: "basic",       label: "Basic",            subtitle: "— versatile formats for any meeting",   hue: "blue"   },
+  { id: "sales",       label: "Sales",            subtitle: "— discovery, demos, deals",             hue: "green"  },
+  { id: "hr",          label: "HR & Management",  subtitle: "— people, performance, hiring",         hue: "amber"  },
+  { id: "engineering", label: "IT & Engineering", subtitle: "— standups, retros, sprint planning",   hue: "slate"  },
+  { id: "research",    label: "Research",         subtitle: "— user interviews, synthesis",          hue: "teal"   },
+  { id: "consulting",  label: "Consulting",       subtitle: "",                                      hue: "peach"  },
+  { id: "marketing",   label: "Marketing",        subtitle: "",                                      hue: "pink"   },
+  { id: "education",   label: "Education",        subtitle: "",                                      hue: "indigo" },
+];
+
+const CATEGORY_META_BY_ID: Record<CategoryId, CategoryMeta> = TEMPLATE_CATEGORIES.reduce((acc, c) => {
+  acc[c.id] = c;
+  return acc;
+}, {} as Record<CategoryId, CategoryMeta>);
+
+// Order matters — first match wins. `research` is checked before `hr` so names like
+// "Research interview" / "User research interview" land under Research, not HR. The HR
+// bucket uses specific phrases instead of the bare word "interview" to avoid false matches.
+const CATEGORY_KEYWORDS: Array<{ cat: CategoryId; kws: string[] }> = [
+  { cat: "sales",       kws: ["sales", "bant", "discovery", "demo", "prospect"] },
+  { cat: "research",    kws: ["research", "user interview", "usability"] },
+  { cat: "hr",          kws: ["1-on-1", "one-on-one", "1:1", "candidate", "hiring", "job interview", "onboarding", "performance review", "hr"] },
+  { cat: "engineering", kws: ["standup", "stand-up", "retro", "sprint", "incident", "engineering"] },
+  { cat: "consulting",  kws: ["client", "kickoff", "stakeholder", "consulting"] },
+  { cat: "marketing",   kws: ["marketing", "campaign", "creative", "brand"] },
+  { cat: "education",   kws: ["lecture", "class", "course", "study", "education"] },
+];
+
+function categorize(t: Template): CategoryId {
+  if (t.type === "custom") return "custom";
+  const name = t.name.toLowerCase();
+  for (const { cat, kws } of CATEGORY_KEYWORDS) {
+    if (kws.some((k) => name.includes(k))) return cat;
+  }
+  return "basic";
+}
+
+function hueForCategory(cat: CategoryId): HueTokens {
+  return HUE_PALETTE[CATEGORY_META_BY_ID[cat].hue];
+}
+
+// ---------------------------------------------------------------------------
+// Card grid — shared class strings
+// ---------------------------------------------------------------------------
+
+const CARD_GRID_CLASS = "grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3";
+
+// ---------------------------------------------------------------------------
+// Template card
+// ---------------------------------------------------------------------------
+
+interface TemplateCardProps {
+  template: Template;
+  hue: HueTokens;
+  isStarred: boolean;
+  isTrashed: boolean;
+  onClick: () => void;
+  onStar: () => void;
+  onTrash: () => void;
+  onRestore: () => void;
+  onDuplicate: () => void;
+}
+
+function TemplateCard({
+  template, hue, isStarred, isTrashed, onClick, onStar, onTrash, onRestore, onDuplicate,
+}: TemplateCardProps) {
+  const [hovered, setHovered] = useState(false);
+  const emoji = templateEmoji(template.name);
+  const sys = template.type === "built_in";
+  const chipLabel = sys ? "System" : "Custom";
+  const previewSections = template.sections.slice(0, 3);
+  const hasMore = template.sections.length > 3;
+
+  const cardBg = hovered ? hue.bgHover : hue.bg;
+  const cardShadow = hovered
+    ? "0 12px 32px -8px rgba(16, 24, 40, 0.12), 0 4px 12px -4px rgba(16, 24, 40, 0.06)"
+    : "0 1px 2px 0 rgba(16, 24, 40, 0.05)";
+
+  // Stacked-paper layers behind the top edge of the preview block
+  const stackBg1 = `color-mix(in srgb, ${hue.bg} 65%, #ffffff 35%)`;
+  const stackBg2 = `color-mix(in srgb, ${hue.bg} 45%, #ffffff 55%)`;
+  const ghostLineBg = `color-mix(in srgb, ${hue.bg} 55%, rgba(0,0,0,0.18) 45%)`;
+
+  function stop(e: React.MouseEvent) {
+    e.stopPropagation();
+  }
+
+  const clickable = !isTrashed;
+
   return (
     <div
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      onClick={onClick}
-      className="flex items-center h-[40px] transition-colors cursor-pointer border-b border-border hover:bg-accent relative group"
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={clickable ? `Open template: ${template.name}` : undefined}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+      onClick={clickable ? onClick : undefined}
+      onKeyDown={clickable ? (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      } : undefined}
+      className={cn(
+        "relative rounded-[18px] transition-all overflow-hidden outline-none",
+        "focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2",
+        clickable ? "cursor-pointer" : "cursor-default",
+      )}
+      style={{
+        background: cardBg,
+        boxShadow: cardShadow,
+        padding: "18px",
+        minHeight: 280,
+        transform: hovered ? "translateY(-2px)" : "translateY(0)",
+        transitionDuration: "180ms",
+        transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+      }}
     >
-      {/* Name cell with emoji */}
-      <div className="flex-[2.2] min-w-0 px-[12px] flex items-center gap-[8px] relative">
-        <span className="text-[16px] shrink-0 leading-none">{emoji}</span>
-        <p className="truncate font-medium text-[14px] text-foreground tracking-[-0.154px]">{t.name}</p>
+      {/* Header */}
+      <div className="flex items-start gap-[12px]">
+        <div
+          className="flex items-center justify-center shrink-0"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 9,
+            background: "rgba(255, 255, 255, 0.85)",
+            boxShadow: "0 1px 2px rgba(16, 24, 40, 0.05)",
+            fontSize: 18,
+            lineHeight: 1,
+          }}
+        >
+          <span>{emoji}</span>
+        </div>
+        <div className="flex-1 min-w-0 pt-[2px]">
+          <p className="truncate font-semibold text-[15px] text-foreground leading-snug">
+            {template.name}
+          </p>
+        </div>
 
-        {/* Hover actions overlay — extends into star column (right: -26px), matching records-table pattern */}
         {!isTrashed && (
-          <div
-            className={cn(
-              "absolute top-0 bottom-0 z-20 flex items-center justify-end pr-[4px] transition-opacity duration-150",
-              isHovered ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-            )}
-            style={{ right: "-26px", width: "180px", background: "linear-gradient(to right, transparent 0px, var(--accent) 48px)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <TemplateRowActions isStarred={isStarred} onStar={onStar} onEdit={onEdit} onTrash={onTrash} />
+          <div className="flex items-center gap-[2px] shrink-0 -mt-[2px] -mr-[4px]" onClick={stop}>
+            <button
+              type="button"
+              onClick={(e) => { stop(e); onStar(); }}
+              className={cn(
+                "flex items-center justify-center transition-all",
+                isStarred || hovered ? "opacity-100" : "opacity-0",
+              )}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 999,
+                background: hovered ? "rgba(255,255,255,0.6)" : "transparent",
+              }}
+              title={isStarred ? "Unstar" : "Star"}
+              aria-label={isStarred ? "Unstar template" : "Star template"}
+              aria-pressed={isStarred}
+            >
+              <svg width={15} height={15} fill="none" viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z"
+                  stroke={isStarred ? "#F59E0B" : "currentColor"}
+                  fill={isStarred ? "#F59E0B" : "none"}
+                  strokeWidth={1.2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={isStarred ? "" : "text-muted-foreground/60"}
+                />
+              </svg>
+            </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  onClick={stop}
+                  className={cn(
+                    "flex items-center justify-center transition-all",
+                    hovered ? "opacity-100" : "opacity-0",
+                  )}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 999,
+                    background: hovered ? "rgba(255,255,255,0.6)" : "transparent",
+                  }}
+                  title="More"
+                  aria-label="More actions"
+                >
+                  <Icon icon={MoreVerticalIcon} size={15} className="text-muted-foreground/70" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[180px]" onClick={stop}>
+                {!sys && (
+                  <DropdownMenuItem onClick={(e) => { stop(e); onDuplicate(); }} className="gap-[10px]">
+                    <Icon icon={Copy01Icon} size={14} /> Duplicate
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  onClick={(e) => { stop(e); onTrash(); }}
+                  className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-[10px]"
+                >
+                  <Icon icon={Delete01Icon} size={14} /> Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         )}
+      </div>
 
-        {/* Trash restore button */}
-        {isTrashed && (
-          <div
-            className={cn(
-              "absolute top-0 bottom-0 z-20 flex items-center justify-end pr-[6px] transition-opacity duration-150",
-              isHovered ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-            )}
-            style={{ right: "-26px", width: "120px", background: "linear-gradient(to right, transparent 0px, var(--accent) 48px)" }}
-            onClick={(e) => e.stopPropagation()}
+      {/* File preview block */}
+      <div className="relative mt-[18px]">
+        <div
+          aria-hidden
+          className="absolute pointer-events-none"
+          style={{
+            top: -6, left: 12, right: 12, height: 6,
+            borderRadius: "8px 8px 0 0",
+            background: stackBg1,
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute pointer-events-none"
+          style={{
+            top: -12, left: 24, right: 24, height: 6,
+            borderRadius: "8px 8px 0 0",
+            background: stackBg2,
+          }}
+        />
+
+        <div
+          className="relative"
+          style={{
+            borderRadius: 10,
+            background: "#ffffff",
+            padding: "14px 14px 16px",
+            boxShadow: "0 1px 0 rgba(255,255,255,0.6) inset, 0 1px 2px rgba(16,24,40,0.04)",
+          }}
+        >
+          {previewSections.length === 0 ? (
+            <p className="text-[11.5px] text-muted-foreground italic">No sections</p>
+          ) : (
+            <div className="flex flex-col gap-[10px]">
+              {previewSections.map((s, i) => (
+                <div key={s.id ?? i} className="flex items-start gap-[8px]">
+                  <span
+                    aria-hidden
+                    className="shrink-0 mt-[5px]"
+                    style={{ width: 5, height: 5, borderRadius: 999, background: hue.dot }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className="font-semibold text-foreground truncate"
+                      style={{ fontSize: "11.5px", lineHeight: 1.3 }}
+                    >
+                      {s.title || `Section ${i + 1}`}
+                    </p>
+                    {s.instruction && (
+                      <p
+                        className="text-muted-foreground"
+                        style={{
+                          fontSize: "10.5px",
+                          lineHeight: 1.45,
+                          marginTop: 2,
+                          display: "-webkit-box",
+                          WebkitBoxOrient: "vertical",
+                          WebkitLineClamp: 2,
+                          overflow: "hidden",
+                        }}
+                      >
+                        {s.instruction}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {hasMore && (
+                <div className="flex flex-col gap-[4px] mt-[4px] pl-[13px]">
+                  <div style={{ height: 5, width: "88%", borderRadius: 3, background: ghostLineBg }} />
+                  <div style={{ height: 5, width: "72%", borderRadius: 3, background: ghostLineBg }} />
+                  <div style={{ height: 5, width: "54%", borderRadius: 3, background: ghostLineBg }} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-[16px] gap-[8px]">
+        <div
+          className="flex items-center gap-[6px] rounded-full"
+          style={{ background: "rgba(255,255,255,0.7)", padding: "2px 8px" }}
+        >
+          <span
+            aria-hidden
+            className="shrink-0"
+            style={{ width: 5, height: 5, borderRadius: 999, background: hue.dot }}
+          />
+          <span className="font-medium" style={{ fontSize: "10.5px", color: hue.chip }}>
+            {chipLabel}
+          </span>
+        </div>
+
+        {isTrashed ? (
+          <button
+            type="button"
+            onClick={(e) => { stop(e); onRestore(); }}
+            aria-label="Restore template"
+            className="inline-flex items-center gap-[6px] rounded-full font-medium transition-colors"
+            style={{
+              height: 28, padding: "0 12px", fontSize: "11.5px",
+              background: "rgba(255,255,255,0.85)", color: hue.chip,
+            }}
           >
-            <Button variant="ghost" size="icon" className="size-[28px] rounded-full" title="Restore" onClick={(e) => { e.stopPropagation(); onRestore(); }}>
-              <Icon icon={ArrowTurnBackwardIcon} size={15} className="text-muted-foreground" />
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Star column — shows filled star when starred, hidden during hover (hover actions have their own star) */}
-      <div className="w-[32px] shrink-0 flex items-center justify-center">
-        {!isTrashed && isStarred && !isHovered && (
-          <svg className="size-[15px] shrink-0 pointer-events-none" fill="#F59E0B" viewBox="0 0 16 16">
-            <path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke="#F59E0B" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        )}
-      </div>
-
-      {/* Description */}
-      <div className="flex-[1.5] min-w-0 px-[12px]">
-        <p className="truncate text-[13px] text-muted-foreground">{t.description || "\u2014"}</p>
-      </div>
-
-      {/* Created by */}
-      <div className="flex-[0.8] min-w-0 px-[12px] flex items-center gap-[6px]">
-        {sys ? (
-          <span className="text-[12px] text-muted-foreground">System</span>
+            <Icon icon={ArrowTurnBackwardIcon} size={13} aria-hidden="true" /> Restore
+          </button>
         ) : (
-          <>
-            <Avatar className="size-[22px]">
-              <AvatarImage src={avatarSrc} alt={displayName} />
-              <AvatarFallback className="text-[9px] bg-accent text-accent-foreground">{displayName.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <span className="text-[12px] text-muted-foreground">{displayName}</span>
-          </>
+          <div
+            className={cn(
+              "flex items-center gap-[6px] transition-opacity",
+              hovered ? "opacity-100" : "opacity-0 pointer-events-none",
+            )}
+          >
+            <button
+              type="button"
+              onClick={(e) => { stop(e); onClick(); }}
+              className="inline-flex items-center rounded-full font-medium transition-colors"
+              style={{
+                height: 28, padding: "0 12px", fontSize: "11.5px",
+                background: "rgba(255,255,255,0.85)", color: "var(--foreground)",
+                border: "1px solid rgba(0,0,0,0.06)",
+              }}
+            >
+              Preview
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { stop(e); onClick(); }}
+              className="inline-flex items-center rounded-full font-medium transition-colors"
+              style={{
+                height: 28, padding: "0 12px", fontSize: "11.5px",
+                background: hue.chip, color: "#ffffff",
+              }}
+            >
+              Use
+            </button>
+          </div>
         )}
       </div>
+    </div>
+  );
+}
 
+// ---------------------------------------------------------------------------
+// Create-template card (dashed)
+// ---------------------------------------------------------------------------
 
-      {/* Date */}
-      <div className="w-[130px] shrink-0 px-[8px]">
-        <p className="text-[13px] text-muted-foreground tracking-[-0.154px]">{fmtDate(t.created_at)}</p>
+function CreateTemplateCard({ onClick }: { onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={cn(
+        "flex flex-col items-center justify-center text-center transition-all",
+        hovered ? "bg-accent" : "bg-transparent",
+      )}
+      style={{
+        minHeight: 280,
+        padding: 18,
+        borderRadius: 18,
+        border: `1.5px dashed ${hovered ? "var(--primary)" : "rgba(0,0,0,0.18)"}`,
+        gap: 12,
+      }}
+    >
+      <div
+        className="flex items-center justify-center"
+        style={{
+          width: 44, height: 44, borderRadius: 12,
+          background: "color-mix(in srgb, var(--primary) 10%, transparent)",
+          color: "var(--primary)",
+        }}
+      >
+        <Icon icon={Add01Icon} size={22} />
       </div>
+      <h4 className="font-semibold text-foreground" style={{ fontSize: 15 }}>
+        Create template
+      </h4>
+      <p className="text-muted-foreground" style={{ fontSize: "12.5px", maxWidth: 220 }}>
+        Start from scratch or fork one below
+      </p>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section header for category groups
+// ---------------------------------------------------------------------------
+
+function SectionHeader({ label, subtitle }: { label: string; subtitle?: string }) {
+  return (
+    <div className="flex items-baseline gap-[8px] mb-[14px]">
+      <h3
+        className="font-semibold text-muted-foreground"
+        style={{ fontSize: 13, letterSpacing: "0.06em", textTransform: "uppercase" }}
+      >
+        {label}
+      </h3>
+      {subtitle && (
+        <span
+          className="text-muted-foreground/70"
+          style={{ fontSize: 13, letterSpacing: 0, textTransform: "none", fontWeight: 400 }}
+        >
+          {subtitle}
+        </span>
+      )}
     </div>
   );
 }
@@ -408,7 +738,7 @@ function DraggableSectionBlock({
               <Textarea
                 value={section.instruction}
                 onChange={(e) => onUpdate({ ...section, instruction: e.target.value })}
-                placeholder="AI instructions \u2014 describe what this section should contain..."
+                placeholder="AI instructions - describe what this section should contain..."
                 className="text-[13px] min-h-[60px] resize-none"
                 rows={2}
               />
@@ -892,10 +1222,8 @@ type TabValue = "all" | "starred" | "system" | "custom" | "trash";
 
 export function TemplatesPage() {
   const { templates, isLoading, create, update, remove } = useTemplates();
-  const { folders } = useFolders();
   const [detailTarget, setDetailTarget] = useState<Template | "new" | null>(null);
   const [activeTab, setActiveTab] = useState<TabValue>("all");
-  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 
   // Starred
   const [starredIds, setStarredIds] = useState<Set<string>>(() => loadSet(STARRED_KEY));
@@ -928,9 +1256,6 @@ export function TemplatesPage() {
     });
     toast.success("Template restored");
   }, []);
-
-  // Template actions (folder assignments)
-  const [templateActions, setTemplateActions] = useState<Record<string, StoredAction[]>>(loadActions);
 
   const editTemplate = detailTarget !== null && detailTarget !== "new" ? detailTarget : null;
   const isCreateMode = detailTarget === "new";
@@ -969,7 +1294,6 @@ export function TemplatesPage() {
         .map((a) => ({ type: a.type, folderId: a.folderId }));
       const all = { ...loadActions(), [templateId]: stored };
       saveActions(all);
-      setTemplateActions(all);
     };
 
     if (isCreateMode || isEditingBuiltIn) {
@@ -989,16 +1313,25 @@ export function TemplatesPage() {
     }
   }, [isCreateMode, editTemplate, create, update]);
 
+  const duplicateTemplate = useCallback(async (t: Template, openAfter: boolean) => {
+    const r = await create({
+      name: `Copy of ${t.name}`,
+      description: t.description,
+      instructions: t.instructions,
+      sections: t.sections.map((s) => ({ ...s, id: crypto.randomUUID() })),
+      auto_assign_keywords: [...t.auto_assign_keywords],
+      is_default: false,
+    });
+    if (r) {
+      if (openAfter) setDetailTarget(r);
+      else toast.success("Template duplicated");
+    }
+  }, [create]);
+
   const handleDuplicate = useCallback(async () => {
     if (!editTemplate) return;
-    const r = await create({
-      name: `Copy of ${editTemplate.name}`, description: editTemplate.description,
-      instructions: editTemplate.instructions,
-      sections: editTemplate.sections.map((s) => ({ ...s, id: crypto.randomUUID() })),
-      auto_assign_keywords: [...editTemplate.auto_assign_keywords], is_default: false,
-    });
-    if (r) setDetailTarget(r);
-  }, [editTemplate, create]);
+    await duplicateTemplate(editTemplate, true);
+  }, [editTemplate, duplicateTemplate]);
 
   const handleDelete = useCallback(async () => {
     if (!editTemplate) return;
@@ -1019,15 +1352,58 @@ export function TemplatesPage() {
 
   const isTrashTab = activeTab === "trash";
 
+  const cardPropsFor = (t: Template): TemplateCardProps => ({
+    template: t,
+    hue: hueForCategory(categorize(t)),
+    isStarred: starredIds.has(t.id),
+    isTrashed: isTrashTab,
+    onClick: () => { if (!isTrashTab) setDetailTarget(t); },
+    onStar: () => toggleStar(t.id),
+    onTrash: () => trashOne(t.id),
+    onRestore: () => restoreOne(t.id),
+    onDuplicate: () => { void duplicateTemplate(t, false); },
+  });
+
+  const renderGroupedByCategory = () => {
+    return TEMPLATE_CATEGORIES.map((cat) => {
+      const inCat = display.filter((t) => categorize(t) === cat.id);
+
+      // On the "all" tab, always show "My templates" section with a Create card,
+      // even if the user has no custom templates yet.
+      if (cat.id === "custom" && activeTab === "all") {
+        return (
+          <section key={cat.id} className="mt-8">
+            <SectionHeader label={cat.label} subtitle={cat.subtitle || undefined} />
+            <div className={CARD_GRID_CLASS}>
+              <CreateTemplateCard onClick={() => setDetailTarget("new")} />
+              {inCat.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
+            </div>
+          </section>
+        );
+      }
+
+      if (inCat.length === 0) return null;
+
+      return (
+        <section key={cat.id} className="mt-8">
+          <SectionHeader label={cat.label} subtitle={cat.subtitle || undefined} />
+          <div className={CARD_GRID_CLASS}>
+            {inCat.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
+          </div>
+        </section>
+      );
+    });
+  };
+
   return (
-    <div className="flex-1 overflow-auto min-w-0"><div className="px-[32px] pt-[28px] pb-[24px]">
+    <div className="flex-1 overflow-auto min-w-0"><div className="px-[32px] pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between gap-[12px] mb-[24px]">
         <p className="whitespace-nowrap text-foreground" style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}>Templates</p>
         <Button onClick={() => setDetailTarget("new")} className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">
           <Icon icon={Add01Icon} size={14} /><span className="font-medium text-[13px]">New template</span>
         </Button>
       </div>
-      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as TabValue); setHoveredRow(null); }} className="flex-1 min-w-0 gap-0">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex-1 min-w-0 gap-0">
         <TabsList variant="line" className="gap-6">
           <TabsTrigger value="all" variant="line">All <span className="opacity-50 font-[inherit]">{allCount}</span></TabsTrigger>
           <TabsTrigger value="starred" variant="line">Starred <span className="opacity-50 font-[inherit]">{starredCount}</span></TabsTrigger>
@@ -1042,24 +1418,25 @@ export function TemplatesPage() {
           </TabsTrigger>
         </TabsList>
       </Tabs>
-      <TH />
-      {display.length > 0 ? display.map((t) => (
-        <TR
-          key={t.id}
-          t={t}
-          isHovered={hoveredRow === t.id}
-          isStarred={starredIds.has(t.id)}
-          isTrashed={isTrashTab}
-          onMouseEnter={() => setHoveredRow(t.id)}
-          onMouseLeave={() => setHoveredRow(null)}
-          onClick={() => { if (!isTrashTab) setDetailTarget(t); }}
-          onStar={() => toggleStar(t.id)}
-          onEdit={() => { if (!isTrashTab) setDetailTarget(t); }}
-          onTrash={() => trashOne(t.id)}
-          onRestore={() => restoreOne(t.id)}
-        />
-      )) : (
-        <EmptyTabState tab={activeTab} />
+
+      {display.length === 0 && activeTab !== "all" && activeTab !== "custom" ? (
+        <div className="py-20"><EmptyTabState tab={activeTab} /></div>
+      ) : activeTab === "custom" ? (
+        <div className="mt-8">
+          <div className={CARD_GRID_CLASS}>
+            <CreateTemplateCard onClick={() => setDetailTarget("new")} />
+            {display.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
+          </div>
+        </div>
+      ) : activeTab === "starred" || activeTab === "trash" ? (
+        <div className="mt-8">
+          <div className={CARD_GRID_CLASS}>
+            {display.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
+          </div>
+        </div>
+      ) : (
+        // "all" and "system" — grouped by category
+        renderGroupedByCategory()
       )}
     </div></div>
   );
