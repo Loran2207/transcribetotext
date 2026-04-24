@@ -260,7 +260,7 @@ function LightBeams() {
 
 export function AuthIllustration() {
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden p-8 lg:p-12" style={{ background: "linear-gradient(160deg, #060818 0%, #030410 100%)" }}>
+    <div className="relative flex h-full flex-col justify-between overflow-hidden p-6 lg:p-8 2xl:p-12" style={{ background: "linear-gradient(160deg, #060818 0%, #030410 100%)" }}>
       {/* 3-layer animated waveform background */}
       <AnimatedWaveform />
 
@@ -281,24 +281,24 @@ export function AuthIllustration() {
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Logo */}
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 32 }}>
+        <div className="flex items-center mb-5 2xl:mb-8">
           <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em", color: "white" }}>
             TRANSCRIBETOTEXT<span style={{ color: "#3B82F6" }}>.AI</span>
           </span>
         </div>
 
         {/* Main content area */}
-        <div className="flex-1 flex flex-col justify-center">
+        <div className="flex-1 flex flex-col justify-center min-h-0">
           {/* Headline */}
-          <div className="mb-8 lg:mb-10">
-            <h1 style={{ color: "white", fontSize: 48, fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.03em" }}>
+          <div className="mb-5 lg:mb-6 2xl:mb-10">
+            <h1 className="text-[32px] lg:text-[36px] 2xl:text-[48px]" style={{ color: "white", fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: "-0.03em" }}>
               Audio & Video to Text
               <br />
               <span style={{ background: "linear-gradient(to right, #0061FF, #3B82F6, #60A5FA)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text", color: "transparent" }}>
                 in Seconds
               </span>
             </h1>
-            <p className="mt-5 text-[15px] lg:text-base max-w-[400px] leading-[1.6]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.01em" }}>
+            <p className="mt-3 2xl:mt-5 text-[13px] 2xl:text-base max-w-[400px] leading-[1.55]" style={{ color: "rgba(255,255,255,0.5)", letterSpacing: "-0.01em" }}>
               Transcribe files, translate to 100+ languages, record meetings,
               and capture voice notes. All powered by AI.
             </p>
@@ -311,9 +311,9 @@ export function AuthIllustration() {
         </div>
 
         {/* Bottom section: Rating and platforms */}
-        <div className="relative z-10 mt-auto" style={{ paddingTop: 24 }}>
+        <div className="relative z-10 mt-auto pt-4 2xl:pt-6">
           {/* Star rating */}
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-4 mb-3 2xl:mb-6">
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
                 <span key={i} style={{ color: "rgba(251,191,36,0.9)", fontSize: 14 }}>&#9733;</span>
@@ -328,20 +328,16 @@ export function AuthIllustration() {
           </div>
 
           {/* Platform logos — large cards with icon + name */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 2xl:gap-3">
             <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const }}>
               Integrates with
             </span>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 4 }}>
+            <div className="flex flex-wrap gap-2 2xl:gap-3 mt-1">
               {platformLogos.map((platform) => (
                 <div
                   key={platform.name}
+                  className="flex items-center gap-2 px-3 py-1.5 2xl:px-3.5 2xl:py-2 rounded-lg"
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 14px",
-                    borderRadius: 8,
                     border: "1px solid rgba(255,255,255,0.08)",
                     background: "rgba(255,255,255,0.04)",
                   }}

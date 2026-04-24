@@ -110,9 +110,9 @@ export function LoginPage() {
         <motion.div {...animProps(0.12)}>
           <Button
             type="button"
-            variant="outline"
+            variant="pill-dark"
             size="lg"
-            className="w-full rounded-full"
+            className="w-full"
             onClick={handleGoogleSignIn}
             disabled={isFormDisabled}
           >
@@ -139,9 +139,9 @@ export function LoginPage() {
         <motion.div {...animProps(0.14)}>
           <Button
             type="button"
-            variant="outline"
+            variant="pill-dark"
             size="lg"
-            className="w-full rounded-full opacity-60 cursor-not-allowed"
+            className="w-full opacity-60 cursor-not-allowed"
             onClick={handleMicrosoftSignIn}
           >
             <svg width="18" height="18" viewBox="0 0 21 21" className="shrink-0">

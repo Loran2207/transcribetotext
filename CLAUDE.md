@@ -189,11 +189,20 @@ When implementing any UI, follow this strict priority:
 
 ### 2d. Button Variants — STRICT RULE
 
+**ALL buttons in this project are fully rounded (pill-shaped / `rounded-full`). No exceptions.**
+
+- `rounded-full` is the base default inside `src/app/components/ui/button.tsx` — every variant and every size inherits it.
+- **Never** override it with `rounded-md`, `rounded-lg`, `rounded-xl`, or any other radius utility on a `<Button>` — not in className, not in a new variant, not in inline styles, not in a wrapper.
+- When adding a new button variant, do not re-specify border radius. Leave the base to handle it.
+- Icon buttons (`size="icon"`) are circular by design — this is intentional; do not "fix" them back to rounded-square.
+- If you catch yourself about to write `rounded-md` on anything that is a button or looks like a button, stop — it's wrong for this project.
+
 **Never use the `secondary` variant** for secondary/non-primary actions. The gray filled style (`bg-secondary`) is not used in this project.
 
-**Rules:**
+**Variant picking rules:**
 - **Primary action** (CTA): `variant="default"` — filled blue
-- **Secondary action**: `variant="pill-outline"` — white background, border, rounded-full. This is the standard secondary button style.
+- **Secondary action**: `variant="pill-outline"` — white background, border. This is the standard secondary button style.
+- **Dark / OAuth / on-brand dark action** (e.g. "Continue with Google"): `variant="pill-dark"` — slate-tinted near-black background, white content, subtle inner highlight. Uses `--oauth` / `--oauth-hover` tokens.
 - **Subtle/inline action**: `variant="ghost"` — no border, transparent background
 - **Destructive action**: `variant="destructive"` — filled red
 - **Do NOT use** `variant="secondary"` — it produces a gray filled button which does not match the project design system
