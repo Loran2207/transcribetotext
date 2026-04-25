@@ -6,6 +6,9 @@ import { useLanguage, LANGUAGES } from "./language-context";
 import { SearchModal } from "./search-modal";
 import { useUserProfile } from "./user-profile-context";
 import { useAuth } from "./auth-context";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+
+const SUPPORT_EMAIL = "support@transcribetotext.ai";
 
 // Profile and avatar synced via UserProfileContext
 interface TopBarProps {
@@ -133,9 +136,24 @@ export function TopBar({ onNavigate }: TopBarProps) {
 
       {/* Icon buttons */}
       <div className="flex items-center gap-[2px]">
-        <Button variant="ghost" size="icon" onClick={() => onNavigate("support")} className="size-[32px] rounded-full" title="Support">
-          <Icon icon={Help} className="size-[16px] text-muted-foreground" strokeWidth={1.5} />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="size-[32px] rounded-full"
+              aria-label={`Contact support at ${SUPPORT_EMAIL}`}
+            >
+              <a href={`mailto:${SUPPORT_EMAIL}`}>
+                <Icon icon={Help} className="size-[16px] text-muted-foreground" strokeWidth={1.5} />
+              </a>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" sideOffset={6}>
+            {SUPPORT_EMAIL}
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Profile */}
