@@ -90,31 +90,30 @@ test.describe("TopBar Support Email Link", () => {
     // rounded-full means radius >= half the height
     expect(radius).toBeGreaterThanOrEqual(box!.height / 2 - 1);
 
-    // ── Scenario 5: Icon badge — 20x20 circle, primary/10 bg, 12px primary SVG icon inside ──
-    const badge = link.locator("span").first();
-    const badgeBox = await badge.boundingBox();
-    expect(badgeBox).not.toBeNull();
-    expect(Math.round(badgeBox!.width)).toBe(20);
-    expect(Math.round(badgeBox!.height)).toBe(20);
-    const badgeRadius = await badge.evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
-    expect(badgeRadius).toBeGreaterThanOrEqual(10); // half of 20 = circle
-    const svg = badge.locator("svg");
+    // ── Scenario 5: Icon — 16px SVG, color matches --muted-foreground, no background badge ──
+    const svg = link.locator("svg");
     await expect(svg).toBeVisible();
     const svgBox = await svg.boundingBox();
     expect(svgBox).not.toBeNull();
-    expect(Math.round(svgBox!.width)).toBe(12);
-    expect(Math.round(svgBox!.height)).toBe(12);
-    // SVG color === --primary
+    expect(Math.round(svgBox!.width)).toBe(16);
+    expect(Math.round(svgBox!.height)).toBe(16);
+    // SVG color === --muted-foreground
     const iconColor = await svg.evaluate((el) => getComputedStyle(el).color);
-    const primaryColor = await page.evaluate(() => {
+    const mutedColor = await page.evaluate(() => {
       const tmp = document.createElement("span");
-      tmp.style.color = "var(--primary)";
+      tmp.style.color = "var(--muted-foreground)";
       document.body.appendChild(tmp);
       const c = getComputedStyle(tmp).color;
       tmp.remove();
       return c;
     });
-    expect(iconColor).toBe(primaryColor);
+    expect(iconColor).toBe(mutedColor);
+    // The icon must NOT sit inside a wrapper with a non-transparent background (no badge)
+    const iconParentBg = await svg.evaluate((el) => {
+      const parent = el.parentElement!;
+      return getComputedStyle(parent).backgroundColor;
+    });
+    expect(["rgba(0, 0, 0, 0)", "transparent"]).toContain(iconParentBg);
     await shot(page, "02-inline-email-visible");
 
     // ── Scenario 6: Keyboard focusable + focus-visible ring ──

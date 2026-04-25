@@ -137,12 +137,10 @@ export function TopBar({ onNavigate }: TopBarProps) {
       <Button
         asChild
         variant="ghost"
-        className="flex items-center gap-[8px] h-[32px] pl-[6px] pr-[12px] rounded-full shrink-0"
+        className="flex items-center gap-[8px] h-[32px] px-[10px] rounded-full shrink-0"
       >
         <a href={`mailto:${SUPPORT_EMAIL}`} aria-label={`Contact support at ${SUPPORT_EMAIL}`}>
-          <span className="size-[20px] rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Icon icon={Help} className="size-[12px] text-primary" strokeWidth={2.5} />
-          </span>
+          <Icon icon={Help} className="size-[16px] text-muted-foreground shrink-0" strokeWidth={1.75} />
           <span className="font-medium text-[12.5px] text-foreground whitespace-nowrap">{SUPPORT_EMAIL}</span>
         </a>
       </Button>
