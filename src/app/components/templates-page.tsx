@@ -424,51 +424,25 @@ function TemplateCard({
         </div>
 
         {!isTrashed && (
-          <div className="flex items-center gap-[2px] shrink-0 -mt-[2px] -mr-[4px]" onClick={stop}>
-            <button
-              type="button"
-              onClick={(e) => { stop(e); onStar(); }}
-              className={cn(
-                "flex items-center justify-center transition-all",
-                isStarred || hovered ? "opacity-100" : "opacity-0",
-              )}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 999,
-                background: hovered ? "rgba(255,255,255,0.6)" : "transparent",
-              }}
-              title={isStarred ? "Unstar" : "Star"}
-              aria-label={isStarred ? "Unstar template" : "Star template"}
-              aria-pressed={isStarred}
-            >
-              <svg width={15} height={15} fill="none" viewBox="0 0 16 16" aria-hidden="true">
-                <path
-                  d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z"
-                  stroke={isStarred ? "#F59E0B" : "currentColor"}
-                  fill={isStarred ? "#F59E0B" : "none"}
-                  strokeWidth={1.2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={isStarred ? "" : "text-muted-foreground/60"}
-                />
-              </svg>
-            </button>
-
+          // Layout: [...] [star]. The "..." button collapses (width 0) when not
+          // hovered, so a starred-but-not-hovered card shows just the star
+          // pinned to the right edge — exactly where "..." normally sits.
+          <div className="flex items-center shrink-0 -mt-[2px] -mr-[4px]" onClick={stop}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
                   onClick={stop}
-                  className={cn(
-                    "flex items-center justify-center transition-all",
-                    hovered ? "opacity-100" : "opacity-0",
-                  )}
+                  className="flex items-center justify-center overflow-hidden"
                   style={{
-                    width: 28,
+                    width: hovered ? 28 : 0,
                     height: 28,
+                    marginRight: hovered ? 2 : 0,
+                    opacity: hovered ? 1 : 0,
+                    pointerEvents: hovered ? "auto" : "none",
                     borderRadius: 999,
                     background: hovered ? "rgba(255,255,255,0.6)" : "transparent",
+                    transition: "width 200ms cubic-bezier(0.22,1,0.36,1), margin 200ms cubic-bezier(0.22,1,0.36,1), opacity 160ms",
                   }}
                   title="More"
                   aria-label="More actions"
@@ -490,6 +464,36 @@ function TemplateCard({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <button
+              type="button"
+              onClick={(e) => { stop(e); onStar(); }}
+              className="flex items-center justify-center"
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 999,
+                background: hovered ? "rgba(255,255,255,0.6)" : "transparent",
+                opacity: isStarred || hovered ? 1 : 0,
+                pointerEvents: isStarred || hovered ? "auto" : "none",
+                transition: "opacity 160ms, background 160ms",
+              }}
+              title={isStarred ? "Unstar" : "Star"}
+              aria-label={isStarred ? "Unstar template" : "Star template"}
+              aria-pressed={isStarred}
+            >
+              <svg width={15} height={15} fill="none" viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z"
+                  stroke={isStarred ? "#F59E0B" : "currentColor"}
+                  fill={isStarred ? "#F59E0B" : "none"}
+                  strokeWidth={1.2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={isStarred ? "" : "text-muted-foreground/60"}
+                />
+              </svg>
+            </button>
           </div>
         )}
       </div>
@@ -574,12 +578,10 @@ function TemplateCard({
         </div>
       </div>
 
-      {/* Footer — fixed height so hover actions don't push the layout */}
-      <div
-        className="flex items-center justify-end mt-[14px] gap-[8px] shrink-0"
-        style={{ height: 28 }}
-      >
-        {isTrashed ? (
+      {/* Footer — only used in trash mode for the Restore button. Non-trash
+          cards rely on click-to-open + the top-right "..." menu, so no footer. */}
+      {isTrashed && (
+        <div className="flex items-center justify-end mt-[14px] shrink-0" style={{ height: 28 }}>
           <button
             type="button"
             onClick={(e) => { stop(e); onRestore(); }}
@@ -592,39 +594,8 @@ function TemplateCard({
           >
             <Icon icon={ArrowTurnBackwardIcon} size={13} aria-hidden="true" /> Restore
           </button>
-        ) : (
-          <div
-            className={cn(
-              "flex items-center gap-[6px] transition-opacity",
-              hovered ? "opacity-100" : "opacity-0 pointer-events-none",
-            )}
-          >
-            <button
-              type="button"
-              onClick={(e) => { stop(e); onClick(); }}
-              className="inline-flex items-center rounded-full font-medium transition-colors"
-              style={{
-                height: 28, padding: "0 12px", fontSize: "11.5px",
-                background: "rgba(255,255,255,0.85)", color: "var(--foreground)",
-                border: "1px solid rgba(0,0,0,0.06)",
-              }}
-            >
-              Preview
-            </button>
-            <button
-              type="button"
-              onClick={(e) => { stop(e); onClick(); }}
-              className="inline-flex items-center rounded-full font-medium transition-colors"
-              style={{
-                height: 28, padding: "0 12px", fontSize: "11.5px",
-                background: hue.chip, color: "#ffffff",
-              }}
-            >
-              Use
-            </button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
