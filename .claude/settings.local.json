@@ -85,11 +85,29 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(mkdir -p /tmp/anthropic-design)",
+      "Read(//tmp/**)",
+      "Bash(cp /Users/kirill/.claude/projects/-Users-kirill-Documents-GitHub-transcribetotext/399095dc-0931-4bc4-9b18-9fb80a3ef0b6/tool-results/webfetch-1777101407173-ul1r9t.bin design.tar.gz)",
+      "Bash(tar -xzf design.tar.gz)",
+      "Read(//private/tmp/anthropic-design/transcribe/**)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_fill_form",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_console_messages",
+      "mcp__plugin_playwright_playwright__browser_close",
+      "Bash(lsof -ti:5173)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "shadcn"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

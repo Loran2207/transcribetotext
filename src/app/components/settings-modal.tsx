@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { User, Camera, Lock, Eye, EyeOff, Shield, Info, Mail } from "@hugeicons/core-free-icons";
+import { User, Camera, Lock, Eye, EyeOff, Shield, Info, Mail, CreditCardIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
+import {
+  PlanManagementPage,
+  PlanStatePreview,
+  usePlanStatePreview,
+} from "./plan-management-page";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -653,12 +658,17 @@ interface SettingsPageProps {
   onClose: () => void;
 }
 
-export function SettingsPage({ onClose }: SettingsPageProps) {
-  const [activeSection, setActiveSection] = useState("account");
+export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
+  const [activeSection, setActiveSection] = useState<"account" | "plan">("account");
+  const [planState, setPlanState] = usePlanStatePreview();
 
   const NAV_ITEMS = [
-    { id: "account", label: "Account", icon: User },
+    { id: "account" as const, label: "Account", icon: User },
+    { id: "plan" as const,    label: "Plan management", icon: CreditCardIcon },
   ];
+
+  const isPlan = activeSection === "plan";
+  const sectionLabel = NAV_ITEMS.find(n => n.id === activeSection)?.label ?? "Settings";
 
   return (
     <div className="flex flex-1 overflow-hidden h-full">
@@ -692,16 +702,19 @@ export function SettingsPage({ onClose }: SettingsPageProps) {
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background">
 
         {/* Section header */}
-        <div className="flex items-center justify-between px-[32px] pt-[28px] pb-5 shrink-0 border-b border-border">
+        <div className="flex items-center justify-between gap-4 px-[32px] pt-[28px] pb-5 shrink-0 border-b border-border">
           <h1 className="font-bold text-[22px] text-foreground tracking-tight">
-            {NAV_ITEMS.find(n => n.id === activeSection)?.label ?? "Settings"}
+            {sectionLabel}
           </h1>
+          {isPlan && (
+            <PlanStatePreview value={planState} onChange={setPlanState} />
+          )}
         </div>
 
         {/* Scrollable form */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-[560px] px-[32px] pb-10">
-            <AccountPage />
+          <div className={`${isPlan ? "max-w-[880px]" : "max-w-[560px]"} px-[32px] pt-6 pb-12`}>
+            {isPlan ? <PlanManagementPage state={planState} /> : <AccountPage />}
           </div>
         </div>
       </div>
