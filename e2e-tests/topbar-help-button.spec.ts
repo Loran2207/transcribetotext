@@ -1,10 +1,11 @@
 /**
- * E2E Tests: TopBar Help Button (mailto support tooltip)
- * Verifies the help icon in the top-right corner correctly:
- *  - shows tooltip with support email on hover
+ * E2E Tests: TopBar Support Email Link
+ * Verifies the support email link in the top-right corner correctly:
+ *  - shows the email text inline (visible by default, no hover required)
+ *  - has a primary-colored help icon badge to the left of the email text
  *  - is rendered as <a href="mailto:..."> via Button asChild
  *  - has correct aria-label and is keyboard focusable
- *  - keeps the same visual size (32x32 button, 16px icon)
+ *  - is shaped as a pill (rounded-full)
  *  - does not break sibling top-bar features (search, profile, trial CTA)
  *  - produces no console errors
  */
@@ -42,11 +43,10 @@ async function loginAsDemo(page: Page) {
   await page.waitForLoadState("networkidle");
 }
 
-function helpButton(page: Page) {
+function supportLink(page: Page) {
   return page.locator(`a[href="mailto:${SUPPORT_EMAIL}"]`);
 }
 
-// Collect console errors / warnings
 function collectConsole(page: Page): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -58,89 +58,87 @@ function collectConsole(page: Page): { errors: string[]; warnings: string[] } {
   return { errors, warnings };
 }
 
-test.describe("TopBar Help Button (mailto support)", () => {
-  test("scenarios 1-7: tooltip, mailto, a11y, visual, console, sibling features", async ({ page }) => {
+test.describe("TopBar Support Email Link", () => {
+  test("inline email + icon badge, mailto, a11y, sibling features", async ({ page }) => {
     const consoleLog = collectConsole(page);
 
     await loginAsDemo(page);
     await shot(page, "01-loaded");
 
-    const help = helpButton(page);
-    await expect(help).toBeVisible();
+    const link = supportLink(page);
+    await expect(link).toBeVisible();
 
-    // ── Scenario 3: Click triggers mailto — verify the rendered DOM is <a mailto:...> ──
-    const tag = await help.evaluate((el) => el.tagName.toLowerCase());
+    // ── Scenario 1: Email text is visible by default (no hover) ──
+    await expect(link).toContainText(SUPPORT_EMAIL);
+    const linkText = (await link.textContent())?.trim();
+    expect(linkText).toBe(SUPPORT_EMAIL);
+
+    // ── Scenario 2: Anchor renders as <a mailto:...> ──
+    const tag = await link.evaluate((el) => el.tagName.toLowerCase());
     expect(tag).toBe("a");
-    await expect(help).toHaveAttribute("href", `mailto:${SUPPORT_EMAIL}`);
+    await expect(link).toHaveAttribute("href", `mailto:${SUPPORT_EMAIL}`);
 
-    // ── Scenario 4: a11y — aria-label contains the support email ──
-    const ariaLabel = await help.getAttribute("aria-label");
+    // ── Scenario 3: a11y — aria-label contains the support email ──
+    const ariaLabel = await link.getAttribute("aria-label");
     expect(ariaLabel).toBeTruthy();
     expect(ariaLabel).toContain(SUPPORT_EMAIL);
 
-    // ── Scenario 5: Visual — 32px circle button, 16px icon ──
-    const box = await help.boundingBox();
+    // ── Scenario 4: Visual — pill shape (rounded-full) ──
+    const radius = await link.evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
+    const box = await link.boundingBox();
     expect(box).not.toBeNull();
-    expect(Math.round(box!.width)).toBe(32);
-    expect(Math.round(box!.height)).toBe(32);
-    // border-radius should produce a circle (>= 50% of width)
-    const radius = await help.evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
-    expect(radius).toBeGreaterThanOrEqual(16);
-    // icon is an SVG inside the anchor with size-[16px]
-    const svg = help.locator("svg");
+    // rounded-full means radius >= half the height
+    expect(radius).toBeGreaterThanOrEqual(box!.height / 2 - 1);
+
+    // ── Scenario 5: Icon badge — 20x20 circle, primary/10 bg, 12px primary SVG icon inside ──
+    const badge = link.locator("span").first();
+    const badgeBox = await badge.boundingBox();
+    expect(badgeBox).not.toBeNull();
+    expect(Math.round(badgeBox!.width)).toBe(20);
+    expect(Math.round(badgeBox!.height)).toBe(20);
+    const badgeRadius = await badge.evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
+    expect(badgeRadius).toBeGreaterThanOrEqual(10); // half of 20 = circle
+    const svg = badge.locator("svg");
     await expect(svg).toBeVisible();
     const svgBox = await svg.boundingBox();
     expect(svgBox).not.toBeNull();
-    expect(Math.round(svgBox!.width)).toBe(16);
-    expect(Math.round(svgBox!.height)).toBe(16);
-    // icon color === --muted-foreground
+    expect(Math.round(svgBox!.width)).toBe(12);
+    expect(Math.round(svgBox!.height)).toBe(12);
+    // SVG color === --primary
     const iconColor = await svg.evaluate((el) => getComputedStyle(el).color);
-    const mutedRoot = await page.evaluate(() => {
+    const primaryColor = await page.evaluate(() => {
       const tmp = document.createElement("span");
-      tmp.style.color = "var(--muted-foreground)";
+      tmp.style.color = "var(--primary)";
       document.body.appendChild(tmp);
       const c = getComputedStyle(tmp).color;
       tmp.remove();
       return c;
     });
-    expect(iconColor).toBe(mutedRoot);
+    expect(iconColor).toBe(primaryColor);
+    await shot(page, "02-inline-email-visible");
 
-    // ── Scenario 1 & 2: Tooltip appears on hover with exact text ──
-    await help.hover();
-    // Radix tooltip is portaled and has role="tooltip"
-    const tooltip = page.getByRole("tooltip", { name: SUPPORT_EMAIL });
-    await expect(tooltip).toBeVisible({ timeout: 3000 });
-    const tooltipText = (await tooltip.textContent())?.trim();
-    expect(tooltipText).toBe(SUPPORT_EMAIL);
-    await shot(page, "02-tooltip-visible");
-
-    // ── Scenario 4 (cont): keyboard focusable + focus-visible ring ──
-    await page.mouse.move(0, 0); // unhover
-    await help.evaluate((el) => (el as HTMLElement).blur());
-    // Tab from the body until we land on the help link (or stop after a sane number of tries)
+    // ── Scenario 6: Keyboard focusable + focus-visible ring ──
+    await page.mouse.move(0, 0);
+    await link.evaluate((el) => (el as HTMLElement).blur());
     let focused = false;
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 40; i++) {
       await page.keyboard.press("Tab");
-      const isFocused = await help.evaluate((el) => el === document.activeElement);
+      const isFocused = await link.evaluate((el) => el === document.activeElement);
       if (isFocused) { focused = true; break; }
     }
     expect(focused).toBe(true);
-    // Force focus-visible state and check ring style is applied
-    const ringWidth = await help.evaluate((el) => {
+    const boxShadow = await link.evaluate((el) => {
       el.classList.add("focus-visible");
       return getComputedStyle(el).boxShadow;
     });
-    // Tailwind focus-visible:ring shows a non-empty box-shadow
-    expect(ringWidth === "none" || ringWidth.length === 0).toBe(false);
-    await shot(page, "03-help-focused");
+    expect(boxShadow === "none" || boxShadow.length === 0).toBe(false);
+    await shot(page, "03-link-focused");
 
     // ── Scenario 7: Sibling features still work ──
-    // Quick Find button opens search modal
+    // Quick Find opens search modal
     await page.locator("button", { hasText: "Quick Find" }).click();
-    // Search modal should mount (look for search input or modal container)
-    const modalCloseDetected = await page.waitForFunction(
+    const searchInputAppeared = await page.waitForFunction(
       () => {
-        // Scan for any visible element that looks like the search modal: a fixed overlay or input
         const inputs = Array.from(document.querySelectorAll("input"));
         return inputs.some((i) => {
           const style = getComputedStyle(i);
@@ -156,9 +154,8 @@ test.describe("TopBar Help Button (mailto support)", () => {
       undefined,
       { timeout: 5000 },
     ).catch(() => null);
-    expect(modalCloseDetected).not.toBeNull();
+    expect(searchInputAppeared).not.toBeNull();
     await shot(page, "04-search-modal-open");
-    // Close the modal with Escape
     await page.keyboard.press("Escape");
     await page.waitForTimeout(300);
 
@@ -170,9 +167,7 @@ test.describe("TopBar Help Button (mailto support)", () => {
     await page.keyboard.press("Escape");
     await page.mouse.click(10, 10);
 
-    // Trial CTA visible and clickable — scope to the top bar (h-[56px] gradient bar)
-    // There are two "Start my trial now" buttons in the app (top bar + right panel).
-    // We just need to verify the top-bar one (sibling of the help button) is intact.
+    // Trial CTA in top bar still visible/enabled
     const trial = page
       .locator("div.h-\\[56px\\]")
       .getByRole("button", { name: "Start my trial now" })
@@ -180,7 +175,7 @@ test.describe("TopBar Help Button (mailto support)", () => {
     await expect(trial).toBeVisible();
     await expect(trial).toBeEnabled();
 
-    // ── Scenario 6: No console errors / warnings (filter benign noise) ──
+    // ── Scenario 8: No console errors ──
     const benign = (s: string) =>
       s.includes("supabase") ||
       s.includes("Failed to fetch") ||

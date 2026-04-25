@@ -6,7 +6,6 @@ import { useLanguage, LANGUAGES } from "./language-context";
 import { SearchModal } from "./search-modal";
 import { useUserProfile } from "./user-profile-context";
 import { useAuth } from "./auth-context";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const SUPPORT_EMAIL = "support@transcribetotext.ai";
 
@@ -134,27 +133,19 @@ export function TopBar({ onNavigate }: TopBarProps) {
         <span className="font-semibold text-[12px] text-primary whitespace-nowrap">Start my trial now</span>
       </Button>
 
-      {/* Icon buttons */}
-      <div className="flex items-center gap-[2px]">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              asChild
-              variant="ghost"
-              size="icon"
-              className="size-[32px] rounded-full"
-              aria-label={`Contact support at ${SUPPORT_EMAIL}`}
-            >
-              <a href={`mailto:${SUPPORT_EMAIL}`}>
-                <Icon icon={Help} className="size-[16px] text-muted-foreground" strokeWidth={1.5} />
-              </a>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" sideOffset={6}>
-            {SUPPORT_EMAIL}
-          </TooltipContent>
-        </Tooltip>
-      </div>
+      {/* Support email */}
+      <Button
+        asChild
+        variant="ghost"
+        className="flex items-center gap-[8px] h-[32px] pl-[6px] pr-[12px] rounded-full shrink-0"
+      >
+        <a href={`mailto:${SUPPORT_EMAIL}`} aria-label={`Contact support at ${SUPPORT_EMAIL}`}>
+          <span className="size-[20px] rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Icon icon={Help} className="size-[12px] text-primary" strokeWidth={2.5} />
+          </span>
+          <span className="font-medium text-[12.5px] text-foreground whitespace-nowrap">{SUPPORT_EMAIL}</span>
+        </a>
+      </Button>
 
       {/* Profile */}
       <ProfileDropdown onNavigate={onNavigate} />
