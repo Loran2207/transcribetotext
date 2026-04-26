@@ -273,9 +273,6 @@ function HeroFree({ onUpgrade }: { onUpgrade: () => void }) {
         <Button onClick={onUpgrade} className="h-10 px-6 text-[13.5px]">
           Get Premium
         </Button>
-        <Button variant="pill-outline" className="h-10 px-5 text-[13.5px]">
-          Compare to Free
-        </Button>
       </div>
 
       <TrustLine>Secure payment · Cancel anytime · No hidden fees</TrustLine>
@@ -350,9 +347,6 @@ function HeroExpired({ onRenew }: { onRenew: () => void }) {
       <div className="flex gap-2.5 mt-6 items-center flex-wrap">
         <Button onClick={onRenew} className="h-10 px-6 text-[13.5px]">
           Renew Premium
-        </Button>
-        <Button variant="pill-outline" className="h-10 px-5 text-[13.5px]">
-          Stay on Free
         </Button>
       </div>
 
