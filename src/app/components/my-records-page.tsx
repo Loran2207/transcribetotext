@@ -3,7 +3,14 @@ import { createPortal } from "react-dom";
 import { useFolders, type FolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
-import { RecordsTable } from "./records-table";
+import { RecordsTable, records as mockRecords, type RecordRow } from "./records-table";
+import { ExportFormatSubMenu } from "./export-format-menu";
+import {
+  exportRecords,
+  type ExportableRecord,
+  type ExportFormat,
+} from "@/lib/export-formats";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -348,6 +355,38 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
     [folders, folderAssignments],
   );
 
+  function recordToExportable(record: RecordRow): ExportableRecord {
+    return {
+      title: record.name,
+      summary: record.summary,
+      segments: [],
+      metadata: {
+        date: record.dateCreated,
+        duration: record.duration,
+        source: record.source,
+        language: record.language,
+      },
+    };
+  }
+
+  function exportFolder(folderId: string, format: ExportFormat) {
+    const recordsInFolder = mockRecords.filter(
+      (r) => folderAssignments[r.id] === folderId,
+    );
+    if (!recordsInFolder.length) {
+      toast.error("This folder has no records to export");
+      return;
+    }
+    try {
+      exportRecords(recordsInFolder.map(recordToExportable), format);
+      toast.success(
+        `Exported ${recordsInFolder.length} record${recordsInFolder.length === 1 ? "" : "s"} as ${format.toUpperCase()}`,
+      );
+    } catch {
+      toast.error("Export failed");
+    }
+  }
+
   return (
     <div
       className={`flex-1 overflow-auto min-w-0 relative ${dragOver ? "bg-primary/[0.04]" : ""}`}
@@ -497,11 +536,10 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                       </DropdownMenuItem>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
-                  <DropdownMenuItem className="gap-2">
-                    <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                    <span>Export files</span>
-                    <span className="ml-auto text-[12px] font-medium text-muted-foreground">{folderRecordCounts.get(activeFolder.id) ?? 0}</span>
-                  </DropdownMenuItem>
+                  <ExportFormatSubMenu
+                    triggerLabel={`Export files (${folderRecordCounts.get(activeFolder.id) ?? 0})`}
+                    onSelect={(format) => exportFolder(activeFolder.id, format)}
+                  />
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => setDeletingFolderId(activeFolder.id)}>
                     <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
@@ -705,6 +743,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
           to   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1);    }
         }
       `}</style>
+
     </div>
   );
 }

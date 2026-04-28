@@ -103,7 +103,16 @@
       "Bash(lsof -ti:5173)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
       "Bash(git checkout *)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Read(//private/tmp/design-extract/**)",
+      "Bash(tar -xf design.tar)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5175/signup)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/signup)",
+      "Bash(curl -s http://localhost:5175/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/)",
+      "mcp__plugin_playwright_playwright__browser_type",
+      "Bash(pkill -f \"vite\")",
+      "mcp__plugin_playwright_playwright__browser_hover"
     ]
   },
   "enableAllProjectMcpServers": true,

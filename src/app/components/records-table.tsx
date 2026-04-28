@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
+import { toast } from "sonner";
 import svgPaths from "../../imports/svg-jcr72uvvch";
 import { useStarred } from "./starred-context";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -36,6 +37,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
+import { ExportFormatSubMenu, ExportFormatMenuItems } from "./export-format-menu";
+import {
+  exportRecords,
+  type ExportableRecord,
+  type ExportFormat,
+} from "@/lib/export-formats";
 
 /* ══════════════════════════════════════════════
    Column Configuration Types
@@ -110,20 +117,16 @@ function CopyToast({ text }: { text: string }) {
   );
 }
 
-function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash, summary }: { isStarred: boolean; onStar: () => void; onEdit: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void; summary: string }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash, onExport, summary }: { isStarred: boolean; onStar: () => void; onEdit: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: (format: ExportFormat) => void; summary: string }) {
   const [copied, setCopied] = useState<string | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
-  useEffect(() => { function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setMenuOpen(false); } document.addEventListener("mousedown", h); return () => document.removeEventListener("mousedown", h); }, []);
 
   function copyToClipboard(text: string, label: string) {
     navigator.clipboard.writeText(text).then(() => { setCopied(label); setTimeout(() => setCopied(null), 1500); });
-    setMenuOpen(false);
   }
 
   return (
-    <div className="flex items-center gap-[2px] relative" ref={ref}>
+    <div className="flex items-center gap-[2px] relative">
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="Rename" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M11.333 2a1.886 1.886 0 012.667 2.667L5.333 13.333 2 14l.667-3.333L11.333 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground" /></svg>
       </Button>
@@ -138,26 +141,35 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title={isStarred ? "Unstar" : "Star"} onClick={(e) => { e.stopPropagation(); onStar(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={isStarred ? "" : "text-muted-foreground"} /></svg>
       </Button>
-      <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="More" onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}>
-        <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.2" fill="currentColor" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="8" cy="13" r="1.2" fill="currentColor" /></svg>
-      </Button>
-      {menuOpen && (
-        <div className="absolute right-0 top-[calc(100%+4px)] w-[200px] rounded-[10px] py-[4px] z-50 bg-popover border border-border shadow-md">
-          <Button variant="ghost" onClick={(e) => { e.stopPropagation(); copyToClipboard(summary, "summary"); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] transition-colors hover:bg-accent rounded-none justify-start">
-            <svg className="size-[15px] shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.1" /><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" /></svg>
-            <span className="text-[13px] text-foreground">{t("table.copySummary")}</span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="More" onClick={(e) => e.stopPropagation()}>
+            <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.2" fill="currentColor" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="8" cy="13" r="1.2" fill="currentColor" /></svg>
           </Button>
-          <div className="h-px mx-[8px] my-[2px] bg-border" />
-          <Button variant="ghost" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMoveFolder(); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] transition-colors hover:bg-accent rounded-none justify-start">
-            <Icon icon={FolderOpen} className="size-[15px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
-            <span className="text-[13px] text-foreground">{t("table.moveToFolder")}</span>
-          </Button>
-          <Button variant="ghost" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onTrash(); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] transition-colors hover:bg-destructive/10 rounded-none justify-start">
-            <svg className="size-[15px] shrink-0 text-destructive" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <span className="text-[13px] text-destructive">{t("table.moveToTrash")}</span>
-          </Button>
-        </div>
-      )}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          sideOffset={4}
+          className="w-[210px]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DropdownMenuItem className="gap-2" onSelect={() => copyToClipboard(summary, "summary")}>
+            <svg className="size-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.1" /><path d="M3 11V3a1.5 1.5 0 011.5-1.5H11" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" /></svg>
+            {t("table.copySummary")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="gap-2" onSelect={onMoveFolder}>
+            <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+            {t("table.moveToFolder")}
+          </DropdownMenuItem>
+          <ExportFormatSubMenu onSelect={onExport} />
+          <DropdownMenuSeparator />
+          <DropdownMenuItem variant="destructive" className="gap-2" onSelect={onTrash}>
+            <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
+            {t("table.moveToTrash")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
       {copied && <CopyToast text={t("common.copied")} />}
     </div>
   );
@@ -306,7 +318,7 @@ function MultiSelectTextBtn({ icon, label, onClick, variant = "primary" }: { ico
 }
 
 function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary, onExport, onShare }: {
-  count: number; onCancel: () => void; onMoveFolder: () => void; onTrash: () => void; onCopySummary: () => void; onExport: () => void; onShare: () => void;
+  count: number; onCancel: () => void; onMoveFolder: () => void; onTrash: () => void; onCopySummary: () => void; onExport: (format: ExportFormat) => void; onShare: () => void;
 }) {
   const { t } = useLanguage();
   const [copied, setCopied] = useState<string | null>(null);
@@ -320,7 +332,23 @@ function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary,
       <MultiSelectTextBtn label="Summary" onClick={() => { onCopySummary(); setCopied("s"); setTimeout(() => setCopied(null), 1500); }} icon={<Icon icon={Copy} className="size-[14px]" strokeWidth={1.5} />} />
       <MultiSelectTextBtn label="Share" onClick={onShare} icon={<Icon icon={Share} className="size-[14px]" strokeWidth={1.5} />} />
       <MultiSelectTextBtn label="Folder" onClick={onMoveFolder} icon={<Icon icon={FolderOpen} className="size-[14px]" strokeWidth={1.5} />} />
-      <MultiSelectTextBtn label="Export" onClick={onExport} icon={<Icon icon={Upload} className="size-[14px]" strokeWidth={1.5} />} />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="flex items-center gap-[5px] h-[30px] px-[8px] rounded-full transition-opacity hover:opacity-70 text-primary"
+          >
+            <Icon icon={Upload} className="size-[14px]" strokeWidth={1.5} />
+            <span className="font-medium text-[13px]">Export</span>
+            <svg className="size-[10px] opacity-70" fill="none" viewBox="0 0 10 10">
+              <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" sideOffset={6} className="w-[230px]">
+          <ExportFormatMenuItems onSelect={onExport} />
+        </DropdownMenuContent>
+      </DropdownMenu>
       <MultiSelectTextBtn label="Trash" onClick={onTrash} variant="destructive" icon={<Icon icon={Trash} className="size-[14px]" strokeWidth={1.5} />} />
       <div className="flex-1" />
       <Button variant="ghost" onClick={onCancel} className="h-[30px] px-[12px] rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent">
@@ -1034,6 +1062,35 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [shareDialogRecord, setShareDialogRecord] = useState<string | null>(null);
   const { starred, toggleStar, renameRecord, getName } = useStarred();
 
+  function recordToExportable(record: RecordRow): ExportableRecord {
+    return {
+      title: record.name,
+      summary: record.summary,
+      segments: [], // table records don't carry full transcript segments
+      metadata: {
+        date: record.dateCreated,
+        duration: record.duration,
+        source: record.source,
+        language: record.language,
+      },
+    };
+  }
+
+  function exportRecordsByIds(ids: string[], format: ExportFormat) {
+    const targets = displayRecords
+      .filter((r) => ids.includes(r.id))
+      .map(recordToExportable);
+    if (!targets.length) return;
+    try {
+      exportRecords(targets, format);
+      const fmtUpper = format.toUpperCase();
+      if (targets.length === 1) toast.success(`Exported as ${fmtUpper}`);
+      else toast.success(`Exported ${targets.length} records as ${fmtUpper}`);
+    } catch {
+      toast.error("Export failed");
+    }
+  }
+
   function toggleColumnVisibility(col: ColumnId) {
     setHiddenColumns((prev) => { const next = new Set(prev); if (next.has(col)) next.delete(col); else next.add(col); return next; });
   }
@@ -1271,22 +1328,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                   const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => `${r.name}: ${r.summary}`).join("\n\n");
                   navigator.clipboard.writeText(texts);
                 }}
-                onExport={() => {
-                  const data = displayRecords.filter(r => selectedRows.has(r.id)).map(r => ({
-                    name: r.name,
-                    summary: r.summary,
-                    tasks: r.tasks,
-                    duration: r.duration,
-                    date: r.dateCreated,
-                  }));
-                  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "export.json";
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
+                onExport={(format) => exportRecordsByIds(Array.from(selectedRows), format)}
               />
             ) : (
             <div className="flex items-center h-[36px] border-b border-border">
@@ -1317,6 +1359,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                       onShare={() => setShareDialogRecord(record.id)}
                       onEdit={() => setEditingId(record.id)} onSaveName={(n) => { renameRecord(record.id, n); setEditingId(null); }} onCancelEdit={() => setEditingId(null)}
                       onRestore={() => restoreFromTrash(record.id)} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
+                      onExport={(format) => exportRecordsByIds([record.id], format)}
                       onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
                     />
                   ))}
@@ -1395,6 +1438,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                     onShare={() => setShareDialogRecord(record.id)}
                     onEdit={() => setEditingId(record.id)} onSaveName={(n) => { renameRecord(record.id, n); setEditingId(null); }} onCancelEdit={() => setEditingId(null)}
                     onRestore={() => restoreFromTrash(record.id)} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
+                    onExport={(format) => exportRecordsByIds([record.id], format)}
                     onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
                   />
                 ))}
@@ -1433,9 +1477,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
    Table Row
    ══════════════════════════════════════════════ */
 
-function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onMoveFolder, onTrash, onDoubleClick }: {
+function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onMoveFolder, onTrash, onExport, onDoubleClick }: {
   record: RecordRow; visibleColumns: ColumnId[]; isSelected: boolean; isStarred: boolean; isShared: boolean; isHovered: boolean; isEditing: boolean; isTrash: boolean;
-  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onMoveFolder: () => void; onTrash: () => void; onDoubleClick: () => void;
+  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: (format: ExportFormat) => void; onDoubleClick: () => void;
 }) {
   const { t: tRow } = useLanguage();
 
@@ -1493,7 +1537,7 @@ function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isH
             style={{ right: "-26px", width: "180px", background: `linear-gradient(to right, transparent 0px, ${actionsBg} 48px)` }}
             onClick={e => e.stopPropagation()}
           >
-            <RowActions isStarred={isStarred} onStar={onStar} onEdit={onEdit} onShare={onShare} onMoveFolder={onMoveFolder} onTrash={onTrash} summary={record.summary} />
+            <RowActions isStarred={isStarred} onStar={onStar} onEdit={onEdit} onShare={onShare} onMoveFolder={onMoveFolder} onTrash={onTrash} onExport={onExport} summary={record.summary} />
           </div>
         )}
         {/* Trash restore button */}

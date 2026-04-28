@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, Upload, User, Zap, Mic, Link, Edit, Copy } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -36,6 +36,12 @@ import { ShareDialog } from "./share-dialog";
 import { SharedUsersAvatars } from "./shared-users-avatars";
 import { useShares } from "@/hooks/use-shares";
 import type { Share as ShareRecord } from "@/lib/shares";
+import { ExportFormatSubMenu } from "./export-format-menu";
+import {
+  exportRecords,
+  type ExportableRecord,
+  type ExportFormat,
+} from "@/lib/export-formats";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -1236,7 +1242,7 @@ interface PageHeaderProps {
   onCopySummary: () => void;
   onMoveToFolder: (folderId: string) => void;
   onCreateFolderAndMove: () => void;
-  onExport: () => void;
+  onExport: (format: ExportFormat) => void;
   onRematchSpeakers: () => void;
   onRegenerateSummary: () => void;
   onSyncTextToAudio: () => void;
@@ -1338,10 +1344,7 @@ function PageHeader({
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuItem className="gap-2" onClick={onExport}>
-                <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                Export
-              </DropdownMenuItem>
+              <ExportFormatSubMenu onSelect={onExport} />
               <DropdownMenuSeparator />
               <DropdownMenuItem className="gap-2" onClick={onRematchSpeakers}>
                 <Icon icon={User} className="size-4 text-muted-foreground" strokeWidth={1.6} />
@@ -1939,6 +1942,28 @@ export function TranscriptionDetailPage() {
     return `${title}\n\n${rows.join("\n\n")}`;
   }
 
+  function buildExportableRecord(): ExportableRecord {
+    const speakerNames = Array.from(
+      new Set(contentSegments.map((s) => s.speaker.name))
+    );
+    return {
+      title: title || selectedRecord?.name || "Transcript",
+      summary: contentSummary || undefined,
+      segments: contentSegments.map((segment) => ({
+        speaker: segment.speaker.name,
+        timestamp: segment.timestamp,
+        text: texts[segment.id] ?? segment.text,
+      })),
+      metadata: {
+        date: selectedRecord?.dateCreated,
+        duration: selectedRecord?.duration,
+        source: selectedRecord?.source,
+        speakers: speakerNames,
+        language: selectedRecord?.language,
+      },
+    };
+  }
+
   async function shareTranscript() {
     const shareData = {
       title: title || "Transcript",
@@ -1970,19 +1995,13 @@ export function TranscriptionDetailPage() {
     toast.success("Summary copied");
   }
 
-  function exportTranscript() {
-    const blob = new Blob([buildTranscriptExportText()], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const fileBaseName = (title || selectedRecord?.name || "transcript")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "") || "transcript";
-    link.href = url;
-    link.download = `${fileBaseName}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast.success("Transcript exported");
+  function exportTranscript(format: ExportFormat) {
+    try {
+      exportRecords([buildExportableRecord()], format);
+      toast.success(`Exported as ${format.toUpperCase()}`);
+    } catch {
+      toast.error("Export failed");
+    }
   }
 
   function moveToFolder(folderId: string) {
