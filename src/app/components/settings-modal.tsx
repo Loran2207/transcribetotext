@@ -1,11 +1,26 @@
 import { useState, useRef, useEffect } from "react";
-import { User, Camera, Lock, Eye, EyeOff, Shield, Info, Mail, CreditCardIcon } from "@hugeicons/core-free-icons";
+import {
+  User,
+  Camera,
+  Lock,
+  Eye,
+  EyeOff,
+  Shield,
+  Info,
+  Mail,
+  CreditCardIcon,
+  Invoice01Icon,
+  Shield01Icon,
+  LegalDocument01Icon,
+} from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import {
   PlanManagementPage,
   PlanStatePreview,
   usePlanStatePreview,
 } from "./plan-management-page";
+import { PrivacyPolicyPage } from "./privacy-policy-page";
+import { TermsOfUsePage } from "./terms-of-use-page";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -658,17 +673,39 @@ interface SettingsPageProps {
   onClose: () => void;
 }
 
+type SectionId = "account" | "plan" | "invoices" | "privacy" | "terms";
+
+interface NavItem {
+  id: SectionId;
+  label: string;
+  icon: typeof User;
+  disabled?: boolean;
+  badge?: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: "account",  label: "Account",         icon: User },
+  { id: "plan",     label: "Plan management", icon: CreditCardIcon },
+  { id: "invoices", label: "Invoices",        icon: Invoice01Icon, disabled: true, badge: "Soon" },
+  { id: "privacy",  label: "Privacy policy",  icon: Shield01Icon },
+  { id: "terms",    label: "Terms of use",    icon: LegalDocument01Icon },
+];
+
+const MAX_WIDTH: Record<SectionId, string> = {
+  account:  "max-w-[560px]",
+  plan:     "max-w-[880px]",
+  invoices: "max-w-[560px]",
+  privacy:  "max-w-[1080px]",
+  terms:    "max-w-[1080px]",
+};
+
 export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
-  const [activeSection, setActiveSection] = useState<"account" | "plan">("account");
+  const [activeSection, setActiveSection] = useState<SectionId>("account");
   const [planState, setPlanState] = usePlanStatePreview();
 
-  const NAV_ITEMS = [
-    { id: "account" as const, label: "Account", icon: User },
-    { id: "plan" as const,    label: "Plan management", icon: CreditCardIcon },
-  ];
-
   const isPlan = activeSection === "plan";
-  const sectionLabel = NAV_ITEMS.find(n => n.id === activeSection)?.label ?? "Settings";
+  const sectionLabel =
+    NAV_ITEMS.find((n) => n.id === activeSection)?.label ?? "Settings";
 
   return (
     <div className="flex flex-1 overflow-hidden h-full">
@@ -684,14 +721,25 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
 
         {/* Nav items — reusing sidebar navigation components */}
         <SidebarMenu className="px-[16px]">
-          {NAV_ITEMS.map(({ id, label, icon: NavIcon }) => (
+          {NAV_ITEMS.map(({ id, label, icon: NavIcon, disabled, badge }) => (
             <SidebarMenuItem key={id}>
               <SidebarMenuButton
-                isActive={activeSection === id}
-                onClick={() => setActiveSection(id)}
+                isActive={!disabled && activeSection === id}
+                aria-disabled={disabled || undefined}
+                onClick={disabled ? undefined : () => setActiveSection(id)}
+                className={
+                  disabled
+                    ? "cursor-not-allowed text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+                    : ""
+                }
               >
                 <Icon icon={NavIcon} strokeWidth={1.3} />
                 <span>{label}</span>
+                {badge && (
+                  <span className="ml-auto text-[10px] font-semibold tracking-wide px-2 py-px rounded-full bg-muted text-muted-foreground">
+                    {badge}
+                  </span>
+                )}
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
@@ -713,8 +761,11 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
 
         {/* Scrollable form */}
         <div className="flex-1 overflow-y-auto">
-          <div className={`${isPlan ? "max-w-[880px]" : "max-w-[560px]"} px-[32px] pt-6 pb-12`}>
-            {isPlan ? <PlanManagementPage state={planState} /> : <AccountPage />}
+          <div className={`${MAX_WIDTH[activeSection]} px-[32px] pt-6 pb-12`}>
+            {activeSection === "account" && <AccountPage />}
+            {activeSection === "plan" && <PlanManagementPage state={planState} />}
+            {activeSection === "privacy" && <PrivacyPolicyPage />}
+            {activeSection === "terms" && <TermsOfUsePage />}
           </div>
         </div>
       </div>

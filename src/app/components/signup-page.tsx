@@ -12,10 +12,8 @@ import { AuthLayout } from "./auth-layout";
 import { useAuth } from "./auth-context";
 
 interface SignupFormValues {
-  fullName: string;
   email: string;
   password: string;
-  confirmPassword: string;
 }
 
 type PasswordStrength = "weak" | "medium" | "strong";
@@ -44,7 +42,6 @@ export function SignupPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -78,7 +75,7 @@ export function SignupPage() {
     setErrorMessage(null);
     setFailedEmail(null);
 
-    const { error, needsEmailConfirmation } = await signUp(data.email, data.password, data.fullName);
+    const { error, needsEmailConfirmation } = await signUp(data.email, data.password);
 
     if (error) {
       const isAlreadyExists = error.message.includes('already exists');
@@ -214,26 +211,8 @@ export function SignupPage() {
           <div className="flex-1 h-px bg-border" />
         </motion.div>
 
-        {/* Full Name */}
-        <motion.div className="flex flex-col gap-2" {...animProps(0.22)}>
-          <Label htmlFor="fullName">Full name</Label>
-          <Input
-            id="fullName"
-            type="text"
-            placeholder="Jane Doe"
-            autoComplete="name"
-            className={errors.fullName ? "border-destructive" : ""}
-            disabled={isFormDisabled}
-            aria-invalid={!!errors.fullName}
-            {...register("fullName", { required: "Name is required" })}
-          />
-          {errors.fullName && (
-            <p className="text-xs text-destructive">{errors.fullName.message}</p>
-          )}
-        </motion.div>
-
         {/* Email */}
-        <motion.div className="flex flex-col gap-2" {...animProps(0.30)}>
+        <motion.div className="flex flex-col gap-2" {...animProps(0.22)}>
           <Label htmlFor="signupEmail">Email</Label>
           <Input
             id="signupEmail"
@@ -257,7 +236,7 @@ export function SignupPage() {
         </motion.div>
 
         {/* Password */}
-        <motion.div className="flex flex-col gap-2" {...animProps(0.38)}>
+        <motion.div className="flex flex-col gap-2" {...animProps(0.30)}>
           <Label htmlFor="signupPassword">Password</Label>
           <div className="relative">
             <Input
@@ -308,46 +287,8 @@ export function SignupPage() {
           )}
         </motion.div>
 
-        {/* Confirm Password */}
-        <motion.div className="flex flex-col gap-2" {...animProps(0.46)}>
-          <Label htmlFor="confirmPassword">Confirm password</Label>
-          <div className="relative">
-            <Input
-              id="confirmPassword"
-              type={showConfirmPassword ? "text" : "password"}
-              placeholder="Re-enter your password"
-              autoComplete="new-password"
-              className={`pr-10 ${errors.confirmPassword ? "border-destructive" : ""}`}
-              disabled={isFormDisabled}
-              aria-invalid={!!errors.confirmPassword}
-              {...register("confirmPassword", {
-                required: "Please confirm your password",
-                validate: (value) =>
-                  value === passwordValue || "Passwords don't match",
-              })}
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => setShowConfirmPassword((prev) => !prev)}
-              tabIndex={-1}
-              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-            >
-              <Icon
-                icon={showConfirmPassword ? ViewOffIcon : EyeIcon}
-                size={16}
-              />
-            </button>
-          </div>
-          {errors.confirmPassword && (
-            <p className="text-xs text-destructive">
-              {errors.confirmPassword.message}
-            </p>
-          )}
-        </motion.div>
-
         {/* Submit */}
-        <motion.div {...animProps(0.54)}>
+        <motion.div {...animProps(0.38)}>
           <Button
             type="submit"
             className="w-full rounded-full"
@@ -371,7 +312,7 @@ export function SignupPage() {
 
         <motion.p
           className="text-sm text-center text-muted-foreground"
-          {...animProps(0.62)}
+          {...animProps(0.46)}
         >
           Already have an account?{" "}
           <Link

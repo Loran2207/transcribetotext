@@ -42,7 +42,7 @@ interface AuthContextValue {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: Error | null; needsEmailConfirmation?: boolean }>;
+  signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null; needsEmailConfirmation?: boolean }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   signInWithGoogle: () => Promise<{ error: AuthError | null }>;
 }
@@ -99,17 +99,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: new Error(error.message) };
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string, name: string): Promise<{
+  const signUp = useCallback(async (email: string, password: string, name?: string): Promise<{
     error: Error | null;
     needsEmailConfirmation?: boolean;
   }> => {
     // Send email trimmed, password exactly as typed — no transform
+    const trimmedName = name?.trim();
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: {
-        data: { full_name: name.trim() },
-      },
+      ...(trimmedName ? { options: { data: { full_name: trimmedName } } } : {}),
     });
 
     if (error) {
