@@ -1,80 +1,89 @@
-import { Fragment, useState, type ReactNode, type CSSProperties } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { cn } from "../ui/utils";
 
 /**
- * Layout primitives for the design-system board. Plain framed panels on a faint
- * canvas — hairline borders over heavy shadow, generous breathing room — so the
- * page mirrors the system it documents and maps cleanly to Figma frames later.
+ * Documentation chrome for the technical /design-system board. The look is an
+ * engineered spec sheet: a big mono section number, a hairline two-column head,
+ * mono block labels. Sentence case throughout — no shouting. The real component
+ * looks come from the app's own components placed inside the stages.
  */
 
-const MONO = "ui-monospace, 'SF Mono', Menlo, monospace";
-
-/** Inline monospace token / value text. */
-export function Mono({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
-  return (
-    <span
-      className={cn("text-[11px] tabular-nums text-muted-foreground", className)}
-      style={{ fontFamily: MONO, ...style }}
-    >
-      {children}
-    </span>
-  );
+/** Inline monospace value text. */
+export function Mono({ children, className }: { children: ReactNode; className?: string }) {
+  return <span className={cn("ds-mono text-[11px] text-muted-foreground", className)}>{children}</span>;
 }
 
-/** A quiet block label — sentence case, no shouting. */
-export function SubLabel({ children }: { children: ReactNode }) {
-  return <div className="text-[13px] font-medium text-foreground">{children}</div>;
-}
-
-/** A labelled sub-section within a section frame. */
-export function SubBlock({ label, children }: { label?: string; children: ReactNode }) {
+/** Top-level group divider (Foundations / Components). */
+export function GroupDivider({ label, hint }: { label: string; hint?: string }) {
   return (
-    <div className="flex flex-col gap-3.5">
-      {label ? <SubLabel>{label}</SubLabel> : null}
-      {children}
-    </div>
-  );
-}
-
-/** A top-level group divider (Foundations, Components). */
-export function GroupHeading({ label, hint }: { label: string; hint?: string }) {
-  return (
-    <div className="flex items-center gap-4 px-1 pt-4 first:pt-0">
-      <h2 className="text-[14px] font-semibold tracking-tight text-foreground">{label}</h2>
+    <div className="flex items-center gap-3.5 px-6 pb-3.5 pt-7 sm:px-14">
+      <h2 className="ds-mono text-[12px] font-semibold text-foreground">{label}</h2>
       <span className="h-px flex-1 bg-border" />
-      {hint ? <span className="text-[11px] text-muted-foreground">{hint}</span> : null}
+      {hint ? <span className="ds-mono text-[10.5px] text-muted-foreground">{hint}</span> : null}
     </div>
   );
 }
 
-/** A titled, anchored panel. Each maps to one Figma frame. */
-export function SectionFrame({
+/** A numbered, anchored spec-sheet section. */
+export function Section({
   id,
+  num,
   group,
   title,
-  description,
+  desc,
+  spec,
   children,
 }: {
   id: string;
+  num: string;
   group: string;
   title: string;
-  description: string;
+  desc: string;
+  spec?: boolean;
   children: ReactNode;
 }) {
   return (
     <section
       id={id}
-      aria-label={`${group} — ${title}`}
-      className="scroll-mt-[88px] rounded-[14px] border border-border bg-card p-6 shadow-sm sm:p-8"
+      className="scroll-mt-4 border-b border-border bg-white/70 px-6 py-11 sm:px-14"
     >
-      <header className="mb-7 flex flex-col gap-1">
-        <h3 className="text-[18px] font-semibold leading-tight text-foreground">{title}</h3>
-        <p className="mt-0.5 max-w-[68ch] text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+      <header className="mb-7 grid grid-cols-1 gap-3 md:grid-cols-[180px_minmax(0,1fr)] md:gap-10">
+        <span className="ds-mono text-[34px] font-medium leading-none text-primary md:text-[40px]">
+          <span className="opacity-40">/ </span>
+          {num}
+        </span>
+        <div className="flex flex-col gap-2">
+          <span className="ds-mono text-[11px] text-muted-foreground">
+            {group} · #{id}
+          </span>
+          <h3 className="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-foreground md:text-[26px]">
+            {title}
+          </h3>
+          <p className="mt-0.5 max-w-[70ch] text-[14px] leading-relaxed text-muted-foreground">{desc}</p>
+        </div>
       </header>
-      <div className="flex flex-col gap-9 [&_code]:rounded-[4px] [&_code]:bg-muted [&_code]:px-1 [&_code]:py-px [&_code]:text-[11px] [&_code]:text-foreground">
+      <div
+        className={cn(
+          "flex flex-col gap-9 [&_code]:rounded-[4px] [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-px [&_code]:text-[11px] [&_code]:text-foreground",
+          !spec && "md:pl-[220px]",
+        )}
+      >
         {children}
       </div>
     </section>
+  );
+}
+
+/** A labelled block within a section. */
+export function Block({ label, note, children }: { label?: string; note?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3.5">
+      {label ? (
+        <div className="ds-mono border-b border-border pb-2 text-[11.5px] font-semibold text-foreground">{label}</div>
+      ) : null}
+      <div className="flex flex-col gap-3.5">{children}</div>
+      {note ? <p className="max-w-[70ch] text-[13px] leading-relaxed text-muted-foreground">{note}</p> : null}
+    </div>
   );
 }
 
@@ -103,17 +112,9 @@ export function Swatch({
     );
   };
   return (
-    <button
-      type="button"
-      onClick={copy}
-      title="Copy"
-      className="group flex w-[112px] shrink-0 flex-col gap-2 text-left outline-none"
-    >
+    <button type="button" onClick={copy} title="Copy" className="group flex w-[112px] shrink-0 flex-col gap-2 text-left outline-none">
       <span
-        className={cn(
-          "h-[60px] w-full rounded-[10px] transition-transform duration-200 group-hover:-translate-y-0.5",
-          outline ? "border border-border" : "border border-black/[0.04]",
-        )}
+        className={cn("h-[60px] w-full rounded-[10px] transition-transform duration-200 group-hover:-translate-y-0.5", outline ? "border border-border" : "border border-black/[0.04]")}
         style={{ background: css }}
       />
       <span className="flex flex-col gap-0.5">
@@ -125,20 +126,31 @@ export function Swatch({
   );
 }
 
-/**
- * Key → value spec list for a single component (height, padding, text…).
- * Values render monospace so a developer can read exact measurements.
- */
+/** Key → value spec list. Values render monospace. */
 export function SpecList({ rows }: { rows: [string, ReactNode][] }) {
   return (
     <dl className="grid grid-cols-[max-content_1fr] gap-x-8 gap-y-2">
       {rows.map(([k, v]) => (
         <Fragment key={k}>
           <dt className="text-[12px] text-muted-foreground">{k}</dt>
-          <dd className="text-[12px] text-foreground" style={{ fontFamily: MONO }}>{v}</dd>
+          <dd className="ds-mono text-[12px] text-foreground">{v}</dd>
         </Fragment>
       ))}
     </dl>
+  );
+}
+
+/** Several titled spec lists, side by side. */
+export function SpecCols({ groups }: { groups: { title: string; rows: [string, ReactNode][] }[] }) {
+  return (
+    <div className="flex flex-wrap gap-x-16 gap-y-7">
+      {groups.map((g) => (
+        <div key={g.title} className="flex flex-col gap-3">
+          <span className="ds-mono text-[11px] text-muted-foreground">{g.title}</span>
+          <SpecList rows={g.rows} />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -150,7 +162,7 @@ export function PropTable({ head, rows }: { head: string[]; rows: ReactNode[][] 
         <thead>
           <tr className="border-b border-border">
             {head.map((h) => (
-              <th key={h} className="px-1 pb-2 text-[11px] font-medium text-muted-foreground">{h}</th>
+              <th key={h} className="ds-mono px-1 pb-2.5 text-[11px] font-medium text-muted-foreground">{h}</th>
             ))}
           </tr>
         </thead>
@@ -158,14 +170,7 @@ export function PropTable({ head, rows }: { head: string[]; rows: ReactNode[][] 
           {rows.map((r, i) => (
             <tr key={i} className="border-b border-border/60 last:border-0">
               {r.map((c, j) => (
-                <td
-                  key={j}
-                  className={cn(
-                    "px-1 py-2 align-top text-[12px]",
-                    j === 0 ? "text-foreground" : "text-muted-foreground",
-                  )}
-                  style={{ fontFamily: MONO }}
-                >
+                <td key={j} className={cn("ds-mono px-1 py-2 align-top text-[12px]", j === 0 ? "text-foreground" : "text-muted-foreground")}>
                   {c}
                 </td>
               ))}
@@ -173,6 +178,16 @@ export function PropTable({ head, rows }: { head: string[]; rows: ReactNode[][] 
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** A small mono caption above a demo row (foundations / non-annotated demos). */
+export function Demo({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2.5">
+      <span className="ds-mono text-[11px] text-muted-foreground">{label}</span>
+      <div className="flex flex-wrap items-center gap-3">{children}</div>
     </div>
   );
 }

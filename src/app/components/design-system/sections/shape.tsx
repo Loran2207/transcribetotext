@@ -1,15 +1,16 @@
-import { SectionFrame, SubBlock, Mono } from "../board";
+import { Section, Block, Mono } from "../board";
 import { radii, elevations } from "../tokens";
 
 export function ShapeSection() {
   return (
-    <SectionFrame
+    <Section
       id="shape"
+      num="04"
       group="Foundations"
       title="Shape & elevation"
-      description="Base radius is 10px on a 6→26px scale. Every button is a pill. Just two elevation steps — cards usually lean on a 1px border instead of a shadow."
+      desc="Base radius is 10px on a 6→26px scale. Every button is a pill. Just two elevation steps — cards usually lean on a 1px border instead of a shadow."
     >
-      <SubBlock label="Radius — base 10px · buttons always full">
+      <Block label="Radius — base 10px · buttons always full">
         <div className="flex flex-wrap items-end gap-5">
           {radii.map((r) => (
             <div key={r.name} className="flex flex-col items-start gap-2">
@@ -21,9 +22,9 @@ export function ShapeSection() {
             </div>
           ))}
         </div>
-      </SubBlock>
+      </Block>
 
-      <SubBlock label="Elevation — two steps only">
+      <Block label="Elevation — two steps only">
         <div className="flex flex-wrap items-start gap-8">
           {elevations.map((e) => (
             <div key={e.name} className="flex flex-col gap-2.5">
@@ -37,7 +38,7 @@ export function ShapeSection() {
             </div>
           ))}
         </div>
-      </SubBlock>
-    </SectionFrame>
+      </Block>
+    </Section>
   );
 }

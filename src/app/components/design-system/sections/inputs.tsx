@@ -1,106 +1,72 @@
-import type { ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { Input } from "../../ui/input";
-import { Label } from "../../ui/label";
 import { Checkbox } from "../../ui/checkbox";
 import { Switch } from "../../ui/switch";
-import { SectionFrame, SubBlock, Mono, SpecList } from "../board";
+import { Section, Block, SpecCols } from "../board";
+import { AnnoStage, Cell, StageGrid, H, W, lead } from "../annotate";
 
-function Field({ label, children, hint, hintError }: { label: string; children: ReactNode; hint?: string; hintError?: boolean }) {
-  return (
-    <div className="flex w-[220px] flex-col gap-1.5">
-      <Label className="text-[13px]">{label}</Label>
-      {children}
-      {hint ? (
-        <span className={hintError ? "text-[11px] text-destructive" : "text-[11px] text-muted-foreground"}>{hint}</span>
-      ) : null}
-    </div>
-  );
-}
+const focusStyle: CSSProperties = {
+  borderColor: "var(--primary)",
+  boxShadow: "0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent)",
+};
+
+const SPECS = [
+  { title: "Input", rows: [["height", "36px · h-9"], ["radius", "12px"], ["padding", "0 12px · px-3"], ["text", "14px (16px below md)"], ["border", "1px · border-input"], ["focus", "3px ring · ring/20"], ["error", "border-destructive"]] },
+  { title: "Checkbox", rows: [["size", "16px · size-4"], ["radius", "4px"], ["checked", "bg-primary"], ["focus", "3px ring"]] },
+  { title: "Switch", rows: [["track", "36×20 · w-9 h-5"], ["thumb", "16px · size-4"], ["travel", "16px"], ["checked", "bg-primary"]] },
+] satisfies { title: string; rows: [string, string][] }[];
 
 export function InputsSection() {
   return (
-    <SectionFrame
+    <Section
       id="inputs"
+      num="02"
       group="Components"
       title="Inputs & forms"
-      description="Inputs are 1px border, 12px radius, transparent fill. Focus = a 3px brand-blue ring at ~18%; errors swap the border to red with a caption beneath."
+      desc="Inputs are 1px border, 12px radius, transparent fill. Focus = a 3px brand-blue ring at ~18%; errors swap the border to red with a caption beneath."
+      spec
     >
-      <SubBlock label="Text fields">
-        <div className="flex flex-wrap items-start gap-6">
-          <Field label="Email">
-            <Input placeholder="you@example.com" />
-          </Field>
-          <Field label="Password" hint="Focus to see the brand ring">
-            <Input type="password" defaultValue="secret123" autoFocus={false} />
-          </Field>
-          <Field label="Folder name" hint="Name is required" hintError>
-            <Input aria-invalid defaultValue="" placeholder="e.g. Client Meetings" />
-          </Field>
-        </div>
-      </SubBlock>
+      <Block label="Text field">
+        <AnnoStage
+          annos={[
+            H, W,
+            lead(0.99, 0.12, 40, -28, "radius · 12", "r"),
+            lead(0.06, 0.5, -46, 30, "px-3 · 12", "l"),
+            lead(0.5, 0.5, 96, 26, "text · 14", "r"),
+          ]}
+        >
+          <Input defaultValue="you@example.com" style={{ width: 240, ...focusStyle }} />
+        </AnnoStage>
+      </Block>
 
-      <SubBlock label="Toggles">
-        <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
-          <label className="flex items-center gap-2.5">
+      <Block label="States">
+        <StageGrid>
+          <Cell tag="default" variant="mini" annos={[]}>
+            <Input placeholder="you@example.com" style={{ width: 200 }} />
+          </Cell>
+          <Cell tag="focus · ring/18" variant="mini" annos={[]}>
+            <Input type="password" defaultValue="secret123" style={{ width: 200, ...focusStyle }} />
+          </Cell>
+          <Cell tag="error" variant="mini" annos={[]}>
+            <Input aria-invalid placeholder="Client Meetings" style={{ width: 200 }} />
+          </Cell>
+        </StageGrid>
+      </Block>
+
+      <Block label="Selection controls">
+        <StageGrid>
+          <Cell tag="checkbox · size-4" variant="row" annos={[H, W, lead(1, 0.1, 30, -22, "radius · 4", "r")]}>
             <Checkbox defaultChecked />
-            <span className="text-[13px] text-foreground">Checked</span>
-          </label>
-          <label className="flex items-center gap-2.5">
-            <Checkbox />
-            <span className="text-[13px] text-foreground">Unchecked</span>
-          </label>
-          <div className="flex items-center gap-2.5">
+          </Cell>
+          <Cell tag="switch · w-9 h-5" variant="row" annos={[H, W, lead(0.86, 0.5, 40, 24, "thumb · 16", "r")]}>
             <Switch defaultChecked />
-            <span className="text-[13px] text-foreground">On</span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <Switch />
-            <span className="text-[13px] text-foreground">Off</span>
-          </div>
-          <Mono>checked = brand blue</Mono>
-        </div>
-      </SubBlock>
+          </Cell>
+        </StageGrid>
+      </Block>
 
-      <SubBlock label="Specs">
-        <div className="flex flex-wrap gap-x-16 gap-y-7">
-          <div className="flex flex-col gap-3">
-            <Mono>Input</Mono>
-            <SpecList
-              rows={[
-                ["height", "36px · h-9"],
-                ["radius", "12px"],
-                ["padding", "0 12px · px-3"],
-                ["text", "14px (16px below md)"],
-                ["border", "1px · border-input"],
-                ["focus", "3px ring · ring/20"],
-                ["error", "border-destructive"],
-              ]}
-            />
-          </div>
-          <div className="flex flex-col gap-3">
-            <Mono>Checkbox</Mono>
-            <SpecList
-              rows={[
-                ["size", "16px · size-4"],
-                ["radius", "4px"],
-                ["checked", "bg-primary"],
-                ["focus", "3px ring"],
-              ]}
-            />
-          </div>
-          <div className="flex flex-col gap-3">
-            <Mono>Switch</Mono>
-            <SpecList
-              rows={[
-                ["track", "36×20 · w-9 h-5"],
-                ["thumb", "16px · size-4"],
-                ["travel", "16px"],
-                ["checked", "bg-primary"],
-              ]}
-            />
-          </div>
-        </div>
-      </SubBlock>
-    </SectionFrame>
+      <Block label="Specs">
+        <SpecCols groups={SPECS} />
+      </Block>
+    </Section>
   );
 }

@@ -1,0 +1,88 @@
+/* ============================================================
+   Technical skin for the /design-system board.
+   Blueprint canvas, redline measurement stages, mono chrome.
+   Everything is scoped under .dstech so it can't leak into the
+   app. Component looks come from the real React components that
+   sit inside the stages — only the documentation chrome lives
+   here.
+   ============================================================ */
+
+.dstech {
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --grid: oklch(0.92 0.004 286 / 0.5);
+  --anno: var(--primary);
+  background:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+    oklch(0.995 0.001 286);
+  background-size: 32px 32px;
+}
+
+.dstech .ds-mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* code chips inside notes */
+.dstech code {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: var(--muted);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--foreground);
+}
+
+/* ---- Spec stage : a component sits alone on blueprint paper ---- */
+.af-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 156px 72px 96px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background:
+    radial-gradient(oklch(0.85 0.01 264 / 0.18) 1px, transparent 1.4px) 0 0 / 16px 16px,
+    #fff;
+  overflow: hidden;
+}
+.af-stage--lg { min-height: 220px; }
+.af-stage--row { padding: 44px 132px 56px 84px; min-height: 0; }
+.af-stage--mini { padding: 30px 26px; min-height: 96px; border-style: dashed; background: #fff; }
+
+.af-target { position: relative; z-index: 1; display: inline-flex; }
+
+.af-overlay { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 2; }
+.af-overlay line { stroke: var(--anno); stroke-width: 1; }
+.af-overlay circle { fill: var(--anno); }
+
+.af-label {
+  position: absolute;
+  z-index: 3;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--anno);
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--anno) 32%, white);
+  padding: 3px 6px;
+  border-radius: 5px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+  pointer-events: none;
+}
+.af-label--dim { font-weight: 500; color: var(--foreground); border-color: var(--border); }
+
+/* stage layout helpers */
+.af-stack { display: flex; flex-direction: column; gap: 16px; }
+.af-grid { display: flex; flex-wrap: wrap; gap: 16px; }
+.af-cell { display: flex; flex-direction: column; gap: 8px; }
+.af-tag { font-family: var(--mono); font-size: 10.5px; color: var(--muted-foreground); letter-spacing: 0.02em; }
+.af-tag::before { content: "\2014  "; opacity: 0.4; }
+
+@media (max-width: 1040px) {
+  .af-stage { padding: 48px 110px 60px 80px; }
+  .af-stage--mini { padding: 26px 22px; }
+}
