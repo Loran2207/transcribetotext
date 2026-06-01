@@ -13,13 +13,18 @@ export function Mono({ children, className }: { children: ReactNode; className?:
   return <span className={cn("ds-mono text-[11px] text-muted-foreground", className)}>{children}</span>;
 }
 
+/** Shared reading width for the main column — keeps content compact on wide screens. */
+const SHEET = "mx-auto w-full max-w-[1080px]";
+
 /** Top-level group divider (Foundations / Components). */
 export function GroupDivider({ label, hint }: { label: string; hint?: string }) {
   return (
-    <div className="flex items-center gap-3.5 px-6 pb-3.5 pt-7 sm:px-14">
-      <h2 className="ds-mono text-[12px] font-semibold text-foreground">{label}</h2>
-      <span className="h-px flex-1 bg-border" />
-      {hint ? <span className="ds-mono text-[10.5px] text-muted-foreground">{hint}</span> : null}
+    <div className="px-6 pb-3.5 pt-7 sm:px-14">
+      <div className={cn(SHEET, "flex items-center gap-3.5")}>
+        <h2 className="ds-mono text-[12px] font-semibold text-foreground">{label}</h2>
+        <span className="h-px flex-1 bg-border" />
+        {hint ? <span className="ds-mono text-[10.5px] text-muted-foreground">{hint}</span> : null}
+      </div>
     </div>
   );
 }
@@ -47,28 +52,30 @@ export function Section({
       id={id}
       className="scroll-mt-4 border-b border-border bg-white/70 px-6 py-11 sm:px-14"
     >
-      <header className="mb-7 grid grid-cols-1 gap-3 md:grid-cols-[180px_minmax(0,1fr)] md:gap-10">
-        <span className="ds-mono text-[34px] font-medium leading-none text-primary md:text-[40px]">
-          <span className="opacity-40">/ </span>
-          {num}
-        </span>
-        <div className="flex flex-col gap-2">
-          <span className="ds-mono text-[11px] text-muted-foreground">
-            {group} · #{id}
+      <div className={SHEET}>
+        <header className="mb-7 grid grid-cols-1 gap-3 md:grid-cols-[160px_minmax(0,1fr)] md:gap-10">
+          <span className="ds-mono text-[34px] font-medium leading-none text-primary md:text-[40px]">
+            <span className="opacity-40">/ </span>
+            {num}
           </span>
-          <h3 className="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-foreground md:text-[26px]">
-            {title}
-          </h3>
-          <p className="mt-0.5 max-w-[70ch] text-[14px] leading-relaxed text-muted-foreground">{desc}</p>
+          <div className="flex flex-col gap-2">
+            <span className="ds-mono text-[11px] text-muted-foreground">
+              {group} · #{id}
+            </span>
+            <h3 className="text-[24px] font-semibold leading-tight tracking-[-0.02em] text-foreground md:text-[26px]">
+              {title}
+            </h3>
+            <p className="mt-0.5 max-w-[70ch] text-[14px] leading-relaxed text-muted-foreground">{desc}</p>
+          </div>
+        </header>
+        <div
+          className={cn(
+            "flex flex-col gap-9 [&_code]:rounded-[4px] [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-px [&_code]:text-[11px] [&_code]:text-foreground",
+            !spec && "md:pl-[200px]",
+          )}
+        >
+          {children}
         </div>
-      </header>
-      <div
-        className={cn(
-          "flex flex-col gap-9 [&_code]:rounded-[4px] [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-px [&_code]:text-[11px] [&_code]:text-foreground",
-          !spec && "md:pl-[220px]",
-        )}
-      >
-        {children}
       </div>
     </section>
   );

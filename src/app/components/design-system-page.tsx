@@ -85,7 +85,7 @@ export function DesignSystemPage() {
       <main id="top" className="min-w-0">
         {/* Hero */}
         <header className="border-b border-border bg-white/60 px-6 py-14 sm:px-14">
-          <div className="max-w-[1040px]">
+          <div className="mx-auto w-full max-w-[1080px]">
             <img src="/images/logo-full.svg" alt="TranscribeToText" className="mb-6 block h-[30px]" />
             <span className="ds-mono mb-4 flex items-center gap-2 text-[11px] font-medium text-primary">
               <span className="text-primary">▍</span> Design system
@@ -125,8 +125,10 @@ export function DesignSystemPage() {
         <NavSection />
         <SourceChipsSection />
 
-        <footer className="ds-mono px-6 py-6 text-[11px] text-muted-foreground sm:px-14">
-          TranscribeToText design system · tokens sourced from src/styles/theme.css · light theme
+        <footer className="px-6 py-6 sm:px-14">
+          <div className="ds-mono mx-auto w-full max-w-[1080px] text-[11px] text-muted-foreground">
+            TranscribeToText design system · tokens sourced from src/styles/theme.css · light theme
+          </div>
         </footer>
       </main>
     </div>
