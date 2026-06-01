@@ -3,7 +3,7 @@ import { Input } from "../../ui/input";
 import { Label } from "../../ui/label";
 import { Checkbox } from "../../ui/checkbox";
 import { Switch } from "../../ui/switch";
-import { SectionFrame, SubBlock, Mono } from "../board";
+import { SectionFrame, SubBlock, Mono, SpecList } from "../board";
 
 function Field({ label, children, hint, hintError }: { label: string; children: ReactNode; hint?: string; hintError?: boolean }) {
   return (
@@ -58,6 +58,47 @@ export function InputsSection() {
             <span className="text-[13px] text-foreground">Off</span>
           </div>
           <Mono>checked = brand blue</Mono>
+        </div>
+      </SubBlock>
+
+      <SubBlock label="Specs">
+        <div className="flex flex-wrap gap-x-16 gap-y-7">
+          <div className="flex flex-col gap-3">
+            <Mono>Input</Mono>
+            <SpecList
+              rows={[
+                ["height", "36px · h-9"],
+                ["radius", "12px"],
+                ["padding", "0 12px · px-3"],
+                ["text", "14px (16px below md)"],
+                ["border", "1px · border-input"],
+                ["focus", "3px ring · ring/20"],
+                ["error", "border-destructive"],
+              ]}
+            />
+          </div>
+          <div className="flex flex-col gap-3">
+            <Mono>Checkbox</Mono>
+            <SpecList
+              rows={[
+                ["size", "16px · size-4"],
+                ["radius", "4px"],
+                ["checked", "bg-primary"],
+                ["focus", "3px ring"],
+              ]}
+            />
+          </div>
+          <div className="flex flex-col gap-3">
+            <Mono>Switch</Mono>
+            <SpecList
+              rows={[
+                ["track", "36×20 · w-9 h-5"],
+                ["thumb", "16px · size-4"],
+                ["travel", "16px"],
+                ["checked", "bg-primary"],
+              ]}
+            />
+          </div>
         </div>
       </SubBlock>
     </SectionFrame>

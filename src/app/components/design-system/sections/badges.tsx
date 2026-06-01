@@ -1,6 +1,15 @@
 import { Badge } from "../../ui/badge";
-import { SectionFrame, SubBlock } from "../board";
+import { SectionFrame, SubBlock, PropTable } from "../board";
 import { brandGradient } from "../tokens";
+
+const BADGE_SPECS = {
+  head: ["type", "height", "padding-x", "text", "radius"],
+  rows: [
+    ["Badge (base)", "~22px", "8px · px-2", "12px / 500", "8px · md"],
+    ["status / plan", "22px", "10px · px-2.5", "11.5px / 600", "full"],
+    ["language tag", "20px", "8px · px-2", "11px / 500", "6px"],
+  ],
+};
 
 function StatusBadge({ label, color }: { label: string; color: string }) {
   return (
@@ -48,6 +57,13 @@ export function BadgesSection() {
           <Badge variant="destructive">destructive</Badge>
           <Badge variant="outline">outline</Badge>
         </div>
+      </SubBlock>
+
+      <SubBlock label="Specs">
+        <PropTable head={BADGE_SPECS.head} rows={BADGE_SPECS.rows} />
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
+          Status pills carry a 6px leading dot over a 12% tint of their hue. The base <code>Badge</code> is the only one that keeps a square-ish 8px radius — every pill badge is fully rounded.
+        </p>
       </SubBlock>
     </SectionFrame>
   );

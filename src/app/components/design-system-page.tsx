@@ -63,10 +63,10 @@ export function DesignSystemPage() {
               TranscribeToText — design system
             </h1>
             <p className="max-w-[68ch] text-[14px] leading-relaxed text-muted-foreground">
-              The visual foundations and components behind the product, on one canvas. A clean, bright,
-              low-chrome productivity UI: one blue accent, a cool-tinted neutral ramp, Inter throughout,
-              hairline borders over heavy shadow. Foundations read from live tokens; components are the
-              real app primitives.
+              Every token and component the product is built from, on one page. One blue accent, a
+              cool-tinted gray ramp, Inter throughout, and hairline borders instead of heavy shadow.
+              The foundations below read straight from the live theme tokens and the components are the
+              real app primitives — so what you see here is what ships.
             </p>
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground" style={{ fontFamily: MONO }}>

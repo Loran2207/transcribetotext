@@ -1,5 +1,5 @@
 import { SourceIcon, type SourceType } from "../../source-icons";
-import { SectionFrame, SubBlock } from "../board";
+import { SectionFrame, SubBlock, SpecList } from "../board";
 
 const CHIPS: { source: SourceType; label: string }[] = [
   { source: "google-meet", label: "Google Meet" },
@@ -36,6 +36,20 @@ export function SourceChipsSection() {
             </span>
           ))}
         </div>
+      </SubBlock>
+
+      <SubBlock label="Specs">
+        <SpecList
+          rows={[
+            ["height", "30px"],
+            ["padding", "0 12px / 0 8px (icon side)"],
+            ["gap", "8px"],
+            ["icon", "18px"],
+            ["text", "12.5px / 500"],
+            ["radius", "full"],
+            ["border", "1px · border-border"],
+          ]}
+        />
       </SubBlock>
     </SectionFrame>
   );

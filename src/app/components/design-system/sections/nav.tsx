@@ -1,7 +1,7 @@
 import { House, FileText, UserMultiple02Icon, Calendar, Layers } from "@hugeicons/core-free-icons";
 import type { IconSvgElement } from "../../ui/icon";
 import { Icon } from "../../ui/icon";
-import { SectionFrame, SubBlock } from "../board";
+import { SectionFrame, SubBlock, SpecList } from "../board";
 
 const NAV: { label: string; icon: IconSvgElement; active?: boolean }[] = [
   { label: "Home", icon: House, active: true },
@@ -37,6 +37,20 @@ export function NavSection() {
             </div>
           ))}
         </div>
+      </SubBlock>
+
+      <SubBlock label="Specs">
+        <SpecList
+          rows={[
+            ["row height", "34px"],
+            ["padding", "0 12px · px-3"],
+            ["radius", "8px"],
+            ["text", "13px (active 500)"],
+            ["icon", "17px · stroke 1.4"],
+            ["active", "10% sidebar-primary + blue label"],
+            ["hover", "accent wash"],
+          ]}
+        />
       </SubBlock>
     </SectionFrame>
   );

@@ -2,7 +2,30 @@ import type { ReactNode } from "react";
 import { Settings } from "@hugeicons/core-free-icons";
 import { Button } from "../../ui/button";
 import { Icon } from "../../ui/icon";
-import { SectionFrame, SubBlock, Mono } from "../board";
+import { SectionFrame, SubBlock, Mono, PropTable } from "../board";
+
+const SIZE_SPECS = {
+  head: ["size", "height", "padding-x", "text", "gap", "radius"],
+  rows: [
+    ["sm", "32px · h-8", "12px · px-3", "14px / 500", "6px", "full"],
+    ["default", "36px · h-9", "16px · px-4", "14px / 500", "8px", "full"],
+    ["lg", "40px · h-10", "24px · px-6", "14px / 500", "8px", "full"],
+    ["icon", "36×36 · size-9", "—", "—", "—", "full · circle"],
+  ],
+};
+
+const VARIANT_SPECS = {
+  head: ["variant", "surface", "text", "border", "use"],
+  rows: [
+    ["default", "primary", "primary-foreground", "—", "primary CTA"],
+    ["pill-outline", "background", "foreground", "1px border", "secondary"],
+    ["pill-dark", "oauth", "oauth-foreground", "—", "OAuth / dark"],
+    ["ghost", "transparent", "foreground", "—", "subtle · inline"],
+    ["link", "—", "primary", "—", "inline text"],
+    ["destructive", "destructive", "white", "—", "delete"],
+    ["destructive-outline", "destructive / 10", "destructive", "—", "remove"],
+  ],
+};
 
 /** Multicolor Google mark for the OAuth button (matches the login screen). */
 function GoogleMark() {
@@ -57,10 +80,21 @@ export function ButtonsSection() {
 
       <SubBlock label="Sizes">
         <div className="flex flex-wrap items-center gap-3">
-          <Button size="sm">Small · h-8</Button>
-          <Button size="default">Default · h-9</Button>
-          <Button size="lg">Large · h-10</Button>
+          <Button size="sm">Small</Button>
+          <Button size="default">Default</Button>
+          <Button size="lg">Large</Button>
         </div>
+        <PropTable head={SIZE_SPECS.head} rows={SIZE_SPECS.rows} />
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
+          Leading icon trims horizontal padding (<code>has-[&gt;svg]:px-3</code>). The icon size auto-fits to 16px (<code>size-4</code>); the gap is 8px.
+        </p>
+      </SubBlock>
+
+      <SubBlock label="Variant tokens">
+        <PropTable head={VARIANT_SPECS.head} rows={VARIANT_SPECS.rows} />
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
+          Hover: filled variants drop to 90% (<code>bg-primary/90</code>); ghost and outline take an accent wash. Focus shows a 3px ring at ~20% (<code>ring-ring/50</code>). Disabled is 50% opacity.
+        </p>
       </SubBlock>
     </SectionFrame>
   );

@@ -1,5 +1,5 @@
 import { Progress } from "../../ui/progress";
-import { SectionFrame, SubBlock } from "../board";
+import { SectionFrame, SubBlock, Mono, SpecList } from "../board";
 
 export function CardsSection() {
   return (
@@ -35,6 +35,46 @@ export function CardsSection() {
               />
             </div>
             <div className="px-4 pb-4 text-center text-[15px] font-medium text-foreground">Audio &amp; video</div>
+          </div>
+        </div>
+      </SubBlock>
+
+      <SubBlock label="Specs">
+        <div className="flex flex-wrap gap-x-16 gap-y-7">
+          <div className="flex flex-col gap-3">
+            <Mono>Content card</Mono>
+            <SpecList
+              rows={[
+                ["radius", "14px"],
+                ["border", "1px · border-border"],
+                ["shadow", "elevation-sm"],
+                ["padding", "16px"],
+                ["fill", "card · white"],
+              ]}
+            />
+          </div>
+          <div className="flex flex-col gap-3">
+            <Mono>Action card</Mono>
+            <SpecList
+              rows={[
+                ["radius", "16px"],
+                ["fill", "muted · gray"],
+                ["padding", "16px"],
+                ["label", "15px / 500 · centered"],
+                ["art", "pastel tint + lift on hover"],
+              ]}
+            />
+          </div>
+          <div className="flex flex-col gap-3">
+            <Mono>Progress</Mono>
+            <SpecList
+              rows={[
+                ["height", "5px"],
+                ["radius", "full"],
+                ["track", "muted"],
+                ["fill", "primary"],
+              ]}
+            />
           </div>
         </div>
       </SubBlock>

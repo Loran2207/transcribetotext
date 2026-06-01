@@ -1,32 +1,29 @@
-import { useState, type ReactNode, type CSSProperties } from "react";
+import { Fragment, useState, type ReactNode, type CSSProperties } from "react";
 import { cn } from "../ui/utils";
 
 /**
- * Layout primitives for the design-system board. Everything is a plain framed
- * panel on a faint canvas — hairline borders over heavy shadow, generous
- * breathing room — so the page mirrors the system it documents and maps cleanly
- * to Figma frames later.
+ * Layout primitives for the design-system board. Plain framed panels on a faint
+ * canvas — hairline borders over heavy shadow, generous breathing room — so the
+ * page mirrors the system it documents and maps cleanly to Figma frames later.
  */
 
+const MONO = "ui-monospace, 'SF Mono', Menlo, monospace";
+
 /** Inline monospace token / value text. */
-export function Mono({ children, className }: { children: ReactNode; className?: string }) {
+export function Mono({ children, className, style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
   return (
     <span
-      className={cn("font-mono text-[11px] tabular-nums text-muted-foreground", className)}
-      style={{ fontFamily: "ui-monospace, 'SF Mono', Menlo, monospace" }}
+      className={cn("text-[11px] tabular-nums text-muted-foreground", className)}
+      style={{ fontFamily: MONO, ...style }}
     >
       {children}
     </span>
   );
 }
 
-/** Small uppercase divider label inside a frame. */
+/** A quiet block label — sentence case, no shouting. */
 export function SubLabel({ children }: { children: ReactNode }) {
-  return (
-    <div className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-      {children}
-    </div>
-  );
+  return <div className="text-[13px] font-medium text-foreground">{children}</div>;
 }
 
 /** A labelled sub-section within a section frame. */
@@ -58,12 +55,14 @@ export function SectionFrame({
       id={id}
       className="scroll-mt-[88px] rounded-[14px] border border-border bg-card p-6 shadow-sm sm:p-8"
     >
-      <header className="mb-7 flex flex-col gap-1.5">
-        <SubLabel>{group}</SubLabel>
+      <header className="mb-7 flex flex-col gap-1">
+        <span className="text-[12px] text-muted-foreground">{group}</span>
         <h2 className="text-[20px] font-semibold leading-tight text-foreground">{title}</h2>
-        <p className="max-w-[68ch] text-[13px] leading-relaxed text-muted-foreground">{description}</p>
+        <p className="mt-0.5 max-w-[68ch] text-[13px] leading-relaxed text-muted-foreground">{description}</p>
       </header>
-      <div className="flex flex-col gap-9">{children}</div>
+      <div className="flex flex-col gap-9 [&_code]:rounded-[4px] [&_code]:bg-muted [&_code]:px-1 [&_code]:py-px [&_code]:text-[11px] [&_code]:text-foreground">
+        {children}
+      </div>
     </section>
   );
 }
@@ -107,7 +106,7 @@ export function Swatch({
         style={{ background: css }}
       />
       <span className="flex flex-col gap-0.5">
-        <span className="truncate text-[11px] font-semibold text-foreground">{name}</span>
+        <span className="truncate text-[11px] font-medium text-foreground">{name}</span>
         <Mono>{copied ? "copied" : value}</Mono>
         {usage ? <span className="text-[10.5px] leading-snug text-muted-foreground">{usage}</span> : null}
       </span>
@@ -115,11 +114,54 @@ export function Swatch({
   );
 }
 
-/** A small spec tag, e.g. a px / weight annotation under a specimen. */
-export function Spec({ children, style }: { children: ReactNode; style?: CSSProperties }) {
+/**
+ * Key → value spec list for a single component (height, padding, text…).
+ * Values render monospace so a developer can read exact measurements.
+ */
+export function SpecList({ rows }: { rows: [string, ReactNode][] }) {
   return (
-    <Mono className="text-[10.5px]" >
-      <span style={style}>{children}</span>
-    </Mono>
+    <dl className="grid grid-cols-[max-content_1fr] gap-x-8 gap-y-2">
+      {rows.map(([k, v]) => (
+        <Fragment key={k}>
+          <dt className="text-[12px] text-muted-foreground">{k}</dt>
+          <dd className="text-[12px] text-foreground" style={{ fontFamily: MONO }}>{v}</dd>
+        </Fragment>
+      ))}
+    </dl>
+  );
+}
+
+/** A compact props/spec matrix — one row per variant or size. */
+export function PropTable({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
+  return (
+    <div className="-mx-1 overflow-x-auto">
+      <table className="w-full min-w-[480px] border-collapse text-left">
+        <thead>
+          <tr className="border-b border-border">
+            {head.map((h) => (
+              <th key={h} className="px-1 pb-2 text-[11px] font-medium text-muted-foreground">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i} className="border-b border-border/60 last:border-0">
+              {r.map((c, j) => (
+                <td
+                  key={j}
+                  className={cn(
+                    "px-1 py-2 align-top text-[12px]",
+                    j === 0 ? "text-foreground" : "text-muted-foreground",
+                  )}
+                  style={{ fontFamily: MONO }}
+                >
+                  {c}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
