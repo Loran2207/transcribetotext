@@ -1,21 +1,31 @@
+import { GroupHeading } from "./design-system/board";
 import { BrandSection } from "./design-system/sections/brand";
 import { ColorsSection } from "./design-system/sections/colors";
 import { TypographySection } from "./design-system/sections/typography";
 import { ShapeSection } from "./design-system/sections/shape";
 import { ButtonsSection } from "./design-system/sections/buttons";
 import { InputsSection } from "./design-system/sections/inputs";
+import { TabsSection } from "./design-system/sections/tabs";
+import { SegmentedSection } from "./design-system/sections/segmented";
+import { SelectSection } from "./design-system/sections/select";
 import { BadgesSection } from "./design-system/sections/badges";
 import { CardsSection } from "./design-system/sections/cards";
 import { NavSection } from "./design-system/sections/nav";
 import { SourceChipsSection } from "./design-system/sections/source-chips";
 
-const ANCHORS: { href: string; label: string }[] = [
+const FOUNDATION_ANCHORS = [
   { href: "#brand", label: "Brand" },
   { href: "#colors", label: "Color" },
   { href: "#type", label: "Type" },
   { href: "#shape", label: "Shape" },
+];
+
+const COMPONENT_ANCHORS = [
   { href: "#buttons", label: "Buttons" },
   { href: "#inputs", label: "Inputs" },
+  { href: "#tabs", label: "Tabs" },
+  { href: "#segmented", label: "Segmented" },
+  { href: "#select", label: "Select" },
   { href: "#badges", label: "Badges" },
   { href: "#cards", label: "Cards" },
   { href: "#nav", label: "Nav" },
@@ -24,32 +34,37 @@ const ANCHORS: { href: string; label: string }[] = [
 
 const MONO = "ui-monospace, 'SF Mono', Menlo, monospace";
 
+function NavLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      className="rounded-full px-2.5 py-1 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+    >
+      {label}
+    </a>
+  );
+}
+
 /**
  * `/design-system` — a single scrollable board documenting the real
  * TranscribeToText system. Foundations are rendered from live theme.css tokens;
- * components are the project's own (Button, Input, Badge, SourceIcon) so the
- * board can't drift from the app. Reachable by URL only — no nav link.
+ * components are the project's own (Button, Input, Tabs, Select, SourceIcon…)
+ * so the board can't drift from the app. Reachable by URL only — no nav link.
  */
 export function DesignSystemPage() {
   return (
     <div className="min-h-screen w-full bg-sidebar font-sans text-foreground">
       {/* Sticky header */}
       <header className="sticky top-0 z-10 border-b border-border bg-sidebar/85 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3">
+        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-x-5 gap-y-3 px-6 py-3">
           <a href="#top" className="flex items-center gap-2.5">
             <img src="/images/logo-mark.svg" alt="" className="h-6" />
             <span className="text-[14px] font-semibold tracking-tight text-foreground">Design system</span>
           </a>
           <nav className="flex flex-1 flex-wrap items-center gap-1">
-            {ANCHORS.map((a) => (
-              <a
-                key={a.href}
-                href={a.href}
-                className="rounded-full px-2.5 py-1 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              >
-                {a.label}
-              </a>
-            ))}
+            {FOUNDATION_ANCHORS.map((a) => <NavLink key={a.href} {...a} />)}
+            <span className="mx-1 h-3.5 w-px bg-border" />
+            {COMPONENT_ANCHORS.map((a) => <NavLink key={a.href} {...a} />)}
           </nav>
         </div>
       </header>
@@ -80,12 +95,18 @@ export function DesignSystemPage() {
           </div>
         </div>
 
+        <GroupHeading label="Foundations" hint="brand · color · type · shape" />
         <BrandSection />
         <ColorsSection />
         <TypographySection />
         <ShapeSection />
+
+        <GroupHeading label="Components" hint="real app primitives" />
         <ButtonsSection />
         <InputsSection />
+        <TabsSection />
+        <SegmentedSection />
+        <SelectSection />
         <BadgesSection />
         <CardsSection />
         <NavSection />

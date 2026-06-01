@@ -36,6 +36,17 @@ export function SubBlock({ label, children }: { label?: string; children: ReactN
   );
 }
 
+/** A top-level group divider (Foundations, Components). */
+export function GroupHeading({ label, hint }: { label: string; hint?: string }) {
+  return (
+    <div className="flex items-center gap-4 px-1 pt-4 first:pt-0">
+      <h2 className="text-[14px] font-semibold tracking-tight text-foreground">{label}</h2>
+      <span className="h-px flex-1 bg-border" />
+      {hint ? <span className="text-[11px] text-muted-foreground">{hint}</span> : null}
+    </div>
+  );
+}
+
 /** A titled, anchored panel. Each maps to one Figma frame. */
 export function SectionFrame({
   id,
@@ -53,11 +64,11 @@ export function SectionFrame({
   return (
     <section
       id={id}
+      aria-label={`${group} — ${title}`}
       className="scroll-mt-[88px] rounded-[14px] border border-border bg-card p-6 shadow-sm sm:p-8"
     >
       <header className="mb-7 flex flex-col gap-1">
-        <span className="text-[12px] text-muted-foreground">{group}</span>
-        <h2 className="text-[20px] font-semibold leading-tight text-foreground">{title}</h2>
+        <h3 className="text-[18px] font-semibold leading-tight text-foreground">{title}</h3>
         <p className="mt-0.5 max-w-[68ch] text-[13px] leading-relaxed text-muted-foreground">{description}</p>
       </header>
       <div className="flex flex-col gap-9 [&_code]:rounded-[4px] [&_code]:bg-muted [&_code]:px-1 [&_code]:py-px [&_code]:text-[11px] [&_code]:text-foreground">
