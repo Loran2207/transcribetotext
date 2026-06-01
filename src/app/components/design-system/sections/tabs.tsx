@@ -2,9 +2,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../ui/tabs";
 import { SectionFrame, SubBlock, SpecList } from "../board";
 
 /**
- * The Tabs component ships two variants. `line` (underline) is the one used
- * across the product — records, calendar, templates, the transcription detail
- * tabs. `default` is a segmented pill set. Both are shown live.
+ * Tabs in the product are always the `line` (underline) variant — records,
+ * calendar, templates, the transcription detail tabs. The component also has a
+ * segmented `default` variant, but it's unused here, so it isn't shown; for a
+ * two-state toggle see the Segmented control below.
  */
 export function TabsSection() {
   return (
@@ -12,9 +13,9 @@ export function TabsSection() {
       id="tabs"
       group="Components"
       title="Tabs"
-      description="Section switchers. The underline variant is the product default — counts ride along in a faded span. The segmented variant is available for compact, equal-width choices."
+      description="Section switchers, always the underline style. The active tab takes the brand blue with a 2px rule; an optional count rides along in a faded span."
     >
-      <SubBlock label="Underline — variant line">
+      <SubBlock label="Underline">
         <Tabs defaultValue="recent" className="w-full max-w-[440px]">
           <TabsList variant="line" className="gap-6">
             <TabsTrigger value="recent" variant="line">Recent</TabsTrigger>
@@ -31,43 +32,17 @@ export function TabsSection() {
         </Tabs>
       </SubBlock>
 
-      <SubBlock label="Segmented — variant default">
-        <Tabs defaultValue="transcript" className="w-[340px]">
-          <TabsList className="w-full">
-            <TabsTrigger value="transcript">Transcript</TabsTrigger>
-            <TabsTrigger value="summary">Summary</TabsTrigger>
-            <TabsTrigger value="speakers">Speakers</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </SubBlock>
-
       <SubBlock label="Specs">
-        <div className="flex flex-wrap gap-x-16 gap-y-7">
-          <div className="flex flex-col gap-3">
-            <span className="text-[12px] text-muted-foreground">line</span>
-            <SpecList
-              rows={[
-                ["gap", "24px · gap-6"],
-                ["trigger", "pb 8px · text 14px / 500"],
-                ["active", "text-primary + 2px underline"],
-                ["hover", "text-foreground"],
-                ["count", "span · opacity 50 · ml-1"],
-                ["rule", "1px border-b under the row"],
-              ]}
-            />
-          </div>
-          <div className="flex flex-col gap-3">
-            <span className="text-[12px] text-muted-foreground">default</span>
-            <SpecList
-              rows={[
-                ["list", "36px · h-9 · bg-muted"],
-                ["radius", "12px · padding 3px"],
-                ["trigger", "flex-1 · text 14px / 500"],
-                ["active", "bg-card + sm shadow"],
-              ]}
-            />
-          </div>
-        </div>
+        <SpecList
+          rows={[
+            ["gap", "24px · gap-6"],
+            ["trigger", "pb 8px · text 14px / 500"],
+            ["active", "text-primary + 2px underline"],
+            ["hover", "text-foreground"],
+            ["count", "span · opacity 50 · ml-1"],
+            ["rule", "1px border-b under the row"],
+          ]}
+        />
       </SubBlock>
     </SectionFrame>
   );
