@@ -665,22 +665,43 @@ function EmptyFilterState({ onClear }: { onClear: () => void }) {
   );
 }
 
-function EmptyTabState({ tab }: { tab: string }) {
+function EmptyTabState({ tab, onNew }: { tab: string; onNew?: () => void }) {
   const { t } = useLanguage();
-  return (
-    <div className="flex flex-col items-center justify-center py-[48px]">
-      <div className="size-[48px] rounded-full flex items-center justify-center mb-[12px] bg-muted">
-        {tab === "Trash" ? (
-          <svg className="size-[22px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        ) : tab === "Starred" ? (
-          <svg className="size-[22px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        ) : (
-          <svg className="size-[22px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M14 14H2V2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /><path d="M5 10l3-4 3 2 3-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        )}
+
+  // Trash / Starred keep their simple single-line message.
+  if (tab === "Trash" || tab === "Starred") {
+    return (
+      <div className="flex flex-col items-center justify-center py-[48px]">
+        <div className="size-[48px] rounded-full flex items-center justify-center mb-[12px] bg-muted">
+          {tab === "Trash" ? (
+            <svg className="size-[22px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          ) : (
+            <svg className="size-[22px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          )}
+        </div>
+        <p className="font-medium text-[14px] text-muted-foreground">{tab === "Trash" ? t("table.trashEmpty") : t("table.noStarred")}</p>
       </div>
-      <p className="font-medium text-[14px] text-muted-foreground">
-        {tab === "Trash" ? t("table.trashEmpty") : tab === "Starred" ? t("table.noStarred") : t("table.noRecords")}
-      </p>
+    );
+  }
+
+  // No records yet — friendly empty state with a primary CTA.
+  return (
+    <div className="flex flex-col items-center justify-center py-[64px] px-[24px]">
+      <div className="size-[72px] rounded-2xl flex items-center justify-center mb-[18px] bg-primary/5">
+        <svg className="size-[32px] text-primary/60" fill="none" viewBox="0 0 24 24">
+          <path d="M7 3.5h6l5 5V20a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 20V5A1.5 1.5 0 0 1 7 3.5z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M13 3.5V8a1 1 0 0 0 1 1h4" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M9.5 13.5h5M9.5 16.5h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      </div>
+      <p className="font-semibold text-[16px] text-foreground mb-[6px]">No records yet</p>
+      <p className="text-[13px] text-muted-foreground text-center max-w-[300px] leading-[20px] mb-[20px]">Upload a file, paste a link, or record audio to create your first transcription.</p>
+      {onNew && (
+        <Button onClick={onNew} className="flex items-center gap-[7px] h-[38px] px-[18px] rounded-full bg-primary text-primary-foreground">
+          <Icon icon={Upload} className="size-[15px]" strokeWidth={2} />
+          <span className="font-semibold text-[13px]">Upload</span>
+        </Button>
+      )}
     </div>
   );
 }
@@ -1037,7 +1058,7 @@ interface RecordsTableProps {
 export function RecordsTable({ hideTopHeader = false, showAddFolderButton = false, scopedFolderId = null, showInlineFolderRows = true, onNavigateToRecords, onOpenFolder }: RecordsTableProps = {}) {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { jobs } = useTranscriptionModals();
+  const { jobs, setOpenModal } = useTranscriptionModals();
   const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder, deleteFolder, renameFolder, changeFolderColor, moveFolder } = useFolders();
   const [deletingInlineFolderId, setDeletingInlineFolderId] = useState<string | null>(null);
   const [editingInlineFolder, setEditingInlineFolder] = useState<FolderItem | null>(null);
@@ -1170,6 +1191,8 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   }
   if (dateSort === "newest") filteredRecords = [...filteredRecords].sort((a, b) => b.dateCreated.localeCompare(a.dateCreated));
   else filteredRecords = [...filteredRecords].sort((a, b) => a.dateCreated.localeCompare(b.dateCreated));
+  // Demo: ?empty=1 (or localStorage ttt_empty) forces the empty-records state for design captures; off by default.
+  if (typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("empty") === "1" || window.localStorage.getItem("ttt_empty") === "1")) filteredRecords = [];
 
   const allSelected = filteredRecords.length > 0 && filteredRecords.every(r => selectedRows.has(r.id));
 
@@ -1347,7 +1370,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             )}
 
             {filteredRecords.length === 0 ? (
-              hasActiveFilters ? <EmptyFilterState onClear={clearAllFilters} /> : <EmptyTabState tab={activeTab} />
+              hasActiveFilters ? <EmptyFilterState onClear={clearAllFilters} /> : <EmptyTabState tab={activeTab} onNew={() => setOpenModal("upload")} />
             ) : groupByDate ? (
               dateGroups.map((group) => (
                 <div key={group.label}>
@@ -1463,7 +1486,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
           ) : (
             <div className="grid grid-cols-2 gap-[12px]">
               {filteredRecords.length === 0 ? (
-                <div className="col-span-2">{hasActiveFilters ? <EmptyFilterState onClear={clearAllFilters} /> : <EmptyTabState tab={activeTab} />}</div>
+                <div className="col-span-2">{hasActiveFilters ? <EmptyFilterState onClear={clearAllFilters} /> : <EmptyTabState tab={activeTab} onNew={() => setOpenModal("upload")} />}</div>
               ) : filteredRecords.map((record) => <RecordCard key={record.id} record={record} isStarred={starred.has(record.id)} onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })} />)}
             </div>
           )}
