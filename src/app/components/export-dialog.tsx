@@ -9,6 +9,7 @@ import {
 } from "@/app/components/ui/select";
 import { Icon } from "@/app/components/ui/icon";
 import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { toast } from "sonner";
 import { usePlan } from "./use-plan";
 import {
   runExportPlan, DEFAULT_EXPORT_OPTIONS, FORMAT_META,
@@ -200,6 +201,8 @@ export function ExportDialog({ open, onClose, records }: {
         setProgress(i + 1);
       }
       const m = await runExportPlan(plans);
+      // Single-file export: no confirmation screen — download and close.
+      if (m.files.length === 1) { toast.success(m.downloadName + " downloaded"); onClose(); return; }
       setManifest(m);
       setPhase("success");
     } catch {
