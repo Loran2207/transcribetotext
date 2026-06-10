@@ -36,7 +36,7 @@ import { ShareDialog } from "./share-dialog";
 import { SharedUsersAvatars } from "./shared-users-avatars";
 import { useShares } from "@/hooks/use-shares";
 import type { Share as ShareRecord } from "@/lib/shares";
-import { ExportFormatSubMenu } from "./export-format-menu";
+import { ExportDialog } from "./export-dialog";
 import {
   exportRecords,
   type ExportableRecord,
@@ -1242,7 +1242,7 @@ interface PageHeaderProps {
   onCopySummary: () => void;
   onMoveToFolder: (folderId: string) => void;
   onCreateFolderAndMove: () => void;
-  onExport: (format: ExportFormat) => void;
+  onExport: () => void;
   onRematchSpeakers: () => void;
   onRegenerateSummary: () => void;
   onSyncTextToAudio: () => void;
@@ -1344,7 +1344,9 @@ function PageHeader({
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <ExportFormatSubMenu onSelect={onExport} />
+              <DropdownMenuItem className="gap-2" onSelect={() => onExport()}>
+                Export…
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="gap-2" onClick={onRematchSpeakers}>
                 <Icon icon={User} className="size-4 text-muted-foreground" strokeWidth={1.6} />
@@ -1995,13 +1997,10 @@ export function TranscriptionDetailPage() {
     toast.success("Summary copied");
   }
 
-  function exportTranscript(format: ExportFormat) {
-    try {
-      exportRecords([buildExportableRecord()], format);
-      toast.success(`Exported as ${format.toUpperCase()}`);
-    } catch {
-      toast.error("Export failed");
-    }
+  const [exportDialogOpen, setExportDialogOpen] = useState(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("export") === "1");
+  function exportTranscript() {
+    setExportDialogOpen(true);
   }
 
   function moveToFolder(folderId: string) {
@@ -2327,6 +2326,7 @@ export function TranscriptionDetailPage() {
           onSyncTextToAudio={syncTextToAudio}
           onDelete={deleteTranscript}
         />
+        <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} />
 
         <ShareDialog
           open={shareDialogOpen}

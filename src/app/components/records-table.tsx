@@ -37,7 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-import { ExportFormatSubMenu, ExportFormatMenuItems } from "./export-format-menu";
+import { ExportDialog } from "./export-dialog";
 import {
   exportRecords,
   type ExportableRecord,
@@ -117,7 +117,7 @@ function CopyToast({ text }: { text: string }) {
   );
 }
 
-function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash, onExport, summary }: { isStarred: boolean; onStar: () => void; onEdit: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: (format: ExportFormat) => void; summary: string }) {
+function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash, onExport, summary }: { isStarred: boolean; onStar: () => void; onEdit: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: () => void; summary: string }) {
   const [copied, setCopied] = useState<string | null>(null);
   const { t } = useLanguage();
 
@@ -162,7 +162,10 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
             <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
             {t("table.moveToFolder")}
           </DropdownMenuItem>
-          <ExportFormatSubMenu onSelect={onExport} />
+          <DropdownMenuItem className="gap-2" onSelect={() => onExport()}>
+            <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.5} />
+            Export…
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" className="gap-2" onSelect={onTrash}>
             <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
@@ -318,7 +321,7 @@ function MultiSelectTextBtn({ icon, label, onClick, variant = "primary" }: { ico
 }
 
 function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary, onExport, onShare }: {
-  count: number; onCancel: () => void; onMoveFolder: () => void; onTrash: () => void; onCopySummary: () => void; onExport: (format: ExportFormat) => void; onShare: () => void;
+  count: number; onCancel: () => void; onMoveFolder: () => void; onTrash: () => void; onCopySummary: () => void; onExport: () => void; onShare: () => void;
 }) {
   const { t } = useLanguage();
   const [copied, setCopied] = useState<string | null>(null);
@@ -332,23 +335,7 @@ function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary,
       <MultiSelectTextBtn label="Summary" onClick={() => { onCopySummary(); setCopied("s"); setTimeout(() => setCopied(null), 1500); }} icon={<Icon icon={Copy} className="size-[14px]" strokeWidth={1.5} />} />
       <MultiSelectTextBtn label="Share" onClick={onShare} icon={<Icon icon={Share} className="size-[14px]" strokeWidth={1.5} />} />
       <MultiSelectTextBtn label="Folder" onClick={onMoveFolder} icon={<Icon icon={FolderOpen} className="size-[14px]" strokeWidth={1.5} />} />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="flex items-center gap-[5px] h-[30px] px-[8px] rounded-full transition-opacity hover:opacity-70 text-primary"
-          >
-            <Icon icon={Upload} className="size-[14px]" strokeWidth={1.5} />
-            <span className="font-medium text-[13px]">Export</span>
-            <svg className="size-[10px] opacity-70" fill="none" viewBox="0 0 10 10">
-              <path d="M2.5 4L5 6.5L7.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" sideOffset={6} className="w-[230px]">
-          <ExportFormatMenuItems onSelect={onExport} />
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <MultiSelectTextBtn label="Export" onClick={onExport} icon={<Icon icon={Upload} className="size-[14px]" strokeWidth={1.5} />} />
       <MultiSelectTextBtn label="Trash" onClick={onTrash} variant="destructive" icon={<Icon icon={Trash} className="size-[14px]" strokeWidth={1.5} />} />
       <div className="flex-1" />
       <Button variant="ghost" onClick={onCancel} className="h-[30px] px-[12px] rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent">
@@ -1080,6 +1067,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   });
   const [hardDeletedIds, setHardDeletedIds] = useState<Set<string>>(new Set());
   const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[] | null>(null);
+  const [exportDialogIds, setExportDialogIds] = useState<string[] | null>(null);
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
@@ -1101,21 +1089,6 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         language: record.language,
       },
     };
-  }
-
-  function exportRecordsByIds(ids: string[], format: ExportFormat) {
-    const targets = displayRecords
-      .filter((r) => ids.includes(r.id))
-      .map(recordToExportable);
-    if (!targets.length) return;
-    try {
-      exportRecords(targets, format);
-      const fmtUpper = format.toUpperCase();
-      if (targets.length === 1) toast.success(`Exported as ${fmtUpper}`);
-      else toast.success(`Exported ${targets.length} records as ${fmtUpper}`);
-    } catch {
-      toast.error("Export failed");
-    }
   }
 
   function toggleColumnVisibility(col: ColumnId) {
@@ -1250,6 +1223,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       )}
 
       <CreateFolderModal open={folderModalOpen} onClose={() => setFolderModalOpen(false)} onCreate={(name, color) => { addFolderToContext(name, color); }} />
+      <ExportDialog open={!!exportDialogIds} onClose={() => setExportDialogIds(null)} records={(exportDialogIds ?? []).map((id) => displayRecords.find((r) => r.id === id)).filter((r): r is typeof displayRecords[number] => !!r).map(recordToExportable)} />
       <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={selectedRows.size} onMove={(folderId) => { assignToFolder(Array.from(selectedRows), folderId); clearSelection(); }} onCreateFolder={() => { setMoveDialogOpen(false); setFolderModalOpen(true); }} folders={userFolders} />
 
       {/* Hard-delete confirmation (permanent, bypasses Trash) */}
@@ -1389,7 +1363,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                   const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => `${r.name}: ${r.summary}`).join("\n\n");
                   navigator.clipboard.writeText(texts);
                 }}
-                onExport={(format) => exportRecordsByIds(Array.from(selectedRows), format)}
+                onExport={() => setExportDialogIds(Array.from(selectedRows))}
               />
             ) : (
             <div className="flex items-center h-[36px] border-b border-border">
@@ -1420,7 +1394,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                       onShare={() => setShareDialogRecord(record.id)}
                       onEdit={() => setEditingId(record.id)} onSaveName={(n) => { renameRecord(record.id, n); setEditingId(null); }} onCancelEdit={() => setEditingId(null)}
                       onRestore={() => restoreFromTrash(record.id)} onDeleteForever={() => setConfirmDeleteIds([record.id])} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
-                      onExport={(format) => exportRecordsByIds([record.id], format)}
+                      onExport={() => setExportDialogIds([record.id])}
                       onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
                     />
                   ))}
@@ -1499,7 +1473,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                     onShare={() => setShareDialogRecord(record.id)}
                     onEdit={() => setEditingId(record.id)} onSaveName={(n) => { renameRecord(record.id, n); setEditingId(null); }} onCancelEdit={() => setEditingId(null)}
                     onRestore={() => restoreFromTrash(record.id)} onDeleteForever={() => setConfirmDeleteIds([record.id])} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
-                    onExport={(format) => exportRecordsByIds([record.id], format)}
+                    onExport={() => setExportDialogIds([record.id])}
                     onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
                   />
                 ))}
@@ -1540,7 +1514,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
 function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onDeleteForever, onMoveFolder, onTrash, onExport, onDoubleClick }: {
   record: RecordRow; visibleColumns: ColumnId[]; isSelected: boolean; isStarred: boolean; isShared: boolean; isHovered: boolean; isEditing: boolean; isTrash: boolean;
-  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onDeleteForever: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: (format: ExportFormat) => void; onDoubleClick: () => void;
+  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onDeleteForever: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: () => void; onDoubleClick: () => void;
 }) {
   const { t: tRow } = useLanguage();
 
