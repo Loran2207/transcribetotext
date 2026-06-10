@@ -239,21 +239,11 @@ export function ExportDialog({ open, onClose, records }: {
         </div>
       )}
 
-      <div className="mt-[14px] mb-[4px]">
-        {editingFileId ? (
-          <div className="flex items-center gap-[8px]">
-            <p className="flex-1 min-w-0 truncate text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.5px]">Settings · this file</p>
-            {overrides[editingFileId] && (
-              <button type="button" onClick={() => resetOverride(editingFileId)} className="shrink-0 text-[12px] font-medium text-primary hover:underline">Reset to shared</button>
-            )}
-          </div>
-        ) : (
-          <div>
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.5px]">{multi ? "Settings · all files" : "Settings"}</p>
-            {multi && <p className="mt-[3px] text-[11.5px] leading-[16px] text-muted-foreground">Open a file tab above to customize one file separately.</p>}
-          </div>
-        )}
-      </div>
+      {editingFileId && overrides[editingFileId] && (
+        <div className="flex justify-end mt-[12px]">
+          <button type="button" onClick={() => resetOverride(editingFileId)} className="text-[12px] font-medium text-primary hover:underline">Reset to shared settings</button>
+        </div>
+      )}
 
       <SectionRow title="Transcript" enabled={current.includeTranscript} onToggle={(v) => patchCurrent({ includeTranscript: v })}>
         <div className={current.includeTranscript ? "mt-[12px] flex flex-col gap-[12px]" : "hidden"}>
@@ -315,40 +305,8 @@ export function ExportDialog({ open, onClose, records }: {
           <DialogTitle className="font-semibold text-[17px] text-foreground">Export</DialogTitle>
         </div>
 
-        {/* Chrome-style file tabs — multi only */}
-        {multi && phase !== "processing" && phase !== "success" && (
-          <div className="export-tabs flex items-end gap-[2px] px-[14px] pt-[8px] bg-muted/50 border-b border-border overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setActiveTab("all")}
-              className={"-mb-px flex items-center gap-[7px] h-[34px] px-[14px] rounded-t-[10px] text-[12.5px] whitespace-nowrap transition-colors " +
-                (activeTab === "all" ? "bg-background border border-border border-b-background font-medium text-foreground" : "text-muted-foreground hover:bg-foreground/[0.04]")}
-            >
-              All files
-              <span className="inline-flex items-center justify-center h-[16px] min-w-[16px] px-[4px] rounded-full bg-foreground/[0.07] text-[10.5px] font-semibold">{records.length}</span>
-            </button>
-            {records.map((r) => {
-              const st = settingsOf(r.id);
-              const isActive = activeTab === r.id;
-              return (
-                <button
-                  type="button"
-                  key={r.id}
-                  onClick={() => setActiveTab(r.id)}
-                  className={"-mb-px flex items-center gap-[7px] h-[34px] px-[12px] rounded-t-[10px] text-[12.5px] whitespace-nowrap transition-colors " +
-                    (isActive ? "bg-background border border-border border-b-background font-medium text-foreground" : "text-muted-foreground hover:bg-foreground/[0.04]")}
-                >
-                  <FormatIcon format={st.includeTranscript ? st.format : "txt"} size={16} />
-                  <span className="max-w-[130px] truncate">{r.title}</span>
-                  {overrides[r.id] && <span className="size-[6px] rounded-full bg-primary shrink-0" title="Customized" />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
         {/* Body — fixed height so toggling options never resizes the dialog */}
-        <div className={multi ? "h-[486px]" : "h-[520px]"}>
+        <div className="h-[520px]">
           {phase === "processing" ? (
             <div className="flex h-full flex-col items-center justify-center px-[24px]">
               <div className="size-[64px] rounded-full bg-primary/5 flex items-center justify-center mb-[18px]">
@@ -396,12 +354,45 @@ export function ExportDialog({ open, onClose, records }: {
             </div>
           ) : (
             <div className="flex h-full">
+              {multi && (
+                <nav className="export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 overflow-y-auto py-[10px] px-[8px]">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("all")}
+                    className={"flex w-full items-center gap-[8px] h-[34px] px-[10px] rounded-[8px] text-[13px] transition-colors " +
+                      (activeTab === "all" ? "bg-primary/5 text-primary font-medium" : "text-foreground/80 hover:bg-foreground/[0.04]")}
+                  >
+                    <span className="flex-1 text-left">All files</span>
+                    <span className="inline-flex items-center justify-center h-[17px] min-w-[17px] px-[4px] rounded-full bg-foreground/[0.07] text-[10.5px] font-semibold text-foreground/70">{records.length}</span>
+                  </button>
+                  <div className="h-px bg-border my-[8px] mx-[4px]" />
+                  <div className="flex flex-col gap-[2px]">
+                    {records.map((r) => {
+                      const st = settingsOf(r.id);
+                      const isActive = activeTab === r.id;
+                      return (
+                        <button
+                          type="button"
+                          key={r.id}
+                          onClick={() => setActiveTab(r.id)}
+                          className={"flex w-full items-center gap-[8px] h-[34px] px-[10px] rounded-[8px] text-[12.5px] transition-colors " +
+                            (isActive ? "bg-primary/5 text-primary font-medium" : "text-foreground/80 hover:bg-foreground/[0.04]")}
+                        >
+                          <FormatIcon format={st.includeTranscript ? st.format : "txt"} size={18} />
+                          <span className="flex-1 min-w-0 truncate text-left">{r.title}</span>
+                          {overrides[r.id] && <span className="size-[6px] rounded-full bg-primary shrink-0" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </nav>
+              )}
               {/* Left pane */}
               <div className="flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px]">
                 {multi && activeTab === "all" ? (
                   <div className="flex flex-col gap-[2px]">
                     <p className="font-semibold text-[13px] text-foreground">{records.length} records selected</p>
-                    <p className="mb-[10px] text-[11.5px] text-muted-foreground">Click a file to preview and customize it.</p>
+                    <p className="mb-[10px] text-[11.5px] text-muted-foreground">These settings apply to every file. Select a file on the left to customize it separately.</p>
                     {records.map((r) => {
                       const st = settingsOf(r.id);
                       const off = !st.includeTranscript && !st.includeSummary;
