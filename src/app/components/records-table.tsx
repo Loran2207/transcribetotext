@@ -1182,7 +1182,15 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   }, [userFolders, scopedFolderId]);
 
   const jobRecords = useMemo(() => jobs.map(mapJobToRecord), [jobs]);
-  const allRecords = useMemo(() => [...jobRecords, ...records], [jobRecords]);
+  // Demo: ttt_starred_seed pads the list to 30 records and stars them all (design captures only; off by default).
+  const demoStarAll = typeof window !== "undefined" && window.localStorage.getItem("ttt_starred_seed") === "1";
+  const allRecords = useMemo(() => {
+    const base = [...jobRecords, ...records];
+    if (!demoStarAll) return base;
+    const names = ["Weekly Standup — Engineering", "Customer Interview — Acme Corp", "Q3 Roadmap Review", "Sales Call — Northwind Traders", "UX Research Debrief", "All-Hands — June"];
+    const extra = names.map((name, i) => { const src = records[i % records.length]; return { ...src, id: src.id + "-demo-" + i, name }; });
+    return [...base, ...extra].slice(0, 30);
+  }, [jobRecords, demoStarAll]);
   const displayRecords = allRecords.map((r) => ({ ...r, name: getName(r.id, r.name) }));
   const activeRecords = displayRecords.filter((r) => !trashedIds.has(r.id));
   const trashRecords = displayRecords.filter((r) => trashedIds.has(r.id) && !hardDeletedIds.has(r.id));
@@ -1194,7 +1202,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
   let filteredRecords = activeTab === "Trash" ? scopedTrashRecords : scopedActiveRecords;
   if (searchQuery) filteredRecords = filteredRecords.filter((r) => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
-  if (activeTab === "Starred") filteredRecords = filteredRecords.filter((r) => starred.has(r.id));
+  if (activeTab === "Starred") filteredRecords = demoStarAll ? filteredRecords : filteredRecords.filter((r) => starred.has(r.id));
   if (activeTab === "Shared") filteredRecords = filteredRecords.filter((r) => sharedIds.has(r.id) || false);
   if (activeTab !== "Trash") {
     if (typeFilter.size > 0) filteredRecords = filteredRecords.filter((r) => typeFilter.has(r.source));
@@ -1221,7 +1229,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
   // Tab counts
   const recentCount = scopedActiveRecords.length;
-  const starredCount = scopedActiveRecords.filter((r) => starred.has(r.id)).length;
+  const starredCount = demoStarAll ? scopedActiveRecords.length : scopedActiveRecords.filter((r) => starred.has(r.id)).length;
   const trashCount = scopedTrashRecords.length;
 
   return (
@@ -1406,7 +1414,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                 <div key={group.label}>
                   <DateSeparator label={group.label} />
                   {group.records.map((record) => (
-                    <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
+                    <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
                       onToggleRow={() => toggleRow(record.id)} onMouseEnter={() => setHoveredRow(record.id)} onMouseLeave={() => setHoveredRow(null)}
                       onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
                       onShare={() => setShareDialogRecord(record.id)}
@@ -1485,7 +1493,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                   </div>
                 ))}
                 {filteredRecords.map((record) => (
-                  <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
+                  <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
                     onToggleRow={() => toggleRow(record.id)} onMouseEnter={() => setHoveredRow(record.id)} onMouseLeave={() => setHoveredRow(null)}
                     onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
                     onShare={() => setShareDialogRecord(record.id)}
@@ -1509,7 +1517,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
               <div key={group.label} className="mb-[8px]">
                 <div className="flex items-center gap-[6px] py-[10px] mb-[4px]"><span className="font-semibold text-[14px] text-foreground">{group.label}</span></div>
                 <div className="grid grid-cols-2 gap-[12px]">
-                  {group.records.map((record) => <RecordCard key={record.id} record={record} isStarred={starred.has(record.id)} onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })} />)}
+                  {group.records.map((record) => <RecordCard key={record.id} record={record} isStarred={demoStarAll || starred.has(record.id)} onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })} />)}
                 </div>
               </div>
             ))
@@ -1517,7 +1525,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             <div className="grid grid-cols-2 gap-[12px]">
               {filteredRecords.length === 0 ? (
                 <div className="col-span-2">{hasActiveFilters ? <EmptyFilterState onClear={clearAllFilters} /> : <EmptyTabState tab={activeTab} onNew={() => setOpenModal("upload")} />}</div>
-              ) : filteredRecords.map((record) => <RecordCard key={record.id} record={record} isStarred={starred.has(record.id)} onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })} />)}
+              ) : filteredRecords.map((record) => <RecordCard key={record.id} record={record} isStarred={demoStarAll || starred.has(record.id)} onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })} />)}
             </div>
           )}
         </div>
