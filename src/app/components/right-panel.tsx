@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { SourceIcon } from "./source-icons";
 import { useLanguage } from "./language-context";
-import { Smartphone, Zap, ChevronRight, ChevronUp, Check, Info, Mic, Globe, X } from "@hugeicons/core-free-icons";
+import { Smartphone, Zap, ChevronRight, Check, Mic, Globe, X } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
+import { usePlan } from "./use-plan";
 import promoSvgPaths from "../../imports/svg-panhyaoz26";
 const imgGiftBox = "/images/gift-box.png";
 
@@ -214,19 +215,9 @@ function SlideAIBrain() {
    ══════════════════════════════════════════════ */
 
 function FreePlanCard() {
-  const [usageOpen, setUsageOpen] = useState(false);
-  const usedMins = 10;
-  const totalMins = 120;
-  const pct = (usedMins / totalMins) * 100;
-
-  const usageItems = [
-    { label: "File transcription", used: 2, total: 50 },
-    { label: "Real-time translation", used: 1, total: 2 },
-    { label: "AI summary", used: 5, total: 10 },
-    { label: "Bilingual Transcription and Translation", used: 0, total: 4 },
-    { label: "Knowledge Q&A", used: 0, total: 500, hasInfo: true },
-    { label: "Image & Slides generation", used: 1, total: 30, hasInfo: true },
-  ];
+  const usedFiles = 3;
+  const totalFiles = 10;
+  const pct = (usedFiles / totalFiles) * 100;
 
   const features = ["AI Notes", "Recordings and transcripts export", "Transcript translation", "Up to 5 hours per transcription"];
 
@@ -237,11 +228,11 @@ function FreePlanCard() {
         <span className="text-foreground" style={{ fontWeight: 700, fontSize: "18px", letterSpacing: "-0.3px" }}>You on Free Plan</span>
       </div>
 
-      {/* Usage section */}
-      <div className="px-[18px] pt-[0px] pb-[14px]">
+      {/* Usage section — files */}
+      <div className="px-[18px] pt-[0px] pb-[16px]">
         <div className="flex items-baseline justify-between mb-[6px]">
           <span className="text-foreground" style={{ fontWeight: 600, fontSize: "13px" }}>
-            {usedMins} <span className="text-muted-foreground" style={{ fontWeight: 400 }}>of {totalMins} mins</span>
+            {usedFiles} <span className="text-muted-foreground" style={{ fontWeight: 400 }}>of {totalFiles} files</span>
           </span>
           <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "11px" }}>{Math.round(pct)}%</span>
         </div>
@@ -250,38 +241,6 @@ function FreePlanCard() {
         </div>
         <p className="mt-[6px] text-muted-foreground" style={{ fontWeight: 400, fontSize: "10.5px" }}>Resets on 04/10/2026 20:09</p>
       </div>
-
-      {/* Divider */}
-      <div className="mx-[18px] h-px bg-border" />
-
-      {/* Usage check — collapsible */}
-      <button onClick={() => setUsageOpen(!usageOpen)} className="w-full px-[18px] py-[10px] flex items-center justify-between hover:bg-accent transition-colors">
-        <span className="min-w-0 text-foreground" style={{ fontWeight: 500, fontSize: "12px" }}>Check feature usage</span>
-        <Icon icon={usageOpen ? ChevronUp : ChevronRight} className="size-[14px] text-muted-foreground shrink-0" strokeWidth={1.5} />
-      </button>
-
-      {/* Collapsible usage details */}
-      {usageOpen && (
-        <div className="px-[18px] pb-[10px] flex flex-col">
-          {usageItems.map((item, i) => {
-            const usagePct = item.total > 0 ? (item.used / item.total) * 100 : 0;
-            return (
-              <div key={i} className="py-[8px]">
-                <div className="flex items-center justify-between mb-[5px]">
-                  <div className="flex items-center gap-[4px]">
-                    <span className="text-foreground" style={{ fontWeight: 400, fontSize: "11.5px" }}>{item.label}</span>
-                    {item.hasInfo && <Icon icon={Info} className="size-[11px] text-muted-foreground opacity-60" strokeWidth={1.5} />}
-                  </div>
-                  <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "11.5px" }}>{item.used}/{item.total}</span>
-                </div>
-                <div className="w-full h-[3px] rounded-full overflow-hidden bg-muted">
-                  <div className="h-full rounded-full transition-all bg-primary" style={{ width: `${usagePct}%`, minWidth: usagePct > 0 ? "4px" : "0" }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       {/* Divider */}
       <div className="mx-[18px] h-px bg-border" />
@@ -393,6 +352,7 @@ const DEFAULT_WIDTH = 360;
 
 export function RightPanel() {
   const { t } = useLanguage();
+  const plan = usePlan();
 
   const meetingGrouped = [
     { day: "03/16", dayLabel: "Monday", items: meetings.filter((m) => m.day === "03/16") },
@@ -409,9 +369,9 @@ export function RightPanel() {
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-[18px] py-[18px] flex flex-col gap-[14px]">
           {/* Widget Cards */}
-          <PromoCard />
+          {plan === "free" && <PromoCard />}
           <TipsCarousel />
-          <FreePlanCard />
+          {plan === "free" && <FreePlanCard />}
 
           {/* Spacer before events */}
           <div className="h-[10px]" />

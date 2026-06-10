@@ -336,7 +336,7 @@ function useGreeting() {
   const firstName = displayName.trim().split(" ")[0];
   const h = new Date().getHours();
   const base = h < 12 ? t("dash.greeting.morning") : h < 18 ? t("dash.greeting.afternoon") : t("dash.greeting.evening");
-  return `${base}, ${firstName}`;
+  return firstName ? `${base}, ${firstName}` : base;
 }
 
 export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page: string) => void; onOpenFolder?: (folderId: string) => void } = {}) {

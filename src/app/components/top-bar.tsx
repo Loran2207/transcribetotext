@@ -6,6 +6,7 @@ import { useLanguage, LANGUAGES } from "./language-context";
 import { SearchModal } from "./search-modal";
 import { useUserProfile } from "./user-profile-context";
 import { useAuth } from "./auth-context";
+import { usePlan } from "./use-plan";
 
 const SUPPORT_EMAIL = "support@transcribetotext.ai";
 
@@ -22,6 +23,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
   const { lang, setLang, t } = useLanguage();
   const { displayName, avatarSrc } = useUserProfile();
   const { signOut, user } = useAuth();
+  const plan = usePlan();
   const userEmail = user?.email || "";
 
   useEffect(() => {
@@ -46,7 +48,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
             {userEmail}
             <Icon icon={ChevronDown} className="size-[10px] text-muted-foreground" strokeWidth={2} />
           </span>
-          <span className="font-normal text-[10.5px] text-muted-foreground whitespace-nowrap">Free Plan</span>
+          <span className="font-normal text-[10.5px] text-muted-foreground whitespace-nowrap">{plan === "pro" ? "Pro Plan" : "Free Plan"}</span>
         </div>
       </Button>
 
@@ -97,6 +99,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
 /* ── Top Bar ── */
 export function TopBar({ onNavigate }: TopBarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const plan = usePlan();
 
   const kbdClass = "flex items-center justify-center h-[18px] px-[5px] rounded-[4px] bg-background border border-border text-muted-foreground font-medium text-[10px] leading-none shadow-[0_1px_2px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.05)]";
 
@@ -127,11 +130,12 @@ export function TopBar({ onNavigate }: TopBarProps) {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Trial CTA */}
+      {plan === "free" && (
       <Button variant="ghost" className="flex items-center gap-[6px] h-[30px] px-[14px] rounded-full shrink-0 bg-primary/[0.06] hover:bg-primary/[0.1]">
         <Icon icon={Zap} className="size-[12px] text-primary" strokeWidth={2} style={{ fill: "var(--primary)" }} />
         <span className="font-semibold text-[12px] text-primary whitespace-nowrap">Start my trial now</span>
       </Button>
+      )}
 
       {/* Support email */}
       <Button
