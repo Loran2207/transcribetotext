@@ -1202,7 +1202,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   // Demo: ?exportall=1 opens the export dialog with all visible records (design captures; off by default)
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (new URLSearchParams(window.location.search).get("exportall") !== "1") return;
+    if (new URLSearchParams(window.location.search).get("exportall") !== "1" && window.localStorage.getItem("ttt_exportall") !== "1") return;
     const t = setTimeout(() => setExportDialogIds(filteredRecords.map((r) => r.id)), 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
