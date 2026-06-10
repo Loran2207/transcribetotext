@@ -1160,9 +1160,16 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const allRecords = useMemo(() => {
     const base = [...jobRecords, ...records];
     if (!demoStarAll) return base;
-    const names = ["Weekly Standup — Engineering", "Customer Interview — Acme Corp", "Q3 Roadmap Review", "Sales Call — Northwind Traders", "UX Research Debrief", "All-Hands — June"];
+    const names = [
+      "Weekly Standup — Engineering", "Customer Interview — Acme Corp", "Q3 Roadmap Review", "Sales Call — Northwind Traders",
+      "UX Research Debrief", "All-Hands — June", "Product Demo — Atlas Inc", "1:1 — Maria / Kirill", "Hiring Panel — Senior FE",
+      "Marketing Sync — Q3 Launch", "Support Escalation Review", "Onboarding Call — Beacon Ltd", "Design Crit — Mobile Nav",
+      "Investor Update — June", "Retro — Sprint 42", "Webinar — AI Notes Deep Dive", "Partner Call — Zenith Labs",
+      "Budget Review — H2", "Legal Sync — DPA Updates", "Growth Experiments Readout", "API Review — v2 Endpoints",
+      "Town Hall — Q&A", "Customer Success Weekly", "Pricing Workshop"
+    ];
     const extra = names.map((name, i) => { const src = records[i % records.length]; return { ...src, id: src.id + "-demo-" + i, name }; });
-    return [...base, ...extra].slice(0, 30);
+    return [...base, ...extra];
   }, [jobRecords, demoStarAll]);
   const displayRecords = allRecords.map((r) => ({ ...r, name: getName(r.id, r.name) }));
   const activeRecords = displayRecords.filter((r) => !trashedIds.has(r.id));
