@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { ExportDialog } from "./export-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import {
   exportRecords,
   type ExportableRecord,
@@ -1198,8 +1199,6 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   // Demo: ?empty=1 (or localStorage ttt_empty) forces the empty-records state for design captures; off by default.
   if (typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("empty") === "1" || window.localStorage.getItem("ttt_empty") === "1")) filteredRecords = [];
 
-  const allSelected = pagedRecords.length > 0 && pagedRecords.every(r => selectedRows.has(r.id));
-
   // Pagination over the fully filtered/sorted set
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -1221,6 +1220,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
   // Back to page 1 when the visible set changes shape
   useEffect(() => { setPage(1); }, [activeTab, searchQuery, pageSize]);
+
+
+  const allSelected = pagedRecords.length > 0 && pagedRecords.every(r => selectedRows.has(r.id));
 
   const dateGroups: { label: string; records: typeof filteredRecords }[] = [];
   if (groupByDate) {
