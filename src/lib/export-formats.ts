@@ -667,3 +667,58 @@ export async function runExport(req: ExportRequest): Promise<string> {
   triggerDownload(buildZipBlob(entries), filename);
   return filename;
 }
+
+/* ──────────────────────────────────────────
+   Per-file export plans (modal v2)
+   ────────────────────────────────────────── */
+
+export interface ExportFilePlan {
+  record: ExportableRecord;
+  format: ExportFormat;
+  includeTranscript: boolean;
+  includeSummary: boolean;
+  options: ExportContentOptions;
+}
+
+export interface ExportManifestFile { name: string; format: string; bytes: number; }
+export interface ExportManifest { downloadName: string; zipped: boolean; files: ExportManifestFile[]; }
+
+async function buildPlanEntries(plan: ExportFilePlan): Promise<ZipEntry[]> {
+  const enc = new TextEncoder();
+  const rec = transformForExport(plan.record, plan.options);
+  const base = safeFilename(rec.title);
+  const out: ZipEntry[] = [];
+  if (plan.includeTranscript) {
+    if (plan.format === "pdf") {
+      const buf = await buildPdfBlob([rec]).arrayBuffer();
+      out.push({ name: `${base}.pdf`, data: new Uint8Array(buf) });
+    } else {
+      out.push({ name: `${base}.${FORMAT_META[plan.format].extension}`, data: buildTranscriptData([rec], plan.format) });
+    }
+  }
+  if (plan.includeSummary) out.push({ name: `${base}-summary.txt`, data: enc.encode(buildSummaryTxt(rec)) });
+  return out;
+}
+
+function extOf(name: string): string { const m = name.match(/\.([a-z0-9]+)$/i); return m ? m[1].toLowerCase() : "file"; }
+
+/** Executes per-file plans; single file downloads directly, several files zip. Returns a manifest for the success screen. */
+export async function runExportPlan(plans: ExportFilePlan[]): Promise<ExportManifest> {
+  const active = plans.filter((p) => p.includeTranscript || p.includeSummary);
+  if (!active.length) throw new Error("Nothing selected to export");
+  const entries: ZipEntry[] = [];
+  for (const plan of active) entries.push(...await buildPlanEntries(plan));
+  if (!entries.length) throw new Error("Nothing to export");
+
+  const files: ExportManifestFile[] = entries.map((e) => ({ name: e.name, format: extOf(e.name), bytes: e.data.length }));
+
+  if (entries.length === 1) {
+    const fmt = active[0].format;
+    const mime = active[0].includeTranscript ? FORMAT_META[fmt].mime : "text/plain";
+    triggerDownload(new Blob([entries[0].data as BlobPart], { type: mime }), entries[0].name);
+    return { downloadName: entries[0].name, zipped: false, files };
+  }
+  const zipName = active.length === 1 ? `${safeFilename(active[0].record.title)}.zip` : `transcripts-${active.length}.zip`;
+  triggerDownload(buildZipBlob(entries), zipName);
+  return { downloadName: zipName, zipped: true, files };
+}
