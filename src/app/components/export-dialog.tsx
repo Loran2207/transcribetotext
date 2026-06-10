@@ -49,23 +49,25 @@ const FORMAT_CHOICES: FormatChoice[] = [
 ];
 
 /* ── Format icon chip (file-type colors) ── */
-const FORMAT_COLORS: Record<string, { bg: string; fg: string }> = {
-  txt: { bg: "rgba(100,116,139,0.12)", fg: "#475569" },
-  docx: { bg: "rgba(37,99,235,0.10)", fg: "#2563EB" },
-  pdf: { bg: "rgba(220,38,38,0.10)", fg: "#DC2626" },
-  srt: { bg: "rgba(124,58,237,0.10)", fg: "#7C3AED" },
-  vtt: { bg: "rgba(13,148,136,0.10)", fg: "#0D9488" },
-  zip: { bg: "rgba(217,119,6,0.12)", fg: "#B45309" },
+const FORMAT_COLORS: Record<string, { fg: string; dogEar: string }> = {
+  txt: { fg: "#475467", dogEar: "#98A2B3" },
+  docx: { fg: "#155EEF", dogEar: "#84ADFF" },
+  pdf: { fg: "#D92D20", dogEar: "#FDA29B" },
+  srt: { fg: "#7A5AF8", dogEar: "#BDB4FE" },
+  vtt: { fg: "#0E9384", dogEar: "#5FE9D0" },
+  zip: { fg: "#DC6803", dogEar: "#FEC84B" },
 };
 
-export function FormatIcon({ format, size = 24 }: { format: string; size?: number }) {
+export function FormatIcon({ format, size = 26 }: { format: string; size?: number }) {
   const c = FORMAT_COLORS[format] ?? FORMAT_COLORS.txt;
+  const w = Math.round(size * 0.82);
   return (
-    <span
-      className="inline-flex shrink-0 items-center justify-center rounded-[6px] font-bold uppercase select-none"
-      style={{ width: size, height: size, background: c.bg, color: c.fg, fontSize: Math.round(size * 0.32), letterSpacing: "0.2px" }}
-    >
-      {format.slice(0, 4)}
+    <span className="inline-flex shrink-0 items-center justify-center select-none" style={{ width: w, height: size }}>
+      <svg width={w} height={size} viewBox="0 0 26 32" fill="none">
+        <path d="M1 5a4 4 0 0 1 4-4h12.2L25 7.8V27a4 4 0 0 1-4 4H5a4 4 0 0 1-4-4V5z" fill={c.fg} />
+        <path d="M17.2 1L25 7.8h-5.8a2 2 0 0 1-2-2V1z" fill={c.dogEar} />
+        <text x="13" y="23.5" textAnchor="middle" fill="white" fontFamily="Inter, sans-serif" fontWeight="700" fontSize={format.length > 3 ? 7 : 8.4} letterSpacing="0.2">{format.toUpperCase().slice(0, 4)}</text>
+      </svg>
     </span>
   );
 }
@@ -312,9 +314,9 @@ export function ExportDialog({ open, onClose, records }: {
                     <div className="flex flex-col gap-[14px]">
                       {records[0]?.segments.map((seg, i) => (
                         <div key={i}>
-                          <p className="text-[12px] mb-[2px]">
+                          <p className="flex items-baseline gap-[8px] text-[12px] mb-[2px]">
                             <span className="font-semibold text-foreground">{seg.speaker}</span>
-                            <span className="text-muted-foreground ml-[8px]">{seg.timestamp}</span>
+                            <span className="text-muted-foreground">{seg.timestamp}</span>
                           </p>
                           <p className="text-[12.5px] leading-[19px] text-foreground/80">{seg.text}</p>
                         </div>

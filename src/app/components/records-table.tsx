@@ -1584,7 +1584,7 @@ function PaginationBar({ total, page, pageSize, onPage, onPageSize }: {
     setGotoValue("");
   };
   return (
-    <div className="sticky bottom-0 z-30 flex items-center gap-[14px] h-[52px] px-[4px] bg-background/95 backdrop-blur-sm border-t border-border">
+    <div className="sticky bottom-0 z-30 flex items-center gap-[14px] h-[52px] px-[8px] bg-background border-t border-border">
       <div className="flex items-center gap-[8px]">
         <span className="text-[12.5px] text-muted-foreground whitespace-nowrap">Rows per page</span>
         <Select value={String(pageSize)} onValueChange={(v) => onPageSize(parseInt(v, 10))}>
@@ -1620,7 +1620,6 @@ function PaginationBar({ total, page, pageSize, onPage, onPageSize }: {
           className="h-[30px] w-[52px] rounded-[8px] border border-border bg-background text-center text-[13px] text-foreground outline-none focus:border-primary/50"
         />
       </div>
-      <span className="hidden xl:inline text-[11px] text-muted-foreground/70 whitespace-nowrap">&#8592; &#8594; to flip pages</span>
     </div>
   );
 }
