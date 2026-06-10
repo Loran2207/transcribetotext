@@ -1073,7 +1073,13 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [groupByDate, setGroupByDate] = useState(false);
-  const [trashedIds, setTrashedIds] = useState<Set<string>>(new Set());
+  const [trashedIds, setTrashedIds] = useState<Set<string>>(() => {
+    // Demo: ttt_trash_seed pre-fills Trash for design captures; off by default.
+    if (typeof window !== "undefined" && window.localStorage.getItem("ttt_trash_seed") === "1") return new Set(records.slice(0, 4).map((r) => r.id));
+    return new Set();
+  });
+  const [hardDeletedIds, setHardDeletedIds] = useState<Set<string>>(new Set());
+  const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[] | null>(null);
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
@@ -1143,6 +1149,12 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   function trashSelected() { setTrashedIds((prev) => { const next = new Set(prev); selectedRows.forEach((id) => next.add(id)); return next; }); clearSelection(); }
   function trashOne(id: string) { setTrashedIds((prev) => { const next = new Set(prev); next.add(id); return next; }); }
   function restoreFromTrash(id: string) { setTrashedIds((prev) => { const next = new Set(prev); next.delete(id); return next; }); }
+  function hardDeleteConfirmed() {
+    if (!confirmDeleteIds) return;
+    setHardDeletedIds((prev) => { const next = new Set(prev); confirmDeleteIds.forEach((id) => next.add(id)); return next; });
+    toast.success(confirmDeleteIds.length === 1 ? "Record deleted forever" : confirmDeleteIds.length + " records deleted forever");
+    setConfirmDeleteIds(null);
+  }
 
   function saveCurrentView() {
     const id = "sv_" + Date.now();
@@ -1173,7 +1185,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const allRecords = useMemo(() => [...jobRecords, ...records], [jobRecords]);
   const displayRecords = allRecords.map((r) => ({ ...r, name: getName(r.id, r.name) }));
   const activeRecords = displayRecords.filter((r) => !trashedIds.has(r.id));
-  const trashRecords = displayRecords.filter((r) => trashedIds.has(r.id));
+  const trashRecords = displayRecords.filter((r) => trashedIds.has(r.id) && !hardDeletedIds.has(r.id));
   const scopedActiveRecords = scopedFolderId ? activeRecords.filter((r) => folderAssignments[r.id] === scopedFolderId) : activeRecords;
   const scopedTrashRecords = scopedFolderId ? trashRecords.filter((r) => folderAssignments[r.id] === scopedFolderId) : trashRecords;
 
@@ -1231,6 +1243,24 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
       <CreateFolderModal open={folderModalOpen} onClose={() => setFolderModalOpen(false)} onCreate={(name, color) => { addFolderToContext(name, color); }} />
       <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={selectedRows.size} onMove={(folderId) => { assignToFolder(Array.from(selectedRows), folderId); clearSelection(); }} onCreateFolder={() => { setMoveDialogOpen(false); setFolderModalOpen(true); }} folders={userFolders} />
+
+      {/* Hard-delete confirmation (permanent, bypasses Trash) */}
+      <AlertDialog open={!!confirmDeleteIds} onOpenChange={(open) => { if (!open) setConfirmDeleteIds(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDeleteIds && confirmDeleteIds.length > 1 ? `Delete ${confirmDeleteIds.length} records forever?` : "Delete record forever?"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDeleteIds && confirmDeleteIds.length > 1
+                ? `These ${confirmDeleteIds.length} records and their transcripts will be permanently deleted. This action cannot be undone.`
+                : "This record and its transcript will be permanently deleted. This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={hardDeleteConfirmed} className="bg-destructive text-white hover:bg-destructive/90">Delete forever</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit inline folder dialog */}
       <InlineFolderEditDialog
@@ -1381,7 +1411,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                       onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
                       onShare={() => setShareDialogRecord(record.id)}
                       onEdit={() => setEditingId(record.id)} onSaveName={(n) => { renameRecord(record.id, n); setEditingId(null); }} onCancelEdit={() => setEditingId(null)}
-                      onRestore={() => restoreFromTrash(record.id)} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
+                      onRestore={() => restoreFromTrash(record.id)} onDeleteForever={() => setConfirmDeleteIds([record.id])} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
                       onExport={(format) => exportRecordsByIds([record.id], format)}
                       onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
                     />
@@ -1460,7 +1490,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                     onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
                     onShare={() => setShareDialogRecord(record.id)}
                     onEdit={() => setEditingId(record.id)} onSaveName={(n) => { renameRecord(record.id, n); setEditingId(null); }} onCancelEdit={() => setEditingId(null)}
-                    onRestore={() => restoreFromTrash(record.id)} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
+                    onRestore={() => restoreFromTrash(record.id)} onDeleteForever={() => setConfirmDeleteIds([record.id])} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
                     onExport={(format) => exportRecordsByIds([record.id], format)}
                     onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
                   />
@@ -1500,9 +1530,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
    Table Row
    ══════════════════════════════════════════════ */
 
-function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onMoveFolder, onTrash, onExport, onDoubleClick }: {
+function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onDeleteForever, onMoveFolder, onTrash, onExport, onDoubleClick }: {
   record: RecordRow; visibleColumns: ColumnId[]; isSelected: boolean; isStarred: boolean; isShared: boolean; isHovered: boolean; isEditing: boolean; isTrash: boolean;
-  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: (format: ExportFormat) => void; onDoubleClick: () => void;
+  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onDeleteForever: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: (format: ExportFormat) => void; onDoubleClick: () => void;
 }) {
   const { t: tRow } = useLanguage();
 
@@ -1567,11 +1597,15 @@ function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isH
         {isTrash && !isEditing && (
           <div
             className={`absolute right-0 top-0 bottom-0 z-20 flex items-center justify-end pr-[6px] transition-opacity duration-150 ${isHovered ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-            style={{ width: "160px", background: `linear-gradient(to right, transparent 0px, ${hoverBg} 40px)` }}
+            style={{ width: "300px", background: `linear-gradient(to right, transparent 0px, ${hoverBg} 40px)` }}
           >
             <Button variant="outline" onClick={(e) => { e.stopPropagation(); onRestore(); }} className="flex items-center gap-[4px] h-[26px] px-[10px] rounded-full bg-card transition-colors">
               <svg className="size-[12px] text-foreground" fill="none" viewBox="0 0 16 16"><path d="M2 7.333A6 6 0 018 2a6 6 0 016 6 6 6 0 01-6 6 5.98 5.98 0 01-4.243-1.757" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /><path d="M2 3.333v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <span className="font-medium text-[11.5px] text-foreground">{tRow("common.restore")}</span>
+            </Button>
+            <Button variant="outline" onClick={(e) => { e.stopPropagation(); onDeleteForever(); }} className="ml-[6px] flex items-center gap-[4px] h-[26px] px-[10px] rounded-full bg-card border-destructive/30 text-destructive hover:bg-destructive/5 transition-colors">
+              <Icon icon={Trash} className="size-[12px]" strokeWidth={1.6} />
+              <span className="font-medium text-[11.5px]">Delete forever</span>
             </Button>
           </div>
         )}
