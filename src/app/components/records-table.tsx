@@ -1199,6 +1199,15 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   // Demo: ?empty=1 (or localStorage ttt_empty) forces the empty-records state for design captures; off by default.
   if (typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("empty") === "1" || window.localStorage.getItem("ttt_empty") === "1")) filteredRecords = [];
 
+  // Demo: ?exportall=1 opens the export dialog with all visible records (design captures; off by default)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (new URLSearchParams(window.location.search).get("exportall") !== "1") return;
+    const t = setTimeout(() => setExportDialogIds(filteredRecords.map((r) => r.id)), 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Pagination over the fully filtered/sorted set
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
   const safePage = Math.min(page, totalPages);
