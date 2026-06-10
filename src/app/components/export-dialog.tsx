@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { usePlan } from "./use-plan";
 import {
-  runExportPlan, DEFAULT_EXPORT_OPTIONS, FORMAT_META,
+  runExportPlan, transformForExport, DEFAULT_EXPORT_OPTIONS, FORMAT_META,
   type ExportableRecord, type ExportFormat, type ExportContentOptions, type ExportFilePlan, type ExportManifest,
 } from "@/lib/export-formats";
 
@@ -31,6 +31,7 @@ interface FileSettings {
   format: ExportFormat;
   includeTranscript: boolean;
   includeSummary: boolean;
+  includeAudio: boolean;
   options: ExportContentOptions;
 }
 
@@ -38,6 +39,7 @@ const DEFAULT_SETTINGS: FileSettings = {
   format: "txt",
   includeTranscript: true,
   includeSummary: false,
+  includeAudio: false,
   options: DEFAULT_EXPORT_OPTIONS,
 };
 
@@ -57,6 +59,7 @@ const FORMAT_COLORS: Record<string, { fg: string; dogEar: string }> = {
   srt: { fg: "#7A5AF8", dogEar: "#BDB4FE" },
   vtt: { fg: "#0E9384", dogEar: "#5FE9D0" },
   zip: { fg: "#DC6803", dogEar: "#FEC84B" },
+  mp3: { fg: "#DD2590", dogEar: "#FAA7E0" },
 };
 
 export function FormatIcon({ format, size = 26 }: { format: string; size?: number }) {
@@ -106,8 +109,10 @@ function OptionCheck({ id, label, checked, onChange }: { id: string; label: stri
   );
 }
 
-/* Transcript preview (left pane) */
-function TranscriptPreview({ record }: { record: ExportableRecord }) {
+/* Transcript preview (left pane) — live: reflects the current export options */
+function TranscriptPreview({ record, options }: { record: ExportableRecord; options: ExportContentOptions }) {
+  const view = transformForExport(record, options);
+  record = view;
   return (
     <div className="flex flex-col">
       <div className="mb-[16px] pb-[14px] border-b border-border/70">
@@ -179,25 +184,28 @@ export function ExportDialog({ open, onClose, records }: {
   const resetOverride = (id: string) => setOverrides((prev) => { const next = { ...prev }; delete next[id]; return next; });
 
   const plans: ExportFilePlan[] = useMemo(
-    () => records.map((r) => { const st = settingsOf(r.id); return { record: r, format: st.format, includeTranscript: st.includeTranscript, includeSummary: st.includeSummary, options: st.options }; }),
+    () => records.map((r) => { const st = settingsOf(r.id); return { record: r, format: st.format, includeTranscript: st.includeTranscript, includeSummary: st.includeSummary, includeAudio: st.includeAudio, options: st.options }; }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [records, shared, overrides]
   );
-  const activePlans = plans.filter((p) => p.includeTranscript || p.includeSummary);
+  const activePlans = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio);
   const nothingSelected = activePlans.length === 0;
-  const fileCount = activePlans.reduce((a, p) => a + (p.includeTranscript ? 1 : 0) + (p.includeSummary ? 1 : 0), 0);
+  const fileCount = activePlans.reduce((a, p) => a + (p.includeTranscript ? 1 : 0) + (p.includeSummary ? 1 : 0) + (p.includeAudio ? 1 : 0), 0);
 
   const footerSummary = useMemo(() => {
     if (nothingSelected) return "Nothing selected";
     if (fileCount === 1) {
       const p = activePlans[0];
       const base = safeName(p.record.title);
-      return p.includeTranscript ? `${base}.${FORMAT_META[p.format].extension}` : `${base}-summary.txt`;
+      if (p.includeTranscript) return `${base}.${FORMAT_META[p.format].extension}`;
+      if (p.includeSummary) return `${base}-summary.txt`;
+      return `${base}.mp3`;
     }
     const mix = new Map<string, number>();
     for (const p of activePlans) {
       if (p.includeTranscript) mix.set(p.format, (mix.get(p.format) ?? 0) + 1);
       if (p.includeSummary) mix.set("summary", (mix.get("summary") ?? 0) + 1);
+      if (p.includeAudio) mix.set("mp3", (mix.get("mp3") ?? 0) + 1);
     }
     const mixStr = [...mix.entries()].map(([f, n]) => `${n}× ${f === "summary" ? "summary" : f.toUpperCase()}`).join(" · ");
     return `${mixStr}  →  transcripts-${activePlans.length}.zip`;
@@ -271,9 +279,13 @@ export function ExportDialog({ open, onClose, records }: {
             <Icon icon={moreOpen ? ArrowUp01Icon : ArrowDown01Icon} size={13} strokeWidth={1.8} />
           </button>
           <div className={moreOpen ? "flex flex-col gap-[10px]" : "hidden"}>
-            <OptionCheck id="opt-speakers" label="Show speaker names" checked={current.options.showSpeakers} onChange={(v) => patchOptions("showSpeakers", v)} />
-            <OptionCheck id="opt-timestamps" label="Show timestamps" checked={current.options.showTimestamps} onChange={(v) => patchOptions("showTimestamps", v)} />
-            <OptionCheck id="opt-combine-same" label="Combine paragraphs of the same speaker" checked={current.options.combineSameSpeaker} onChange={(v) => patchOptions("combineSameSpeaker", v)} />
+            {!current.options.combineAll && (
+              <>
+                <OptionCheck id="opt-speakers" label="Show speaker names" checked={current.options.showSpeakers} onChange={(v) => patchOptions("showSpeakers", v)} />
+                <OptionCheck id="opt-timestamps" label="Show timestamps" checked={current.options.showTimestamps} onChange={(v) => patchOptions("showTimestamps", v)} />
+                <OptionCheck id="opt-combine-same" label="Combine paragraphs of the same speaker" checked={current.options.combineSameSpeaker} onChange={(v) => patchOptions("combineSameSpeaker", v)} />
+              </>
+            )}
             <OptionCheck id="opt-combine-all" label="Combine all paragraphs" checked={current.options.combineAll} onChange={(v) => patchOptions("combineAll", v)} />
           </div>
         </div>
@@ -287,8 +299,11 @@ export function ExportDialog({ open, onClose, records }: {
         <p className="mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground">No translation available for the selected {multi ? "records" : "record"}.</p>
       </SectionRow>
 
-      <SectionRow title="Audio" enabled={false} onToggle={() => {}} disabled>
-        <p className="mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground">No audio attached to the selected {multi ? "records" : "record"}.</p>
+      <SectionRow title="Audio" enabled={current.includeAudio} onToggle={(v) => patchCurrent({ includeAudio: v })}>
+        <div className={current.includeAudio ? "mt-[10px] flex items-center justify-between" : "hidden"}>
+          <span className="text-[13px] text-muted-foreground">File format</span>
+          <span className="flex items-center gap-[8px] text-[13px] text-foreground"><FormatIcon format="mp3" size={20} />mp3</span>
+        </div>
       </SectionRow>
     </div>
   );
@@ -406,7 +421,7 @@ export function ExportDialog({ open, onClose, records }: {
                     })}
                   </div>
                 ) : (
-                  activeRecord && <TranscriptPreview record={activeRecord} />
+                  activeRecord && <TranscriptPreview record={activeRecord} options={current.options} />
                 )}
               </div>
               {settingsPanel}

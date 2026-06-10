@@ -677,6 +677,7 @@ export interface ExportFilePlan {
   format: ExportFormat;
   includeTranscript: boolean;
   includeSummary: boolean;
+  includeAudio?: boolean;
   options: ExportContentOptions;
 }
 
@@ -697,6 +698,12 @@ async function buildPlanEntries(plan: ExportFilePlan): Promise<ZipEntry[]> {
     }
   }
   if (plan.includeSummary) out.push({ name: `${base}-summary.txt`, data: enc.encode(buildSummaryTxt(rec)) });
+  if (plan.includeAudio) {
+    // Prototype: placeholder MP3 frames (no real audio attached to mock records)
+    const mp3 = new Uint8Array(1672);
+    for (let i = 0; i < 4; i++) { const o = i * 418; mp3[o] = 0xff; mp3[o + 1] = 0xfb; mp3[o + 2] = 0x90; mp3[o + 3] = 0x64; }
+    out.push({ name: `${base}.mp3`, data: mp3 });
+  }
   return out;
 }
 
@@ -704,7 +711,7 @@ function extOf(name: string): string { const m = name.match(/\.([a-z0-9]+)$/i); 
 
 /** Executes per-file plans; single file downloads directly, several files zip. Returns a manifest for the success screen. */
 export async function runExportPlan(plans: ExportFilePlan[]): Promise<ExportManifest> {
-  const active = plans.filter((p) => p.includeTranscript || p.includeSummary);
+  const active = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio);
   if (!active.length) throw new Error("Nothing selected to export");
   const entries: ZipEntry[] = [];
   for (const plan of active) entries.push(...await buildPlanEntries(plan));
