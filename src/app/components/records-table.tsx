@@ -774,7 +774,7 @@ function FolderTreeItem({ folder, depth, selectedId, onSelect }: { folder: Folde
           <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }} className="size-[16px] shrink-0 flex items-center justify-center">
             <svg className={`size-[10px] transition-transform text-muted-foreground ${expanded ? "rotate-90" : ""}`} fill="none" viewBox="0 0 10 10"><path d="M3 2l4 3-4 3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </Button>
-        ) : <div className="w-[16px] shrink-0" />}
+        ) : null}
         <svg className="size-[18px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" fill={folder.color} stroke={folder.color} strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" /></svg>
         <span className={`flex-1 text-left truncate text-[13.5px] ${isSelected ? "font-medium text-primary" : "text-foreground"}`}>{folder.name}</span>
         {isSelected && <svg className="size-[16px] shrink-0 text-primary" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
@@ -1068,6 +1068,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [hardDeletedIds, setHardDeletedIds] = useState<Set<string>>(new Set());
   const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[] | null>(null);
   const [exportDialogIds, setExportDialogIds] = useState<string[] | null>(null);
+  const [pageSize, setPageSize] = useState(25);
+  const [page, setPage] = useState(1);
+  const pagedRecordsRef = useRef<RecordRow[]>([]);
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
@@ -1105,11 +1108,12 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   function toggleAll() {
     setSelectedRows(prev => {
       const next = new Set(prev);
-      const allVisibleSelected = filteredRecords.length > 0 && filteredRecords.every(r => next.has(r.id));
+      const visible = pagedRecordsRef.current;
+      const allVisibleSelected = visible.length > 0 && visible.every(r => next.has(r.id));
       if (allVisibleSelected) {
-        filteredRecords.forEach(r => next.delete(r.id));
+        visible.forEach(r => next.delete(r.id));
       } else {
-        filteredRecords.forEach(r => next.add(r.id));
+        visible.forEach(r => next.add(r.id));
       }
       return next;
     });
@@ -1194,12 +1198,34 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   // Demo: ?empty=1 (or localStorage ttt_empty) forces the empty-records state for design captures; off by default.
   if (typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("empty") === "1" || window.localStorage.getItem("ttt_empty") === "1")) filteredRecords = [];
 
-  const allSelected = filteredRecords.length > 0 && filteredRecords.every(r => selectedRows.has(r.id));
+  const allSelected = pagedRecords.length > 0 && pagedRecords.every(r => selectedRows.has(r.id));
+
+  // Pagination over the fully filtered/sorted set
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedRecords = filteredRecords.slice((safePage - 1) * pageSize, safePage * pageSize);
+  pagedRecordsRef.current = pagedRecords;
+
+  // Arrow keys flip pages while no field is focused
+  useEffect(() => {
+    if (totalPages <= 1) return;
+    function h(e: KeyboardEvent) {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const t = e.target as HTMLElement | null;
+      if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+      setPage((p) => e.key === "ArrowLeft" ? Math.max(1, p - 1) : Math.min(totalPages, p + 1));
+    }
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [totalPages]);
+
+  // Back to page 1 when the visible set changes shape
+  useEffect(() => { setPage(1); }, [activeTab, searchQuery, pageSize]);
 
   const dateGroups: { label: string; records: typeof filteredRecords }[] = [];
   if (groupByDate) {
     const seen = new Map<string, typeof filteredRecords>();
-    for (const r of filteredRecords) { const existing = seen.get(r.dateGroup); if (existing) existing.push(r); else seen.set(r.dateGroup, [r]); }
+    for (const r of pagedRecords) { const existing = seen.get(r.dateGroup); if (existing) existing.push(r); else seen.set(r.dateGroup, [r]); }
     for (const [label, recs] of seen) dateGroups.push({ label, records: recs });
   }
 
@@ -1473,7 +1499,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                     </div>
                   </div>
                 ))}
-                {filteredRecords.map((record) => (
+                {pagedRecords.map((record) => (
                   <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
                     onToggleRow={() => toggleRow(record.id)} onMouseEnter={() => setHoveredRow(record.id)} onMouseLeave={() => setHoveredRow(null)}
                     onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
@@ -1506,11 +1532,84 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             <div className="grid grid-cols-2 gap-[12px]">
               {filteredRecords.length === 0 ? (
                 <div className="col-span-2">{hasActiveFilters ? <EmptyFilterState onClear={clearAllFilters} /> : <EmptyTabState tab={activeTab} onNew={() => setOpenModal("upload")} />}</div>
-              ) : filteredRecords.map((record) => <RecordCard key={record.id} record={record} isStarred={demoStarAll || starred.has(record.id)} onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })} />)}
+              ) : pagedRecords.map((record) => <RecordCard key={record.id} record={record} isStarred={demoStarAll || starred.has(record.id)} onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })} />)}
             </div>
           )}
         </div>
       )}
+
+      <PaginationBar total={filteredRecords.length} page={safePage} pageSize={pageSize} onPage={setPage} onPageSize={(n) => { setPageSize(n); setPage(1); }} />
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   Pagination Bar
+   ══════════════════════════════════════════════ */
+
+const PAGE_SIZE_OPTIONS = [25, 50, 100];
+
+function pageWindow(page: number, total: number): (number | "ellipsis")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const out: (number | "ellipsis")[] = [1];
+  if (page > 3) out.push("ellipsis");
+  for (let p = Math.max(2, page - 1); p <= Math.min(total - 1, page + 1); p++) out.push(p);
+  if (page < total - 2) out.push("ellipsis");
+  out.push(total);
+  return out;
+}
+
+function PaginationBar({ total, page, pageSize, onPage, onPageSize }: {
+  total: number; page: number; pageSize: number; onPage: (p: number) => void; onPageSize: (n: number) => void;
+}) {
+  const [gotoValue, setGotoValue] = useState("");
+  if (total <= PAGE_SIZE_OPTIONS[0]) return null;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const from = (page - 1) * pageSize + 1;
+  const to = Math.min(total, page * pageSize);
+  const jump = () => {
+    const n = parseInt(gotoValue, 10);
+    if (!Number.isNaN(n)) onPage(Math.min(totalPages, Math.max(1, n)));
+    setGotoValue("");
+  };
+  return (
+    <div className="sticky bottom-0 z-30 flex items-center gap-[14px] h-[52px] px-[4px] bg-background/95 backdrop-blur-sm border-t border-border">
+      <div className="flex items-center gap-[8px]">
+        <span className="text-[12.5px] text-muted-foreground whitespace-nowrap">Rows per page</span>
+        <Select value={String(pageSize)} onValueChange={(v) => onPageSize(parseInt(v, 10))}>
+          <SelectTrigger className="h-[30px] w-[72px] rounded-[8px] text-[13px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {PAGE_SIZE_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <span className="text-[12.5px] text-muted-foreground whitespace-nowrap">{from}&#8211;{to} of {total}</span>
+      <div className="flex-1" />
+      <div className="flex items-center gap-[4px]">
+        <Button variant="ghost" size="icon" disabled={page <= 1} onClick={() => onPage(page - 1)} className="size-[30px] rounded-full disabled:opacity-30" title="Previous page">
+          <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </Button>
+        {pageWindow(page, totalPages).map((p, i) => p === "ellipsis" ? (
+          <span key={"e" + i} className="px-[4px] text-[12.5px] text-muted-foreground">&#8230;</span>
+        ) : (
+          <Button key={p} variant="ghost" onClick={() => onPage(p)} className={"h-[30px] min-w-[30px] px-[8px] rounded-full text-[13px] " + (p === page ? "bg-primary text-primary-foreground font-semibold hover:bg-primary hover:text-primary-foreground" : "text-foreground")}>{p}</Button>
+        ))}
+        <Button variant="ghost" size="icon" disabled={page >= totalPages} onClick={() => onPage(page + 1)} className="size-[30px] rounded-full disabled:opacity-30" title="Next page">
+          <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M6 3L10.5 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </Button>
+      </div>
+      <div className="flex items-center gap-[6px]">
+        <span className="text-[12.5px] text-muted-foreground whitespace-nowrap">Go to</span>
+        <input
+          value={gotoValue}
+          onChange={(e) => setGotoValue(e.target.value.replace(/[^0-9]/g, ""))}
+          onKeyDown={(e) => { if (e.key === "Enter") jump(); }}
+          onBlur={() => { if (gotoValue) jump(); }}
+          placeholder={String(page)}
+          className="h-[30px] w-[52px] rounded-[8px] border border-border bg-background text-center text-[13px] text-foreground outline-none focus:border-primary/50"
+        />
+      </div>
+      <span className="hidden xl:inline text-[11px] text-muted-foreground/70 whitespace-nowrap">&#8592; &#8594; to flip pages</span>
     </div>
   );
 }
