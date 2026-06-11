@@ -1067,6 +1067,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder, deleteFolder, renameFolder, changeFolderColor, moveFolder } = useFolders();
   const [deletingInlineFolderId, setDeletingInlineFolderId] = useState<string | null>(null);
   const [editingInlineFolder, setEditingInlineFolder] = useState<FolderItem | null>(null);
+  const [renamingInlineFolderId, setRenamingInlineFolderId] = useState<string | null>(null);
+  const [dragRecordId, setDragRecordId] = useState<string | null>(null);
+  const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("Recent");
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
@@ -1445,6 +1448,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                       onRestore={() => restoreFromTrash(record.id)} onDeleteForever={() => setConfirmDeleteIds([record.id])} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
                       onExport={() => setExportDialogIds([record.id])}
                       onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
+                      rowDragging={dragRecordId === record.id}
+                      onRowDragStart={activeTab === "Recent" && !scopedFolderId ? (e) => { e.dataTransfer.setData("text/record-id", record.id); e.dataTransfer.effectAllowed = "move"; setDragRecordId(record.id); } : undefined}
+                      onRowDragEnd={() => { setDragRecordId(null); setDragOverFolderId(null); }}
                     />
                   ))}
                 </div>
@@ -1452,11 +1458,33 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             ) : (
               <>
                 {showInlineFolderRows && activeTab === "Recent" && inlineFolders.map((folder) => (
-                  <div key={folder.id} className="group flex items-center h-[40px] transition-colors cursor-pointer border-b border-border hover:bg-accent" onDoubleClick={() => onOpenFolder?.(folder.id)}>
+                  <div
+                    key={folder.id}
+                    className={"group flex items-center h-[40px] transition-colors cursor-pointer border-b border-border " + (dragOverFolderId === folder.id ? "bg-primary/5 ring-1 ring-inset ring-primary/40" : "hover:bg-accent")}
+                    onDragOver={(e) => { if (dragRecordId) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverFolderId !== folder.id) setDragOverFolderId(folder.id); } }}
+                    onDragLeave={() => { if (dragOverFolderId === folder.id) setDragOverFolderId(null); }}
+                    onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("text/record-id") || dragRecordId; if (id) { assignToFolder([id], folder.id); toast.success(`Moved to ${folder.name}`); } setDragOverFolderId(null); setDragRecordId(null); }}
+                    onDoubleClick={() => onOpenFolder?.(folder.id)}
+                  >
                     <div className="w-[40px] shrink-0" />
                     <div className="flex-[2.2] min-w-0 px-[12px] flex items-center gap-[8px]">
                       <svg className="size-[16px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
-                      <span className="font-medium text-[14px] text-foreground">{folder.name}</span>
+                      {renamingInlineFolderId === folder.id ? (
+                        <input
+                          autoFocus
+                          defaultValue={folder.name}
+                          className="h-[26px] w-[220px] rounded-[6px] border border-primary/50 bg-background px-[8px] font-medium text-[14px] text-foreground outline-none focus:ring-2 focus:ring-primary/15"
+                          onClick={(e) => e.stopPropagation()}
+                          onDoubleClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") { const v = (e.target as HTMLInputElement).value.trim(); if (v) renameFolder(folder.id, v); setRenamingInlineFolderId(null); }
+                            if (e.key === "Escape") setRenamingInlineFolderId(null);
+                          }}
+                          onBlur={(e) => { const v = e.target.value.trim(); if (v) renameFolder(folder.id, v); setRenamingInlineFolderId(null); }}
+                        />
+                      ) : (
+                        <span className="font-medium text-[14px] text-foreground">{folder.name}</span>
+                      )}
                     </div>
                     {/* Star column placeholder */}
                     <div className="w-[32px] shrink-0" />
@@ -1482,6 +1510,10 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                           <DropdownMenuItem className="gap-2" onClick={() => onOpenFolder?.(folder.id)}>
                             <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                             Open folder
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2" onClick={() => setRenamingInlineFolderId(folder.id)}>
+                            <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                            Rename
                           </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2" onClick={() => setEditingInlineFolder(folder)}>
                             <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
@@ -1524,6 +1556,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                     onRestore={() => restoreFromTrash(record.id)} onDeleteForever={() => setConfirmDeleteIds([record.id])} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
                     onExport={() => setExportDialogIds([record.id])}
                     onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
+                      rowDragging={dragRecordId === record.id}
+                      onRowDragStart={activeTab === "Recent" && !scopedFolderId ? (e) => { e.dataTransfer.setData("text/record-id", record.id); e.dataTransfer.effectAllowed = "move"; setDragRecordId(record.id); } : undefined}
+                      onRowDragEnd={() => { setDragRecordId(null); setDragOverFolderId(null); }}
                   />
                 ))}
               </>
@@ -1633,9 +1668,9 @@ function PaginationBar({ total, page, pageSize, onPage, onPageSize }: {
    Table Row
    ══════════════════════════════════════════════ */
 
-function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onDeleteForever, onMoveFolder, onTrash, onExport, onDoubleClick }: {
+function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onDeleteForever, onMoveFolder, onTrash, onExport, onDoubleClick, rowDragging, onRowDragStart, onRowDragEnd }: {
   record: RecordRow; visibleColumns: ColumnId[]; isSelected: boolean; isStarred: boolean; isShared: boolean; isHovered: boolean; isEditing: boolean; isTrash: boolean;
-  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onDeleteForever: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: () => void; onDoubleClick: () => void;
+  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onDeleteForever: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: () => void; onDoubleClick: () => void; rowDragging?: boolean; onRowDragStart?: (e: React.DragEvent) => void; onRowDragEnd?: () => void;
 }) {
   const { t: tRow } = useLanguage();
 
@@ -1661,7 +1696,7 @@ function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isH
   const shortSummary = record.summary.length > 120 ? record.summary.slice(0, 120) + "\u2026" : record.summary;
 
   return (
-    <div className={`flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer relative border-b border-border ${isTrash ? "opacity-60 hover:opacity-80" : "hover:bg-accent"} ${rowBg}`} onMouseEnter={(e) => { onMouseEnter(); summaryTimer.current = setTimeout(() => setShowSummary(true), 600); }} onMouseLeave={(e) => { onMouseLeave(); clearTimeout(summaryTimer.current); setShowSummary(false); }} onDoubleClick={onDoubleClick}>
+    <div draggable={!!onRowDragStart} onDragStart={onRowDragStart} onDragEnd={onRowDragEnd} className={`flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer relative border-b border-border ${isTrash ? "opacity-60 hover:opacity-80" : "hover:bg-accent"} ${rowBg} ${rowDragging ? "opacity-40" : ""}`} onMouseEnter={(e) => { onMouseEnter(); summaryTimer.current = setTimeout(() => setShowSummary(true), 600); }} onMouseLeave={(e) => { onMouseLeave(); clearTimeout(summaryTimer.current); setShowSummary(false); }} onDoubleClick={onDoubleClick}>
       {/* Summary hover card */}
       {showSummary && record.summary && !isEditing && (
         <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+6px)] z-[60] pointer-events-none" style={{ animation: "fadeInUp 0.2s ease" }}>

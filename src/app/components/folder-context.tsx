@@ -32,6 +32,14 @@ const DEFAULT_FOLDERS: FolderItem[] = [
   { id: "folder_demo_retros", name: "Team Retros", color: "#F59E0B", createdAt: "2026-03-16T12:00:00.000Z" },
 ];
 
+const MANY_FOLDERS_EXTRA: FolderItem[] = [
+  { id: "folder_demo_mkt", name: "Marketing Reviews", color: "#EC4899", createdAt: "2026-03-17T09:00:00.000Z" },
+  { id: "folder_demo_sales", name: "Sales Calls", color: "#8B5CF6", createdAt: "2026-03-18T10:00:00.000Z" },
+  { id: "folder_demo_research", name: "User Research", color: "#06B6D4", createdAt: "2026-03-19T11:00:00.000Z" },
+  { id: "folder_demo_legal", name: "Legal & Compliance", color: "#64748B", createdAt: "2026-03-20T12:00:00.000Z" },
+  { id: "folder_demo_hiring", name: "Hiring Interviews", color: "#EF4444", createdAt: "2026-03-21T13:00:00.000Z" },
+];
+
 const DEFAULT_ASSIGNMENTS: Record<string, string> = {
   "1": "folder_demo_sprint",
   "2": "folder_demo_clients",
@@ -82,6 +90,9 @@ function addToTree(folders: FolderItem[], targetId: string | null, item: FolderI
 
 function loadFolders(): FolderItem[] {
   try {
+    // Demo flags for design captures (both off by default)
+    if (localStorage.getItem("ttt_nofolders") === "1") return [];
+    if (localStorage.getItem("ttt_folders_many") === "1") return [...cloneFolders(DEFAULT_FOLDERS), ...cloneFolders(MANY_FOLDERS_EXTRA)];
     const version = localStorage.getItem(DEFAULTS_VERSION_KEY);
     if (version !== CURRENT_DEFAULTS_VERSION) {
       localStorage.removeItem(STORAGE_KEY);

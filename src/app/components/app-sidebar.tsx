@@ -248,7 +248,8 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
     { id: "f2", name: "Internal Syncs", color: "#22C55E" },
     { id: "f3", name: "Product Demos", color: "#F59E0B" },
   ];
-  const folders = userFolders.length > 0 ? userFolders : defaultFolders;
+  const noFoldersDemo = typeof window !== "undefined" && window.localStorage.getItem("ttt_nofolders") === "1";
+  const folders = userFolders.length > 0 ? userFolders : noFoldersDemo ? [] : defaultFolders;
 
   return (
     <Sidebar collapsible="icon">
