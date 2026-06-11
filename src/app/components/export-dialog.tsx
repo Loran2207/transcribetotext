@@ -267,13 +267,6 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   /* ── settings panel (right) — one set of settings, applied to every file ── */
   const settingsPanel = (
     <div className="w-[340px] shrink-0 overflow-y-auto px-[24px] py-[6px]">
-      {phase === "error" && (
-        <div className="flex items-start gap-[8px] mt-[14px] px-[12px] py-[10px] rounded-[10px] bg-destructive/5 border border-destructive/20">
-          <Icon icon={Alert02Icon} size={15} className="text-destructive shrink-0 mt-[1px]" strokeWidth={1.7} />
-          <p className="flex-1 min-w-0 font-medium text-[12.5px] text-destructive leading-[18px]">Could not export. Please try again.</p>
-        </div>
-      )}
-
       {multi && (
         <div className="border-b border-border py-[16px]">
           <p className="font-semibold text-[14.5px] text-foreground">Export name</p>
@@ -390,6 +383,22 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                 </div>
               )}
             </div>
+          ) : phase === "error" ? (
+            <div className="flex h-full flex-col items-center justify-center px-[24px]">
+              <div className="size-[64px] rounded-full bg-destructive/5 flex items-center justify-center mb-[18px]">
+                <Icon icon={Alert02Icon} size={28} className="text-destructive" strokeWidth={1.6} />
+              </div>
+              <p className="font-semibold text-[16px] text-foreground mb-[4px]">Export failed</p>
+              <p className="text-[13px] text-muted-foreground mb-[24px]">Could not export. Please try again.</p>
+              <div className="flex items-center gap-[10px]">
+                <Button variant="pill-outline" onClick={() => setPhase("form")} className="h-[36px] px-[16px]">
+                  <span className="font-medium text-[13px]">Back to settings</span>
+                </Button>
+                <Button onClick={handleExport} className="h-[36px] px-[20px]">
+                  <span className="font-semibold text-[13px]">Try again</span>
+                </Button>
+              </div>
+            </div>
           ) : phase === "success" && manifest ? (
             <div className="flex h-full flex-col items-center px-[24px] pt-[44px]">
               <div className="size-[56px] rounded-full bg-primary/5 flex items-center justify-center mb-[14px]">
@@ -401,7 +410,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                   ? <>{manifest.files.length} files packed into <span className="font-medium text-foreground">{manifest.downloadName}</span></>
                   : <><span className="font-medium text-foreground">{manifest.downloadName}</span> has been downloaded</>}
               </p>
-              <div className="w-[520px] max-h-[260px] overflow-y-auto rounded-[12px] border border-border divide-y divide-border">
+              <div className="w-[520px] max-h-[240px] overflow-y-auto rounded-[12px] border border-border divide-y divide-border">
                 {manifest.files.map((f) => (
                   <div key={f.name} className="flex items-center gap-[12px] h-[42px] px-[14px]">
                     <FormatIcon format={f.format} size={24} />
@@ -410,6 +419,10 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                   </div>
                 ))}
               </div>
+              <button type="button" onClick={handleExport} className="mt-[18px] flex items-center gap-[8px] text-primary hover:underline">
+                <Icon icon={Download01Icon} size={15} strokeWidth={1.8} />
+                <span className="font-medium text-[13px]">Download {manifest.downloadName}</span>
+              </button>
             </div>
           ) : (
             <div className="flex h-full">
@@ -490,12 +503,15 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                 {manifest.zipped && <FormatIcon format="zip" size={22} />}
                 <p className="truncate text-[12.5px] text-muted-foreground">{manifest.downloadName}</p>
               </div>
-              <Button variant="pill-outline" onClick={handleExport} className="h-[36px] px-[16px] gap-[6px]">
-                <Icon icon={Download01Icon} size={14} strokeWidth={1.7} />
-                <span className="font-medium text-[13px]">Download again</span>
-              </Button>
               <Button onClick={onClose} className="h-[36px] px-[18px]">
                 <span className="font-semibold text-[13px]">Done</span>
+              </Button>
+            </>
+          ) : phase === "error" ? (
+            <>
+              <div className="flex-1" />
+              <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[16px]">
+                <span className="font-medium text-[13px]">Cancel</span>
               </Button>
             </>
           ) : (
@@ -508,7 +524,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               </Button>
               <Button onClick={handleExport} disabled={nothingSelected || phase === "processing"} className="h-[36px] px-[20px] gap-[6px]">
                 {phase === "processing" && <Icon icon={Loading01Icon} size={14} className="animate-spin" strokeWidth={2} />}
-                <span className="font-semibold text-[13px]">{phase === "error" ? "Try again" : "Export"}</span>
+                <span className="font-semibold text-[13px]">Export</span>
               </Button>
             </>
           )}
