@@ -9,25 +9,25 @@ import { SourceIcon, type SourceType } from "./source-icons";
 
 /* ── Mock data ── */
 const RECENT_SEARCHES = [
-  { id: "rs1", query: "Q4 Product Review", timestamp: "2 hours ago" },
-  { id: "rs2", query: "Client onboarding call", timestamp: "Yesterday" },
-  { id: "rs3", query: "Sprint retrospective", timestamp: "3 days ago" },
+  { id: "rs1", query: "Q2 roadmap", timestamp: "2 hours ago" },
+  { id: "rs2", query: "onboarding call", timestamp: "Yesterday" },
+  { id: "rs3", query: "billing issue", timestamp: "3 days ago" },
 ];
 
 const MOCK_RESULTS: SearchResult[] = [
-  { id: "sr1", name: "Workflow Process and Load Addition Discussion", source: "google-meet", date: "Mar 14, 2026 07:58", duration: "1min 6s", creator: "Kirill Kuts", summary: "integration points. Request for current workflow overview. Question posed: What is the basic/default workflow" },
-  { id: "sr2", name: "Client Onboarding — Nexora Inc.", source: "zoom", date: "Mar 12, 2026 10:30", duration: "32min 8s", creator: "Kirill Kuts", summary: "Discussed the onboarding workflow for enterprise clients. Key action items include setting up automated workflow notifications and scheduling follow-up." },
-  { id: "sr3", name: "Sprint Retrospective #24", source: "teams", date: "Mar 10, 2026 19:09", duration: "1min 21s", creator: "Kirill Kuts", summary: "Let's explore how Nexora can improve your workflow and enhance your productivity." },
-  { id: "sr4", name: "Product Demo — Enterprise Workflow", source: "zoom", date: "Mar 8, 2026 14:20", duration: "51min 20s", creator: "Kirill Kuts", summary: "Demonstrated the new workflow automation features. Customer feedback was positive on the drag-and-drop workflow builder." },
-  { id: "sr5", name: "Interview — Senior Developer", source: "google-meet", date: "Mar 5, 2026 11:00", duration: "1h 2min", creator: "Kirill Kuts", summary: "Technical discussion covering CI/CD workflow, code review practices, and development workflow preferences." },
-  { id: "sr6", name: "Weekly standup recording", source: "microphone", date: "Mar 3, 2026 09:15", duration: "12min 33s", creator: "Kirill Kuts", summary: "Quick team sync on current sprint status. Updated workflow priorities and blockers." },
+  { id: "sr1", name: "Acme Logistics — onboarding call", source: "zoom", date: "Mar 11, 2026 08:28", duration: "43min", creator: "Kirill Kuts", summary: "Walked the Acme team through workspace setup: batch-uploading dispatch calls, AI summaries with action items, and Word exports for the weekly report." },
+  { id: "sr2", name: "Support call — billing issue escalation", source: "teams", date: "Mar 10, 2026 09:15", duration: "12min", creator: "Maria Garcia", summary: "Customer was double-charged after switching plans. Refund issued on the call; engineering ticket opened to fix the proration bug." },
+  { id: "sr3", name: "Sales discovery — Brightline Media", source: "teams", date: "Mar 6, 2026 09:30", duration: "31min", creator: "Alex Johnson", summary: "Discovery call with a 40-person agency: they transcribe client briefings and need workspace roles plus SSO. Demo with their ops lead next week." },
+  { id: "sr4", name: "Weekly product sync — Q2 roadmap", source: "google-meet", date: "Mar 13, 2026 15:06", duration: "32min", creator: "Maria Garcia", summary: "The team locked the Q2 roadmap: the unified export flow ships this sprint and the noise-robust model goes to beta on April 18." },
+  { id: "sr5", name: "UX interview — power user, mobile workflows", source: "zoom", date: "Mar 6, 2026 11:00", duration: "35min", creator: "Kirill Kuts", summary: "A daily-active user walked through how she records client calls from her phone. Main friction: finding old recordings." },
+  { id: "sr6", name: "Customer feedback session — beta cohort", source: "zoom", date: "Mar 12, 2026 14:30", duration: "28min", creator: "Alex Johnson", summary: "Five beta users shared feedback on the new export flow. Two asked for shareable links and excluding filler words from transcripts." },
 ];
 
 const MOCK_FOLDERS = [
-  { id: "mf1", name: "Client Meetings", color: "#3B82F6", count: 24 },
-  { id: "mf2", name: "Internal Syncs", color: "#22C55E", count: 18 },
-  { id: "mf3", name: "Product Demos", color: "#F59E0B", count: 12 },
-  { id: "mf4", name: "Workflow Documents", color: "#8B5CF6", count: 7 },
+  { id: "mf1", name: "Client Calls", color: "#2563EB", count: 3 },
+  { id: "mf2", name: "Sales Calls", color: "#8B5CF6", count: 1 },
+  { id: "mf3", name: "Sprint Planning", color: "#6366F1", count: 1 },
+  { id: "mf4", name: "User Research", color: "#06B6D4", count: 2 },
 ];
 
 interface SearchResult {
@@ -48,7 +48,9 @@ const DOC_TYPES: { id: string; label: string; source: SourceType }[] = [
 
 const CREATOR_OPTIONS = [
   { id: "kirill", label: "Kirill Kuts" },
-  { id: "team", label: "Team Members" },
+  { id: "maria", label: "Maria Garcia" },
+  { id: "alex", label: "Alex Johnson" },
+  { id: "james", label: "James Chen" },
 ];
 
 /* ── Date presets ── */
@@ -61,7 +63,7 @@ const DATE_PRESETS = [
 ];
 
 /* ── Calendar helpers ── */
-const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 function getCalendarDays(year: number, month: number) {
@@ -158,7 +160,7 @@ function DateFilterPanel({ selectedPreset, selectedDate, onSelectPreset, onSelec
   return (
     <div className="absolute top-[calc(100%+6px)] left-0 w-[300px] rounded-[12px] z-10 overflow-hidden bg-popover border border-border shadow-md">
       <div className="flex items-center justify-between px-[14px] pt-[12px] pb-[4px]">
-        <span className="font-medium text-[12px] text-muted-foreground uppercase tracking-[0.5px]">Created</span>
+        <span className="font-medium text-[12px] text-muted-foreground tracking-[0.2px]">Created</span>
         <Button variant="link" onClick={onClear} className="h-auto p-0 font-medium text-[12px]">Clear</Button>
       </div>
       <div className="px-[6px] py-[4px]">
@@ -359,7 +361,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
               {activeDropdown === "folders" && (
                 <FilterDropdown>
                   <div className="px-[10px] pt-[4px] pb-[2px]">
-                    <span className="font-medium text-[10px] text-muted-foreground tracking-[0.5px] uppercase">Folders</span>
+                    <span className="font-medium text-[11px] text-muted-foreground tracking-[0.2px]">Folders</span>
                   </div>
                   {folders.map(f => (
                     <Button variant="ghost" key={f.id} onClick={() => toggleSet(setSelectedFolders, f.id)} className={`flex items-center gap-[8px] w-[calc(100%-8px)] h-[32px] px-[10px] rounded-[8px] mx-[4px] justify-start ${selectedFolders.has(f.id) ? "bg-primary/5" : ""}`}>
@@ -395,7 +397,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
               {activeDropdown === "types" && (
                 <FilterDropdown>
                   <div className="px-[10px] pt-[4px] pb-[2px]">
-                    <span className="font-medium text-[10px] text-muted-foreground tracking-[0.5px] uppercase">Source</span>
+                    <span className="font-medium text-[11px] text-muted-foreground tracking-[0.2px]">Source</span>
                   </div>
                   {DOC_TYPES.map(dt => (
                     <Button variant="ghost" key={dt.id} onClick={() => toggleSet(setSelectedTypes, dt.id)} className={`flex items-center gap-[8px] w-[calc(100%-8px)] h-[32px] px-[10px] rounded-[8px] mx-[4px] justify-start ${selectedTypes.has(dt.id) ? "bg-primary/5" : ""}`}>
