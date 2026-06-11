@@ -680,6 +680,9 @@ export interface ExportFilePlan {
   includeTranscript: boolean;
   includeSummary: boolean;
   includeAudio?: boolean;
+  includeTranslation?: boolean;
+  /** Target language code for the translated transcript (e.g. "es") */
+  translationLanguage?: string;
   options: ExportContentOptions;
 }
 
@@ -700,6 +703,11 @@ async function buildPlanEntries(plan: ExportFilePlan): Promise<ZipEntry[]> {
     }
   }
   if (plan.includeSummary) out.push({ name: `${base}-summary.txt`, data: enc.encode(buildSummaryTxt(rec)) });
+  if (plan.includeTranslation) {
+    // Prototype: mock records carry no real translation — export the transcript under the target-language name
+    const lang = plan.translationLanguage ?? "es";
+    out.push({ name: `${base}-${lang}.txt`, data: buildTranscriptData([rec], "txt") });
+  }
   if (plan.includeAudio) {
     // Prototype: placeholder MP3 frames (no real audio attached to mock records)
     const mp3 = new Uint8Array(1672);
@@ -713,7 +721,7 @@ function extOf(name: string): string { const m = name.match(/\.([a-z0-9]+)$/i); 
 
 /** Executes per-file plans; single file downloads directly, several files zip. Returns a manifest for the success screen. */
 export async function runExportPlan(plans: ExportFilePlan[], zipName?: string): Promise<ExportManifest> {
-  const active = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio);
+  const active = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio || p.includeTranslation);
   if (!active.length) throw new Error("Nothing selected to export");
   const entries: ZipEntry[] = [];
   for (const plan of active) entries.push(...await buildPlanEntries(plan));

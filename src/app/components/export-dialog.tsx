@@ -16,6 +16,7 @@ import { Icon } from "@/app/components/ui/icon";
 import { toast } from "sonner";
 import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { usePlan } from "./use-plan";
+import { LANGUAGES } from "./language-context";
 import {
   runExportPlan, transformForExport, DEFAULT_EXPORT_OPTIONS, FORMAT_META,
   type ExportableRecord, type ExportFormat, type ExportContentOptions, type ExportFilePlan, type ExportManifest,
@@ -37,6 +38,8 @@ interface FileSettings {
   includeTranscript: boolean;
   includeSummary: boolean;
   includeAudio: boolean;
+  includeTranslation: boolean;
+  translationLanguage: string;
   options: ExportContentOptions;
 }
 
@@ -45,6 +48,8 @@ const DEFAULT_SETTINGS: FileSettings = {
   includeTranscript: true,
   includeSummary: false,
   includeAudio: false,
+  includeTranslation: false,
+  translationLanguage: "es",
   options: DEFAULT_EXPORT_OPTIONS,
 };
 
@@ -215,11 +220,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   const zipFileName = `${safeName(exportName || `transcripts-${items.length}`)}.zip`;
 
   const plans: ExportFilePlan[] = useMemo(
-    () => items.map((r) => ({ record: r, format: shared.format, includeTranscript: shared.includeTranscript, includeSummary: shared.includeSummary, includeAudio: shared.includeAudio, options: shared.options })),
+    () => items.map((r) => ({ record: r, format: shared.format, includeTranscript: shared.includeTranscript, includeSummary: shared.includeSummary, includeAudio: shared.includeAudio, includeTranslation: shared.includeTranslation, translationLanguage: shared.translationLanguage, options: shared.options })),
     [items, shared]
   );
-  const nothingSelected = items.length === 0 || (!shared.includeTranscript && !shared.includeSummary && !shared.includeAudio);
-  const fileCount = nothingSelected ? 0 : items.length * ((shared.includeTranscript ? 1 : 0) + (shared.includeSummary ? 1 : 0) + (shared.includeAudio ? 1 : 0));
+  const nothingSelected = items.length === 0 || (!shared.includeTranscript && !shared.includeSummary && !shared.includeAudio && !shared.includeTranslation);
+  const fileCount = nothingSelected ? 0 : items.length * ((shared.includeTranscript ? 1 : 0) + (shared.includeSummary ? 1 : 0) + (shared.includeAudio ? 1 : 0) + (shared.includeTranslation ? 1 : 0));
 
   const footerSummary = useMemo(() => {
     if (nothingSelected) return "Nothing selected";
@@ -228,11 +233,13 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
       const base = safeName(r.title);
       if (shared.includeTranscript) return `${base}.${FORMAT_META[shared.format].extension}`;
       if (shared.includeSummary) return `${base}-summary.txt`;
+      if (shared.includeTranslation) return `${base}-${shared.translationLanguage}.txt`;
       return `${base}.mp3`;
     }
     const mix: string[] = [];
     if (shared.includeTranscript) mix.push(`${items.length}× ${shared.format.toUpperCase()}`);
     if (shared.includeSummary) mix.push(`${items.length}× summary`);
+    if (shared.includeTranslation) mix.push(`${items.length}× ${shared.translationLanguage} translation`);
     if (shared.includeAudio) mix.push(`${items.length}× mp3`);
     return `${mix.join(" · ")}  →  ${zipFileName}`;
   }, [items, shared, fileCount, nothingSelected, zipFileName]);
@@ -321,8 +328,23 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         <p className={shared.includeSummary ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>Exports the AI summary as a separate .txt file.</p>
       </SectionRow>
 
-      <SectionRow title="Translation" enabled={false} onToggle={() => {}} disabled>
-        <p className="mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground">No translation available for the selected {multi ? "records" : "record"}.</p>
+      <SectionRow title="Translation" enabled={shared.includeTranslation} onToggle={(v) => patchShared({ includeTranslation: v })}>
+        <div className={shared.includeTranslation ? "mt-[12px] flex flex-col gap-[10px]" : "hidden"}>
+          <div className="flex items-center justify-between">
+            <span className="text-[13px] text-muted-foreground">Translate to</span>
+            <Select value={shared.translationLanguage} onValueChange={(v) => patchShared({ translationLanguage: v })}>
+              <SelectTrigger className="w-[168px] h-[34px] rounded-[8px] text-[13px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {LANGUAGES.map((l) => (
+                  <SelectItem key={l.code} value={l.code}>
+                    <span className="flex items-center gap-[8px]">{l.label}<span className="text-[10.5px] text-muted-foreground">{l.short}</span></span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-[12.5px] leading-[18px] text-muted-foreground">Exports the translated transcript as a separate .txt file.</p>
+        </div>
       </SectionRow>
 
       <SectionRow title="Audio" enabled={shared.includeAudio} onToggle={(v) => patchShared({ includeAudio: v })}>
@@ -426,7 +448,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                         <PopoverTrigger asChild>
                           <button type="button" className="flex w-full items-center gap-[8px] h-[34px] px-[14px] rounded-full text-[12.5px] font-medium text-primary hover:bg-primary/5 transition-colors">
                             <Icon icon={Add01Icon} size={13} strokeWidth={2} />
-                            Add files
+                            Add files to export
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[248px] p-0" align="start" side="top" sideOffset={6}>
