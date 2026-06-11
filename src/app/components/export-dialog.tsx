@@ -402,7 +402,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                           tabIndex={0}
                           onClick={() => setActiveId(r.id)}
                           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setActiveId(r.id); }}
-                          className={"group flex w-full items-center gap-[6px] h-[34px] pl-[10px] pr-[6px] rounded-[8px] text-[12.5px] cursor-pointer transition-colors " +
+                          className={"group flex w-full items-center gap-[6px] h-[34px] pl-[14px] pr-[8px] rounded-full text-[12.5px] cursor-pointer transition-colors " +
                             (isActive ? "bg-primary/5 text-primary font-medium" : "text-foreground/80 hover:bg-foreground/[0.04]")}
                         >
                           <span className="flex-1 min-w-0 truncate text-left">{r.title}</span>
@@ -424,7 +424,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                     <div className="px-[8px] pt-[8px] mt-[8px] border-t border-border">
                       <Popover open={addOpen} onOpenChange={setAddOpen}>
                         <PopoverTrigger asChild>
-                          <button type="button" className="flex w-full items-center gap-[8px] h-[34px] px-[10px] rounded-[8px] text-[12.5px] font-medium text-primary hover:bg-primary/5 transition-colors">
+                          <button type="button" className="flex w-full items-center gap-[8px] h-[34px] px-[14px] rounded-full text-[12.5px] font-medium text-primary hover:bg-primary/5 transition-colors">
                             <Icon icon={Add01Icon} size={13} strokeWidth={2} />
                             Add files
                           </button>
