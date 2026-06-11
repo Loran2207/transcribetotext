@@ -16,6 +16,8 @@ export interface ExportSegment {
 }
 
 export interface ExportableRecord {
+  /** Stable unique id (used by the export dialog file tabs) */
+  id: string;
   title: string;
   /** Optional one-paragraph summary */
   summary?: string;
@@ -710,7 +712,7 @@ async function buildPlanEntries(plan: ExportFilePlan): Promise<ZipEntry[]> {
 function extOf(name: string): string { const m = name.match(/\.([a-z0-9]+)$/i); return m ? m[1].toLowerCase() : "file"; }
 
 /** Executes per-file plans; single file downloads directly, several files zip. Returns a manifest for the success screen. */
-export async function runExportPlan(plans: ExportFilePlan[]): Promise<ExportManifest> {
+export async function runExportPlan(plans: ExportFilePlan[], zipName?: string): Promise<ExportManifest> {
   const active = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio);
   if (!active.length) throw new Error("Nothing selected to export");
   const entries: ZipEntry[] = [];
@@ -725,7 +727,8 @@ export async function runExportPlan(plans: ExportFilePlan[]): Promise<ExportMani
     triggerDownload(new Blob([entries[0].data as BlobPart], { type: mime }), entries[0].name);
     return { downloadName: entries[0].name, zipped: false, files };
   }
-  const zipName = active.length === 1 ? `${safeFilename(active[0].record.title)}.zip` : `transcripts-${active.length}.zip`;
-  triggerDownload(buildZipBlob(entries), zipName);
-  return { downloadName: zipName, zipped: true, files };
+  const fallback = active.length === 1 ? `${safeFilename(active[0].record.title)}.zip` : `transcripts-${active.length}.zip`;
+  const name = zipName ? (zipName.toLowerCase().endsWith('.zip') ? zipName : `${zipName}.zip`) : fallback;
+  triggerDownload(buildZipBlob(entries), name);
+  return { downloadName: name, zipped: true, files };
 }

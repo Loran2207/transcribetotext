@@ -357,6 +357,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   function recordToExportable(record: RecordRow): ExportableRecord {
     return {
+      id: record.id,
       title: record.name,
       summary: record.summary,
       segments: [],

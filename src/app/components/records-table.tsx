@@ -1083,6 +1083,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
   function recordToExportable(record: RecordRow): ExportableRecord {
     return {
+      id: record.id,
       title: record.name,
       summary: record.summary,
       segments: [], // table records don't carry full transcript segments
@@ -1267,7 +1268,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       )}
 
       <CreateFolderModal open={folderModalOpen} onClose={() => setFolderModalOpen(false)} onCreate={(name, color) => { addFolderToContext(name, color); }} />
-      <ExportDialog open={!!exportDialogIds} onClose={() => setExportDialogIds(null)} records={(exportDialogIds ?? []).map((id) => displayRecords.find((r) => r.id === id)).filter((r): r is typeof displayRecords[number] => !!r).map(recordToExportable)} />
+      <ExportDialog open={!!exportDialogIds} onClose={() => setExportDialogIds(null)} records={(exportDialogIds ?? []).map((id) => displayRecords.find((r) => r.id === id)).filter((r): r is typeof displayRecords[number] => !!r).map(recordToExportable)} availableRecords={displayRecords.map(recordToExportable)} />
       <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={selectedRows.size} onMove={(folderId) => { assignToFolder(Array.from(selectedRows), folderId); clearSelection(); }} onCreateFolder={() => { setMoveDialogOpen(false); setFolderModalOpen(true); }} folders={userFolders} />
 
       {/* Hard-delete confirmation (permanent, bypasses Trash) */}

@@ -1949,6 +1949,7 @@ export function TranscriptionDetailPage() {
       new Set(contentSegments.map((s) => s.speaker.name))
     );
     return {
+      id: selectedRecord?.id ?? id ?? "current",
       title: title || selectedRecord?.name || "Transcript",
       summary: contentSummary || undefined,
       segments: contentSegments.map((segment) => ({

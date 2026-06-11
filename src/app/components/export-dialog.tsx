@@ -1,15 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Switch } from "@/app/components/ui/switch";
 import { Checkbox } from "@/app/components/ui/checkbox";
 import { Label } from "@/app/components/ui/label";
+import { Input } from "@/app/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/app/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@/app/components/ui/command";
 import { Icon } from "@/app/components/ui/icon";
 import { toast } from "sonner";
-import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { usePlan } from "./use-plan";
 import {
   runExportPlan, transformForExport, DEFAULT_EXPORT_OPTIONS, FORMAT_META,
@@ -17,11 +22,11 @@ import {
 } from "@/lib/export-formats";
 
 /* ══════════════════════════════════════════════
-   Export Dialog v3 — single & multi record export
-   · multi: Chrome-style tabs — "All files" + one tab
-     per file; a file tab shows ITS preview + settings
-   · per-file overrides happen by editing inside a file
-     tab; "Reset to shared settings" undoes them
+   Export Dialog v5 — unified single & batch export
+   · one settings panel, applied to every file
+   · batch: left file tabs (preview per file), files
+     can be removed from / added to the export
+   · batch: editable zip name
    · fixed-height shell, processing → success manifest
    ══════════════════════════════════════════════ */
 
@@ -109,7 +114,7 @@ function OptionCheck({ id, label, checked, onChange }: { id: string; label: stri
   );
 }
 
-/* Transcript preview (left pane) — live: reflects the current export options */
+/* Transcript preview (center pane) — live: reflects the current export options */
 function TranscriptPreview({ record, options }: { record: ExportableRecord; options: ExportContentOptions }) {
   const view = transformForExport(record, options);
   record = view;
@@ -139,87 +144,108 @@ function TranscriptPreview({ record, options }: { record: ExportableRecord; opti
   );
 }
 
-export function ExportDialog({ open, onClose, records }: {
-  open: boolean; onClose: () => void; records: ExportableRecord[];
+export function ExportDialog({ open, onClose, records, availableRecords }: {
+  open: boolean; onClose: () => void; records: ExportableRecord[]; availableRecords?: ExportableRecord[];
 }) {
   const plan = usePlan();
-  const multi = records.length > 1;
 
   const [phase, setPhase] = useState<Phase>("form");
+  const [items, setItems] = useState<ExportableRecord[]>(records);
+  const [activeId, setActiveId] = useState<string>("");
   const [shared, setShared] = useState<FileSettings>(DEFAULT_SETTINGS);
-  const [overrides, setOverrides] = useState<Record<string, FileSettings>>({});
-  const [activeTab, setActiveTab] = useState<string>("all"); // "all" | record id
+  const [exportName, setExportName] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [manifest, setManifest] = useState<ExportManifest | null>(null);
   const [progress, setProgress] = useState(0);
 
-  // Reset on open; ttt_export_demo forces a phase for design captures (off by default).
+  const multi = items.length > 1;
+
+  // Reset once per open; ttt_export_demo forces a phase for design captures (off by default).
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (!open) return;
+    if (!open) { wasOpen.current = false; return; }
+    if (wasOpen.current) return;
+    wasOpen.current = true;
     const demo = typeof window !== "undefined" ? window.localStorage.getItem("ttt_export_demo") : null;
-    setShared(DEFAULT_SETTINGS); setOverrides({}); setActiveTab("all"); setMoreOpen(false); setProgress(0); setManifest(null);
+    setItems(records);
+    setActiveId(records[0]?.id ?? "");
+    setShared(DEFAULT_SETTINGS);
+    setExportName(records.length > 1 ? `transcripts-${records.length}` : "");
+    setNameTouched(false);
+    setAddOpen(false); setMoreOpen(false); setProgress(0); setManifest(null);
     if (demo === "error") setPhase("error");
     else if (demo === "processing") { setPhase("processing"); setProgress(Math.max(1, Math.floor(records.length / 2))); }
     else if (demo === "success") {
       setManifest({
-        downloadName: multi ? `transcripts-${records.length}.zip` : `${safeName(records[0]?.title ?? "transcript")}.txt`,
-        zipped: multi,
+        downloadName: records.length > 1 ? `transcripts-${records.length}.zip` : `${safeName(records[0]?.title ?? "transcript")}.txt`,
+        zipped: records.length > 1,
         files: records.map((r) => ({ name: `${safeName(r.title)}.txt`, format: "txt", bytes: 2048 + (r.title.length * 37) })),
       });
       setPhase("success");
     }
     else setPhase("form");
-  }, [open, records, multi]);
+  }, [open, records]);
 
-  const settingsOf = (id: string): FileSettings => overrides[id] ?? shared;
-  const editingFileId = multi && activeTab !== "all" ? activeTab : null;
-  const current: FileSettings = editingFileId ? settingsOf(editingFileId) : shared;
-  const activeRecord = editingFileId ? records.find((r) => r.id === editingFileId) ?? records[0] : records[0];
+  // Keep the default zip name in sync while the user has not edited it.
+  useEffect(() => {
+    if (!nameTouched) setExportName(items.length > 1 ? `transcripts-${items.length}` : "");
+  }, [items, nameTouched]);
 
-  function patchCurrent(patch: Partial<FileSettings>) {
-    if (editingFileId) setOverrides((prev) => ({ ...prev, [editingFileId]: { ...settingsOf(editingFileId), ...patch } }));
-    else setShared((prev) => ({ ...prev, ...patch }));
+  const activeRecord = items.find((r) => r.id === activeId) ?? items[0];
+  const addable = (availableRecords ?? []).filter((r) => !items.some((i) => i.id === r.id));
+  const showNav = multi || addable.length > 0;
+
+  function patchShared(patch: Partial<FileSettings>) {
+    setShared((prev) => ({ ...prev, ...patch }));
   }
-  const patchOptions = (k: keyof ExportContentOptions, v: boolean) => patchCurrent({ options: { ...current.options, [k]: v } });
-  const resetOverride = (id: string) => setOverrides((prev) => { const next = { ...prev }; delete next[id]; return next; });
+  const patchOptions = (k: keyof ExportContentOptions, v: boolean) => patchShared({ options: { ...shared.options, [k]: v } });
+
+  function removeItem(id: string) {
+    const next = items.filter((r) => r.id !== id);
+    if (!next.length) return;
+    setItems(next);
+    if (activeId === id) setActiveId(next[0].id);
+  }
+  function addItem(r: ExportableRecord) {
+    setItems((prev) => (prev.some((i) => i.id === r.id) ? prev : [...prev, r]));
+  }
+
+  const zipFileName = `${safeName(exportName || `transcripts-${items.length}`)}.zip`;
 
   const plans: ExportFilePlan[] = useMemo(
-    () => records.map((r) => { const st = settingsOf(r.id); return { record: r, format: st.format, includeTranscript: st.includeTranscript, includeSummary: st.includeSummary, includeAudio: st.includeAudio, options: st.options }; }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [records, shared, overrides]
+    () => items.map((r) => ({ record: r, format: shared.format, includeTranscript: shared.includeTranscript, includeSummary: shared.includeSummary, includeAudio: shared.includeAudio, options: shared.options })),
+    [items, shared]
   );
-  const activePlans = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio);
-  const nothingSelected = activePlans.length === 0;
-  const fileCount = activePlans.reduce((a, p) => a + (p.includeTranscript ? 1 : 0) + (p.includeSummary ? 1 : 0) + (p.includeAudio ? 1 : 0), 0);
+  const nothingSelected = items.length === 0 || (!shared.includeTranscript && !shared.includeSummary && !shared.includeAudio);
+  const fileCount = nothingSelected ? 0 : items.length * ((shared.includeTranscript ? 1 : 0) + (shared.includeSummary ? 1 : 0) + (shared.includeAudio ? 1 : 0));
 
   const footerSummary = useMemo(() => {
     if (nothingSelected) return "Nothing selected";
     if (fileCount === 1) {
-      const p = activePlans[0];
-      const base = safeName(p.record.title);
-      if (p.includeTranscript) return `${base}.${FORMAT_META[p.format].extension}`;
-      if (p.includeSummary) return `${base}-summary.txt`;
+      const r = items[0];
+      const base = safeName(r.title);
+      if (shared.includeTranscript) return `${base}.${FORMAT_META[shared.format].extension}`;
+      if (shared.includeSummary) return `${base}-summary.txt`;
       return `${base}.mp3`;
     }
-    const mix = new Map<string, number>();
-    for (const p of activePlans) {
-      if (p.includeTranscript) mix.set(p.format, (mix.get(p.format) ?? 0) + 1);
-      if (p.includeSummary) mix.set("summary", (mix.get("summary") ?? 0) + 1);
-      if (p.includeAudio) mix.set("mp3", (mix.get("mp3") ?? 0) + 1);
-    }
-    const mixStr = [...mix.entries()].map(([f, n]) => `${n}× ${f === "summary" ? "summary" : f.toUpperCase()}`).join(" · ");
-    return `${mixStr}  →  transcripts-${activePlans.length}.zip`;
-  }, [activePlans, fileCount, nothingSelected]);
+    const mix: string[] = [];
+    if (shared.includeTranscript) mix.push(`${items.length}× ${shared.format.toUpperCase()}`);
+    if (shared.includeSummary) mix.push(`${items.length}× summary`);
+    if (shared.includeAudio) mix.push(`${items.length}× mp3`);
+    return `${mix.join(" · ")}  →  ${zipFileName}`;
+  }, [items, shared, fileCount, nothingSelected, zipFileName]);
 
   async function handleExport() {
     setPhase("processing");
     setProgress(0);
     try {
-      for (let i = 0; i < activePlans.length; i++) {
-        await new Promise((r) => setTimeout(r, Math.min(350, 900 / activePlans.length)));
+      for (let i = 0; i < items.length; i++) {
+        await new Promise((r) => setTimeout(r, Math.min(350, 900 / items.length)));
         setProgress(i + 1);
       }
-      const m = await runExportPlan(plans);
+      const m = await runExportPlan(plans, zipFileName);
       // Single-file export: no confirmation screen — download and close.
       if (m.files.length === 1) { toast.success(m.downloadName + " downloaded"); onClose(); return; }
       setManifest(m);
@@ -229,7 +255,7 @@ export function ExportDialog({ open, onClose, records }: {
     }
   }
 
-  /* ── settings panel (right) — shared for both tabs ── */
+  /* ── settings panel (right) — one set of settings, applied to every file ── */
   const settingsPanel = (
     <div className="w-[340px] shrink-0 overflow-y-auto px-[24px] py-[6px]">
       {phase === "error" && (
@@ -239,17 +265,27 @@ export function ExportDialog({ open, onClose, records }: {
         </div>
       )}
 
-      {editingFileId && overrides[editingFileId] && (
-        <div className="flex justify-end mt-[12px]">
-          <button type="button" onClick={() => resetOverride(editingFileId)} className="text-[12px] font-medium text-primary hover:underline">Reset to shared settings</button>
+      {multi && (
+        <div className="border-b border-border py-[16px]">
+          <p className="font-semibold text-[14.5px] text-foreground">Export name</p>
+          <div className="relative mt-[10px]">
+            <Input
+              value={exportName}
+              onChange={(e) => { setExportName(e.target.value); setNameTouched(true); }}
+              placeholder={`transcripts-${items.length}`}
+              className="h-[34px] rounded-[8px] text-[13px] pr-[44px]"
+            />
+            <span className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 text-[12.5px] text-muted-foreground">.zip</span>
+          </div>
+          <p className="mt-[8px] text-[11.5px] leading-[16px] text-muted-foreground">Settings below apply to all {items.length} files. They are packed into one zip archive.</p>
         </div>
       )}
 
-      <SectionRow title="Transcript" enabled={current.includeTranscript} onToggle={(v) => patchCurrent({ includeTranscript: v })}>
-        <div className={current.includeTranscript ? "mt-[12px] flex flex-col gap-[12px]" : "hidden"}>
+      <SectionRow title="Transcript" enabled={shared.includeTranscript} onToggle={(v) => patchShared({ includeTranscript: v })}>
+        <div className={shared.includeTranscript ? "mt-[12px] flex flex-col gap-[12px]" : "hidden"}>
           <div className="flex items-center justify-between">
             <span className="text-[13px] text-muted-foreground">File format</span>
-            <Select value={current.format} onValueChange={(v) => patchCurrent({ format: v as ExportFormat })}>
+            <Select value={shared.format} onValueChange={(v) => patchShared({ format: v as ExportFormat })}>
               <SelectTrigger className="w-[168px] h-[34px] rounded-[8px] text-[13px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {FORMAT_CHOICES.map((fc) => (
@@ -269,28 +305,28 @@ export function ExportDialog({ open, onClose, records }: {
             <Icon icon={moreOpen ? ArrowUp01Icon : ArrowDown01Icon} size={13} strokeWidth={1.8} />
           </button>
           <div className={moreOpen ? "flex flex-col gap-[10px]" : "hidden"}>
-            {!current.options.combineAll && (
+            {!shared.options.combineAll && (
               <>
-                <OptionCheck id="opt-speakers" label="Show speaker names" checked={current.options.showSpeakers} onChange={(v) => patchOptions("showSpeakers", v)} />
-                <OptionCheck id="opt-timestamps" label="Show timestamps" checked={current.options.showTimestamps} onChange={(v) => patchOptions("showTimestamps", v)} />
-                <OptionCheck id="opt-combine-same" label="Combine paragraphs of the same speaker" checked={current.options.combineSameSpeaker} onChange={(v) => patchOptions("combineSameSpeaker", v)} />
+                <OptionCheck id="opt-speakers" label="Show speaker names" checked={shared.options.showSpeakers} onChange={(v) => patchOptions("showSpeakers", v)} />
+                <OptionCheck id="opt-timestamps" label="Show timestamps" checked={shared.options.showTimestamps} onChange={(v) => patchOptions("showTimestamps", v)} />
+                <OptionCheck id="opt-combine-same" label="Combine paragraphs of the same speaker" checked={shared.options.combineSameSpeaker} onChange={(v) => patchOptions("combineSameSpeaker", v)} />
               </>
             )}
-            <OptionCheck id="opt-combine-all" label="Combine all paragraphs" checked={current.options.combineAll} onChange={(v) => patchOptions("combineAll", v)} />
+            <OptionCheck id="opt-combine-all" label="Combine all paragraphs" checked={shared.options.combineAll} onChange={(v) => patchOptions("combineAll", v)} />
           </div>
         </div>
       </SectionRow>
 
-      <SectionRow title="Summary" enabled={current.includeSummary} onToggle={(v) => patchCurrent({ includeSummary: v })}>
-        <p className={current.includeSummary ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>Exports the AI summary as a separate .txt file.</p>
+      <SectionRow title="Summary" enabled={shared.includeSummary} onToggle={(v) => patchShared({ includeSummary: v })}>
+        <p className={shared.includeSummary ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>Exports the AI summary as a separate .txt file.</p>
       </SectionRow>
 
       <SectionRow title="Translation" enabled={false} onToggle={() => {}} disabled>
         <p className="mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground">No translation available for the selected {multi ? "records" : "record"}.</p>
       </SectionRow>
 
-      <SectionRow title="Audio" enabled={current.includeAudio} onToggle={(v) => patchCurrent({ includeAudio: v })}>
-        <div className={current.includeAudio ? "mt-[10px] flex items-center justify-between" : "hidden"}>
+      <SectionRow title="Audio" enabled={shared.includeAudio} onToggle={(v) => patchShared({ includeAudio: v })}>
+        <div className={shared.includeAudio ? "mt-[10px] flex items-center justify-between" : "hidden"}>
           <span className="text-[13px] text-muted-foreground">File format</span>
           <span className="flex items-center gap-[8px] text-[13px] text-foreground"><FormatIcon format="mp3" size={20} />mp3</span>
         </div>
@@ -313,19 +349,18 @@ export function ExportDialog({ open, onClose, records }: {
                 <Icon icon={Loading01Icon} size={28} className="text-primary animate-spin" strokeWidth={1.6} />
               </div>
               <p className="font-semibold text-[16px] text-foreground mb-[4px]">Preparing your export…</p>
-              <p className="text-[13px] text-muted-foreground mb-[18px]">{multi ? `File ${Math.min(progress + 1, activePlans.length)} of ${activePlans.length}` : "This only takes a moment"}</p>
+              <p className="text-[13px] text-muted-foreground mb-[18px]">{multi ? `File ${Math.min(progress + 1, items.length)} of ${items.length}` : "This only takes a moment"}</p>
               <div className="w-[320px] h-[6px] rounded-full bg-muted overflow-hidden mb-[24px]">
-                <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${Math.max(8, (progress / Math.max(1, activePlans.length)) * 100)}%` }} />
+                <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${Math.max(8, (progress / Math.max(1, items.length)) * 100)}%` }} />
               </div>
               {multi && (
                 <div className="w-[380px] max-h-[180px] overflow-y-auto flex flex-col gap-[2px]">
-                  {activePlans.map((p, i) => (
-                    <div key={p.record.id} className="flex items-center gap-[10px] h-[30px]">
+                  {items.map((r, i) => (
+                    <div key={r.id} className="flex items-center gap-[10px] h-[30px]">
                       {i < progress
                         ? <Icon icon={Tick02Icon} size={14} className="text-primary shrink-0" strokeWidth={2.2} />
                         : <span className="size-[14px] shrink-0 rounded-full border border-border" />}
-                      <span className={"flex-1 truncate text-[12.5px] " + (i < progress ? "text-foreground" : "text-muted-foreground")}>{p.record.title}</span>
-                      <FormatIcon format={p.includeTranscript ? p.format : "txt"} size={20} />
+                      <span className={"flex-1 truncate text-[12.5px] " + (i < progress ? "text-foreground" : "text-muted-foreground")}>{r.title}</span>
                     </div>
                   ))}
                 </div>
@@ -354,66 +389,69 @@ export function ExportDialog({ open, onClose, records }: {
             </div>
           ) : (
             <div className="flex h-full">
-              {multi && (
-                <nav className="export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 overflow-y-auto py-[10px] px-[8px]">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("all")}
-                    className={"flex w-full items-center gap-[8px] h-[34px] px-[10px] rounded-[8px] text-[13px] transition-colors " +
-                      (activeTab === "all" ? "bg-primary/5 text-primary font-medium" : "text-foreground/80 hover:bg-foreground/[0.04]")}
-                  >
-                    <span className="flex-1 text-left">All files</span>
-                    <span className="inline-flex items-center justify-center h-[17px] min-w-[17px] px-[4px] rounded-full bg-foreground/[0.07] text-[10.5px] font-semibold text-foreground/70">{records.length}</span>
-                  </button>
-                  <div className="h-px bg-border my-[8px] mx-[4px]" />
-                  <div className="flex flex-col gap-[2px]">
-                    {records.map((r) => {
-                      const st = settingsOf(r.id);
-                      const isActive = activeTab === r.id;
+              {showNav && (
+                <nav className="export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px]">
+                  <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground">{items.length === 1 ? "1 file" : `${items.length} files`}</p>
+                  <div className="flex-1 min-h-0 overflow-y-auto px-[8px] flex flex-col gap-[2px]">
+                    {items.map((r) => {
+                      const isActive = activeId === r.id;
                       return (
-                        <button
-                          type="button"
+                        <div
                           key={r.id}
-                          onClick={() => setActiveTab(r.id)}
-                          className={"flex w-full items-center gap-[8px] h-[34px] px-[10px] rounded-[8px] text-[12.5px] transition-colors " +
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => setActiveId(r.id)}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setActiveId(r.id); }}
+                          className={"group flex w-full items-center gap-[6px] h-[34px] pl-[10px] pr-[6px] rounded-[8px] text-[12.5px] cursor-pointer transition-colors " +
                             (isActive ? "bg-primary/5 text-primary font-medium" : "text-foreground/80 hover:bg-foreground/[0.04]")}
                         >
-                          <FormatIcon format={st.includeTranscript ? st.format : "txt"} size={18} />
                           <span className="flex-1 min-w-0 truncate text-left">{r.title}</span>
-                          {overrides[r.id] && <span className="size-[6px] rounded-full bg-primary shrink-0" />}
-                        </button>
+                          {items.length > 1 && (
+                            <button
+                              type="button"
+                              aria-label="Remove from export"
+                              onClick={(e) => { e.stopPropagation(); removeItem(r.id); }}
+                              className="shrink-0 size-[20px] rounded-full inline-flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-foreground/[0.06] hover:text-foreground transition-opacity"
+                            >
+                              <Icon icon={Cancel01Icon} size={11} strokeWidth={2} />
+                            </button>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
+                  {addable.length > 0 && (
+                    <div className="px-[8px] pt-[8px] mt-[8px] border-t border-border">
+                      <Popover open={addOpen} onOpenChange={setAddOpen}>
+                        <PopoverTrigger asChild>
+                          <button type="button" className="flex w-full items-center gap-[8px] h-[34px] px-[10px] rounded-[8px] text-[12.5px] font-medium text-primary hover:bg-primary/5 transition-colors">
+                            <Icon icon={Add01Icon} size={13} strokeWidth={2} />
+                            Add files
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[248px] p-0" align="start" side="top" sideOffset={6}>
+                          <Command>
+                            <CommandInput placeholder="Search records…" />
+                            <CommandList>
+                              <CommandEmpty>No records found.</CommandEmpty>
+                              <CommandGroup>
+                                {addable.map((r) => (
+                                  <CommandItem key={r.id} value={r.title} onSelect={() => addItem(r)}>
+                                    <span className="truncate">{r.title}</span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  )}
                 </nav>
               )}
-              {/* Left pane */}
+              {/* Center pane — live preview of the selected file */}
               <div className="flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px]">
-                {multi && activeTab === "all" ? (
-                  <div className="flex flex-col gap-[2px]">
-                    <p className="font-semibold text-[13px] text-foreground">{records.length} records selected</p>
-                    <p className="mb-[10px] text-[11.5px] text-muted-foreground">These settings apply to every file. Select a file on the left to customize it separately.</p>
-                    {records.map((r) => {
-                      const st = settingsOf(r.id);
-                      const off = !st.includeTranscript && !st.includeSummary;
-                      return (
-                        <button
-                          type="button"
-                          key={r.id}
-                          onClick={() => setActiveTab(r.id)}
-                          className="flex items-center gap-[10px] h-[42px] px-[10px] -mx-[10px] rounded-[10px] text-left border border-transparent hover:bg-foreground/[0.03] transition-colors"
-                        >
-                          <FormatIcon format={st.includeTranscript ? st.format : "txt"} size={24} />
-                          <span className={"flex-1 truncate text-[13px] " + (off ? "text-muted-foreground line-through" : "text-foreground")}>{r.title}</span>
-                          {overrides[r.id] && <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.4px] text-primary">Custom</span>}
-                          <span className="shrink-0 text-[11.5px] text-muted-foreground">{r.metadata?.duration ?? ""}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  activeRecord && <TranscriptPreview record={activeRecord} options={current.options} />
-                )}
+                {activeRecord && <TranscriptPreview record={activeRecord} options={shared.options} />}
               </div>
               {settingsPanel}
             </div>
