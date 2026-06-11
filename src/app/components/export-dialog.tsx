@@ -174,12 +174,14 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     if (wasOpen.current) return;
     wasOpen.current = true;
     const demo = typeof window !== "undefined" ? window.localStorage.getItem("ttt_export_demo") : null;
+    // ttt_export_full: design-capture flag — every toggle on, options expanded (off by default)
+    const full = typeof window !== "undefined" && window.localStorage.getItem("ttt_export_full") === "1";
     setItems(records);
     setActiveId(records[0]?.id ?? "");
-    setShared(DEFAULT_SETTINGS);
+    setShared(full ? { ...DEFAULT_SETTINGS, includeSummary: true, includeAudio: true, includeTranslation: true } : DEFAULT_SETTINGS);
     setExportName(records.length > 1 ? `transcripts-${records.length}` : "");
     setNameTouched(false);
-    setAddOpen(false); setMoreOpen(false); setProgress(0); setManifest(null);
+    setAddOpen(false); setMoreOpen(full); setProgress(0); setManifest(null);
     if (demo === "error") setPhase("error");
     else if (demo === "processing") { setPhase("processing"); setProgress(Math.max(1, Math.floor(records.length / 2))); }
     else if (demo === "success") {
@@ -200,7 +202,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
 
   const activeRecord = items.find((r) => r.id === activeId) ?? items[0];
   const addable = (availableRecords ?? []).filter((r) => !items.some((i) => i.id === r.id));
-  const showNav = multi || addable.length > 0;
+  const showNav = true; // unified design: the file list is always present
 
   function patchShared(patch: Partial<FileSettings>) {
     setShared((prev) => ({ ...prev, ...patch }));

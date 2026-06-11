@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { ExportDialog } from "./export-dialog";
+import { MOCK_TRANSCRIPTS } from "@/lib/mock-transcripts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import {
   exportRecords,
@@ -884,13 +885,29 @@ export interface RecordRow {
 }
 
 export const records: RecordRow[] = [
-  { id: "2", name: "Nexora <> QL | Instance Daily Sync", iconColor: "#22C55E", iconType: "link", duration: "32 min", dateCreated: "03/13/2026, 15:06", dateGroup: "Yesterday, Mar 13", template: "Meeting Notes", language: "en", source: "google-meet", summary: "The team discussed the integration of Nexora and QL for daily sync. T and Sandeep agreed to stick to the original plan, with orders grouped within their platform and sent to the TMS. Kirill demonstrated the tendering process...", tasks: 6, screenshots: 34, time: "2:02 PM", thumbnail: "https://images.unsplash.com/photo-1759752394755-1241472b589d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2Z0d2FyZSUyMGRhc2hib2FyZCUyMGFuYWx5dGljcyUyMHNjcmVlbnxlbnwxfHx8fDE3NzM0MTU2NTR8MA&ixlib=rb-4.1.0&q=80&w=1080" },
-  { id: "1", name: "QTMS Platform Walkthrough", iconColor: "#3B82F6", iconType: "square", duration: "43 min", dateCreated: "03/11/2026, 08:28", dateGroup: "Tuesday, Mar 11", template: "1 by 1", language: "en", source: "zoom", summary: "The meeting focused on integrating supplier orders directly into the TMS without involving the planning stage. Kirill Kuts demonstrated how to map facilities and manage orders...", tasks: 5, screenshots: 28, time: "2:02 PM", thumbnail: "https://images.unsplash.com/photo-1771054244019-96f9db9720b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWRlbyUyMGNvbmZlcmVuY2UlMjBtZWV0aW5nJTIwc2NyZWVufGVufDF8fHx8MTc3MzQ4NzQ4N3ww&ixlib=rb-4.1.0&q=80&w=1080" },
-  { id: "3", name: "\u0441\u043a\u0430\u0437\u0430\u043b\u0430", iconColor: "#3B82F6", iconType: "square", duration: "1 min 49s", dateCreated: "03/11/2026, 11:57", dateGroup: "Tuesday, Mar 11", template: "1 by 1", language: "ru", source: "microphone", summary: "\u041a\u043e\u0440\u043e\u0442\u043a\u0430\u044f \u0433\u043e\u043b\u043e\u0441\u043e\u0432\u0430\u044f \u0437\u0430\u043c\u0435\u0442\u043a\u0430 \u0441 \u043e\u0431\u0441\u0443\u0436\u0434\u0435\u043d\u0438\u0435\u043c \u0442\u0435\u043a\u0443\u0449\u0438\u0445 \u0437\u0430\u0434\u0430\u0447 \u0438 \u043f\u043b\u0430\u043d\u043e\u0432 \u043d\u0430 \u043d\u0435\u0434\u0435\u043b\u044e.", tasks: 2, screenshots: 0, time: "11:57 AM" },
-  { id: "4", name: "Small Talk", iconColor: "#3B82F6", iconType: "square", duration: "3 min 39s", dateCreated: "03/11/2026, 08:49", dateGroup: "Tuesday, Mar 11", template: "Interview", language: "en", source: "zoom", summary: "A brief casual conversation covering team updates and weekend plans.", tasks: 0, screenshots: 0, time: "8:49 AM" },
-  { id: "5", name: "Integration and Processing Update", iconColor: "#3B82F6", iconType: "square", duration: "7 min", dateCreated: "03/11/2026, 07:58", dateGroup: "Tuesday, Mar 11", template: "Action Items", language: "en", source: "teams", summary: "The conversation involves multiple speakers discussing technical matters related to a project or system integration.", tasks: 3, screenshots: 0, time: "1:50 PM" },
-  { id: "6", name: "Nexora quick guide: get transcription and AI summary", iconColor: "#EF4444", iconType: "circle", duration: "1 min 21s", dateCreated: "03/10/2026, 19:09", dateGroup: "Monday, Mar 10", template: "Summary", language: "en", source: "mp4", summary: "A walkthrough video demonstrating how to use the transcription platform to generate AI-powered summaries.", tasks: 1, screenshots: 1, time: "8:46 AM", thumbnail: "https://images.unsplash.com/photo-1721804295754-1905f69c86ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsb2dpc3RpY3MlMjB0cnVja3MlMjBmbGVldCUyMG9yYW5nZXxlbnwxfHx8fDE3NzM1MDA5NDh8MA&ixlib=rb-4.1.0&q=80&w=1080", videoUrl: DEMO_VIDEO_URL },
+  { id: "2", name: "Weekly product sync — Q2 roadmap", iconColor: "#22C55E", iconType: "link", duration: "32 min", dateCreated: "03/13/2026, 15:06", dateGroup: "Yesterday, Mar 13", template: "Meeting Notes", language: "en", source: "google-meet", summary: "The team locked the Q2 roadmap: the unified export flow ships this sprint, the noise-robust transcription model goes to beta on April 18, and folder sharing is split into read-only links now and full collaboration in Q3.", tasks: 6, screenshots: 34, time: "2:02 PM", thumbnail: "https://images.unsplash.com/photo-1759752394755-1241472b589d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzb2Z0d2FyZSUyMGRhc2hib2FyZCUyMGFuYWx5dGljcyUyMHNjcmVlbnxlbnwxfHx8fDE3NzM0MTU2NTR8MA&ixlib=rb-4.1.0&q=80&w=1080" },
+  { id: "1", name: "Acme Logistics — onboarding call", iconColor: "#3B82F6", iconType: "square", duration: "43 min", dateCreated: "03/11/2026, 08:28", dateGroup: "Tuesday, Mar 11", template: "1 by 1", language: "en", source: "zoom", summary: "Walked the Acme team through workspace setup: batch-uploading dispatch calls, AI summaries with action items, and Word exports for the weekly report. Agreed on a two-week pilot with Friday check-ins.", tasks: 5, screenshots: 28, time: "2:02 PM", thumbnail: "https://images.unsplash.com/photo-1771054244019-96f9db9720b6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWRlbyUyMGNvbmZlcmVuY2UlMjBtZWV0aW5nJTIwc2NyZWVufGVufDF8fHx8MTc3MzQ4NzQ4N3ww&ixlib=rb-4.1.0&q=80&w=1080" },
+  { id: "3", name: "Voice memo — onboarding flow ideas", iconColor: "#3B82F6", iconType: "square", duration: "1 min 49s", dateCreated: "03/11/2026, 11:57", dateGroup: "Tuesday, Mar 11", template: "1 by 1", language: "en", source: "microphone", summary: "A quick personal note on simplifying signup: drop the second confirmation step, add a progress indicator, and prefill the workspace name from the company domain. To be drafted before Thursday’s design review.", tasks: 2, screenshots: 0, time: "11:57 AM" },
+  { id: "4", name: "Interview — senior frontend engineer", iconColor: "#3B82F6", iconType: "square", duration: "3 min 39s", dateCreated: "03/11/2026, 08:49", dateGroup: "Tuesday, Mar 11", template: "Interview", language: "en", source: "zoom", summary: "Screening call for the senior frontend role. The candidate led a 90-component design-system migration and gave a strong answer on state management. Recommended for the technical round.", tasks: 0, screenshots: 0, time: "8:49 AM" },
+  { id: "5", name: "Sprint 14 standup — blockers", iconColor: "#3B82F6", iconType: "square", duration: "7 min", dateCreated: "03/11/2026, 07:58", dateGroup: "Tuesday, Mar 11", template: "Action Items", language: "en", source: "teams", summary: "Export dialog QA passed all twelve scenarios; two visual bugs remain in the records table and land today. The translation service contract is still blocked on legal review, answer promised by Wednesday.", tasks: 3, screenshots: 0, time: "1:50 PM" },
+  { id: "6", name: "Product demo — AI summary walkthrough", iconColor: "#EF4444", iconType: "circle", duration: "1 min 21s", dateCreated: "03/10/2026, 19:09", dateGroup: "Monday, Mar 10", template: "Summary", language: "en", source: "mp4", summary: "A one-minute walkthrough: upload a recording or paste a meeting link, get a speaker-labeled transcript, then export the summary and action items as text, Word or PDF.", tasks: 1, screenshots: 1, time: "8:46 AM", thumbnail: "https://images.unsplash.com/photo-1721804295754-1905f69c86ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsb2dpc3RpY3MlMjB0cnVja3MlMjBmbGVldCUyMG9yYW5nZXxlbnwxfHx8fDE3NzM1MDA5NDh8MA&ixlib=rb-4.1.0&q=80&w=1080", videoUrl: DEMO_VIDEO_URL },
 ];
+
+/** Shared converter: table record → exportable record (with mock transcript segments). */
+export function recordRowToExportable(record: RecordRow): ExportableRecord {
+  return {
+    id: record.id,
+    title: record.name,
+    summary: record.summary,
+    segments: MOCK_TRANSCRIPTS[record.id] ?? [],
+    metadata: {
+      date: record.dateCreated,
+      duration: record.duration,
+      source: record.source,
+      language: record.language,
+    },
+  };
+}
 
 function pad2(n: number) {
   return String(n).padStart(2, "0");
@@ -1081,20 +1098,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [shareDialogRecord, setShareDialogRecord] = useState<string | null>(null);
   const { starred, toggleStar, renameRecord, getName } = useStarred();
 
-  function recordToExportable(record: RecordRow): ExportableRecord {
-    return {
-      id: record.id,
-      title: record.name,
-      summary: record.summary,
-      segments: [], // table records don't carry full transcript segments
-      metadata: {
-        date: record.dateCreated,
-        duration: record.duration,
-        source: record.source,
-        language: record.language,
-      },
-    };
-  }
+  const recordToExportable = recordRowToExportable;
 
   function toggleColumnVisibility(col: ColumnId) {
     setHiddenColumns((prev) => { const next = new Set(prev); if (next.has(col)) next.delete(col); else next.add(col); return next; });

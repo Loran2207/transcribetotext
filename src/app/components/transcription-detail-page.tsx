@@ -37,6 +37,7 @@ import { SharedUsersAvatars } from "./shared-users-avatars";
 import { useShares } from "@/hooks/use-shares";
 import type { Share as ShareRecord } from "@/lib/shares";
 import { ExportDialog } from "./export-dialog";
+import { records as demoRecords, recordRowToExportable } from "./records-table";
 import {
   exportRecords,
   type ExportableRecord,
@@ -2327,7 +2328,7 @@ export function TranscriptionDetailPage() {
           onSyncTextToAudio={syncTextToAudio}
           onDelete={deleteTranscript}
         />
-        <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} />
+        <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
 
         <ShareDialog
           open={shareDialogOpen}
