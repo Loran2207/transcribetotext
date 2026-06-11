@@ -33,7 +33,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Icon } from "./ui/icon";
-import { FolderOpen, Edit, Trash, MoreHorizontal, Upload, ChevronDown, Microphone, Link, Video, CloudUpload } from "@hugeicons/core-free-icons";
+import { FolderOpen, Edit, Trash, MoreHorizontal, Upload, ChevronDown, ChevronUp, Microphone, Link, Video, CloudUpload } from "@hugeicons/core-free-icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -294,6 +294,8 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   // Drag & drop state
   const [dragOver, setDragOver] = useState(false);
+  const [foldersExpanded, setFoldersExpanded] = useState(false);
+  const FOLDER_ROW_LIMIT = 6; // one row of cards; more folders collapse behind Show all
   const dragCounterRef = useRef(0);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -555,8 +557,22 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
         {/* Folder cards grid */}
         <div className={isInsideFolder ? "mt-[16px]" : "mt-[24px]"}>
           {visibleFolders.length > 0 && (
-            <div className="mb-[20px] grid gap-[12px]" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(176px, 1fr))" }}>
-              {visibleFolders.map((folder) => {
+            <div className="mb-[20px]">
+            {visibleFolders.length > FOLDER_ROW_LIMIT && (
+              <div className="mb-[8px] flex items-center justify-between">
+                <p className="text-[12px] font-medium text-muted-foreground">Folders</p>
+                <button
+                  type="button"
+                  onClick={() => setFoldersExpanded(!foldersExpanded)}
+                  className="flex items-center gap-[4px] rounded-full px-[10px] h-[26px] text-[12.5px] font-medium text-primary hover:bg-primary/5 transition-colors"
+                >
+                  {foldersExpanded ? "Show less" : `Show all (${visibleFolders.length})`}
+                  <Icon icon={foldersExpanded ? ChevronUp : ChevronDown} className="size-[13px]" strokeWidth={1.8} />
+                </button>
+              </div>
+            )}
+            <div className="grid gap-[12px]" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(176px, 1fr))" }}>
+              {(foldersExpanded ? visibleFolders : visibleFolders.slice(0, FOLDER_ROW_LIMIT)).map((folder) => {
                 const recordsCount = folderRecordCounts.get(folder.id) ?? 0;
                 const recordsLabel = recordsCount === 1 ? "file" : "files";
                 return (
@@ -637,6 +653,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                   </div>
                 );
               })}
+            </div>
             </div>
           )}
 

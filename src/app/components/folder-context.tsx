@@ -23,29 +23,34 @@ interface FolderContextType {
 const STORAGE_KEY = "ttt_folders";
 const ASSIGNMENTS_KEY = "ttt_folder_assignments";
 const DEFAULTS_VERSION_KEY = "ttt_defaults_v";
-const CURRENT_DEFAULTS_VERSION = "2";
+const CURRENT_DEFAULTS_VERSION = "3";
 
 const DEFAULT_FOLDERS: FolderItem[] = [
   { id: "folder_demo_sprint", name: "Sprint Planning", color: "#6366F1", createdAt: "2026-03-13T09:00:00.000Z" },
   { id: "folder_demo_clients", name: "Client Calls", color: "#2563EB", createdAt: "2026-03-14T10:00:00.000Z" },
   { id: "folder_demo_design", name: "Design Reviews", color: "#10B981", createdAt: "2026-03-15T11:00:00.000Z" },
   { id: "folder_demo_retros", name: "Team Retros", color: "#F59E0B", createdAt: "2026-03-16T12:00:00.000Z" },
-];
-
-const MANY_FOLDERS_EXTRA: FolderItem[] = [
   { id: "folder_demo_mkt", name: "Marketing Reviews", color: "#EC4899", createdAt: "2026-03-17T09:00:00.000Z" },
   { id: "folder_demo_sales", name: "Sales Calls", color: "#8B5CF6", createdAt: "2026-03-18T10:00:00.000Z" },
   { id: "folder_demo_research", name: "User Research", color: "#06B6D4", createdAt: "2026-03-19T11:00:00.000Z" },
-  { id: "folder_demo_legal", name: "Legal & Compliance", color: "#64748B", createdAt: "2026-03-20T12:00:00.000Z" },
   { id: "folder_demo_hiring", name: "Hiring Interviews", color: "#EF4444", createdAt: "2026-03-21T13:00:00.000Z" },
+];
+
+const MANY_FOLDERS_EXTRA: FolderItem[] = [
+  { id: "folder_demo_legal", name: "Legal & Compliance", color: "#64748B", createdAt: "2026-03-20T12:00:00.000Z" },
 ];
 
 const DEFAULT_ASSIGNMENTS: Record<string, string> = {
   "1": "folder_demo_sprint",
   "2": "folder_demo_clients",
   "3": "folder_demo_design",
-  "4": "folder_demo_design",
+  "4": "folder_demo_hiring",
   "5": "folder_demo_retros",
+  "7": "folder_demo_research",
+  "10": "folder_demo_clients",
+  "11": "folder_demo_research",
+  "12": "folder_demo_mkt",
+  "13": "folder_demo_sales",
   "6": "folder_demo_clients",
 };
 
