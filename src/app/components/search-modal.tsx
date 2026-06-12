@@ -472,12 +472,12 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
               {recordingResults.map(r => (
                 <Button variant="ghost"
                   key={r.id}
-                  className="flex items-start gap-[10px] w-full px-[10px] py-[12px] rounded-[10px] text-left group h-auto hover:bg-primary/[0.03] justify-start"
+                  className="flex items-start gap-[10px] w-full px-[10px] py-[12px] rounded-[10px] text-left group h-auto whitespace-normal hover:bg-primary/[0.03] justify-start"
                 >
                   <div className="shrink-0 mt-[2px]"><SourceIcon source={r.source} /></div>
                   <div className="flex-1 min-w-0">
                     {/* Title */}
-                    <div className="font-medium text-[14px] text-foreground leading-[1.4]">
+                    <div className="truncate font-medium text-[14px] text-foreground leading-[1.4]">
                       <HighlightText text={r.name} query={query} />
                     </div>
                     {/* Meta */}
@@ -490,7 +490,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
                     </div>
                     {/* Summary with highlights */}
                     {!titleOnly && (
-                      <div className="mt-[4px] font-normal text-[13px] text-muted-foreground leading-[1.45]">
+                      <div className="mt-[4px] line-clamp-2 font-normal text-[13px] text-muted-foreground leading-[1.45]">
                         <HighlightText text={r.summary.length > 140 ? r.summary.slice(0, 140) + "..." : r.summary} query={query} />
                       </div>
                     )}
