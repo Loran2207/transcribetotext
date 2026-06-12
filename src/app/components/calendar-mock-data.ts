@@ -24,6 +24,8 @@ export interface CalendarMeeting {
   autoJoin: boolean;
   language: LangCode;
   attendees: CalendarAttendee[];
+  /** Meeting is happening right now and being recorded */
+  isLive?: boolean;
   videoLink?: string;
 }
 
@@ -144,7 +146,43 @@ export function generateMockMeetings(): CalendarMeeting[] {
       ],
       videoLink: "https://zoom.us/j/87654321",
     },
-    // Apr 2 (Thursday — "today") — no meetings
+    // Apr 2 (Thursday — "today")
+    {
+      id: "m_live",
+      date: "2026-04-02",
+      startTime: "13:30",
+      endTime: "14:30",
+      title: "Weekly product sync — Q2 roadmap",
+      platform: "google-meet",
+      organizerEmail: "sarah@company.com",
+      autoJoin: true,
+      language: "en",
+      isLive: true,
+      attendees: [
+        { name: "Sarah Chen", email: "sarah@company.com" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Alex Tech", email: "alex.tech@company.com" },
+        { name: "Maria Lopez", email: "maria@company.com" },
+      ],
+      videoLink: "https://meet.google.com/qwe-rtyu-iop",
+    },
+    {
+      id: "m_today2",
+      date: "2026-04-02",
+      startTime: "16:00",
+      endTime: "16:30",
+      title: "Customer feedback session — Acme Logistics",
+      platform: "zoom",
+      organizerEmail: "dana@acmelogistics.com",
+      autoJoin: false,
+      language: "en",
+      attendees: [
+        { name: "Dana Whitfield", email: "dana@acmelogistics.com" },
+        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
+        { name: "Sarah Chen", email: "sarah@company.com" },
+      ],
+      videoLink: "https://zoom.us/j/99887766",
+    },
     {
       id: "m6",
       date: "2026-04-03",
