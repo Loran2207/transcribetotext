@@ -1189,8 +1189,17 @@ export function TemplatesPage() {
   });
 
   const renderGroupedByCategory = () => {
-    return TEMPLATE_CATEGORIES.map((cat) => {
-      const inCat = display.filter((t) => categorize(t) === cat.id);
+    const starredFirst = display.filter((t) => starredIds.has(t.id));
+    const starredSection = starredFirst.length > 0 ? (
+      <section key="starred-first" className="mt-10">
+        <SectionHeader label="Starred" subtitle="your favorite templates" />
+        <div className={CARD_GRID_CLASS}>
+          {starredFirst.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
+        </div>
+      </section>
+    ) : null;
+    const categorySections = TEMPLATE_CATEGORIES.map((cat) => {
+      const inCat = display.filter((t) => !starredIds.has(t.id) && categorize(t) === cat.id);
       if (inCat.length === 0) return null;
       return (
         <section key={cat.id} className="mt-10">
@@ -1201,6 +1210,7 @@ export function TemplatesPage() {
         </section>
       );
     });
+    return <>{starredSection}{categorySections}</>;
   };
 
   return (
@@ -1214,7 +1224,6 @@ export function TemplatesPage() {
           <TabsList variant="line" className="gap-5 whitespace-nowrap w-max border-0">
             <TabsTrigger value="all" variant="line">All <span className="opacity-50 font-[inherit] ml-1">{allCount}</span></TabsTrigger>
             <TabsTrigger value="starred" variant="line">Starred <span className="opacity-50 font-[inherit] ml-1">{starredCount}</span></TabsTrigger>
-            <TabsTrigger value="custom" variant="line">My templates <span className="opacity-50 font-[inherit] ml-1">{customCount}</span></TabsTrigger>
             {CATEGORY_TAB_IDS.map((catId) => {
               const meta = CATEGORY_META_BY_ID[catId];
               return (

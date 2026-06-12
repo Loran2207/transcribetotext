@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Microphone, PencilEdit01Icon, StarsIcon } from "@hugeicons/core-free-icons";
+import { PencilEdit01Icon, StarsIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/app/components/ui/table";
 import { SourceIcon } from "./source-icons";
+import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
 import { usePlan } from "./use-plan";
 import { records } from "./records-table";
 import { sectionIcon } from "./templates-page";
@@ -75,10 +76,15 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
 
   const [isStarred, setIsStarred] = useState(() => loadStarred().has(template.id));
 
+  const [appliedFiles, setAppliedFiles] = useState<typeof records>([]);
   const usageIds = USAGE_BY_CATEGORY[categorize(template)] ?? [];
-  const usedIn = usageIds
-    .map((id) => records.find((r) => r.id === id))
-    .filter((r): r is NonNullable<typeof r> => Boolean(r));
+  const usedIn = [
+    ...appliedFiles,
+    ...usageIds
+      .map((id) => records.find((r) => r.id === id))
+      .filter((r): r is NonNullable<typeof r> => Boolean(r))
+      .filter((r) => !appliedFiles.some((a) => a.id === r.id)),
+  ];
 
   const handleApply = () => {
     if (isFree) {
@@ -184,10 +190,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
           {/* Left - the source recording example, full width */}
           <div className="flex-1 min-w-0">
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
-              <div className="flex items-center gap-3.5 px-7 pt-6 pb-5 border-b border-border/60">
-                <div className="flex items-center justify-center size-10 rounded-xl bg-muted shrink-0">
-                  <Icon icon={Microphone} size={18} className="text-muted-foreground" />
-                </div>
+              <div className="px-7 pt-6 pb-5 border-b border-border/60">
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Example recording</p>
                   <p className="text-[16px] font-semibold text-foreground truncate">{sample.source.title}</p>
@@ -205,10 +208,10 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                     return (
                       <div key={i} className="flex gap-3.5">
                         <div
-                          className="flex items-center justify-center size-8 rounded-full shrink-0 mt-0.5"
-                          style={{ background: color + "1f", color }}
+                          className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white mt-0.5"
+                          style={{ backgroundColor: color }}
                         >
-                          <span className="text-[11px] font-semibold leading-none">{speakerInitials(seg.speaker)}</span>
+                          {seg.speaker.charAt(0)}
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-baseline gap-2">
@@ -234,8 +237,38 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                 Files where this template generated the summary.
               </p>
               {usedIn.length === 0 ? (
-                <div className="rounded-xl bg-muted/50 py-5 px-6 flex items-center justify-center">
-                  <span className="text-[13px] text-muted-foreground/70">This template has not been used yet</span>
+                <div className="rounded-2xl border border-border bg-card py-10 px-6 flex flex-col items-center text-center">
+                  <div className="size-12 rounded-xl bg-primary/5 flex items-center justify-center mb-3.5">
+                    <Icon icon={StarsIcon} size={22} className="text-primary" />
+                  </div>
+                  <h4 className="text-[14px] font-semibold text-foreground">No files yet</h4>
+                  <p className="text-[12px] text-muted-foreground mt-1 max-w-[300px]">
+                    Apply this template to one of your recordings and it will show up here.
+                  </p>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="pill-outline" className="h-9 px-4 text-[13px] font-medium mt-4">
+                        Use on a file
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="center" className="w-[320px] p-1.5">
+                      {records.slice(0, 5).map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onClick={() => {
+                            setAppliedFiles((prev) => [r, ...prev]);
+                            toast.success(`"${template.name}" applied to "${r.name}"`);
+                          }}
+                          className="w-full flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-muted/60 transition-colors"
+                        >
+                          <SourceIcon source={r.source} />
+                          <span className="flex-1 min-w-0 text-[13px] text-foreground truncate">{r.name}</span>
+                          <span className="text-[11px] text-muted-foreground shrink-0">{r.duration}</span>
+                        </button>
+                      ))}
+                    </PopoverContent>
+                  </Popover>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-border bg-card overflow-hidden">

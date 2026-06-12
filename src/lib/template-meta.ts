@@ -152,7 +152,6 @@ const CATEGORY_KEYWORDS: Array<{ cat: CategoryId; kws: string[] }> = [
 ];
 
 export function categorize(t: Template): CategoryId {
-  if (t.type === "custom") return "custom";
   const name = t.name.toLowerCase();
   for (const { cat, kws } of CATEGORY_KEYWORDS) {
     if (kws.some((k) => name.includes(k))) return cat;
