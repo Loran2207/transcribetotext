@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Calendar, Shield01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
@@ -9,8 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/app/components/ui/dialog";
-
-export type CalendarProvider = "google" | "outlook";
+import { PROVIDER_NAMES, type CalendarProvider } from "./calendar-accounts";
 
 interface ProviderInfo {
   id: CalendarProvider;
@@ -21,12 +19,12 @@ interface ProviderInfo {
 const PROVIDERS: ProviderInfo[] = [
   {
     id: "google",
-    name: "Google Calendar",
+    name: PROVIDER_NAMES.google,
     description: "Gmail and Google Workspace accounts",
   },
   {
     id: "outlook",
-    name: "Outlook Calendar",
+    name: PROVIDER_NAMES.outlook,
     description: "Outlook.com and Microsoft 365 accounts",
   },
 ];
@@ -61,13 +59,13 @@ export function OutlookLogo({ size = 28 }: { size?: number }) {
   );
 }
 
-function ProviderLogo({ provider, size = 28 }: { provider: CalendarProvider; size?: number }) {
+export function ProviderLogo({ provider, size = 28 }: { provider: CalendarProvider; size?: number }) {
   return provider === "google" ? <GoogleCalendarLogo size={size} /> : <OutlookLogo size={size} />;
 }
 
-function ConnectingSpinner() {
+export function ConnectingSpinner({ size = 13 }: { size?: number }) {
   return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" className="shrink-0 animate-spin">
+    <svg width={size} height={size} viewBox="0 0 14 14" fill="none" className="shrink-0 animate-spin">
       <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="20 10" />
     </svg>
   );
@@ -110,20 +108,14 @@ function PrivacyNote() {
   );
 }
 
-/* Connect screen — shown when no calendar is connected */
+/* Connect screen — shown when no calendar account is connected */
 
 interface CalendarConnectScreenProps {
+  connecting: CalendarProvider | null;
   onConnect: (provider: CalendarProvider) => void;
 }
 
-export function CalendarConnectScreen({ onConnect }: CalendarConnectScreenProps) {
-  const [connecting, setConnecting] = useState<CalendarProvider | null>(null);
-
-  const handleConnect = (provider: CalendarProvider) => {
-    setConnecting(provider);
-    window.setTimeout(() => onConnect(provider), 1100);
-  };
-
+export function CalendarConnectScreen({ connecting, onConnect }: CalendarConnectScreenProps) {
   return (
     <div className="flex-1 flex items-center justify-center pb-20">
       <div className="w-full max-w-[460px] flex flex-col items-center text-center px-4">
@@ -140,7 +132,7 @@ export function CalendarConnectScreen({ onConnect }: CalendarConnectScreenProps)
 
         <div className="w-full flex flex-col gap-2.5 mt-7">
           {PROVIDERS.map((p) => (
-            <ProviderRow key={p.id} provider={p} connecting={connecting} onConnect={handleConnect} />
+            <ProviderRow key={p.id} provider={p} connecting={connecting} onConnect={onConnect} />
           ))}
         </div>
 
@@ -152,24 +144,19 @@ export function CalendarConnectScreen({ onConnect }: CalendarConnectScreenProps)
   );
 }
 
-/* Add calendar dialog — opened from "Add calendar" */
+/* Add calendar dialog — provider chooser */
 
 interface AddCalendarDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConnect: (provider: CalendarProvider) => void;
+  connecting: CalendarProvider | null;
+  onConnect: (provider: CalendarProvider) => Promise<boolean>;
 }
 
-export function AddCalendarDialog({ open, onOpenChange, onConnect }: AddCalendarDialogProps) {
-  const [connecting, setConnecting] = useState<CalendarProvider | null>(null);
-
-  const handleConnect = (provider: CalendarProvider) => {
-    setConnecting(provider);
-    window.setTimeout(() => {
-      setConnecting(null);
-      onConnect(provider);
-      onOpenChange(false);
-    }, 1100);
+export function AddCalendarDialog({ open, onOpenChange, connecting, onConnect }: AddCalendarDialogProps) {
+  const handleConnect = async (provider: CalendarProvider) => {
+    const connected = await onConnect(provider);
+    if (connected) onOpenChange(false);
   };
 
   return (

@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { toast } from "sonner";
 import {
   ChevronLeft,
   ChevronRight,
@@ -11,7 +10,6 @@ import { Button } from "@/app/components/ui/button";
 import { TooltipProvider } from "@/app/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { cn } from "@/app/components/ui/utils";
-import { useCalendars } from "@/hooks/use-calendars";
 import { useLanguage, type LangCode } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
 import { CalendarWeekStrip } from "./calendar-week-strip";
@@ -20,8 +18,15 @@ import {
   CalendarConnectScreen,
   CalendarEmptyState,
   AddCalendarDialog,
-  type CalendarProvider,
+  ProviderLogo,
+  ConnectingSpinner,
 } from "./calendar-connect";
+import {
+  useCalendarAccounts,
+  PROVIDER_NAMES,
+  type CalendarProvider,
+  type CalendarAccount,
+} from "./calendar-accounts";
 import {
   generateMockMeetings,
   getWeekStart,
@@ -47,21 +52,11 @@ const ALL_MOCK_MEETINGS = generateMockMeetings();
  */
 const CAL_STATE_KEY = "ttt_cal_state";
 
-type CalendarViewState = "disconnected" | "empty" | "connected";
-
-function loadCalendarViewState(): CalendarViewState {
+function isEmptyDemoState(): boolean {
   try {
-    const v = localStorage.getItem(CAL_STATE_KEY);
-    if (v === "connect") return "disconnected";
-    if (v === "empty") return "empty";
-  } catch { /* localStorage unavailable */ }
-  return "connected";
+    return localStorage.getItem(CAL_STATE_KEY) === "empty";
+  } catch { return false; }
 }
-
-const PROVIDER_NAMES: Record<CalendarProvider, string> = {
-  google: "Google Calendar",
-  outlook: "Outlook Calendar",
-};
 
 const WEEKDAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -93,12 +88,21 @@ export function CalendarPage() {
   const { t } = useLanguage();
   const { setOpenModal } = useTranscriptionModals();
 
-  const [viewState, setViewState] = useState<CalendarViewState>(loadCalendarViewState);
+  const {
+    accounts,
+    connecting,
+    connectAccount,
+    disconnectAccount,
+    toggleCalendar,
+  } = useCalendarAccounts();
   const [addCalendarOpen, setAddCalendarOpen] = useState(false);
 
+  const isDisconnected = accounts.length === 0;
+  const showEmptyDemo = isEmptyDemoState();
+
   const meetings = useMemo(
-    () => (viewState === "connected" ? ALL_MOCK_MEETINGS : []),
-    [viewState],
+    () => (isDisconnected || showEmptyDemo ? [] : ALL_MOCK_MEETINGS),
+    [isDisconnected, showEmptyDemo],
   );
 
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(TODAY));
@@ -183,16 +187,6 @@ export function CalendarPage() {
     setMeetingLanguages((prev) => ({ ...prev, [meetingId]: lang }));
   }, []);
 
-  const handleProviderConnected = useCallback((provider: CalendarProvider) => {
-    try { localStorage.removeItem(CAL_STATE_KEY); } catch { /* ignore */ }
-    setViewState("connected");
-    toast(`${PROVIDER_NAMES[provider]} connected`);
-  }, []);
-
-  const handleDialogConnected = useCallback((provider: CalendarProvider) => {
-    toast(`${PROVIDER_NAMES[provider]} connected`);
-  }, []);
-
   // Counts
   const upcomingCount = useMemo(
     () => meetings.filter((m) => m.date >= TODAY_ISO).length,
@@ -217,7 +211,7 @@ export function CalendarPage() {
   }, [allGroups, activeTab]);
 
   /* ── Disconnected: full-page connect screen ── */
-  if (viewState === "disconnected") {
+  if (isDisconnected) {
     return (
       <div className="flex-1 flex flex-col overflow-hidden px-8 pt-7 pb-0">
         <div className="flex items-center justify-between gap-4">
@@ -231,7 +225,7 @@ export function CalendarPage() {
             Record a meeting
           </Button>
         </div>
-        <CalendarConnectScreen onConnect={handleProviderConnected} />
+        <CalendarConnectScreen connecting={connecting} onConnect={connectAccount} />
       </div>
     );
   }
@@ -351,7 +345,7 @@ export function CalendarPage() {
             </div>
 
             {/* Meeting list — scrollable */}
-            {viewState === "empty" ? (
+            {meetings.length === 0 ? (
               <CalendarEmptyState
                 onAddCalendar={() => setAddCalendarOpen(true)}
                 onRecordMeeting={() => setOpenModal("meeting")}
@@ -381,8 +375,14 @@ export function CalendarPage() {
           </div>
 
           {/* ── Right column: My Calendars ── */}
-          <aside className="w-[240px] shrink-0 hidden lg:block pt-1">
-            <ConnectedCalendars onAddCalendar={() => setAddCalendarOpen(true)} />
+          <aside className="w-[248px] shrink-0 hidden lg:block pt-1">
+            <MyCalendarsPanel
+              accounts={accounts}
+              connecting={connecting}
+              onConnect={connectAccount}
+              onDisconnect={disconnectAccount}
+              onToggleCalendar={toggleCalendar}
+            />
           </aside>
         </div>
       </div>
@@ -390,7 +390,8 @@ export function CalendarPage() {
       <AddCalendarDialog
         open={addCalendarOpen}
         onOpenChange={setAddCalendarOpen}
-        onConnect={handleDialogConnected}
+        connecting={connecting}
+        onConnect={connectAccount}
       />
     </TooltipProvider>
   );
@@ -487,110 +488,133 @@ function MeetingList({
 }
 
 /* ═══════════════════════════════════════════
-   Connected Calendars
+   My Calendars panel — accounts grouped by provider
    ═══════════════════════════════════════════ */
 
-const MOCK_CALENDARS = [
-  { id: "cal_1", name: "kutskirill22@gmail.com", color: "#4285F4", is_enabled: true, is_primary: true },
-  { id: "cal_2", name: "Holidays in Belarus", color: "#0D9488", is_enabled: true, is_primary: false },
-];
+const PROVIDER_ORDER: CalendarProvider[] = ["google", "outlook"];
 
-function ConnectedCalendars({ onAddCalendar }: { onAddCalendar: () => void }) {
+interface MyCalendarsPanelProps {
+  accounts: CalendarAccount[];
+  connecting: CalendarProvider | null;
+  onConnect: (provider: CalendarProvider) => Promise<boolean>;
+  onDisconnect: (accountId: string) => void;
+  onToggleCalendar: (accountId: string, calendarId: string) => void;
+}
+
+function MyCalendarsPanel({
+  accounts,
+  connecting,
+  onConnect,
+  onDisconnect,
+  onToggleCalendar,
+}: MyCalendarsPanelProps) {
   const { t } = useLanguage();
-  const { calendars: realCalendars, isLoading, toggleCalendar } = useCalendars();
-
-  const hasRealCalendars = realCalendars.length > 0;
-  const displayCalendars = hasRealCalendars
-    ? realCalendars.map((c) => ({
-        id: c.id,
-        name: c.calendar_name,
-        color: c.color,
-        is_enabled: c.is_enabled,
-        is_primary: c.is_primary,
-      }))
-    : MOCK_CALENDARS;
-
-  const [mockEnabled, setMockEnabled] = useState<Record<string, boolean>>(() => {
-    const init: Record<string, boolean> = {};
-    for (const c of MOCK_CALENDARS) init[c.id] = true;
-    return init;
-  });
-
-  const handleToggle = (cal: typeof displayCalendars[number]) => {
-    if (hasRealCalendars) {
-      toggleCalendar(cal.id, !cal.is_enabled);
-    } else {
-      setMockEnabled((prev) => ({ ...prev, [cal.id]: !prev[cal.id] }));
-    }
-  };
-
-  const isEnabled = (cal: typeof displayCalendars[number]) =>
-    hasRealCalendars ? cal.is_enabled : (mockEnabled[cal.id] ?? true);
 
   return (
-    <div className="px-0 py-0">
-      <h4 className="text-[14px] font-semibold text-foreground mb-3">
+    <div>
+      <h4 className="text-[14px] font-semibold text-foreground mb-3.5">
         {t("calendar.myCalendars")}
       </h4>
 
-      {isLoading ? (
-        <div className="flex flex-col gap-2.5">
-          <div className="h-4 w-3/4 rounded bg-muted animate-pulse" />
-          <div className="h-4 w-1/2 rounded bg-muted animate-pulse" />
-        </div>
-      ) : (
-        <div className="flex flex-col gap-2.5">
-          {displayCalendars.map((cal) => {
-            const enabled = isEnabled(cal);
-            return (
-              <div key={cal.id} className="flex items-center gap-2.5">
-                <button
-                  onClick={() => handleToggle(cal)}
-                  className="flex items-center justify-center shrink-0"
-                  aria-label={`Toggle ${cal.name}`}
-                >
-                  <div
-                    className={cn(
-                      "size-4 rounded flex items-center justify-center transition-all duration-150",
-                      enabled
-                        ? "border-[1.5px]"
-                        : "border-[1.5px] border-muted-foreground/25 bg-transparent",
-                    )}
-                    style={enabled ? { backgroundColor: cal.color, borderColor: cal.color } : undefined}
-                  >
-                    {enabled && (
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-white">
-                        <path d="M2 5.5L4 7.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-                <span className={cn(
-                  "text-[12px] truncate flex-1 transition-colors",
-                  enabled ? "text-foreground/80" : "text-muted-foreground/40 line-through",
-                )}>
-                  {cal.name}
-                </span>
-                {cal.is_primary && (
-                  <span className="text-[10px] text-muted-foreground/40 shrink-0">
-                    {t("calendar.default")}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <div className="flex flex-col">
+        {PROVIDER_ORDER.map((provider, idx) => {
+          const providerAccounts = accounts.filter((a) => a.provider === provider);
+          const isConnecting = connecting === provider;
 
-      <button
-        className="flex items-center gap-1.5 mt-2.5 w-full text-[12px] text-primary hover:text-primary/80 transition-colors"
-        onClick={onAddCalendar}
-      >
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0">
-          <path d="M7 3v8M3 7h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-        {t("calendar.addCalendar")}
-      </button>
+          return (
+            <div
+              key={provider}
+              className={cn(
+                "pb-4",
+                idx > 0 && "pt-4 border-t border-border/50",
+              )}
+            >
+              {/* Provider header */}
+              <div className="flex items-center gap-2">
+                <ProviderLogo provider={provider} size={16} />
+                <span className="text-[13px] font-semibold text-foreground flex-1 min-w-0 truncate">
+                  {PROVIDER_NAMES[provider]}
+                </span>
+                <Button
+                  variant="pill-outline"
+                  className="h-6.5 px-3 text-[11px] font-medium shrink-0 gap-1"
+                  disabled={connecting !== null}
+                  onClick={() => onConnect(provider)}
+                >
+                  {isConnecting && <ConnectingSpinner size={11} />}
+                  {isConnecting
+                    ? "Connecting..."
+                    : providerAccounts.length > 0
+                      ? "Add"
+                      : "Connect"}
+                </Button>
+              </div>
+
+              {/* Accounts */}
+              {providerAccounts.length === 0 ? (
+                <p className="text-[12px] text-muted-foreground/50 mt-2 pl-6">
+                  Not connected
+                </p>
+              ) : (
+                providerAccounts.map((account) => (
+                  <div key={account.id} className="mt-2.5 pl-6">
+                    <div className="group/account flex items-center gap-2">
+                      <span className="text-[12px] font-medium text-foreground/70 truncate flex-1 min-w-0">
+                        {account.email}
+                      </span>
+                      <button
+                        className="text-[11px] text-muted-foreground/60 hover:text-destructive opacity-0 group-hover/account:opacity-100 focus-visible:opacity-100 transition-opacity shrink-0"
+                        onClick={() => onDisconnect(account.id)}
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+
+                    <div className="flex flex-col gap-2 mt-2">
+                      {account.calendars.map((cal) => (
+                        <div key={cal.id} className="flex items-center gap-2.5">
+                          <button
+                            onClick={() => onToggleCalendar(account.id, cal.id)}
+                            className="flex items-center justify-center shrink-0"
+                            aria-label={`Toggle ${cal.name}`}
+                          >
+                            <div
+                              className={cn(
+                                "size-4 rounded flex items-center justify-center transition-all duration-150",
+                                cal.enabled
+                                  ? "border-[1.5px]"
+                                  : "border-[1.5px] border-muted-foreground/25 bg-transparent",
+                              )}
+                              style={cal.enabled ? { backgroundColor: cal.color, borderColor: cal.color } : undefined}
+                            >
+                              {cal.enabled && (
+                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-white">
+                                  <path d="M2 5.5L4 7.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              )}
+                            </div>
+                          </button>
+                          <span className={cn(
+                            "text-[12px] truncate flex-1 transition-colors",
+                            cal.enabled ? "text-foreground/80" : "text-muted-foreground/40 line-through",
+                          )}>
+                            {cal.name}
+                          </span>
+                          {cal.isPrimary && (
+                            <span className="text-[10px] text-muted-foreground/40 shrink-0">
+                              {t("calendar.default")}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
