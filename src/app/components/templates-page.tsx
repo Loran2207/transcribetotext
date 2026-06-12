@@ -83,6 +83,7 @@ import {
   type CategoryId,
   type HueTokens,
 } from "@/lib/template-meta";
+import { getTemplateSample } from "@/lib/template-samples";
 
 // ---------------------------------------------------------------------------
 // LocalStorage keys
@@ -205,6 +206,7 @@ function TemplateCard({
   const emoji = templateEmoji(template.name);
   const sys = template.type === "built_in";
   const previewSections = template.sections.slice(0, 3);
+  const sample = getTemplateSample(template);
   const hasMore = template.sections.length > 3;
 
   const cardBg = hovered ? hue.bgHover : hue.bg;
@@ -255,7 +257,7 @@ function TemplateCard({
       }}
     >
       {/* Header */}
-      <div className="flex items-start gap-[12px]">
+      <div className="flex items-center gap-[12px]">
         <div
           className="flex items-center justify-center shrink-0"
           style={{
@@ -270,7 +272,7 @@ function TemplateCard({
         >
           <span>{emoji}</span>
         </div>
-        <div className="flex-1 min-w-0 pt-[2px]">
+        <div className="flex-1 min-w-0">
           <p className="truncate font-semibold text-[15px] text-foreground leading-snug">
             {template.name}
           </p>
@@ -280,45 +282,8 @@ function TemplateCard({
           // Layout: [...] [star]. The "..." button collapses (width 0) when not
           // hovered, so a starred-but-not-hovered card shows just the star
           // pinned to the right edge — exactly where "..." normally sits.
-          <div className="flex items-center shrink-0 -mt-[2px] -mr-[4px]" onClick={stop}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  onClick={stop}
-                  className="flex items-center justify-center overflow-hidden"
-                  style={{
-                    width: hovered ? 28 : 0,
-                    height: 28,
-                    marginRight: hovered ? 2 : 0,
-                    opacity: hovered ? 1 : 0,
-                    pointerEvents: hovered ? "auto" : "none",
-                    borderRadius: 999,
-                    background: hovered ? "rgba(255,255,255,0.6)" : "transparent",
-                    transition: "width 200ms cubic-bezier(0.22,1,0.36,1), margin 200ms cubic-bezier(0.22,1,0.36,1), opacity 160ms",
-                  }}
-                  title="More"
-                  aria-label="More actions"
-                >
-                  <Icon icon={MoreVerticalIcon} size={15} className="text-muted-foreground/70" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[180px]" onClick={stop}>
-                                {sys ? (
-                  <DropdownMenuItem disabled className="gap-[10px]">
-                    <Icon icon={Lock} size={14} /> Delete
-                    <span className="ml-auto text-[10px] text-muted-foreground/70">Built-in</span>
-                  </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem
-                    onClick={(e) => { stop(e); onTrash(); }}
-                    className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-[10px]"
-                  >
-                    <Icon icon={Delete01Icon} size={14} /> Delete
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="flex items-center shrink-0 -mr-[4px]" onClick={stop}>
+            {/* Deleting templates is disabled for now - only starring remains */}
 
             <button
               type="button"
@@ -389,10 +354,11 @@ function TemplateCard({
             <div className="flex flex-col gap-[10px]">
               {previewSections.map((s, i) => (
                 <div key={s.id ?? i} className="flex items-start gap-[8px]">
-                  <span
-                    aria-hidden
-                    className="shrink-0 mt-[5px]"
-                    style={{ width: 5, height: 5, borderRadius: 999, background: hue.dot }}
+                  <Icon
+                    icon={sectionIcon(s.title, s.iconId)}
+                    size={12}
+                    className="shrink-0 mt-[2px]"
+                    style={{ color: hue.chip }}
                   />
                   <div className="flex-1 min-w-0">
                     <p
@@ -401,22 +367,20 @@ function TemplateCard({
                     >
                       {s.title || `Section ${i + 1}`}
                     </p>
-                    {s.instruction && (
-                      <p
-                        className="text-muted-foreground"
-                        style={{
-                          fontSize: "10.5px",
-                          lineHeight: 1.45,
-                          marginTop: 2,
-                          display: "-webkit-box",
-                          WebkitBoxOrient: "vertical",
-                          WebkitLineClamp: 2,
-                          overflow: "hidden",
-                        }}
-                      >
-                        {s.instruction}
-                      </p>
-                    )}
+                    <p
+                      className="text-muted-foreground"
+                      style={{
+                        fontSize: "10.5px",
+                        lineHeight: 1.45,
+                        marginTop: 2,
+                        display: "-webkit-box",
+                        WebkitBoxOrient: "vertical",
+                        WebkitLineClamp: 2,
+                        overflow: "hidden",
+                      }}
+                    >
+                      {sample.contentFor(s.title)[0]}
+                    </p>
                   </div>
                 </div>
               ))}

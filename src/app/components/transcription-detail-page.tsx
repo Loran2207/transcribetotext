@@ -28,6 +28,7 @@ import { useStarred } from "./starred-context";
 import { SourceIcon, type SourceType } from "./source-icons";
 import { records, type RecordRow } from "./records-table";
 import { TemplatePicker } from "./template-picker";
+import { templateEmoji } from "@/lib/template-meta";
 import { Icon } from "./ui/icon";
 import { Skeleton } from "./ui/skeleton";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
@@ -648,7 +649,16 @@ function TemplateSelectorButton({
       align="end"
       trigger={
         <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground">
-          Template: <span className="text-foreground font-medium">{active?.name ?? "None"}</span>
+          Template:
+          {active ? (
+            <>
+              <span className="text-[12px] leading-none">{templateEmoji(active.name)}</span>
+              <span className="text-foreground font-medium">{active.name}</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><polyline points="20 6 9 17 4 12" /></svg>
+            </>
+          ) : (
+            <span className="text-foreground font-medium">None</span>
+          )}
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
         </Button>
       }

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, Help, Settings, Globe, LogOut, Zap, ChevronDown } from "@hugeicons/core-free-icons";
+import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { useLanguage, LANGUAGES } from "./language-context";
@@ -131,7 +132,16 @@ export function TopBar({ onNavigate }: TopBarProps) {
       <div className="flex-1" />
 
       {plan === "free" && (
-      <Button variant="ghost" className="flex items-center gap-[6px] h-[30px] px-[14px] rounded-full shrink-0 bg-primary/[0.06] hover:bg-primary/[0.1]">
+      <Button
+        variant="ghost"
+        className="flex items-center gap-[6px] h-[30px] px-[14px] rounded-full shrink-0 bg-primary/[0.06] hover:bg-primary/[0.1]"
+        onClick={() => {
+          // Prototype: instantly switch the demo into the paid experience
+          try { localStorage.setItem("ttt_plan", "pro"); } catch { /* ignore */ }
+          toast.success("Pro trial activated");
+          window.setTimeout(() => window.location.reload(), 700);
+        }}
+      >
         <Icon icon={Zap} className="size-[12px] text-primary" strokeWidth={2} style={{ fill: "var(--primary)" }} />
         <span className="font-semibold text-[12px] text-primary whitespace-nowrap">Start my trial now</span>
       </Button>

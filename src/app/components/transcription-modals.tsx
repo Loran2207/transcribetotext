@@ -1014,10 +1014,8 @@ function TemplateSelector({
             className={`w-full flex items-center justify-between rounded-[12px] border border-input bg-transparent px-[12px] gap-[8px] text-[13px] transition-colors hover:bg-muted/30 ${compact ? "h-[36px]" : "h-[40px]"}`}
           >
             <span className="flex items-center gap-[7px] min-w-0">
-              {selected ? (
+              {selected && (
                 <span className="text-[14px] leading-none shrink-0">{templateEmoji(selected.name)}</span>
-              ) : (
-                <Icon icon={Layers} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
               )}
               <span className={selected ? "truncate text-foreground" : "truncate text-muted-foreground"}>
                 {selected?.name ?? "Select template"}

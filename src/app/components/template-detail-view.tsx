@@ -1,19 +1,47 @@
+import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowDown01Icon, Lock, Microphone, PencilEdit01Icon, StarsIcon } from "@hugeicons/core-free-icons";
+import { Microphone, PencilEdit01Icon, StarsIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
 import {
   Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator,
 } from "@/app/components/ui/breadcrumb";
+import { useNavigate } from "react-router";
 import { usePlan } from "./use-plan";
+import { records } from "./records-table";
 import { sectionIcon } from "./templates-page";
 import type { Template } from "@/lib/templates";
-import { templateEmoji, categorize, hueForCategory, CATEGORY_META_BY_ID } from "@/lib/template-meta";
+import { templateEmoji, categorize, hueForCategory, type CategoryId } from "@/lib/template-meta";
 import { getTemplateSample } from "@/lib/template-samples";
 
 /* View-only template detail page (first iteration: no editing).
-   Left: a worked example - source recording and the summary this template
-   produces from it. Right: template info and the Apply action. */
+   Left: a large source-recording example, full width. Right: the summary
+   card this template produces, with Apply and Star actions above it. */
+
+const STARRED_KEY = "ttt_starred_templates";
+
+function loadStarred(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(STARRED_KEY) ?? "[]")); } catch { return new Set(); }
+}
+
+function saveStarred(s: Set<string>) {
+  localStorage.setItem(STARRED_KEY, JSON.stringify([...s]));
+}
+
+/* Demo usage history: records from the demo world that plausibly used
+   a template of this category. */
+const USAGE_BY_CATEGORY: Partial<Record<CategoryId, string[]>> = {
+  sales: ["13", "2", "10"],
+  hr: ["4", "11"],
+  engineering: ["5", "1"],
+  consulting: ["2", "10"],
+  marketing: ["12"],
+  media: ["6", "9"],
+  writer: ["9"],
+  basic: ["1", "8", "7"],
+  others: ["8"],
+  education: ["8"],
+};
 
 interface TemplateDetailViewProps {
   template: Template;
@@ -22,24 +50,40 @@ interface TemplateDetailViewProps {
 
 export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps) {
   const plan = usePlan();
+  const navigate = useNavigate();
   const isFree = plan === "free";
 
-  const category = categorize(template);
-  const categoryMeta = CATEGORY_META_BY_ID[category];
-  const hue = hueForCategory(category);
+  const hue = hueForCategory(categorize(template));
   const emoji = templateEmoji(template.name);
   const sample = getTemplateSample(template);
 
-  const handleTitleClick = () => {
-    toast("Template editing is coming soon");
-  };
+  const [isStarred, setIsStarred] = useState(() => loadStarred().has(template.id));
+
+  const usageIds = USAGE_BY_CATEGORY[categorize(template)] ?? [];
+  const usedIn = usageIds
+    .map((id) => records.find((r) => r.id === id))
+    .filter((r): r is NonNullable<typeof r> => Boolean(r));
 
   const handleApply = () => {
     if (isFree) {
-      toast("Upgrade to Pro to apply templates");
+      toast("Sorry - applying templates needs a Pro subscription. Upgrade to unlock.");
       return;
     }
     toast.success(`"${template.name}" will be applied to your next recordings`);
+  };
+
+  const handleStar = () => {
+    const next = new Set(loadStarred());
+    if (next.has(template.id)) {
+      next.delete(template.id);
+      setIsStarred(false);
+      toast("Removed from starred");
+    } else {
+      next.add(template.id);
+      setIsStarred(true);
+      toast.success("Added to starred");
+    }
+    saveStarred(next);
   };
 
   return (
@@ -70,20 +114,14 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
             </div>
             <h1
               className="text-2xl font-bold text-foreground leading-tight cursor-default"
-              onClick={handleTitleClick}
+              onClick={() => toast("Template editing is coming soon")}
               title="Template editing is coming soon"
             >
               {template.name}
             </h1>
-            <span
-              className="inline-flex items-center rounded-full px-2.5 py-[3px] text-[11px] font-semibold"
-              style={{ background: hue.bg, color: hue.chip }}
-            >
-              {categoryMeta.label}
-            </span>
           </div>
           {template.description && (
-            <p className="text-[13px] text-muted-foreground mt-2.5 max-w-[620px]">{template.description}</p>
+            <p className="text-[13px] text-muted-foreground mt-2.5 max-w-[680px]">{template.description}</p>
           )}
           <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground/70 mt-2">
             <Icon icon={PencilEdit01Icon} size={13} className="shrink-0" />
@@ -91,44 +129,107 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
           </p>
         </div>
 
-        {/* Two-column: example (left) + apply panel (right) */}
+        {/* Two-column: large example (left) + summary card with actions (right) */}
         <div className="flex gap-10 items-start">
 
-          {/* Left - worked example */}
-          <div className="flex-1 min-w-0 max-w-[760px]">
-
-            {/* Source recording */}
+          {/* Left - the source recording example, full width */}
+          <div className="flex-1 min-w-0">
             <div className="rounded-2xl border border-border bg-card overflow-hidden">
-              <div className="flex items-center gap-3 px-6 pt-5 pb-4 border-b border-border/60">
-                <div className="flex items-center justify-center size-9 rounded-lg bg-muted shrink-0">
-                  <Icon icon={Microphone} size={16} className="text-muted-foreground" />
+              <div className="flex items-center gap-3.5 px-7 pt-6 pb-5 border-b border-border/60">
+                <div className="flex items-center justify-center size-10 rounded-xl bg-muted shrink-0">
+                  <Icon icon={Microphone} size={18} className="text-muted-foreground" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Example recording</p>
-                  <p className="text-[14px] font-semibold text-foreground truncate">{sample.source.title}</p>
+                  <p className="text-[16px] font-semibold text-foreground truncate">{sample.source.title}</p>
                   <p className="text-[12px] text-muted-foreground mt-0.5">{sample.source.meta}</p>
                 </div>
               </div>
-              <div className="px-6 py-4 flex flex-col gap-3">
+              <div className="px-7 py-6 flex flex-col gap-5">
                 {sample.source.segments.map((seg, i) => (
-                  <div key={i} className="flex gap-3">
-                    <span className="text-[11px] text-muted-foreground/60 tabular-nums shrink-0 pt-[2px] w-[34px]">{seg.time}</span>
+                  <div key={i} className="flex gap-4">
+                    <span className="text-[12px] text-muted-foreground/60 tabular-nums shrink-0 pt-[3px] w-[40px]">{seg.time}</span>
                     <div className="min-w-0">
-                      <span className="text-[12px] font-semibold text-foreground/80">{seg.speaker}</span>
-                      <p className="text-[13px] text-muted-foreground leading-relaxed">{seg.text}</p>
+                      <span className="text-[13px] font-semibold text-foreground/85">{seg.speaker}</span>
+                      <p className="text-[14px] text-muted-foreground leading-[1.75] mt-0.5">{seg.text}</p>
                     </div>
                   </div>
                 ))}
+                <p className="text-[12px] text-muted-foreground/50 pl-[56px]">
+                  Recording continues - this is a short excerpt.
+                </p>
               </div>
             </div>
 
-            {/* Divider: what the template produces */}
-            <div className="flex items-center justify-center gap-2 py-5 text-muted-foreground">
-              <Icon icon={ArrowDown01Icon} size={15} />
-              <span className="text-[12px] font-medium">With this template, the recording becomes</span>
+            {/* Usage history */}
+            <div className="mt-6">
+              <h3 className="text-[14px] font-semibold text-foreground mb-1">Recently used in</h3>
+              <p className="text-[12px] text-muted-foreground mb-3">
+                Files where this template generated the summary.
+              </p>
+              {usedIn.length === 0 ? (
+                <div className="rounded-xl bg-muted/50 py-5 px-6 flex items-center justify-center">
+                  <span className="text-[13px] text-muted-foreground/70">This template has not been used yet</span>
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                  {usedIn.map((r, i) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => navigate(`/transcriptions/${r.id}`)}
+                      className={`w-full flex items-center gap-3.5 px-5 py-3.5 text-left transition-colors hover:bg-muted/40 ${i > 0 ? "border-t border-border/60" : ""}`}
+                    >
+                      <div className="flex items-center justify-center size-8 rounded-lg bg-muted shrink-0">
+                        <Icon icon={Microphone} size={14} className="text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium text-foreground truncate">{r.name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{r.duration} &middot; {r.dateCreated}</p>
+                      </div>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50 shrink-0"><path d="M9 18l6-6-6-6" /></svg>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+          </div>
 
-            {/* Generated summary */}
+          {/* Right - actions + the summary this template produces */}
+          <div className="w-[480px] shrink-0">
+            <div className="flex items-center gap-2.5 mb-4">
+              <Button
+                className="flex-1 rounded-full h-10 text-[13px] font-medium"
+                onClick={handleApply}
+              >
+                Apply template
+              </Button>
+              <Button
+                variant="pill-outline"
+                className="size-10 p-0 shrink-0"
+                onClick={handleStar}
+                aria-label={isStarred ? "Remove from starred" : "Add to starred"}
+                title={isStarred ? "Remove from starred" : "Add to starred"}
+              >
+                <svg width={16} height={16} fill="none" viewBox="0 0 16 16" aria-hidden="true">
+                  <path
+                    d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z"
+                    stroke={isStarred ? "#F59E0B" : "currentColor"}
+                    fill={isStarred ? "#F59E0B" : "none"}
+                    strokeWidth="1.3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </Button>
+            </div>
+            {isFree && (
+              <p className="text-[12px] text-muted-foreground text-center -mt-1 mb-4">
+                Applying templates is available on the Pro plan.
+              </p>
+            )}
+
+            {/* Summary preview card */}
             <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ boxShadow: "var(--elevation-md)" }}>
               <div className="px-7 pt-6 pb-4 border-b border-border">
                 <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2">
@@ -162,50 +263,6 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                     </div>
                   );
                 })}
-              </div>
-            </div>
-          </div>
-
-          {/* Right - apply panel */}
-          <div className="w-[340px] shrink-0 sticky top-6">
-            <div className="rounded-2xl border border-border bg-card px-6 py-5">
-              <h3 className="text-[14px] font-semibold text-foreground">In this template</h3>
-              <p className="text-[12px] text-muted-foreground mt-1 mb-4">
-                {template.sections.length} {template.sections.length === 1 ? "section" : "sections"}, generated from your recording
-              </p>
-              <div className="flex flex-col gap-2.5">
-                {template.sections.map((s) => (
-                  <div key={s.id} className="flex items-center gap-2.5">
-                    <Icon icon={sectionIcon(s.title, s.iconId)} size={14} className="text-muted-foreground/70 shrink-0" />
-                    <span className="text-[13px] text-foreground/85 truncate">{s.title}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-5 pt-5 border-t border-border/60">
-                <Button
-                  className="w-full rounded-full h-10 text-[13px] font-medium gap-2"
-                  onClick={handleApply}
-                >
-                  {isFree && <Icon icon={Lock} size={14} />}
-                  Apply template
-                </Button>
-                {isFree ? (
-                  <p className="text-[12px] text-muted-foreground text-center mt-2.5">
-                    Applying templates is available on the Pro plan.{" "}
-                    <button
-                      type="button"
-                      className="text-primary font-medium hover:text-primary/80 transition-colors"
-                      onClick={() => toast("Open Settings, then Plan management, to upgrade")}
-                    >
-                      Upgrade
-                    </button>
-                  </p>
-                ) : (
-                  <p className="text-[12px] text-muted-foreground/70 text-center mt-2.5">
-                    New recordings will use this structure for their summary.
-                  </p>
-                )}
               </div>
             </div>
 
