@@ -927,34 +927,16 @@ function RightPanel({
           onResizeStart();
         }}
       />
-      {videoPreview ? (
-        <VideoPreview
-          video={videoPreview}
-          playbackRate={videoPlaybackRate}
-          onVideoElementReady={onVideoElementReady}
-          onPlayStateChange={onVideoPlayStateChange}
-          onTimeChange={onVideoTimeChange}
-          onDurationChange={onVideoDurationChange}
-          onPlaybackRateChange={onVideoPlaybackRateChange}
-        />
-      ) : null}
-      <Tabs defaultValue="outline" className="flex flex-1 flex-col overflow-hidden">
-        <div className="border-b border-border px-4 pt-3 pb-0">
-          <TabsList variant="line" className="border-b-0">
-            <TabsTrigger value="outline" variant="line">Outline</TabsTrigger>
-            <TabsTrigger value="comments" variant="line">
-              Comments
-              <span className="opacity-50 font-[inherit]">{comments.length}</span>
-            </TabsTrigger>
-          </TabsList>
+      {/* Outline & comments are coming soon - the video preview ships with them */}
+      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+        <div className="size-14 rounded-2xl bg-primary/5 flex items-center justify-center mb-4 animate-[pulse_3s_ease-in-out_infinite]">
+          <MessageSquarePlus className="size-6 text-primary" strokeWidth={1.6} />
         </div>
-        <TabsContent value="outline" className="flex-1 overflow-hidden">
-          <OutlineTab onSeek={onSeek} onScrollToSegment={onScrollToSegment} />
-        </TabsContent>
-        <TabsContent value="comments" className="flex-1 overflow-hidden">
-          <CommentsTab comments={comments} onSeek={onSeek} onScrollToSegment={onScrollToSegment} />
-        </TabsContent>
-      </Tabs>
+        <h3 className="text-[15px] font-semibold text-foreground">Coming soon</h3>
+        <p className="text-[12px] text-muted-foreground leading-relaxed mt-1.5 max-w-[220px]">
+          Outline and comments are under development. Stay tuned for updates.
+        </p>
+      </div>
     </div>
   );
 }
@@ -1263,7 +1245,7 @@ function PageHeader({
           ) : (
             <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer" onClick={onSetTemplate}>
               <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
-              <span className="font-medium text-[13px] text-foreground">Set template</span>
+              <span className="font-medium text-[13px] text-foreground">Apply template</span>
             </Button>
           )}
           <Tooltip>
@@ -2504,7 +2486,7 @@ export function TranscriptionDetailPage() {
                   Pick a template and we will turn this transcript into a structured summary.
                 </p>
                 <Button className="rounded-full h-9 px-5 text-[13px] font-medium mt-5" onClick={() => setTemplatePickerOpen(true)}>
-                  Set template
+                  Apply template
                 </Button>
               </div>
             ) : (

@@ -87,10 +87,6 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   ];
 
   const handleApply = () => {
-    if (isFree) {
-      toast("Sorry - applying templates needs a Pro subscription. Upgrade to unlock.");
-      return;
-    }
     toast.success(`"${template.name}" will be applied to your next recordings`);
   };
 
@@ -178,9 +174,38 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                 />
               </svg>
             </Button>
-            <Button className="rounded-full h-9 px-5 text-[13px] font-medium" onClick={handleApply}>
-              Apply template
-            </Button>
+            {isFree ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button className="rounded-full h-9 px-5 text-[13px] font-medium">Apply template</Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" side="bottom" className="w-[300px] p-5">
+                  <div className="flex flex-col items-center text-center">
+                    <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                      <Icon icon={StarsIcon} size={20} className="text-primary" />
+                    </div>
+                    <h4 className="text-[14px] font-semibold text-foreground">A Pro feature</h4>
+                    <p className="text-[12px] text-muted-foreground leading-relaxed mt-1">
+                      Applying templates to your recordings is available on the Pro plan.
+                    </p>
+                    <Button
+                      className="w-full rounded-full h-9 mt-4 text-[13px] font-medium"
+                      onClick={() => {
+                        try { localStorage.setItem("ttt_plan", "pro"); } catch { /* ignore */ }
+                        toast.success("Pro trial activated");
+                        window.setTimeout(() => window.location.reload(), 700);
+                      }}
+                    >
+                      Upgrade to Pro
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <Button className="rounded-full h-9 px-5 text-[13px] font-medium" onClick={handleApply}>
+                Apply template
+              </Button>
+            )}
           </div>
         </div>
 
