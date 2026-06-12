@@ -27,6 +27,9 @@ import { useTemplates } from "@/hooks/use-templates";
 import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
+import { motion } from "motion/react";
+import { Progress } from "./ui/progress";
+import { LottieStage } from "./checkout-loader/lottie-stage";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -236,6 +239,21 @@ export function TranscriptionModalsProvider({
     if (!hasActiveUploads) {
       currentUploadBatchIdRef.current = null;
     }
+  }, [jobs]);
+
+  // Warn before page unload while files are still uploading — a reload would
+  // lose the in-flight upload.
+  useEffect(() => {
+    const hasUploading = jobs.some(
+      (job) => job.source !== "microphone" && job.status === "uploading"
+    );
+    if (!hasUploading) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
   }, [jobs]);
 
   useEffect(() => {
@@ -1713,7 +1731,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
 }
 
 function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan, consumePreloadedFiles, consumeDefaultFolderId } = useTranscriptionModals();
+  const { addJob, removeJob, jobs, userPlan, consumePreloadedFiles, consumeDefaultFolderId } = useTranscriptionModals();
 
   const [files, setFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -1721,7 +1739,15 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [uploadingIds, setUploadingIds] = useState<string[] | null>(null);
+  const [leaveAlertOpen, setLeaveAlertOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const uploadingJobs = useMemo(
+    () => (uploadingIds ? uploadingIds.map((id) => jobs.find((j) => j.id === id)).filter((j): j is TranscriptionJob => Boolean(j)) : []),
+    [jobs, uploadingIds]
+  );
+  const stillUploading = uploadingJobs.some((j) => j.status === "uploading");
 
   useEffect(() => {
     if (open) {
@@ -1738,8 +1764,32 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  function resetForm() { setFiles([]); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
-  function handleClose() { resetForm(); onClose(); }
+  // Once every file finishes uploading, hand the batch off to the floating widget.
+  useEffect(() => {
+    if (!uploadingIds || stillUploading) return;
+    const t = setTimeout(() => {
+      toast.success("Upload complete — transcription continues in the background");
+      resetForm();
+      onClose();
+    }, 900);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadingIds, stillUploading]);
+
+  function resetForm() {
+    setFiles([]); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null);
+    setUploadingIds(null); setLeaveAlertOpen(false);
+  }
+  function handleClose() {
+    if (uploadingIds && stillUploading) { setLeaveAlertOpen(true); return; }
+    resetForm(); onClose();
+  }
+  function continueInBackground() { resetForm(); onClose(); }
+  function cancelUploads() {
+    (uploadingIds ?? []).forEach((id) => removeJob(id));
+    toast("Upload cancelled");
+    resetForm(); onClose();
+  }
 
   function addFiles(newFiles: File[]) {
     setFiles(prev => {
@@ -1768,7 +1818,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
       return { file, isAudio, noAudioDetected };
     }));
 
-    prepared.forEach(({ file, isAudio, noAudioDetected }) => {
+    const ids = prepared.map(({ file, isAudio, noAudioDetected }) =>
       addJob(file.name, isAudio ? "audio" : "video", {
         lang: settings.mode === "mono" ? settings.langPrimary : undefined,
         langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
@@ -1777,9 +1827,9 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
         source: isAudio ? "mp3" : "mp4",
         mediaUrl: isAudio ? undefined : URL.createObjectURL(file),
         noAudioDetected: isAudio ? undefined : noAudioDetected,
-      });
-    });
-    handleClose();
+      })
+    );
+    setUploadingIds(ids);
   }
 
   if (!open) return null;
@@ -1788,10 +1838,43 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
     <>
       <ModalShell
         title="Audio & video files"
-        subtitle="Upload audio or video files for transcription"
+        subtitle={uploadingIds ? "Uploading your files" : "Upload audio or video files for transcription"}
         onClose={handleClose}
         onBackdropClick={handleClose}
       >
+        {uploadingIds ? (
+          <div className="px-[22px] pt-[2px] pb-[22px] flex flex-col items-center gap-[14px]">
+            <LottieStage src="/lottie/hourglass-blue.json" w={150} h={150} />
+            <div className="text-center">
+              <p className="font-bold text-[15px] text-foreground">
+                {uploadingJobs.length > 1 ? `Uploading ${uploadingJobs.length} files…` : "Uploading your file…"}
+              </p>
+              <p className="text-[12px] text-muted-foreground mt-[4px]">
+                Keep this page open until the upload finishes
+              </p>
+            </div>
+            <div className="w-full flex flex-col gap-[8px]">
+              {uploadingJobs.map((job) => {
+                const uploaded = job.status !== "uploading";
+                const pct = uploaded ? 100 : Math.round(job.uploadProgress ?? 0);
+                return (
+                  <div key={job.id} className="rounded-[12px] border border-border bg-card px-[14px] py-[11px]">
+                    <div className="flex items-center justify-between gap-[10px]">
+                      <p className="truncate font-medium text-[13px] text-foreground">{job.name}</p>
+                      <span className={`shrink-0 text-[11px] font-medium tabular-nums ${uploaded ? "text-primary" : "text-muted-foreground"}`}>
+                        {uploaded ? "Uploaded" : `${pct}%`}
+                      </span>
+                    </div>
+                    <Progress value={pct} className="h-[5px] mt-[8px]" />
+                  </div>
+                );
+              })}
+            </div>
+            <Button variant="pill-outline" onClick={continueInBackground} className="h-[36px] px-[18px] transition-colors">
+              <span className="font-medium text-[13px] text-foreground">Continue in background</span>
+            </Button>
+          </div>
+        ) : (
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
           {/* Drop zone — clickable + drag-and-drop, shrinks after files added */}
           <div
@@ -1837,7 +1920,13 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
                     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
                     const isAudio = AUDIO_EXTS.includes(ext);
                     return (
-                      <div key={i} className="flex items-center gap-[10px] h-[48px] px-[12px] rounded-[12px] border border-border bg-card">
+                      <motion.div
+                        key={file.name + file.size}
+                        initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: "spring", stiffness: 380, damping: 28 }}
+                        className="flex items-center gap-[10px] h-[48px] px-[12px] rounded-[12px] border border-border bg-card"
+                      >
                         <div className={`size-[30px] rounded-[8px] flex items-center justify-center shrink-0 ${isAudio ? "bg-primary/5" : "bg-violet-500/5"}`}>
                           {isAudio ? (
                             <svg className="size-[14px] text-primary" fill="none" viewBox="0 0 24 24">
@@ -1861,7 +1950,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
                             <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                           </svg>
                         </Button>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
@@ -1895,7 +1984,39 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           </div>
         </div>
+        )}
       </ModalShell>
+
+      {/* Leave-during-upload alert — mirrors the browser reload warning */}
+      {leaveAlertOpen && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setLeaveAlertOpen(false)} />
+          <div className="relative rounded-[18px] w-[380px] p-[22px] flex flex-col gap-[16px] bg-popover"
+            style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.28)" }}>
+            <div className="flex flex-col items-center text-center gap-[12px]">
+              <div className="size-[44px] rounded-full bg-destructive/10 flex items-center justify-center">
+                <Icon icon={AlertCircle} size={22} className="text-destructive" />
+              </div>
+              <div>
+                <p className="font-bold text-[15px] text-foreground">Upload in progress</p>
+                <p className="text-[13px] text-muted-foreground mt-[6px] leading-relaxed">
+                  Your files are still uploading. If you close or reload this page now, the upload will stop and your progress will be lost.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-[8px]">
+              <Button variant="pill-outline" onClick={cancelUploads} className="flex-1 h-[38px] transition-colors">
+                <span className="font-medium text-[13px] text-destructive">Cancel upload</span>
+              </Button>
+              <Button onClick={() => setLeaveAlertOpen(false)}
+                className="flex-1 h-[38px] rounded-full transition-colors bg-primary text-primary-foreground hover:bg-primary/90">
+                <span className="font-semibold text-[13px]">Keep uploading</span>
+              </Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       <UpgradePrompt open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </>
   );
