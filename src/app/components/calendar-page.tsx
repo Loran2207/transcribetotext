@@ -312,10 +312,8 @@ export function CalendarPage() {
           </div>
         </div>
 
-        {/* Content column — capped width so it reads well on wide monitors */}
-        <div className={cn("flex-1 min-w-0 flex flex-col w-full mt-4 overflow-hidden", CONTENT_MAX_W)}>
-          {/* Tabs + connected calendars indicator */}
-          <div className="flex items-end justify-between border-b border-border">
+        {/* Tabs + connected calendars indicator — full width so the line reaches the edge */}
+        <div className="flex items-end justify-between border-b border-border mt-4">
             <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as MeetingsTab)} className="gap-0">
               <TabsList variant="line" className="gap-6 justify-start border-0">
                 <TabsTrigger value="upcoming" variant="line">
@@ -336,8 +334,10 @@ export function CalendarPage() {
               accounts={accounts}
               onClick={() => setActiveTab("settings")}
             />
-          </div>
+        </div>
 
+        {/* Content column — capped and centered for wide monitors */}
+        <div className={cn("flex-1 min-w-0 flex flex-col w-full mx-auto overflow-hidden", CONTENT_MAX_W)}>
           {activeTab === "settings" ? (
             <MeetingsSettingsTab
               accounts={accounts}

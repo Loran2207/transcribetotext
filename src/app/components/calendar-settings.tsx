@@ -4,6 +4,7 @@ import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
 import { cn } from "@/app/components/ui/utils";
 import { ProviderLogo, ConnectingSpinner } from "./calendar-connect";
 import {
+  useCalendarAccounts,
   PROVIDER_NAMES,
   type CalendarProvider,
   type CalendarAccount,
@@ -39,15 +40,15 @@ export const AUTO_RECORD_OPTIONS: AutoRecordOption[] = [
     value: "internal",
     barLabel: "Internal meetings",
     label: "Internal meetings",
-    hint: "Meetings you own where all invitees have an @vektortms.com or @veido.com email",
-    description: "All invitees are in your workspace or have an @vektortms.com, @veido.com email.",
+    hint: "Meetings you own where every invitee has your workspace email, like @northwindlabs.com",
+    description: "All invitees are in your workspace or have an @northwindlabs.com email.",
   },
   {
     value: "internal_no_1on1",
     barLabel: "Internal, excluding one-on-ones",
     label: "Internal meetings, excluding one-on-ones",
-    hint: "Meetings you own where all invitees have an @vektortms.com or @veido.com email",
-    description: "All invitees are in your workspace or have an @vektortms.com, @veido.com email.",
+    hint: "Meetings you own where every invitee has your workspace email, like @northwindlabs.com",
+    description: "All invitees are in your workspace or have an @northwindlabs.com email.",
   },
   {
     value: "manual",
@@ -77,18 +78,14 @@ export function saveAutoRecordMode(mode: AutoRecordMode) {
    ═══════════════════════════════════════════ */
 
 interface MeetingSettings {
-  suggestions: "on" | "off";
   recap: "all" | "internal" | "me";
-  linkAccess: "public" | "workspace" | "private";
   language: "auto" | "default";
 }
 
 const SETTINGS_KEY = "ttt_meeting_settings";
 
 const DEFAULT_SETTINGS: MeetingSettings = {
-  suggestions: "on",
   recap: "internal",
-  linkAccess: "workspace",
   language: "auto",
 };
 
@@ -241,7 +238,7 @@ interface MeetingsSettingsTabProps {
   onAutoRecordModeChange: (mode: AutoRecordMode) => void;
 }
 
-export function MeetingsSettingsTab({
+export function MeetingsSettingsContent({
   accounts,
   connecting,
   onConnect,
@@ -260,8 +257,7 @@ export function MeetingsSettingsTab({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto mt-5 pb-8 scrollbar-hide">
-      <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
         <CalendarSection
           accounts={accounts}
           connecting={connecting}
@@ -292,22 +288,6 @@ export function MeetingsSettingsTab({
           </RadioGroup>
         </SettingsCard>
 
-        {/* In-meeting suggestions */}
-        <SettingsCard>
-          <SettingsCardTitle
-            title="In-meeting suggestions"
-            subtitle="TranscribeToText will suggest relevant actions in the meeting chat."
-          />
-          <RadioGroup
-            value={settings.suggestions}
-            onValueChange={(v) => updateSetting("suggestions", v as MeetingSettings["suggestions"])}
-            className="gap-4"
-          >
-            <RadioRow id="suggestions_on" value="on" label="On" />
-            <RadioRow id="suggestions_off" value="off" label="Off" />
-          </RadioGroup>
-        </SettingsCard>
-
         {/* After-meeting settings */}
         <SettingsCard>
           <SettingsCardTitle title="After-meeting settings" />
@@ -328,30 +308,9 @@ export function MeetingsSettingsTab({
                   id="recap_internal"
                   value="internal"
                   label="Only internal invitees"
-                  description="All invitees are in your workspace or have an @vektortms.com, @veido.com email."
+                  description="All invitees are in your workspace or have an @northwindlabs.com email."
                 />
                 <RadioRow id="recap_me" value="me" label="Just me" />
-              </RadioGroup>
-            </div>
-
-            <div className="border-t border-border/50 pt-5">
-              <h4 className="text-[13px] font-semibold text-foreground">Link access</h4>
-              <p className="text-[12px] text-muted-foreground mt-0.5 mb-3.5">
-                Manage who can view the meeting recording from a shared link.
-              </p>
-              <RadioGroup
-                value={settings.linkAccess}
-                onValueChange={(v) => updateSetting("linkAccess", v as MeetingSettings["linkAccess"])}
-                className="gap-4"
-              >
-                <RadioRow id="link_public" value="public" label="Public" />
-                <RadioRow
-                  id="link_workspace"
-                  value="workspace"
-                  label="Workspace"
-                  description="Anyone in your workspace."
-                />
-                <RadioRow id="link_private" value="private" label="Private" />
               </RadioGroup>
             </div>
 
@@ -371,7 +330,37 @@ export function MeetingsSettingsTab({
             </div>
           </div>
         </SettingsCard>
-      </div>
     </div>
+  );
+}
+
+/* Wrapper used on the Meetings page (scrollable column) */
+export function MeetingsSettingsTab(props: MeetingsSettingsTabProps) {
+  return (
+    <div className="flex-1 overflow-y-auto mt-5 pb-8 scrollbar-hide">
+      <MeetingsSettingsContent {...props} />
+    </div>
+  );
+}
+
+/* Self-contained panel for the app settings modal */
+export function MeetingsSettingsPanel() {
+  const { accounts, connecting, connectAccount, disconnectAccount } = useCalendarAccounts();
+  const [mode, setMode] = useState<AutoRecordMode>(loadAutoRecordMode);
+
+  const handleModeChange = (m: AutoRecordMode) => {
+    setMode(m);
+    saveAutoRecordMode(m);
+  };
+
+  return (
+    <MeetingsSettingsContent
+      accounts={accounts}
+      connecting={connecting}
+      onConnect={connectAccount}
+      onDisconnect={disconnectAccount}
+      autoRecordMode={mode}
+      onAutoRecordModeChange={handleModeChange}
+    />
   );
 }

@@ -73,7 +73,6 @@ export function CalendarMeetingCard({
     <div
       className={cn(
         "group rounded-xl border border-border bg-card px-5 py-4 mb-2.5 transition-all duration-150",
-        autoJoin && !isPast && !isLive && "bg-primary/[0.03] border-primary/15",
         isLive && "border-primary/40 bg-primary/[0.02]",
       )}
       style={{

@@ -26,7 +26,7 @@ const DEFAULT_ACCOUNTS: CalendarAccount[] = [
 const ACCOUNT_POOL: Record<CalendarProvider, Omit<CalendarAccount, "id">[]> = {
   google: [
     { provider: "google", email: "kutskirill22@gmail.com" },
-    { provider: "google", email: "kirill@vektortms.com" },
+    { provider: "google", email: "kirill@northwindlabs.com" },
   ],
   outlook: [
     { provider: "outlook", email: "kutskirill22@outlook.com" },

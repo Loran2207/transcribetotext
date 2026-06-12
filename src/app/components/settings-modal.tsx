@@ -8,6 +8,7 @@ import {
   Shield,
   Info,
   Mail,
+  Calendar,
   CreditCardIcon,
   Invoice01Icon,
   Shield01Icon,
@@ -19,6 +20,7 @@ import {
   PlanStatePreview,
   usePlanStatePreview,
 } from "./plan-management-page";
+import { MeetingsSettingsPanel } from "./calendar-settings";
 import { PrivacyPolicyPage } from "./privacy-policy-page";
 import { TermsOfUsePage } from "./terms-of-use-page";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -673,7 +675,7 @@ interface SettingsPageProps {
   onClose: () => void;
 }
 
-type SectionId = "account" | "plan" | "invoices" | "privacy" | "terms";
+type SectionId = "account" | "plan" | "meetings" | "invoices" | "privacy" | "terms";
 
 interface NavItem {
   id: SectionId;
@@ -686,6 +688,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { id: "account",  label: "Account",         icon: User },
   { id: "plan",     label: "Plan management", icon: CreditCardIcon },
+  { id: "meetings", label: "Meetings",        icon: Calendar },
   { id: "invoices", label: "Invoices",        icon: Invoice01Icon, disabled: true, badge: "Soon" },
   { id: "privacy",  label: "Privacy policy",  icon: Shield01Icon },
   { id: "terms",    label: "Terms of use",    icon: LegalDocument01Icon },
@@ -694,6 +697,7 @@ const NAV_ITEMS: NavItem[] = [
 const MAX_WIDTH: Record<SectionId, string> = {
   account:  "max-w-[560px]",
   plan:     "max-w-[880px]",
+  meetings: "max-w-[720px]",
   invoices: "max-w-[560px]",
   privacy:  "max-w-[1080px]",
   terms:    "max-w-[1080px]",
@@ -764,6 +768,7 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
           <div className={`${MAX_WIDTH[activeSection]} px-[32px] pt-6 pb-12`}>
             {activeSection === "account" && <AccountPage />}
             {activeSection === "plan" && <PlanManagementPage state={planState} />}
+            {activeSection === "meetings" && <MeetingsSettingsPanel />}
             {activeSection === "privacy" && <PrivacyPolicyPage />}
             {activeSection === "terms" && <TermsOfUsePage />}
           </div>

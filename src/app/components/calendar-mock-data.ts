@@ -24,9 +24,9 @@ export interface CalendarMeeting {
   autoJoin: boolean;
   language: LangCode;
   attendees: CalendarAttendee[];
+  videoLink?: string;
   /** Meeting is happening right now and being recorded */
   isLive?: boolean;
-  videoLink?: string;
 }
 
 export interface DayGroup {
@@ -36,10 +36,10 @@ export interface DayGroup {
 
 /** Map of meeting IDs to transcript URLs (past meetings that were transcribed) */
 export const TRANSCRIPT_MAP: Record<string, string> = {
-  m1: "/transcriptions/sprint-planning-mar30",
-  m2: "/transcriptions/vektor-daily-mar30",
-  m3: "/transcriptions/design-review-mar31",
-  m5: "/transcriptions/client-demo-apr01",
+  m1: "/transcriptions/5",
+  m2: "/transcriptions/2",
+  m3: "/transcriptions/11",
+  m5: "/transcriptions/6",
 };
 
 /** Map of meeting IDs to recording error reasons (past meetings that failed) */
@@ -47,8 +47,22 @@ export const RECORDING_ERROR_MAP: Record<string, string> = {
   m4: "Bot failed to join the meeting",
 };
 
+/* Fictional demo world: the user works at Northwind Labs;
+   clients are Acme Logistics, Brightline Media, Atlas Freight. */
+
+const KIRILL: CalendarAttendee = { name: "Kirill Kuts", email: "kutskirill22@gmail.com" };
+const SARAH: CalendarAttendee = { name: "Sarah Collins", email: "sarah.collins@northwindlabs.com" };
+const JAMES: CalendarAttendee = { name: "James Lee", email: "james.lee@northwindlabs.com" };
+const ANNA: CalendarAttendee = { name: "Anna Reyes", email: "anna.reyes@northwindlabs.com" };
+const ALEX: CalendarAttendee = { name: "Alex Morgan", email: "alex.morgan@northwindlabs.com" };
+const ROBERT: CalendarAttendee = { name: "Robert Hale", email: "robert.hale@northwindlabs.com" };
+const PRIYA: CalendarAttendee = { name: "Priya Nair", email: "priya.nair@northwindlabs.com" };
+const DANA: CalendarAttendee = { name: "Dana Whitfield", email: "dana@acmelogistics.com" };
+const MIA: CalendarAttendee = { name: "Mia Torres", email: "mia@brightline.media" };
+const ATLAS: CalendarAttendee = { name: "Atlas Partnerships", email: "partners@atlasfreight.io" };
+
 /**
- * Generate mock meetings for a given date range.
+ * Generate mock meetings for the demo date range.
  * Creates realistic recurring and one-off meetings.
  */
 export function generateMockMeetings(): CalendarMeeting[] {
@@ -59,17 +73,12 @@ export function generateMockMeetings(): CalendarMeeting[] {
       date: "2026-03-30",
       startTime: "09:00",
       endTime: "09:30",
-      title: "Sprint Planning",
+      title: "Sprint planning — mobile app",
       platform: "google-meet",
-      organizerEmail: "sarah@company.com",
+      organizerEmail: "sarah.collins@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Sarah Chen", email: "sarah@company.com" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Alex Tech", email: "alex.tech@company.com" },
-        { name: "Maria Lopez", email: "maria@company.com" },
-      ],
+      attendees: [SARAH, KIRILL, ALEX, JAMES],
       videoLink: "https://meet.google.com/abc-defg-hij",
     },
     {
@@ -77,52 +86,38 @@ export function generateMockMeetings(): CalendarMeeting[] {
       date: "2026-03-30",
       startTime: "14:00",
       endTime: "15:00",
-      title: "Vektor <> QL | Instance Daily Sync",
-      platform: "google-meet",
-      organizerEmail: "kirill@vektortms.com",
+      title: "Acme Logistics — onboarding call",
+      platform: "zoom",
+      organizerEmail: "dana@acmelogistics.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Maxim V.", email: "maxim@veido.com" },
-        { name: "Anna Design", email: "anna.design@company.com" },
-        { name: "David Park", email: "david@ql.io" },
-        { name: "Lisa Wang", email: "lisa@ql.io" },
-        { name: "Tom Brown", email: "tom@ql.io" },
-      ],
-      videoLink: "https://meet.google.com/xyz-uvwx-rst",
+      attendees: [DANA, KIRILL, SARAH],
+      videoLink: "https://zoom.us/j/12345678",
     },
     {
       id: "m3",
       date: "2026-03-31",
       startTime: "10:00",
       endTime: "11:00",
-      title: "Design Review — Mobile App",
-      platform: "zoom",
-      organizerEmail: "anna.design@company.com",
+      title: "Design review — booking flow",
+      platform: "google-meet",
+      organizerEmail: "anna.reyes@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Anna Design", email: "anna.design@company.com" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Sarah Chen", email: "sarah@company.com" },
-      ],
-      videoLink: "https://zoom.us/j/12345678",
+      attendees: [ANNA, KIRILL, SARAH, JAMES],
+      videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     {
       id: "m4",
       date: "2026-04-01",
       startTime: "11:00",
       endTime: "11:30",
-      title: "1:1 with Tech Lead",
+      title: "1:1 with tech lead",
       platform: "teams",
-      organizerEmail: "alex.tech@company.com",
+      organizerEmail: "alex.morgan@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Alex Tech", email: "alex.tech@company.com" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-      ],
+      attendees: [ALEX, KIRILL],
       videoLink: "https://teams.microsoft.com/l/meetup/19:abc",
     },
     {
@@ -130,20 +125,12 @@ export function generateMockMeetings(): CalendarMeeting[] {
       date: "2026-04-01",
       startTime: "15:00",
       endTime: "16:00",
-      title: "Client Demo — Q2 Features",
+      title: "Client demo — Q2 features",
       platform: "zoom",
-      organizerEmail: "sales@client.co",
+      organizerEmail: "mia@brightline.media",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Sales Rep", email: "sales@client.co" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Sarah Chen", email: "sarah@company.com" },
-        { name: "Alex Tech", email: "alex.tech@company.com" },
-        { name: "Client PM", email: "pm@client.co" },
-        { name: "Client CTO", email: "cto@client.co" },
-        { name: "Maria Lopez", email: "maria@company.com" },
-      ],
+      attendees: [MIA, KIRILL, SARAH, ALEX, PRIYA],
       videoLink: "https://zoom.us/j/87654321",
     },
     // Apr 2 (Thursday — "today")
@@ -154,16 +141,11 @@ export function generateMockMeetings(): CalendarMeeting[] {
       endTime: "14:30",
       title: "Weekly product sync — Q2 roadmap",
       platform: "google-meet",
-      organizerEmail: "sarah@company.com",
+      organizerEmail: "sarah.collins@northwindlabs.com",
       autoJoin: true,
       language: "en",
       isLive: true,
-      attendees: [
-        { name: "Sarah Chen", email: "sarah@company.com" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Alex Tech", email: "alex.tech@company.com" },
-        { name: "Maria Lopez", email: "maria@company.com" },
-      ],
+      attendees: [SARAH, KIRILL, ALEX, JAMES],
       videoLink: "https://meet.google.com/qwe-rtyu-iop",
     },
     {
@@ -176,28 +158,20 @@ export function generateMockMeetings(): CalendarMeeting[] {
       organizerEmail: "dana@acmelogistics.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Dana Whitfield", email: "dana@acmelogistics.com" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Sarah Chen", email: "sarah@company.com" },
-      ],
+      attendees: [DANA, KIRILL, SARAH],
       videoLink: "https://zoom.us/j/99887766",
     },
     {
       id: "m6",
       date: "2026-04-03",
       startTime: "14:00",
-      endTime: "15:00",
-      title: "Vektor <> QL | Instance Daily Sync",
+      endTime: "14:15",
+      title: "Daily standup — platform team",
       platform: "google-meet",
-      organizerEmail: "kirill@vektortms.com",
+      organizerEmail: "james.lee@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Maxim V.", email: "maxim@veido.com" },
-        { name: "David Park", email: "david@ql.io" },
-      ],
+      attendees: [JAMES, KIRILL, ALEX],
       videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     // Week 2: Apr 6-10
@@ -205,17 +179,13 @@ export function generateMockMeetings(): CalendarMeeting[] {
       id: "m7",
       date: "2026-04-06",
       startTime: "14:00",
-      endTime: "15:00",
-      title: "Vektor <> QL | Instance Daily Sync",
+      endTime: "14:15",
+      title: "Daily standup — platform team",
       platform: "google-meet",
-      organizerEmail: "kirill@vektortms.com",
+      organizerEmail: "james.lee@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Maxim V.", email: "maxim@veido.com" },
-        { name: "David Park", email: "david@ql.io" },
-      ],
+      attendees: [JAMES, KIRILL, ALEX],
       videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     {
@@ -223,54 +193,40 @@ export function generateMockMeetings(): CalendarMeeting[] {
       date: "2026-04-07",
       startTime: "16:00",
       endTime: "17:00",
-      title: "Vektor Product Team Sync",
+      title: "Marketing sync — spring campaign",
       platform: "google-meet",
-      organizerEmail: "maxim@veido.com",
+      organizerEmail: "priya.nair@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Maxim V.", email: "maxim@veido.com" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Anna Design", email: "anna.design@company.com" },
-        { name: "Sarah Chen", email: "sarah@company.com" },
-        { name: "Tom Brown", email: "tom@ql.io" },
-      ],
+      attendees: [PRIYA, KIRILL, ANNA, SARAH],
       videoLink: "https://meet.google.com/pqr-stuv-wxy",
     },
     {
       id: "m9",
       date: "2026-04-08",
       startTime: "14:00",
-      endTime: "15:00",
-      title: "Vektor <> QL | Instance Daily Sync",
+      endTime: "14:15",
+      title: "Daily standup — platform team",
       platform: "google-meet",
-      organizerEmail: "kirill@vektortms.com",
+      organizerEmail: "james.lee@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Maxim V.", email: "maxim@veido.com" },
-        { name: "David Park", email: "david@ql.io" },
-      ],
+      attendees: [JAMES, KIRILL, ALEX],
       videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     // Apr 9 — no meetings
     {
       id: "m10",
       date: "2026-04-10",
-      startTime: "14:00",
-      endTime: "15:00",
-      title: "Vektor <> QL | Instance Daily Sync",
-      platform: "google-meet",
-      organizerEmail: "kirill@vektortms.com",
+      startTime: "13:00",
+      endTime: "14:00",
+      title: "Sales discovery — Brightline Media",
+      platform: "zoom",
+      organizerEmail: "mia@brightline.media",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Maxim V.", email: "maxim@veido.com" },
-        { name: "David Park", email: "david@ql.io" },
-      ],
-      videoLink: "https://meet.google.com/xyz-uvwx-rst",
+      attendees: [MIA, KIRILL, SARAH],
+      videoLink: "https://zoom.us/j/55443322",
     },
     // Week 3: Apr 13-17
     {
@@ -278,37 +234,25 @@ export function generateMockMeetings(): CalendarMeeting[] {
       date: "2026-04-13",
       startTime: "09:00",
       endTime: "09:30",
-      title: "Sprint Planning",
+      title: "Sprint planning — mobile app",
       platform: "google-meet",
-      organizerEmail: "sarah@company.com",
+      organizerEmail: "sarah.collins@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Sarah Chen", email: "sarah@company.com" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Alex Tech", email: "alex.tech@company.com" },
-        { name: "Maria Lopez", email: "maria@company.com" },
-      ],
+      attendees: [SARAH, KIRILL, ALEX, JAMES],
       videoLink: "https://meet.google.com/abc-defg-hij",
     },
     {
       id: "m12",
       date: "2026-04-13",
       startTime: "14:00",
-      endTime: "15:00",
-      title: "Vektor <> QL | Instance Daily Sync",
+      endTime: "14:15",
+      title: "Daily standup — platform team",
       platform: "google-meet",
-      organizerEmail: "kirill@vektortms.com",
+      organizerEmail: "james.lee@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Maxim V.", email: "maxim@veido.com" },
-        { name: "David Park", email: "david@ql.io" },
-        { name: "Lisa Wang", email: "lisa@ql.io" },
-        { name: "Tom Brown", email: "tom@ql.io" },
-        { name: "Sarah Chen", email: "sarah@company.com" },
-      ],
+      attendees: [JAMES, KIRILL, ALEX, ANNA],
       videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
     {
@@ -316,21 +260,12 @@ export function generateMockMeetings(): CalendarMeeting[] {
       date: "2026-04-14",
       startTime: "10:00",
       endTime: "11:00",
-      title: "Engineering All-Hands",
+      title: "Engineering all-hands",
       platform: "zoom",
-      organizerEmail: "cto@company.com",
+      organizerEmail: "robert.hale@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "CTO", email: "cto@company.com" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Sarah Chen", email: "sarah@company.com" },
-        { name: "Alex Tech", email: "alex.tech@company.com" },
-        { name: "Anna Design", email: "anna.design@company.com" },
-        { name: "Maria Lopez", email: "maria@company.com" },
-        { name: "Tom Brown", email: "tom@ql.io" },
-        { name: "David Park", email: "david@ql.io" },
-      ],
+      attendees: [ROBERT, KIRILL, SARAH, ALEX, ANNA, JAMES, PRIYA],
       videoLink: "https://zoom.us/j/11223344",
     },
     {
@@ -338,16 +273,12 @@ export function generateMockMeetings(): CalendarMeeting[] {
       date: "2026-04-15",
       startTime: "13:00",
       endTime: "14:00",
-      title: "Partner Integration Call",
+      title: "Partner integration call — Atlas Freight",
       platform: "teams",
-      organizerEmail: "partnerships@partner.io",
+      organizerEmail: "partners@atlasfreight.io",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Partnerships", email: "partnerships@partner.io" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Alex Tech", email: "alex.tech@company.com" },
-      ],
+      attendees: [ATLAS, KIRILL, ALEX],
       videoLink: "https://teams.microsoft.com/l/meetup/19:xyz",
     },
     {
@@ -355,34 +286,25 @@ export function generateMockMeetings(): CalendarMeeting[] {
       date: "2026-04-16",
       startTime: "11:00",
       endTime: "12:00",
-      title: "UX Research Debrief",
+      title: "UX research debrief",
       platform: "zoom",
-      organizerEmail: "anna.design@company.com",
+      organizerEmail: "anna.reyes@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Anna Design", email: "anna.design@company.com" },
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Sarah Chen", email: "sarah@company.com" },
-        { name: "Maria Lopez", email: "maria@company.com" },
-      ],
+      attendees: [ANNA, KIRILL, SARAH, PRIYA],
       videoLink: "https://zoom.us/j/55667788",
     },
     {
       id: "m16",
       date: "2026-04-17",
       startTime: "14:00",
-      endTime: "15:00",
-      title: "Vektor <> QL | Instance Daily Sync",
+      endTime: "14:15",
+      title: "Daily standup — platform team",
       platform: "google-meet",
-      organizerEmail: "kirill@vektortms.com",
+      organizerEmail: "james.lee@northwindlabs.com",
       autoJoin: false,
       language: "en",
-      attendees: [
-        { name: "Kirill Kuts", email: "kirill@vektortms.com" },
-        { name: "Maxim V.", email: "maxim@veido.com" },
-        { name: "David Park", email: "david@ql.io" },
-      ],
+      attendees: [JAMES, KIRILL, ALEX],
       videoLink: "https://meet.google.com/xyz-uvwx-rst",
     },
   ];
@@ -496,7 +418,7 @@ export function getDayNameFull(d: Date): string {
 export function formatDayHeader(d: Date): string {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
-  return `${mm}/${dd} \u00b7 ${getDayNameFull(d)}`;
+  return `${mm}/${dd} · ${getDayNameFull(d)}`;
 }
 
 /** Full month name + year, e.g., "April 2026" */
@@ -519,7 +441,7 @@ export function formatWeekendHeader(sat: Date, sun: Date): string {
   return `${fmtDate(sat)} Saturday - ${fmtDate(sun)} Sunday`;
 }
 
-/** Compute "In Xh Ym" countdown from now to a meeting's start time */
+/** Compute "In Xh Ym" countdown from now to a meeting start time */
 export function formatCountdown(meetingDate: string, startTime: string, now: Date): string {
   const [y, mo, d] = meetingDate.split("-").map(Number);
   const [h, m] = startTime.split(":").map(Number);
