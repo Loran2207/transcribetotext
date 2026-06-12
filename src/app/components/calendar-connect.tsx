@@ -1,13 +1,6 @@
 import { Calendar, Shield01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/app/components/ui/dialog";
 import { PROVIDER_NAMES, type CalendarProvider } from "./calendar-accounts";
 
 interface ProviderInfo {
@@ -144,53 +137,14 @@ export function CalendarConnectScreen({ connecting, onConnect }: CalendarConnect
   );
 }
 
-/* Add calendar dialog — provider chooser */
-
-interface AddCalendarDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  connecting: CalendarProvider | null;
-  onConnect: (provider: CalendarProvider) => Promise<boolean>;
-}
-
-export function AddCalendarDialog({ open, onOpenChange, connecting, onConnect }: AddCalendarDialogProps) {
-  const handleConnect = async (provider: CalendarProvider) => {
-    const connected = await onConnect(provider);
-    if (connected) onOpenChange(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (connecting === null) onOpenChange(o); }}>
-      <DialogContent className="sm:max-w-[440px] p-6 gap-0">
-        <DialogHeader className="text-left space-y-1">
-          <DialogTitle className="text-[17px] font-semibold tracking-tight">
-            Add a calendar
-          </DialogTitle>
-          <DialogDescription className="text-[13px] text-muted-foreground">
-            Choose a provider to sync your meetings.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex flex-col gap-2.5 mt-5">
-          {PROVIDERS.map((p) => (
-            <ProviderRow key={p.id} provider={p} connecting={connecting} onConnect={handleConnect} />
-          ))}
-        </div>
-        <div className="mt-5">
-          <PrivacyNote />
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 /* Empty state — calendar connected but no meetings */
 
 interface CalendarEmptyStateProps {
-  onAddCalendar: () => void;
+  onOpenSettings: () => void;
   onRecordMeeting: () => void;
 }
 
-export function CalendarEmptyState({ onAddCalendar, onRecordMeeting }: CalendarEmptyStateProps) {
+export function CalendarEmptyState({ onOpenSettings, onRecordMeeting }: CalendarEmptyStateProps) {
   return (
     <div className="flex-1 flex items-center justify-center pb-16">
       <div className="flex flex-col items-center text-center max-w-[400px] px-4">
@@ -211,9 +165,9 @@ export function CalendarEmptyState({ onAddCalendar, onRecordMeeting }: CalendarE
           <Button
             variant="pill-outline"
             className="h-9 px-4 text-[13px] font-medium"
-            onClick={onAddCalendar}
+            onClick={onOpenSettings}
           >
-            Add calendar
+            Manage calendars
           </Button>
         </div>
       </div>

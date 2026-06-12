@@ -4,10 +4,18 @@ import {
   ChevronLeft,
   ChevronRight,
   FlashIcon,
+  InformationCircleIcon,
+  RefreshIcon,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
-import { TooltipProvider } from "@/app/components/ui/tooltip";
+import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/app/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { cn } from "@/app/components/ui/utils";
 import { useLanguage, type LangCode } from "./language-context";
@@ -17,16 +25,22 @@ import { CalendarMeetingCard } from "./calendar-meeting-card";
 import {
   CalendarConnectScreen,
   CalendarEmptyState,
-  AddCalendarDialog,
-  ProviderLogo,
-  ConnectingSpinner,
+  GoogleCalendarLogo,
+  OutlookLogo,
 } from "./calendar-connect";
 import {
   useCalendarAccounts,
   PROVIDER_NAMES,
-  type CalendarProvider,
   type CalendarAccount,
+  type CalendarProvider,
 } from "./calendar-accounts";
+import {
+  MeetingsSettingsTab,
+  AUTO_RECORD_OPTIONS,
+  loadAutoRecordMode,
+  saveAutoRecordMode,
+  type AutoRecordMode,
+} from "./calendar-settings";
 import {
   generateMockMeetings,
   getWeekStart,
@@ -43,6 +57,9 @@ import {
 const TODAY = new Date(2026, 3, 2); // April 2, 2026
 const TODAY_ISO = toISODate(TODAY);
 const ALL_MOCK_MEETINGS = generateMockMeetings();
+
+/** Content column cap so cards stay readable on wide monitors */
+const CONTENT_MAX_W = "max-w-[880px]";
 
 /**
  * Demo flag: ttt_cal_state
@@ -81,8 +98,7 @@ function formatGroupHeader(dateISO: string, todayISO: string): string {
    Calendar Page
    ═══════════════════════════════════════════ */
 
-type MeetingsTab = "upcoming" | "past";
-type AutoRecordMode = "all" | "manual";
+type MeetingsTab = "upcoming" | "past" | "settings";
 
 export function CalendarPage() {
   const { t } = useLanguage();
@@ -93,9 +109,7 @@ export function CalendarPage() {
     connecting,
     connectAccount,
     disconnectAccount,
-    toggleCalendar,
   } = useCalendarAccounts();
-  const [addCalendarOpen, setAddCalendarOpen] = useState(false);
 
   const isDisconnected = accounts.length === 0;
   const showEmptyDemo = isEmptyDemoState();
@@ -108,7 +122,11 @@ export function CalendarPage() {
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(TODAY));
   const [selectedDate, setSelectedDate] = useState<string>(TODAY_ISO);
   const [activeTab, setActiveTab] = useState<MeetingsTab>("upcoming");
-  const [autoRecordMode, setAutoRecordMode] = useState<AutoRecordMode>("all");
+  const [autoRecordMode, setAutoRecordMode] = useState<AutoRecordMode>(loadAutoRecordMode);
+
+  // Calendar sync indicator (demo)
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [justSynced, setJustSynced] = useState(false);
 
   // Show "Today" button only when navigated away from the current week
   const isOnCurrentWeek = useMemo(() => {
@@ -187,6 +205,20 @@ export function CalendarPage() {
     setMeetingLanguages((prev) => ({ ...prev, [meetingId]: lang }));
   }, []);
 
+  const handleAutoRecordModeChange = useCallback((mode: AutoRecordMode) => {
+    setAutoRecordMode(mode);
+    saveAutoRecordMode(mode);
+  }, []);
+
+  const handleSync = useCallback(() => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    window.setTimeout(() => {
+      setIsSyncing(false);
+      setJustSynced(true);
+    }, 900);
+  }, [isSyncing]);
+
   // Counts
   const upcomingCount = useMemo(
     () => meetings.filter((m) => m.date >= TODAY_ISO).length,
@@ -209,6 +241,19 @@ export function CalendarPage() {
     }
     return allGroups.filter((g) => g.date < TODAY_ISO).reverse();
   }, [allGroups, activeTab]);
+
+  const syncStatus = (
+    <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground/70">
+      <span>{justSynced ? "Calendar synced just now" : "Calendar last synced 12 min ago"}</span>
+      <button
+        onClick={handleSync}
+        className="flex items-center justify-center size-5 rounded-full hover:bg-accent hover:text-foreground transition-colors"
+        aria-label="Sync calendars"
+      >
+        <Icon icon={RefreshIcon} size={12} className={cn(isSyncing && "animate-spin")} />
+      </button>
+    </div>
+  );
 
   /* ── Disconnected: full-page connect screen ── */
   if (isDisconnected) {
@@ -233,44 +278,12 @@ export function CalendarPage() {
   return (
     <TooltipProvider>
       <div className="flex-1 flex flex-col overflow-hidden px-8 pt-7 pb-0">
-        {/* Row 1: Title + Auto-record + Today + Record button (full width) */}
+        {/* Row 1: Title + Today + Record button (full width) */}
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-foreground font-bold text-[28px] leading-[33.6px] tracking-[-0.56px]">
             Meetings
           </h1>
           <div className="flex items-center gap-3 shrink-0">
-            {/* Auto-record */}
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
-                <Icon icon={FlashIcon} size={14} className="text-primary" />
-                Auto-record:
-              </div>
-              <div className="flex items-center gap-0.5 rounded-lg border border-border bg-muted/40 p-0.5">
-                <button
-                  onClick={() => setAutoRecordMode("all")}
-                  className={cn(
-                    "px-3 py-1 rounded-md text-[12px] font-medium transition-all",
-                    autoRecordMode === "all"
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  All meetings
-                </button>
-                <button
-                  onClick={() => setAutoRecordMode("manual")}
-                  className={cn(
-                    "px-3 py-1 rounded-md text-[12px] font-medium transition-all",
-                    autoRecordMode === "manual"
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  Manual select
-                </button>
-              </div>
-            </div>
-
             {/* Today button — only visible when navigated away */}
             <motion.div
               initial={false}
@@ -299,13 +312,12 @@ export function CalendarPage() {
           </div>
         </div>
 
-        {/* Two-column layout: content + sidebar */}
-        <div className="flex-1 flex gap-6 overflow-hidden mt-4">
-          {/* ── Left column: tabs, week strip, cards ── */}
-          <div className="flex-1 min-w-0 flex flex-col">
-            {/* Tabs */}
+        {/* Content column — capped width so it reads well on wide monitors */}
+        <div className={cn("flex-1 min-w-0 flex flex-col w-full mt-4 overflow-hidden", CONTENT_MAX_W)}>
+          {/* Tabs + connected calendars indicator */}
+          <div className="flex items-end justify-between border-b border-border">
             <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as MeetingsTab)} className="gap-0">
-              <TabsList variant="line" className="gap-6 w-full justify-start">
+              <TabsList variant="line" className="gap-6 justify-start border-0">
                 <TabsTrigger value="upcoming" variant="line">
                   Upcoming meetings
                   <span className="opacity-50 font-[inherit]">{upcomingCount}</span>
@@ -314,86 +326,196 @@ export function CalendarPage() {
                   Past meetings
                   <span className="opacity-50 font-[inherit]">{pastCount}</span>
                 </TabsTrigger>
+                <TabsTrigger value="settings" variant="line">
+                  Settings
+                </TabsTrigger>
               </TabsList>
             </Tabs>
 
-            {/* Week strip with arrows */}
-            <div className="mt-4 flex items-end border-b border-border/30">
-              <button
-                onClick={() => handleWeekChange("prev")}
-                className="shrink-0 size-8 mb-3 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                aria-label={t("calendar.prevWeek")}
-              >
-                <Icon icon={ChevronLeft} size={16} />
-              </button>
-              <div className="flex-1 min-w-0">
-                <CalendarWeekStrip
-                  weekStart={weekStart}
-                  selectedDate={selectedDate}
-                  todayISO={TODAY_ISO}
-                  meetingCounts={meetingCounts}
-                  onDaySelect={handleDaySelect}
-                />
-              </div>
-              <button
-                onClick={() => handleWeekChange("next")}
-                className="shrink-0 size-8 mb-3 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                aria-label={t("calendar.nextWeek")}
-              >
-                <Icon icon={ChevronRight} size={16} />
-              </button>
-            </div>
-
-            {/* Meeting list — scrollable */}
-            {meetings.length === 0 ? (
-              <CalendarEmptyState
-                onAddCalendar={() => setAddCalendarOpen(true)}
-                onRecordMeeting={() => setOpenModal("meeting")}
-              />
-            ) : (
-              <div className="flex-1 overflow-y-auto mt-5 pb-6 scrollbar-hide">
-                <motion.div
-                  key={activeTab}
-                  initial={prefersReducedMotion ? undefined : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <MeetingList
-                    dayGroups={filteredGroups}
-                    dayRefs={dayRefs}
-                    autoJoinStates={autoJoinStates}
-                    meetingLanguages={meetingLanguages}
-                    onAutoJoinToggle={handleAutoJoinToggle}
-                    onLanguageChange={handleLanguageChange}
-                    prefersReducedMotion={prefersReducedMotion}
-                    todayISO={TODAY_ISO}
-                    nextMeetingId={nextMeeting?.id ?? null}
-                  />
-                </motion.div>
-              </div>
-            )}
+            <ConnectedCalendarsIndicator
+              accounts={accounts}
+              onClick={() => setActiveTab("settings")}
+            />
           </div>
 
-          {/* ── Right column: My Calendars ── */}
-          <aside className="w-[248px] shrink-0 hidden lg:block pt-1">
-            <MyCalendarsPanel
+          {activeTab === "settings" ? (
+            <MeetingsSettingsTab
               accounts={accounts}
               connecting={connecting}
               onConnect={connectAccount}
               onDisconnect={disconnectAccount}
-              onToggleCalendar={toggleCalendar}
+              autoRecordMode={autoRecordMode}
+              onAutoRecordModeChange={handleAutoRecordModeChange}
             />
-          </aside>
+          ) : (
+            <>
+              {/* Auto-record bar — full content width, upcoming only */}
+              {activeTab === "upcoming" && (
+                <div className="mt-4 flex items-center rounded-xl border border-border bg-card px-4 py-2.5">
+                  <div className="flex items-center gap-1.5 text-[13px] font-medium text-foreground shrink-0 pr-3">
+                    <Icon icon={FlashIcon} size={14} className="text-primary" />
+                    Auto-record:
+                  </div>
+                  <RadioGroup
+                    value={autoRecordMode}
+                    onValueChange={(v) => handleAutoRecordModeChange(v as AutoRecordMode)}
+                    className="flex items-center gap-0 flex-1 min-w-0"
+                  >
+                    {AUTO_RECORD_OPTIONS.map((o, idx) => (
+                      <div
+                        key={o.value}
+                        className={cn(
+                          "flex items-center gap-2 px-3.5",
+                          idx > 0 && "border-l border-border/60",
+                        )}
+                      >
+                        <RadioGroupItem value={o.value} id={`bar_${o.value}`} />
+                        <label
+                          htmlFor={`bar_${o.value}`}
+                          className="text-[13px] text-foreground cursor-pointer whitespace-nowrap"
+                        >
+                          {o.barLabel}
+                        </label>
+                        {o.hint && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex items-center text-muted-foreground/60 hover:text-muted-foreground transition-colors">
+                                <Icon icon={InformationCircleIcon} size={13} />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" className="text-xs max-w-[300px]">
+                              {o.hint}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              )}
+
+              {/* Week strip with arrows */}
+              <div className="mt-4 flex items-end border-b border-border/30">
+                <button
+                  onClick={() => handleWeekChange("prev")}
+                  className="shrink-0 size-8 mb-3 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  aria-label={t("calendar.prevWeek")}
+                >
+                  <Icon icon={ChevronLeft} size={16} />
+                </button>
+                <div className="flex-1 min-w-0">
+                  <CalendarWeekStrip
+                    weekStart={weekStart}
+                    selectedDate={selectedDate}
+                    todayISO={TODAY_ISO}
+                    meetingCounts={meetingCounts}
+                    onDaySelect={handleDaySelect}
+                  />
+                </div>
+                <button
+                  onClick={() => handleWeekChange("next")}
+                  className="shrink-0 size-8 mb-3 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  aria-label={t("calendar.nextWeek")}
+                >
+                  <Icon icon={ChevronRight} size={16} />
+                </button>
+              </div>
+
+              {/* Meeting list — scrollable */}
+              {meetings.length === 0 ? (
+                <CalendarEmptyState
+                  onOpenSettings={() => setActiveTab("settings")}
+                  onRecordMeeting={() => setOpenModal("meeting")}
+                />
+              ) : (
+                <div className="flex-1 overflow-y-auto mt-5 pb-6 scrollbar-hide">
+                  <motion.div
+                    key={activeTab}
+                    initial={prefersReducedMotion ? undefined : { opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <MeetingList
+                      dayGroups={filteredGroups}
+                      dayRefs={dayRefs}
+                      autoJoinStates={autoJoinStates}
+                      meetingLanguages={meetingLanguages}
+                      onAutoJoinToggle={handleAutoJoinToggle}
+                      onLanguageChange={handleLanguageChange}
+                      prefersReducedMotion={prefersReducedMotion}
+                      todayISO={TODAY_ISO}
+                      nextMeetingId={nextMeeting?.id ?? null}
+                      firstGroupExtra={activeTab === "upcoming" ? syncStatus : null}
+                    />
+                  </motion.div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
-
-      <AddCalendarDialog
-        open={addCalendarOpen}
-        onOpenChange={setAddCalendarOpen}
-        connecting={connecting}
-        onConnect={connectAccount}
-      />
     </TooltipProvider>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   Connected calendars indicator (tabs row)
+   ═══════════════════════════════════════════ */
+
+const INDICATOR_PROVIDERS: CalendarProvider[] = ["google", "outlook"];
+
+interface ConnectedCalendarsIndicatorProps {
+  accounts: CalendarAccount[];
+  onClick: () => void;
+}
+
+function ConnectedCalendarsIndicator({ accounts, onClick }: ConnectedCalendarsIndicatorProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onClick}
+          className="hidden sm:flex items-center gap-2 pb-2.5 pr-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors shrink-0"
+        >
+          <span className="flex items-center gap-1">
+            {INDICATOR_PROVIDERS.map((provider) => {
+              const isConnected = accounts.some((a) => a.provider === provider);
+              return (
+                <span
+                  key={provider}
+                  className={cn("flex items-center", !isConnected && "grayscale opacity-35")}
+                >
+                  {provider === "google"
+                    ? <GoogleCalendarLogo size={14} />
+                    : <OutlookLogo size={14} />}
+                </span>
+              );
+            })}
+          </span>
+          <span>
+            {accounts.length} {accounts.length === 1 ? "calendar" : "calendars"} connected
+          </span>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" align="end" className="text-xs">
+        <div className="flex flex-col gap-1">
+          {INDICATOR_PROVIDERS.map((provider) => {
+            const providerAccounts = accounts.filter((a) => a.provider === provider);
+            return (
+              <div key={provider}>
+                <span className="font-medium">{PROVIDER_NAMES[provider]}:</span>{" "}
+                {providerAccounts.length > 0
+                  ? providerAccounts.map((a) => a.email).join(", ")
+                  : "not connected"}
+              </div>
+            );
+          })}
+          <div className="text-muted-foreground/40 dark:text-muted-foreground mt-0.5">
+            Manage in Settings
+          </div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -411,6 +533,8 @@ interface MeetingListProps {
   prefersReducedMotion: boolean | null;
   todayISO: string;
   nextMeetingId: string | null;
+  /** Rendered right-aligned in the first day group header (e.g., sync status) */
+  firstGroupExtra?: React.ReactNode;
 }
 
 function MeetingList({
@@ -423,6 +547,7 @@ function MeetingList({
   prefersReducedMotion,
   todayISO,
   nextMeetingId,
+  firstGroupExtra,
 }: MeetingListProps) {
   if (dayGroups.length === 0) {
     return (
@@ -452,13 +577,14 @@ function MeetingList({
                   transition: { duration: 0.3, delay: staggerDelay, ease: [0.22, 1, 0.36, 1] },
                 })}
           >
-            <div className="mb-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
               <h3 className={cn(
                 "text-[14px] font-semibold tracking-tight",
                 isToday ? "text-primary" : "text-foreground",
               )}>
                 {headerLabel}
               </h3>
+              {groupIdx === 0 && firstGroupExtra}
             </div>
             {group.meetings.length === 0 && (
               <div className="rounded-xl bg-muted/50 py-5 px-6 flex items-center justify-center">
@@ -484,137 +610,5 @@ function MeetingList({
         );
       })}
     </>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   My Calendars panel — accounts grouped by provider
-   ═══════════════════════════════════════════ */
-
-const PROVIDER_ORDER: CalendarProvider[] = ["google", "outlook"];
-
-interface MyCalendarsPanelProps {
-  accounts: CalendarAccount[];
-  connecting: CalendarProvider | null;
-  onConnect: (provider: CalendarProvider) => Promise<boolean>;
-  onDisconnect: (accountId: string) => void;
-  onToggleCalendar: (accountId: string, calendarId: string) => void;
-}
-
-function MyCalendarsPanel({
-  accounts,
-  connecting,
-  onConnect,
-  onDisconnect,
-  onToggleCalendar,
-}: MyCalendarsPanelProps) {
-  const { t } = useLanguage();
-
-  return (
-    <div>
-      <h4 className="text-[14px] font-semibold text-foreground mb-3.5">
-        {t("calendar.myCalendars")}
-      </h4>
-
-      <div className="flex flex-col">
-        {PROVIDER_ORDER.map((provider, idx) => {
-          const providerAccounts = accounts.filter((a) => a.provider === provider);
-          const isConnecting = connecting === provider;
-
-          return (
-            <div
-              key={provider}
-              className={cn(
-                "pb-4",
-                idx > 0 && "pt-4 border-t border-border/50",
-              )}
-            >
-              {/* Provider header */}
-              <div className="flex items-center gap-2">
-                <ProviderLogo provider={provider} size={16} />
-                <span className="text-[13px] font-semibold text-foreground flex-1 min-w-0 truncate">
-                  {PROVIDER_NAMES[provider]}
-                </span>
-                <Button
-                  variant="pill-outline"
-                  className="h-6.5 px-3 text-[11px] font-medium shrink-0 gap-1"
-                  disabled={connecting !== null}
-                  onClick={() => onConnect(provider)}
-                >
-                  {isConnecting && <ConnectingSpinner size={11} />}
-                  {isConnecting
-                    ? "Connecting..."
-                    : providerAccounts.length > 0
-                      ? "Add"
-                      : "Connect"}
-                </Button>
-              </div>
-
-              {/* Accounts */}
-              {providerAccounts.length === 0 ? (
-                <p className="text-[12px] text-muted-foreground/50 mt-2 pl-6">
-                  Not connected
-                </p>
-              ) : (
-                providerAccounts.map((account) => (
-                  <div key={account.id} className="mt-2.5 pl-6">
-                    <div className="group/account flex items-center gap-2">
-                      <span className="text-[12px] font-medium text-foreground/70 truncate flex-1 min-w-0">
-                        {account.email}
-                      </span>
-                      <button
-                        className="text-[11px] text-muted-foreground/60 hover:text-destructive opacity-0 group-hover/account:opacity-100 focus-visible:opacity-100 transition-opacity shrink-0"
-                        onClick={() => onDisconnect(account.id)}
-                      >
-                        Disconnect
-                      </button>
-                    </div>
-
-                    <div className="flex flex-col gap-2 mt-2">
-                      {account.calendars.map((cal) => (
-                        <div key={cal.id} className="flex items-center gap-2.5">
-                          <button
-                            onClick={() => onToggleCalendar(account.id, cal.id)}
-                            className="flex items-center justify-center shrink-0"
-                            aria-label={`Toggle ${cal.name}`}
-                          >
-                            <div
-                              className={cn(
-                                "size-4 rounded flex items-center justify-center transition-all duration-150",
-                                cal.enabled
-                                  ? "border-[1.5px]"
-                                  : "border-[1.5px] border-muted-foreground/25 bg-transparent",
-                              )}
-                              style={cal.enabled ? { backgroundColor: cal.color, borderColor: cal.color } : undefined}
-                            >
-                              {cal.enabled && (
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="text-white">
-                                  <path d="M2 5.5L4 7.5L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              )}
-                            </div>
-                          </button>
-                          <span className={cn(
-                            "text-[12px] truncate flex-1 transition-colors",
-                            cal.enabled ? "text-foreground/80" : "text-muted-foreground/40 line-through",
-                          )}>
-                            {cal.name}
-                          </span>
-                          {cal.isPrimary && (
-                            <span className="text-[10px] text-muted-foreground/40 shrink-0">
-                              {t("calendar.default")}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
   );
 }

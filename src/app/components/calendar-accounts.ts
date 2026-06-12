@@ -8,19 +8,10 @@ export const PROVIDER_NAMES: Record<CalendarProvider, string> = {
   outlook: "Outlook Calendar",
 };
 
-export interface AccountCalendar {
-  id: string;
-  name: string;
-  color: string;
-  enabled: boolean;
-  isPrimary?: boolean;
-}
-
 export interface CalendarAccount {
   id: string;
   provider: CalendarProvider;
   email: string;
-  calendars: AccountCalendar[];
 }
 
 const ACCOUNTS_KEY = "ttt_cal_accounts";
@@ -28,46 +19,17 @@ const CAL_STATE_KEY = "ttt_cal_state";
 const CONNECT_DELAY_MS = 1100;
 
 const DEFAULT_ACCOUNTS: CalendarAccount[] = [
-  {
-    id: "acc_google_1",
-    provider: "google",
-    email: "kutskirill22@gmail.com",
-    calendars: [
-      { id: "g1_main", name: "kutskirill22@gmail.com", color: "#4285F4", enabled: true, isPrimary: true },
-      { id: "g1_holidays", name: "Holidays in Belarus", color: "#0D9488", enabled: true },
-    ],
-  },
+  { id: "acc_google_1", provider: "google", email: "kutskirill22@gmail.com" },
 ];
 
 /** Demo accounts handed out when the user connects more providers/accounts */
 const ACCOUNT_POOL: Record<CalendarProvider, Omit<CalendarAccount, "id">[]> = {
   google: [
-    {
-      provider: "google",
-      email: "kutskirill22@gmail.com",
-      calendars: [
-        { id: "g1_main", name: "kutskirill22@gmail.com", color: "#4285F4", enabled: true, isPrimary: true },
-        { id: "g1_holidays", name: "Holidays in Belarus", color: "#0D9488", enabled: true },
-      ],
-    },
-    {
-      provider: "google",
-      email: "kirill@vektortms.com",
-      calendars: [
-        { id: "g2_main", name: "kirill@vektortms.com", color: "#F4511E", enabled: true, isPrimary: true },
-        { id: "g2_team", name: "Vektor team events", color: "#8E24AA", enabled: true },
-      ],
-    },
+    { provider: "google", email: "kutskirill22@gmail.com" },
+    { provider: "google", email: "kirill@vektortms.com" },
   ],
   outlook: [
-    {
-      provider: "outlook",
-      email: "kutskirill22@outlook.com",
-      calendars: [
-        { id: "o1_main", name: "Calendar", color: "#106EBE", enabled: true, isPrimary: true },
-        { id: "o1_birthdays", name: "Birthdays", color: "#C239B3", enabled: true },
-      ],
-    },
+    { provider: "outlook", email: "kutskirill22@outlook.com" },
   ],
 };
 
@@ -100,7 +62,6 @@ export interface UseCalendarAccountsReturn {
   /** Resolves true once the account is connected, false if nothing left to connect */
   connectAccount: (provider: CalendarProvider) => Promise<boolean>;
   disconnectAccount: (accountId: string) => void;
-  toggleCalendar: (accountId: string, calendarId: string) => void;
 }
 
 export function useCalendarAccounts(): UseCalendarAccountsReturn {
@@ -122,7 +83,7 @@ export function useCalendarAccounts(): UseCalendarAccountsReturn {
         window.setTimeout(() => {
           setAccounts((prev) => {
             if (prev.some((x) => x.email === candidate.email)) return prev;
-            const next = [...prev, { ...candidate, id: `acc_${provider}_${prev.length + 1}_${candidate.email}` }];
+            const next = [...prev, { ...candidate, id: `acc_${provider}_${candidate.email}` }];
             saveAccounts(next);
             return next;
           });
@@ -145,22 +106,5 @@ export function useCalendarAccounts(): UseCalendarAccountsReturn {
     });
   }, []);
 
-  const toggleCalendar = useCallback((accountId: string, calendarId: string) => {
-    setAccounts((prev) => {
-      const next = prev.map((a) =>
-        a.id === accountId
-          ? {
-              ...a,
-              calendars: a.calendars.map((c) =>
-                c.id === calendarId ? { ...c, enabled: !c.enabled } : c,
-              ),
-            }
-          : a,
-      );
-      saveAccounts(next);
-      return next;
-    });
-  }, []);
-
-  return { accounts, connecting, connectAccount, disconnectAccount, toggleCalendar };
+  return { accounts, connecting, connectAccount, disconnectAccount };
 }
