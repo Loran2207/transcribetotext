@@ -167,7 +167,7 @@ export function CalendarMeetingCard({
               variant="pill-outline"
               size="sm"
               className="h-7 px-3.5 text-[12px] rounded-full"
-              onClick={() => navigate(transcriptUrl)}
+              onClick={() => navigate(transcriptUrl, { state: { from: "meetings" } })}
             >
               View recording
             </Button>

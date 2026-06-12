@@ -2245,7 +2245,19 @@ export function TranscriptionDetailPage() {
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         <div className="flex items-center justify-between gap-3 px-8 pt-4">
           <div className="min-w-0">
-            {selectedFolder ? (
+            {(location.state as { from?: string } | null)?.from === "meetings" ? (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <button
+                  type="button"
+                  className="rounded-full px-1.5 py-0.5 transition-colors hover:bg-muted/45 hover:text-foreground"
+                  onClick={() => navigate("/", { state: { page: "calendar" } })}
+                >
+                  Meetings
+                </button>
+                <span className="text-muted-foreground/50">/</span>
+                <span className="truncate text-xs text-muted-foreground">{title}</span>
+              </div>
+            ) : selectedFolder ? (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <button
                   type="button"

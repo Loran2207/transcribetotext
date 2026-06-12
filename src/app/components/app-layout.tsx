@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { Puzzle } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -22,6 +22,15 @@ export function AppLayout() {
 
   const isSettings = activePage === "settings";
   const isSubRoute = location.pathname !== "/";
+
+  // Deep-link back into an app page (e.g. detail page breadcrumb -> Meetings)
+  useEffect(() => {
+    const st = location.state as { page?: string } | null;
+    if (location.pathname === "/" && st?.page) {
+      prevPageRef.current = st.page;
+      setActivePage(st.page);
+    }
+  }, [location]);
 
   function handleNavigate(page: string) {
     // If on a sub-route, navigate back to root first
