@@ -191,8 +191,8 @@ export function CalendarMeetingCard({
           {/* Upcoming: hover actions */}
           {!isPast && !isLive && (
             <div className={cn(
-              "flex items-center gap-1.5 transition-opacity duration-150",
-              isNextMeeting ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+              "items-center gap-1.5",
+              isNextMeeting ? "flex" : "hidden group-hover:flex",
             )}>
               <Button
                 variant="pill-outline"
