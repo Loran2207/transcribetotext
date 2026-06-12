@@ -1,4 +1,14 @@
 import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
 import { Button } from "@/app/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group";
 import { cn } from "@/app/components/ui/utils";
@@ -159,6 +169,8 @@ interface CalendarSectionProps {
 }
 
 function CalendarSection({ accounts, connecting, onConnect, onDisconnect }: CalendarSectionProps) {
+  const [pendingDisconnect, setPendingDisconnect] = useState<CalendarAccount | null>(null);
+
   return (
     <SettingsCard>
       <SettingsCardTitle
@@ -209,7 +221,7 @@ function CalendarSection({ accounts, connecting, onConnect, onDisconnect }: Cale
                       <Button
                         variant="pill-outline"
                         className="h-7 px-3.5 text-[12px] font-medium shrink-0 text-muted-foreground hover:text-destructive hover:border-destructive/40"
-                        onClick={() => onDisconnect(account.id)}
+                        onClick={() => setPendingDisconnect(account)}
                       >
                         Disconnect
                       </Button>
@@ -221,6 +233,31 @@ function CalendarSection({ accounts, connecting, onConnect, onDisconnect }: Cale
           );
         })}
       </div>
+
+      <AlertDialog open={!!pendingDisconnect} onOpenChange={(open) => { if (!open) setPendingDisconnect(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect calendar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDisconnect
+                ? `Meetings from ${pendingDisconnect.email} will no longer appear here or be recorded. You can reconnect this account anytime.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDisconnect) onDisconnect(pendingDisconnect.id);
+                setPendingDisconnect(null);
+              }}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Disconnect
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </SettingsCard>
   );
 }

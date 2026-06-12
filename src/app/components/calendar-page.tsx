@@ -336,6 +336,36 @@ export function CalendarPage() {
             />
         </div>
 
+        {/* Week strip — full width */}
+        {activeTab !== "settings" && (
+          <div className="mt-4 flex items-end border-b border-border/30">
+            <button
+              onClick={() => handleWeekChange("prev")}
+              className="shrink-0 size-8 mb-3 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              aria-label={t("calendar.prevWeek")}
+            >
+              <Icon icon={ChevronLeft} size={16} />
+            </button>
+            <div className="flex-1 min-w-0">
+              <CalendarWeekStrip
+                weekStart={weekStart}
+                selectedDate={selectedDate}
+                todayISO={TODAY_ISO}
+                meetingCounts={meetingCounts}
+                onDaySelect={handleDaySelect}
+              />
+            </div>
+            <button
+              onClick={() => handleWeekChange("next")}
+              className="shrink-0 size-8 mb-3 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              aria-label={t("calendar.nextWeek")}
+            >
+              <Icon icon={ChevronRight} size={16} />
+            </button>
+          </div>
+        )}
+
+
         {/* Content column — capped and centered for wide monitors */}
         <div className={cn("flex-1 min-w-0 flex flex-col w-full mx-auto overflow-hidden", CONTENT_MAX_W)}>
           {activeTab === "settings" ? (
@@ -393,33 +423,6 @@ export function CalendarPage() {
                   </RadioGroup>
                 </div>
               )}
-
-              {/* Week strip with arrows */}
-              <div className="mt-4 flex items-end border-b border-border/30">
-                <button
-                  onClick={() => handleWeekChange("prev")}
-                  className="shrink-0 size-8 mb-3 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  aria-label={t("calendar.prevWeek")}
-                >
-                  <Icon icon={ChevronLeft} size={16} />
-                </button>
-                <div className="flex-1 min-w-0">
-                  <CalendarWeekStrip
-                    weekStart={weekStart}
-                    selectedDate={selectedDate}
-                    todayISO={TODAY_ISO}
-                    meetingCounts={meetingCounts}
-                    onDaySelect={handleDaySelect}
-                  />
-                </div>
-                <button
-                  onClick={() => handleWeekChange("next")}
-                  className="shrink-0 size-8 mb-3 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  aria-label={t("calendar.nextWeek")}
-                >
-                  <Icon icon={ChevronRight} size={16} />
-                </button>
-              </div>
 
               {/* Meeting list — scrollable */}
               {meetings.length === 0 ? (
