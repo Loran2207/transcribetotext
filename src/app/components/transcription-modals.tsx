@@ -574,6 +574,10 @@ export function TranscriptionModalsProvider({
     let transcriptionPct = 0;
 
     const tickTranscription = () => {
+      if (typeof window !== "undefined" && (window as unknown as { __tttFreezeUploads?: boolean }).__tttFreezeUploads) {
+        setTimeout(tickTranscription, 400);
+        return;
+      }
       transcriptionPct += Math.random() * 10 + 4;
       if (transcriptionPct >= 100) {
         transcriptionPct = 100;
@@ -614,6 +618,10 @@ export function TranscriptionModalsProvider({
     };
 
     const tickUpload = () => {
+      if (typeof window !== "undefined" && (window as unknown as { __tttFreezeUploads?: boolean }).__tttFreezeUploads) {
+        setTimeout(tickUpload, 400);
+        return;
+      }
       uploadPct += Math.random() * 14 + 6;
       if (uploadPct >= 100) {
         uploadPct = 100;
