@@ -27,6 +27,8 @@ const team: Scenario = {
       { speaker: "Kirill Kuts", time: "03:48", text: "Design is ready for the first two screens. The blocker right now is the pricing API - we are still waiting on the contract from the platform team." },
       { speaker: "Alex Morgan", time: "11:25", text: "I can have the pricing endpoints stubbed by Friday so mobile is not blocked. The real integration lands next sprint." },
       { speaker: "James Lee", time: "24:02", text: "One risk to flag: the analytics migration overlaps with the booking work. If both slip we lose the May window." },
+      { speaker: "Sarah Collins", time: "27:30", text: "Agreed. Let me take the May window to leadership and confirm we are protected on the analytics side." },
+      { speaker: "Kirill Kuts", time: "30:15", text: "And I will have the remaining three booking screens in review by next Wednesday." },
     ],
   },
   content: {
@@ -90,6 +92,8 @@ const sales: Scenario = {
       { speaker: "Kirill Kuts", time: "10:32", text: "If transcription cut that to fifteen minutes, what would that mean across your team of forty dispatchers?" },
       { speaker: "Dana Whitfield", time: "18:50", text: "Honestly, that's the difference between hiring six more people this year or not. Budget-wise we have room in Q3 - final sign-off sits with our COO, Mark." },
       { speaker: "Dana Whitfield", time: "33:08", text: "We looked at two competitors last quarter. Accuracy on logistics jargon was the dealbreaker both times." },
+      { speaker: "Kirill Kuts", time: "36:40", text: "Then let us prove it on your own calls - send us a few recordings and we will run a jargon-accuracy benchmark this week." },
+      { speaker: "Dana Whitfield", time: "39:55", text: "Works for me. If the benchmark holds above ninety-five percent, I will set up the demo with Mark for next Tuesday." },
     ],
   },
   content: {

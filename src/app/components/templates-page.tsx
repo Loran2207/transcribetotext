@@ -217,7 +217,6 @@ function TemplateCard({
   // Stacked-paper layers behind the top edge of the preview block
   const stackBg1 = `color-mix(in srgb, ${hue.bg} 65%, #ffffff 35%)`;
   const stackBg2 = `color-mix(in srgb, ${hue.bg} 45%, #ffffff 55%)`;
-  const ghostLineBg = `color-mix(in srgb, ${hue.bg} 55%, rgba(0,0,0,0.18) 45%)`;
 
   function stop(e: React.MouseEvent) {
     e.stopPropagation();
@@ -250,7 +249,7 @@ function TemplateCard({
         background: cardBg,
         boxShadow: cardShadow,
         padding: "18px",
-        minHeight: 300,
+        minHeight: 236,
         transform: hovered ? "translateY(-2px)" : "translateY(0)",
         transitionDuration: "180ms",
         transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
@@ -276,6 +275,11 @@ function TemplateCard({
           <p className="truncate font-semibold text-[15px] text-foreground leading-snug">
             {template.name}
           </p>
+          {template.description && (
+            <p className="truncate text-muted-foreground" style={{ fontSize: "11px", marginTop: 1 }}>
+              {template.description}
+            </p>
+          )}
         </div>
 
         {!isTrashed && (
@@ -386,11 +390,9 @@ function TemplateCard({
               ))}
 
               {hasMore && (
-                <div className="flex flex-col gap-[4px] mt-[4px] pl-[13px]">
-                  <div style={{ height: 5, width: "88%", borderRadius: 3, background: ghostLineBg }} />
-                  <div style={{ height: 5, width: "72%", borderRadius: 3, background: ghostLineBg }} />
-                  <div style={{ height: 5, width: "54%", borderRadius: 3, background: ghostLineBg }} />
-                </div>
+                <p className="mt-[4px] pl-[20px] text-muted-foreground/60" style={{ fontSize: "10.5px" }}>
+                  +{template.sections.length - 3} more sections
+                </p>
               )}
             </div>
           )}
@@ -1205,13 +1207,11 @@ export function TemplatesPage() {
     <div className="flex-1 overflow-auto min-w-0"><div className="px-[32px] pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between gap-[12px] mb-[24px]">
         <p className="whitespace-nowrap text-foreground" style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}>Templates</p>
-        <Button onClick={() => toast("Creating custom templates is coming soon")} className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">
-          <Icon icon={Add01Icon} size={14} /><span className="font-medium text-[13px]">New template</span>
-        </Button>
+        
       </div>
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex-1 min-w-0 gap-0">
-        <div className="overflow-x-auto -mx-[32px] px-[32px] [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
-          <TabsList variant="line" className="gap-5 whitespace-nowrap w-max">
+        <div className="overflow-x-auto -mx-[32px] px-[32px] border-b border-border [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+          <TabsList variant="line" className="gap-5 whitespace-nowrap w-max border-0">
             <TabsTrigger value="all" variant="line">All <span className="opacity-50 font-[inherit] ml-1">{allCount}</span></TabsTrigger>
             <TabsTrigger value="starred" variant="line">Starred <span className="opacity-50 font-[inherit] ml-1">{starredCount}</span></TabsTrigger>
             <TabsTrigger value="custom" variant="line">My templates <span className="opacity-50 font-[inherit] ml-1">{customCount}</span></TabsTrigger>
@@ -1224,13 +1224,7 @@ export function TemplatesPage() {
                 </TabsTrigger>
               );
             })}
-            <TabsTrigger
-              value="trash"
-              variant="line"
-              className={activeTab === "trash" ? "text-destructive data-[state=active]:text-destructive data-[state=active]:after:bg-destructive" : ""}
-            >
-              Trash <span className="opacity-50 font-[inherit] ml-1">{trashCount}</span>
-            </TabsTrigger>
+            
           </TabsList>
         </div>
       </Tabs>

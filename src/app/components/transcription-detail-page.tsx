@@ -634,11 +634,15 @@ function TemplateSelectorButton({
   templates,
   onSelect,
   onNavigateToTemplates,
+  open,
+  onOpenChange,
 }: {
   activeTemplateId: string | null;
   templates: Template[];
   onSelect: (id: string | null) => void;
   onNavigateToTemplates: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const active = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) : null;
   return (
@@ -647,6 +651,8 @@ function TemplateSelectorButton({
       onSelect={onSelect}
       onManageTemplates={onNavigateToTemplates}
       align="end"
+      open={open}
+      onOpenChange={onOpenChange}
       trigger={
         <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground">
           Template:
@@ -654,7 +660,6 @@ function TemplateSelectorButton({
             <>
               <span className="text-[12px] leading-none">{templateEmoji(active.name)}</span>
               <span className="text-foreground font-medium">{active.name}</span>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><polyline points="20 6 9 17 4 12" /></svg>
             </>
           ) : (
             <span className="text-foreground font-medium">None</span>
@@ -1190,6 +1195,8 @@ interface PageHeaderProps {
   onShare: () => void;
   onCopyLink: () => void;
   onCopySummary: () => void;
+  hasSummary: boolean;
+  onSetTemplate: () => void;
   onMoveToFolder: (folderId: string) => void;
   onCreateFolderAndMove: () => void;
   onExport: () => void;
@@ -1209,6 +1216,8 @@ function PageHeader({
   onShare,
   onCopyLink,
   onCopySummary,
+  hasSummary,
+  onSetTemplate,
   onMoveToFolder,
   onCreateFolderAndMove,
   onExport,
@@ -1246,10 +1255,17 @@ function PageHeader({
             <Icon icon={Share} className="size-4" strokeWidth={1.7} />
             Share
           </Button>
-          <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer" onClick={onCopySummary}>
-            <Icon icon={Copy} className="size-[14px] text-foreground" strokeWidth={1.5} />
-            <span className="font-medium text-[13px] text-foreground">Copy summary</span>
-          </Button>
+          {hasSummary ? (
+            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer" onClick={onCopySummary}>
+              <Icon icon={Copy} className="size-[14px] text-foreground" strokeWidth={1.5} />
+              <span className="font-medium text-[13px] text-foreground">Copy summary</span>
+            </Button>
+          ) : (
+            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer" onClick={onSetTemplate}>
+              <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
+              <span className="font-medium text-[13px] text-foreground">Set template</span>
+            </Button>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="size-8 rounded-full" onClick={onCopyLink} aria-label="Copy link">
@@ -1425,6 +1441,8 @@ export function TranscriptionDetailPage() {
   const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [summaryStage, setSummaryStage] = useState("");
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const { templates } = useTemplates();
   const [selectedTranslationLang, setSelectedTranslationLang] = useState("");
   const [activeTranslationLang, setActiveTranslationLang] = useState<string | null>(null);
@@ -2281,6 +2299,8 @@ export function TranscriptionDetailPage() {
           onShare={() => setShareDialogOpen(true)}
           onCopyLink={copyTranscriptLink}
           onCopySummary={copySummary}
+          hasSummary={activeTemplateId !== null}
+          onSetTemplate={() => { setActiveTab("summary"); setTemplatePickerOpen(true); }}
           onMoveToFolder={moveToFolder}
           onCreateFolderAndMove={createFolderAndMove}
           onExport={exportTranscript}
@@ -2352,6 +2372,8 @@ export function TranscriptionDetailPage() {
                 <TemplateSelectorButton
                   activeTemplateId={activeTemplateId}
                   templates={templates}
+                  open={templatePickerOpen}
+                  onOpenChange={setTemplatePickerOpen}
                   onSelect={(id) => {
                     if (id === null) {
                       if (activeTemplateId !== null) toast("Template removed");
@@ -2361,11 +2383,15 @@ export function TranscriptionDetailPage() {
                     setActiveTemplateId(id);
                     const selected = templates.find((t) => t.id === id);
                     if (selected) {
+                      setActiveTab("summary");
                       setIsSummaryLoading(true);
+                      setSummaryStage("Analyzing the transcript");
+                      setTimeout(() => setSummaryStage("Generating sections"), 1300);
+                      setTimeout(() => setSummaryStage("Polishing the summary"), 2600);
                       setTimeout(() => {
                         setIsSummaryLoading(false);
                         toast.success(`Template "${selected.name}" applied`);
-                      }, 800);
+                      }, 3600);
                     }
                   }}
                   onNavigateToTemplates={() => navigate("/")}
@@ -2457,11 +2483,29 @@ export function TranscriptionDetailPage() {
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-4 w-3/4" />
                 </div>
-                {isJobTranscribing && (
+                {isJobTranscribing ? (
                   <p className="mt-4 text-xs text-muted-foreground">
                     Summary is being generated and will appear automatically.
                   </p>
+                ) : (
+                  <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" className="shrink-0 animate-spin"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="20 10" /></svg>
+                    {summaryStage || "Generating the summary"}...
+                  </p>
                 )}
+              </div>
+            ) : activeTemplateId === null ? (
+              <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
+                <div className="size-14 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
+                  <Icon icon={Zap} className="size-6 text-primary" strokeWidth={1.6} />
+                </div>
+                <h3 className="text-[16px] font-semibold text-foreground">No summary yet</h3>
+                <p className="text-[13px] text-muted-foreground leading-relaxed mt-1.5 max-w-[360px]">
+                  Pick a template and we will turn this transcript into a structured summary.
+                </p>
+                <Button className="rounded-full h-9 px-5 text-[13px] font-medium mt-5" onClick={() => setTemplatePickerOpen(true)}>
+                  Set template
+                </Button>
               </div>
             ) : (
               <SummaryTab summaryText={contentSummary} template={activeTemplate} />

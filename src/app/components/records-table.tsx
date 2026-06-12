@@ -1350,7 +1350,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       <div className="relative">
         <div className="flex items-center">
           <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); clearSelection(); clearAllFilters(); }} className="flex-1 min-w-0 gap-0">
-            <TabsList variant="line" className="gap-6">
+            <TabsList variant="line" className="gap-6 w-full justify-start">
               {tabs.map((tab) => {
                 const isTrash = tab === "Trash";
                 const count = tab === "Recent" ? recentCount : tab === "Starred" ? starredCount : tab === "Shared" ? sharedCount : trashCount;

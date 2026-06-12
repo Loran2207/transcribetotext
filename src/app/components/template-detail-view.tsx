@@ -6,7 +6,14 @@ import { Button } from "@/app/components/ui/button";
 import {
   Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator,
 } from "@/app/components/ui/breadcrumb";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/app/components/ui/tooltip";
 import { useNavigate } from "react-router";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/app/components/ui/table";
+import { SourceIcon } from "./source-icons";
 import { usePlan } from "./use-plan";
 import { records } from "./records-table";
 import { sectionIcon } from "./templates-page";
@@ -15,8 +22,9 @@ import { templateEmoji, categorize, hueForCategory, type CategoryId } from "@/li
 import { getTemplateSample } from "@/lib/template-samples";
 
 /* View-only template detail page (first iteration: no editing).
-   Left: a large source-recording example, full width. Right: the summary
-   card this template produces, with Apply and Star actions above it. */
+   Header: title + compact actions top-right (Edit with a Soon badge, star,
+   Apply). Left: a large source-recording example and usage history.
+   Right: the summary card this template produces. */
 
 const STARRED_KEY = "ttt_starred_templates";
 
@@ -26,6 +34,14 @@ function loadStarred(): Set<string> {
 
 function saveStarred(s: Set<string>) {
   localStorage.setItem(STARRED_KEY, JSON.stringify([...s]));
+}
+
+const AVATAR_COLORS = ["#2E68EE", "#0E918A", "#D96823", "#6D44E0", "#D14E8D"];
+
+function speakerInitials(name) {
+  const parts = name.replace(/(.*)/, "").trim().split(/s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 /* Demo usage history: records from the demo world that plausibly used
@@ -87,6 +103,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   };
 
   return (
+    <TooltipProvider>
     <div className="flex-1 overflow-auto min-w-0">
       <div className="px-[32px] pt-[28px] pb-[48px]">
 
@@ -103,33 +120,65 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
           </BreadcrumbList>
         </Breadcrumb>
 
-        {/* Title + meta */}
-        <div className="mt-5 mb-7">
-          <div className="flex items-center gap-3">
-            <div
-              className="flex items-center justify-center shrink-0 rounded-xl"
-              style={{ width: 40, height: 40, background: hue.bg, fontSize: 21 }}
-            >
-              <span>{emoji}</span>
+        {/* Title + compact actions (aligned with the file detail page) */}
+        <div className="mt-5 mb-7 flex items-start justify-between gap-6">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center justify-center shrink-0 rounded-xl"
+                style={{ width: 40, height: 40, background: hue.bg, fontSize: 21 }}
+              >
+                <span>{emoji}</span>
+              </div>
+              <h1 className="text-2xl font-bold text-foreground leading-tight truncate">
+                {template.name}
+              </h1>
             </div>
-            <h1
-              className="text-2xl font-bold text-foreground leading-tight cursor-default"
-              onClick={() => toast("Template editing is coming soon")}
-              title="Template editing is coming soon"
-            >
-              {template.name}
-            </h1>
+            {template.description && (
+              <p className="text-[13px] text-muted-foreground mt-2.5 max-w-[680px]">{template.description}</p>
+            )}
           </div>
-          {template.description && (
-            <p className="text-[13px] text-muted-foreground mt-2.5 max-w-[680px]">{template.description}</p>
-          )}
-          <p className="flex items-center gap-1.5 text-[12px] text-muted-foreground/70 mt-2">
-            <Icon icon={PencilEdit01Icon} size={13} className="shrink-0" />
-            Template editing is coming soon - for now templates are read-only.
-          </p>
+
+          <div className="flex items-center gap-2 shrink-0 pt-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="pill-outline"
+                  className="h-9 px-4 text-[13px] font-medium gap-1.5"
+                  onClick={() => toast("Template editing is coming soon")}
+                >
+                  <Icon icon={PencilEdit01Icon} size={13} />
+                  Edit
+                  <span className="rounded-full bg-primary/10 text-primary px-1.5 py-px text-[9px] font-semibold leading-[14px]">Soon</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">Editing templates is coming soon</TooltipContent>
+            </Tooltip>
+            <Button
+              variant="pill-outline"
+              className="size-9 p-0 shrink-0"
+              onClick={handleStar}
+              aria-label={isStarred ? "Remove from starred" : "Add to starred"}
+              title={isStarred ? "Remove from starred" : "Add to starred"}
+            >
+              <svg width={15} height={15} fill="none" viewBox="0 0 16 16" aria-hidden="true">
+                <path
+                  d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z"
+                  stroke={isStarred ? "#F59E0B" : "currentColor"}
+                  fill={isStarred ? "#F59E0B" : "none"}
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </Button>
+            <Button className="rounded-full h-9 px-5 text-[13px] font-medium" onClick={handleApply}>
+              Apply template
+            </Button>
+          </div>
         </div>
 
-        {/* Two-column: large example (left) + summary card with actions (right) */}
+        {/* Two-column: large example (left) + summary card (right) */}
         <div className="flex gap-10 items-start">
 
           {/* Left - the source recording example, full width */}
@@ -146,16 +195,33 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                 </div>
               </div>
               <div className="px-7 py-6 flex flex-col gap-5">
-                {sample.source.segments.map((seg, i) => (
-                  <div key={i} className="flex gap-4">
-                    <span className="text-[12px] text-muted-foreground/60 tabular-nums shrink-0 pt-[3px] w-[40px]">{seg.time}</span>
-                    <div className="min-w-0">
-                      <span className="text-[13px] font-semibold text-foreground/85">{seg.speaker}</span>
-                      <p className="text-[14px] text-muted-foreground leading-[1.75] mt-0.5">{seg.text}</p>
-                    </div>
-                  </div>
-                ))}
-                <p className="text-[12px] text-muted-foreground/50 pl-[56px]">
+                {(() => {
+                  const speakerColor = new Map();
+                  for (const sg of sample.source.segments) {
+                    if (!speakerColor.has(sg.speaker)) speakerColor.set(sg.speaker, AVATAR_COLORS[speakerColor.size % AVATAR_COLORS.length]);
+                  }
+                  return sample.source.segments.map((seg, i) => {
+                    const color = speakerColor.get(seg.speaker);
+                    return (
+                      <div key={i} className="flex gap-3.5">
+                        <div
+                          className="flex items-center justify-center size-8 rounded-full shrink-0 mt-0.5"
+                          style={{ background: color + "1f", color }}
+                        >
+                          <span className="text-[11px] font-semibold leading-none">{speakerInitials(seg.speaker)}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-[13px] font-semibold text-foreground/85">{seg.speaker}</span>
+                            <span className="text-[11px] text-muted-foreground/60 tabular-nums">{seg.time}</span>
+                          </div>
+                          <p className="text-[14px] text-muted-foreground leading-[1.75] mt-0.5">{seg.text}</p>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+                <p className="text-[12px] text-muted-foreground/50 pl-[46px]">
                   Recording continues - this is a short excerpt.
                 </p>
               </div>
@@ -173,63 +239,46 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                 </div>
               ) : (
                 <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                  {usedIn.map((r, i) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => navigate(`/transcriptions/${r.id}`)}
-                      className={`w-full flex items-center gap-3.5 px-5 py-3.5 text-left transition-colors hover:bg-muted/40 ${i > 0 ? "border-t border-border/60" : ""}`}
-                    >
-                      <div className="flex items-center justify-center size-8 rounded-lg bg-muted shrink-0">
-                        <Icon icon={Microphone} size={14} className="text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-foreground truncate">{r.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{r.duration} &middot; {r.dateCreated}</p>
-                      </div>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50 shrink-0"><path d="M9 18l6-6-6-6" /></svg>
-                    </button>
-                  ))}
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="pl-5 text-[11px]">Name</TableHead>
+                        <TableHead className="text-[11px]">Template</TableHead>
+                        <TableHead className="text-[11px]">Duration</TableHead>
+                        <TableHead className="pr-5 text-[11px]">Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {usedIn.map((r) => (
+                        <TableRow
+                          key={r.id}
+                          className="cursor-pointer"
+                          onClick={() => navigate(`/transcriptions/${r.id}`)}
+                        >
+                          <TableCell className="pl-5 max-w-[340px]">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <SourceIcon source={r.source} />
+                              <span className="text-[13px] font-medium text-foreground truncate">{r.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-[3px] text-[11px] text-muted-foreground whitespace-nowrap">
+                              {template.name}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">{r.duration}</TableCell>
+                          <TableCell className="pr-5 text-[12px] text-muted-foreground whitespace-nowrap">{r.dateCreated}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Right - actions + the summary this template produces */}
+          {/* Right - the summary this template produces */}
           <div className="w-[480px] shrink-0">
-            <div className="flex items-center gap-2.5 mb-4">
-              <Button
-                className="flex-1 rounded-full h-10 text-[13px] font-medium"
-                onClick={handleApply}
-              >
-                Apply template
-              </Button>
-              <Button
-                variant="pill-outline"
-                className="size-10 p-0 shrink-0"
-                onClick={handleStar}
-                aria-label={isStarred ? "Remove from starred" : "Add to starred"}
-                title={isStarred ? "Remove from starred" : "Add to starred"}
-              >
-                <svg width={16} height={16} fill="none" viewBox="0 0 16 16" aria-hidden="true">
-                  <path
-                    d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z"
-                    stroke={isStarred ? "#F59E0B" : "currentColor"}
-                    fill={isStarred ? "#F59E0B" : "none"}
-                    strokeWidth="1.3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </Button>
-            </div>
-            {isFree && (
-              <p className="text-[12px] text-muted-foreground text-center -mt-1 mb-4">
-                Applying templates is available on the Pro plan.
-              </p>
-            )}
-
-            {/* Summary preview card */}
             <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ boxShadow: "var(--elevation-md)" }}>
               <div className="px-7 pt-6 pb-4 border-b border-border">
                 <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2">
@@ -265,14 +314,10 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                 })}
               </div>
             </div>
-
-            <p className="flex items-start gap-2 text-[12px] text-muted-foreground/70 leading-relaxed mt-4 px-1">
-              <Icon icon={PencilEdit01Icon} size={13} className="shrink-0 mt-[2px]" />
-              Editing templates is coming soon - you will be able to customize sections, rules, and automations.
-            </p>
           </div>
         </div>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
