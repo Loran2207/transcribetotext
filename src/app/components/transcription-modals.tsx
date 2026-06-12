@@ -24,6 +24,8 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Layers } from "@hugeicons/core-free-icons";
 import { useTemplates } from "@/hooks/use-templates";
+import { TemplatePicker } from "./template-picker";
+import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
 
 // ════════════════════════════════════════════════════════════
@@ -997,42 +999,34 @@ function TemplateSelector({
   compact?: boolean;
 }) {
   const { templates } = useTemplates();
-  const builtIn = templates.filter((t) => t.type === "built_in" && !t.is_locked);
-  const custom = templates.filter((t) => t.type === "custom");
+  const selected = value ? templates.find((t) => t.id === value) : null;
 
   return (
     <div>
       {!compact && <SectionLabel>Template</SectionLabel>}
-      <Select value={value ?? "__none__"} onValueChange={(val) => onChange(val === "__none__" ? null : val)}>
-        <SelectTrigger
-          className={`w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "h-[36px]" : "h-[40px]"}`}
-        >
-          <SelectValue placeholder="Select template" className="text-[13px]" />
-        </SelectTrigger>
-        <SelectContent className="z-[300]">
-          <SelectItem value="__none__" className="text-[13px]">
-            <span className="flex items-center gap-[7px]">
-              <Icon icon={Layers} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
-              No template
+      <TemplatePicker
+        value={value}
+        onSelect={onChange}
+        align="start"
+        trigger={
+          <button
+            type="button"
+            className={`w-full flex items-center justify-between rounded-[12px] border border-input bg-transparent px-[12px] gap-[8px] text-[13px] transition-colors hover:bg-muted/30 ${compact ? "h-[36px]" : "h-[40px]"}`}
+          >
+            <span className="flex items-center gap-[7px] min-w-0">
+              {selected ? (
+                <span className="text-[14px] leading-none shrink-0">{templateEmoji(selected.name)}</span>
+              ) : (
+                <Icon icon={Layers} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
+              )}
+              <span className={selected ? "truncate text-foreground" : "truncate text-muted-foreground"}>
+                {selected?.name ?? "Select template"}
+              </span>
             </span>
-          </SelectItem>
-          {builtIn.map((t) => (
-            <SelectItem key={t.id} value={t.id} className="text-[13px]">
-              {t.name}
-            </SelectItem>
-          ))}
-          {custom.length > 0 && (
-            <>
-              <SelectSeparator />
-              {custom.map((t) => (
-                <SelectItem key={t.id} value={t.id} className="text-[13px]">
-                  {t.name}
-                </SelectItem>
-              ))}
-            </>
-          )}
-        </SelectContent>
-      </Select>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground shrink-0"><path d="M6 9l6 6 6-6" /></svg>
+          </button>
+        }
+      />
     </div>
   );
 }

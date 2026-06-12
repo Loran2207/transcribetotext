@@ -27,6 +27,7 @@ import { useFolders } from "./folder-context";
 import { useStarred } from "./starred-context";
 import { SourceIcon, type SourceType } from "./source-icons";
 import { records, type RecordRow } from "./records-table";
+import { TemplatePicker } from "./template-picker";
 import { Icon } from "./ui/icon";
 import { Skeleton } from "./ui/skeleton";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
@@ -635,85 +636,23 @@ function TemplateSelectorButton({
 }: {
   activeTemplateId: string | null;
   templates: Template[];
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
   onNavigateToTemplates: () => void;
 }) {
   const active = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) : null;
-  const builtIn = templates.filter((t) => t.type === "built_in");
-  const custom = templates.filter((t) => t.type === "custom");
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <TemplatePicker
+      value={activeTemplateId}
+      onSelect={onSelect}
+      onManageTemplates={onNavigateToTemplates}
+      align="end"
+      trigger={
         <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground">
           Template: <span className="text-foreground font-medium">{active?.name ?? "None"}</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[240px]">
-        <div className="flex items-center justify-between px-2 py-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Workspace templates</span>
-          <div className="flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-5 rounded-full text-muted-foreground" onClick={onNavigateToTemplates}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Manage templates</TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
-        <DropdownMenuSeparator />
-        {builtIn.length > 0 && (
-          <div className="px-2 py-1">
-            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Built-in</span>
-          </div>
-        )}
-        {builtIn.map((t) => (
-          <DropdownMenuItem
-            key={t.id}
-            disabled={t.is_locked}
-            onClick={() => {
-              if (t.is_locked) {
-                toast("Upgrade to Pro to use this template");
-              } else {
-                onSelect(t.id);
-              }
-            }}
-            className="flex items-center justify-between"
-          >
-            <span className={t.is_locked ? "text-muted-foreground" : ""}>
-              {t.name}
-              {t.is_locked && <span className="ml-1.5">{"\u{1F512}"}</span>}
-            </span>
-            {t.id === activeTemplateId && (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><polyline points="20 6 9 17 4 12" /></svg>
-            )}
-          </DropdownMenuItem>
-        ))}
-        {custom.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <div className="px-2 py-1">
-              <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">My templates</span>
-            </div>
-            {custom.map((t) => (
-              <DropdownMenuItem
-                key={t.id}
-                onClick={() => onSelect(t.id)}
-                className="flex items-center justify-between"
-              >
-                <span>{t.name}</span>
-                {t.id === activeTemplateId && (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><polyline points="20 6 9 17 4 12" /></svg>
-                )}
-              </DropdownMenuItem>
-            ))}
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      }
+    />
   );
 }
 
@@ -2404,10 +2343,9 @@ export function TranscriptionDetailPage() {
                   activeTemplateId={activeTemplateId}
                   templates={templates}
                   onSelect={(id) => {
-                    const wasSame = activeTemplateId === id;
-                    if (wasSame) {
+                    if (id === null) {
+                      if (activeTemplateId !== null) toast("Template removed");
                       setActiveTemplateId(null);
-                      toast("Template removed");
                       return;
                     }
                     setActiveTemplateId(id);

@@ -41,6 +41,7 @@ import {
   UserGroupIcon,
   Analytics01Icon,
   MoreVerticalIcon,
+  Lock,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
@@ -68,10 +69,20 @@ import {
 } from "@/app/components/ui/alert-dialog";
 import { cn } from "@/app/components/ui/utils";
 import { useTemplates } from "@/hooks/use-templates";
+import { TemplateDetailView } from "./template-detail-view";
 import { useFolders } from "./folder-context";
 import { useAuth } from "./auth-context";
 import { records } from "./records-table";
 import type { Template, TemplateSection, CreateTemplateData } from "@/lib/templates";
+import {
+  templateEmoji,
+  categorize,
+  hueForCategory,
+  TEMPLATE_CATEGORIES,
+  CATEGORY_META_BY_ID,
+  type CategoryId,
+  type HueTokens,
+} from "@/lib/template-meta";
 
 // ---------------------------------------------------------------------------
 // LocalStorage keys
@@ -149,7 +160,7 @@ const SECTION_ICON_OPTIONS: { id: string; label: string; icon: any }[] = [
 const ICON_BY_ID: Record<string, any> = {};
 for (const opt of SECTION_ICON_OPTIONS) ICON_BY_ID[opt.id] = opt.icon;
 
-function sectionIcon(title: string, iconId?: string) {
+export function sectionIcon(title: string, iconId?: string) {
   if (iconId && ICON_BY_ID[iconId]) return ICON_BY_ID[iconId];
   const l = title.toLowerCase();
   return SECTION_ICONS_KW.find((e) => e.kw.some((k) => l.includes(k)))?.icon ?? Menu01Icon;
@@ -159,166 +170,8 @@ function sectionIcon(title: string, iconId?: string) {
 // Emoji mapping for template names
 // ---------------------------------------------------------------------------
 
-// Exact-name emoji overrides — every built-in from the Notta-seeded library has
-// a specific emoji so the card face reads like the design reference.
-const TEMPLATE_EMOJI_EXACT: Record<string, string> = {
-  // Basic
-  "Auto": "\u{2728}",                      // ✨
-  "General": "\u{1F4CB}",                  // 📋
-  "Interview": "\u{1F3A4}",                // 🎤
-  "Team Meeting": "\u{1F91D}",             // 🤝
-  "Brainstorming": "\u{1F4A1}",            // 💡
-  // Sales
-  "Sales Pitch": "\u{1F4E3}",              // 📣
-  "CHAMP": "\u{1F3C6}",                    // 🏆
-  "ANUM": "\u{1F3AF}",                     // 🎯
-  "SPICED": "\u{1F336}\u{FE0F}",           // 🌶️
-  "BANT": "\u{1F4B0}",                     // 💰
-  "GPCT": "\u{1F4CA}",                     // 📊
-  "MEDDIC": "\u{1F50D}",                   // 🔍
-  "FAINT": "\u{1F4B5}",                    // 💵
-  "SPIN": "\u{1F504}",                     // 🔄
-  // HR & Management
-  "Job Interview": "\u{1F454}",            // 👔
-  "1-on-1 Meeting": "\u{1F465}",           // 👥
-  "Exit Interview": "\u{1F44B}",           // 👋
-  // IT & Engineering
-  "User Research Session": "\u{1F52C}",    // 🔬
-  "Daily Stand-up Meeting": "\u{23F1}\u{FE0F}", // ⏱️
-  "Weekly Meeting": "\u{1F4C5}",           // 📅
-  "Sprint Planning": "\u{1F3C3}",          // 🏃
-  "Kick-off Meeting": "\u{1F680}",         // 🚀
-  // Consulting
-  "Consulting Meeting": "\u{1F914}",       // 🤔
-  // Marketing
-  "GTM (Go-to-Market)": "\u{1F5FA}\u{FE0F}", // 🗺️
-  // Medical
-  "SOAP Note": "\u{1F4DD}",                // 📝
-  "Medical Referral Letter": "\u{1F4E8}",  // 📨
-  // Education
-  "Lecture": "\u{1F393}",                  // 🎓
-  "Panel Discussion": "\u{1F5E3}\u{FE0F}", // 🗣️
-  // Writer
-  "Reader Meet-and-Greet": "\u{1F4D6}",    // 📖
-  "Interview Article": "\u{270D}\u{FE0F}", // ✍️
-  // Media & Podcasts
-  "YouTube Video": "\u{1F4FA}",            // 📺
-  // Others
-  "Board Meeting": "\u{1F3DB}\u{FE0F}",    // 🏛️
-};
+// Template metadata (emoji, categories, hues) lives in @/lib/template-meta.
 
-// Fallback keyword map — used for custom templates whose names don't appear above.
-const TEMPLATE_EMOJI_MAP: { kw: string[]; emoji: string }[] = [
-  { kw: ["general"], emoji: "\u{1F4CB}" },                        // 📋
-  { kw: ["sales", "bant", "discovery"], emoji: "\u{1F4B0}" },     // 💰
-  { kw: ["1-on-1", "one-on-one", "1:1"], emoji: "\u{1F465}" },    // 👥
-  { kw: ["team meeting", "team sync"], emoji: "\u{1F91D}" },      // 🤝
-  { kw: ["candidate", "interview"], emoji: "\u{1F3AF}" },         // 🎯
-  { kw: ["research"], emoji: "\u{1F52C}" },                       // 🔬
-  { kw: ["standup", "stand-up"], emoji: "\u{23F1}\u{FE0F}" },     // ⏱️
-  { kw: ["retrospective", "retro"], emoji: "\u{1F504}" },         // 🔄
-  { kw: ["brainstorm"], emoji: "\u{1F4A1}" },                     // 💡
-  { kw: ["onboarding"], emoji: "\u{1F44B}" },                     // 👋
-  { kw: ["training"], emoji: "\u{1F393}" },                       // 🎓
-  { kw: ["project"], emoji: "\u{1F4C1}" },                        // 📁
-];
-
-function templateEmoji(name: string): string {
-  if (TEMPLATE_EMOJI_EXACT[name]) return TEMPLATE_EMOJI_EXACT[name];
-  const l = name.toLowerCase();
-  return TEMPLATE_EMOJI_MAP.find((e) => e.kw.some((k) => l.includes(k)))?.emoji ?? "\u{1F4C4}"; // 📄
-}
-
-// ---------------------------------------------------------------------------
-// Categories & hue palette
-// ---------------------------------------------------------------------------
-
-type HueId =
-  | "blue" | "green" | "amber" | "purple" | "pink" | "teal"
-  | "peach" | "slate" | "indigo" | "rose" | "violet" | "gray";
-
-interface HueTokens {
-  bg: string;
-  bgHover: string;
-  chip: string;
-  dot: string;
-}
-
-const HUE_PALETTE: Record<HueId, HueTokens> = {
-  blue:   { bg: "#EEF3FF", bgHover: "#E4EBFD", chip: "#2657E0", dot: "#2E68EE" },
-  green:  { bg: "#E8F6EE", bgHover: "#DCF0E4", chip: "#137A3D", dot: "#1B9A4E" },
-  amber:  { bg: "#FFF3DD", bgHover: "#FCEACA", chip: "#8A5300", dot: "#C27803" },
-  purple: { bg: "#F1EDFE", bgHover: "#E6DFFC", chip: "#5B34C9", dot: "#6D44E0" },
-  pink:   { bg: "#FCEBF3", bgHover: "#F9DDEA", chip: "#B23A75", dot: "#D14E8D" },
-  teal:   { bg: "#DEF4F1", bgHover: "#CEEDE8", chip: "#076E66", dot: "#0E918A" },
-  peach:  { bg: "#FEE8DF", bgHover: "#FCDCCC", chip: "#A14819", dot: "#D96823" },
-  slate:  { bg: "#EEF0F5", bgHover: "#E3E6EE", chip: "#3D4762", dot: "#5A647D" },
-  indigo: { bg: "#E9ECFE", bgHover: "#DEE3FC", chip: "#303FAD", dot: "#4250CC" },
-  rose:   { bg: "#FDE7EC", bgHover: "#FAD6DE", chip: "#B91C4F", dot: "#DC2657" },
-  violet: { bg: "#EDE4FE", bgHover: "#DFCFFB", chip: "#6D28D9", dot: "#7C3AED" },
-  gray:   { bg: "#F3F4F6", bgHover: "#E5E7EB", chip: "#4B5563", dot: "#6B7280" },
-};
-
-type CategoryId =
-  | "custom" | "basic" | "sales" | "hr" | "engineering"
-  | "consulting" | "marketing" | "medical" | "education"
-  | "writer" | "media" | "others";
-
-interface CategoryMeta {
-  id: CategoryId;
-  label: string;
-  subtitle: string;
-  hue: HueId;
-}
-
-const TEMPLATE_CATEGORIES: CategoryMeta[] = [
-  { id: "custom",      label: "My templates",     subtitle: "",                                              hue: "purple" },
-  { id: "basic",       label: "Basic",            subtitle: "— versatile formats suitable for any meeting",  hue: "blue"   },
-  { id: "sales",       label: "Sales",            subtitle: "— daily meetings, client meetings",             hue: "green"  },
-  { id: "hr",          label: "HR & Management",  subtitle: "— recruitment, evaluation, management",         hue: "amber"  },
-  { id: "engineering", label: "IT & Engineering", subtitle: "— project updates and technical aspects",       hue: "slate"  },
-  { id: "consulting",  label: "Consulting",       subtitle: "— client needs, analysis, solutions",           hue: "peach"  },
-  { id: "marketing",   label: "Marketing",        subtitle: "— campaigns, promotion, research",              hue: "pink"   },
-  { id: "medical",     label: "Medical",          subtitle: "— clinical notes, referrals, care plans",       hue: "rose"   },
-  { id: "education",   label: "Education",        subtitle: "— lectures, discussions, classroom notes",      hue: "indigo" },
-  { id: "writer",      label: "Writer",           subtitle: "— writing projects, ideas, publication",        hue: "teal"   },
-  { id: "media",       label: "Media & Podcasts", subtitle: "— videos, podcasts, media summaries",           hue: "violet" },
-  { id: "others",      label: "Others",           subtitle: "— general or uncategorized meetings",           hue: "gray"   },
-];
-
-const CATEGORY_META_BY_ID: Record<CategoryId, CategoryMeta> = TEMPLATE_CATEGORIES.reduce((acc, c) => {
-  acc[c.id] = c;
-  return acc;
-}, {} as Record<CategoryId, CategoryMeta>);
-
-// Order matters — first match wins. More specific domain keywords (writer, media,
-// medical, others) are checked before broader ones (hr, sales, engineering) so
-// e.g. "Interview Article" lands under Writer, not HR.
-const CATEGORY_KEYWORDS: Array<{ cat: CategoryId; kws: string[] }> = [
-  { cat: "writer",      kws: ["reader meet-and-greet", "meet-and-greet", "meet and greet", "interview article", "author"] },
-  { cat: "media",       kws: ["youtube", "video summary", "podcast"] },
-  { cat: "medical",     kws: ["soap", "medical", "clinical", "patient", "referral"] },
-  { cat: "others",      kws: ["board meeting", "board"] },
-  { cat: "hr",          kws: ["1-on-1", "one-on-one", "1:1", "job interview", "exit interview", "candidate", "hiring", "onboarding", "performance review", "hr"] },
-  { cat: "sales",       kws: ["sales", "bant", "champ", "anum", "spiced", "spin", "meddic", "faint", "gpct", "pitch", "prospect", "discovery", "demo"] },
-  { cat: "engineering", kws: ["standup", "stand-up", "sprint", "kick-off", "kickoff", "weekly meeting", "user research", "retro", "incident", "engineering"] },
-  { cat: "consulting",  kws: ["consulting", "client meeting", "stakeholder"] },
-  { cat: "marketing",   kws: ["gtm", "go-to-market", "marketing", "campaign", "creative", "brand"] },
-  { cat: "education",   kws: ["lecture", "panel discussion", "panel", "class", "course", "study", "education"] },
-];
-
-function categorize(t: Template): CategoryId {
-  if (t.type === "custom") return "custom";
-  const name = t.name.toLowerCase();
-  for (const { cat, kws } of CATEGORY_KEYWORDS) {
-    if (kws.some((k) => name.includes(k))) return cat;
-  }
-  return "basic";
-}
-
-function hueForCategory(cat: CategoryId): HueTokens {
-  return HUE_PALETTE[CATEGORY_META_BY_ID[cat].hue];
-}
 
 // ---------------------------------------------------------------------------
 // Card grid — shared class strings
@@ -451,17 +304,19 @@ function TemplateCard({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[180px]" onClick={stop}>
-                {!sys && (
-                  <DropdownMenuItem onClick={(e) => { stop(e); onDuplicate(); }} className="gap-[10px]">
-                    <Icon icon={Copy01Icon} size={14} /> Duplicate
+                                {sys ? (
+                  <DropdownMenuItem disabled className="gap-[10px]">
+                    <Icon icon={Lock} size={14} /> Delete
+                    <span className="ml-auto text-[10px] text-muted-foreground/70">Built-in</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem
+                    onClick={(e) => { stop(e); onTrash(); }}
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-[10px]"
+                  >
+                    <Icon icon={Delete01Icon} size={14} /> Delete
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  onClick={(e) => { stop(e); onTrash(); }}
-                  className="text-destructive focus:text-destructive focus:bg-destructive/10 gap-[10px]"
-                >
-                  <Icon icon={Delete01Icon} size={14} /> Delete
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -962,7 +817,11 @@ function initEditor(t?: Template, storedActions?: StoredAction[]): EditorState {
   return { name: t?.name ?? "", sections: secs, sectionToggles: toggles, rules, actions };
 }
 
-function TemplateDetail({
+/* LEGACY - full template editor. Kept for the next iteration (editing templates
+   will return); not rendered anywhere right now. The live detail page is the
+   view-only TemplateDetailView in template-detail-view.tsx. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function TemplateDetailLegacy({
   template, isCreateMode, onBack, onSave, onDuplicate, onDelete,
 }: {
   template: Template | null; isCreateMode: boolean; onBack: () => void;
@@ -1343,13 +1202,9 @@ export function TemplatesPage() {
 
   if (isLoading) return <LoadingSkeleton />;
 
-  if (detailTarget !== null) {
+  if (editTemplate !== null) {
     return (
-      <TemplateDetail
-        template={editTemplate} isCreateMode={isCreateMode}
-        onBack={() => setDetailTarget(null)} onSave={handleSave}
-        onDuplicate={handleDuplicate} onDelete={handleDelete}
-      />
+      <TemplateDetailView template={editTemplate} onBack={() => setDetailTarget(null)} />
     );
   }
 
@@ -1386,7 +1241,7 @@ export function TemplatesPage() {
     <div className="flex-1 overflow-auto min-w-0"><div className="px-[32px] pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between gap-[12px] mb-[24px]">
         <p className="whitespace-nowrap text-foreground" style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}>Templates</p>
-        <Button onClick={() => setDetailTarget("new")} className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">
+        <Button onClick={() => toast("Creating custom templates is coming soon")} className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer">
           <Icon icon={Add01Icon} size={14} /><span className="font-medium text-[13px]">New template</span>
         </Button>
       </div>
