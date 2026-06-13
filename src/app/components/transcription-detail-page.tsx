@@ -568,6 +568,46 @@ function TranscriptSegment({
 // Summary Tab
 // ════════════════════════════════════════════════════════════
 
+// Single, calm "processing" state shown while a job is still transcribing.
+// No gray skeleton sheets, no fake finished segments — one hourglass + one progress.
+function TranscribingState({ phase, progress }: { phase: "uploading" | "processing"; progress: number }) {
+  const heading = phase === "uploading" ? "Uploading your recording" : "Transcribing your recording";
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-8 py-16 text-center">
+      <LottieStage src="/lottie/hourglass-blue.json" w={140} h={140} />
+      <h3 className="mt-3 text-[17px] font-semibold text-foreground">{heading}</h3>
+      <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">
+        Hang tight — your transcript and summary appear here automatically once it's ready.
+      </p>
+      <div className="mt-7 w-full max-w-[320px]">
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
+          <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${progress}%` }} />
+        </div>
+        <p className="mt-2 text-[12px] font-medium tabular-nums text-primary">{progress}%</p>
+      </div>
+    </div>
+  );
+}
+
+// Clean summary-generation loader (no gray skeleton sheet).
+function SummaryGeneratingState({ stage }: { stage: string }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-8 py-16 text-center">
+      <span className="relative flex size-12 items-center justify-center">
+        <span className="absolute inline-flex size-12 animate-ping rounded-full bg-primary/15" />
+        <span className="relative inline-flex size-12 items-center justify-center rounded-full bg-primary/10">
+          <Icon icon={Zap} className="size-5 text-primary" strokeWidth={1.7} />
+        </span>
+      </span>
+      <h3 className="mt-4 text-[15px] font-semibold text-foreground">Generating your summary</h3>
+      <p className="mt-1.5 flex items-center gap-2 text-[13px] text-muted-foreground">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" className="shrink-0 animate-spin"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="20 10" /></svg>
+        {stage || "Working on it"}…
+      </p>
+    </div>
+  );
+}
+
 function SummaryTab({ summaryText, template }: { summaryText: string; template?: Template | null }) {
   // If a template is selected, use its sections for headings with icons
   const sectionIcons: Record<string, string | undefined> = {};
@@ -2327,17 +2367,7 @@ export function TranscriptionDetailPage() {
 
             {/* Right side of tab row: context-dependent */}
             <div className="flex items-center gap-2">
-              {isJobTranscribing ? (
-                <div className="inline-flex h-7 items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-2.5 text-xs text-primary">
-                  <span className="relative flex size-[6px]">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/45" />
-                    <span className="relative inline-flex size-[6px] rounded-full bg-primary" />
-                  </span>
-                  <span className="font-medium">
-                    {selectedJob?.status === "uploading" ? "Uploading audio..." : "Transcribing..."} {selectedJob?.progress ?? 0}%
-                  </span>
-                </div>
-              ) : activeTab === "transcript" ? (
+              {isJobTranscribing ? null : activeTab === "transcript" ? (
                 editMode ? (
                   <>
                     <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-7 rounded-full" disabled={!canUndo} onClick={undo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button></TooltipTrigger><TooltipContent>Undo</TooltipContent></Tooltip>
@@ -2390,37 +2420,7 @@ export function TranscriptionDetailPage() {
 
           <TabsContent value="transcript" className="flex-1 overflow-auto relative">
             {isJobTranscribing ? (
-              <div className="animate-in fade-in duration-300 px-8 pb-6 pt-2">
-                {previewDetailSegments.map((seg, index) => (
-                  <TranscriptSegment
-                    key={`preview-${seg.id}`}
-                    segment={seg}
-                    nextTimestamp={previewDetailSegments[index + 1]?.timestamp}
-                    isEditing={false}
-                    highlighted={false}
-                    isPlaybackActive={false}
-                    segmentRef={() => {}}
-                    isSegHighlighted={false}
-                    onToggleHighlight={() => {}}
-                    onOpenComment={() => {}}
-                    onShare={() => {}}
-                    onCopyText={() => {}}
-                    inlineComment={false}
-                    onCommentSubmit={() => {}}
-                    onCommentCancel={() => {}}
-                    onCommentChange={() => {}}
-                    commentValue=""
-                    textHighlights={[]}
-                    showActions={false}
-                  />
-                ))}
-
-                <div className="mt-3 rounded-[14px] border border-border/70 bg-muted/25 px-4 py-6 flex flex-col items-center text-center">
-                  <LottieStage src="/lottie/hourglass-blue.json" w={120} h={120} />
-                  <p className="text-[13px] font-semibold text-foreground mt-[2px]">Transcribing your file…</p>
-                  <p className="text-xs text-muted-foreground mt-[3px]">The transcript will appear here as soon as it is ready</p>
-                </div>
-              </div>
+              <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (
               <div className="animate-in fade-in duration-300 px-8 pb-4">
                 {contentSegments.map((seg, index) => (
@@ -2452,28 +2452,10 @@ export function TranscriptionDetailPage() {
           </TabsContent>
 
           <TabsContent value="summary" className="flex-1 overflow-auto">
-            {isJobTranscribing || isSummaryLoading ? (
-              <div className="animate-in fade-in duration-300 px-8 py-6">
-                <div className="space-y-4">
-                  <Skeleton className="h-5 w-48" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-5/6" />
-                  <Skeleton className="h-4 w-4/6" />
-                  <Skeleton className="h-5 w-36 mt-6" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                </div>
-                {isJobTranscribing ? (
-                  <p className="mt-4 text-xs text-muted-foreground">
-                    Summary is being generated and will appear automatically.
-                  </p>
-                ) : (
-                  <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground">
-                    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" className="shrink-0 animate-spin"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="20 10" /></svg>
-                    {summaryStage || "Generating the summary"}...
-                  </p>
-                )}
-              </div>
+            {isJobTranscribing ? (
+              <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
+            ) : isSummaryLoading ? (
+              <SummaryGeneratingState stage={summaryStage} />
             ) : activeTemplateId === null ? (
               <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
                 <div className="size-14 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
@@ -2530,20 +2512,7 @@ export function TranscriptionDetailPage() {
           ) : null}
         </Tabs>
 
-        {isJobTranscribing ? (
-          <div className="shrink-0 border-t border-border bg-background px-6 py-3">
-            <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-              <span>{selectedJob?.status === "uploading" ? "Uploading audio" : "Transcribing audio"}</span>
-              <span className="tabular-nums">{selectedJob?.progress ?? 0}%</span>
-            </div>
-            <div className="h-2 rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-[width] duration-500"
-                style={{ width: `${selectedJob?.progress ?? 0}%` }}
-              />
-            </div>
-          </div>
-        ) : (
+        {isJobTranscribing ? null : (
           <MediaPlayer
             duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
             progress={playerProgress}
@@ -2560,20 +2529,12 @@ export function TranscriptionDetailPage() {
 
       {/* Right panel */}
       {isJobTranscribing ? (
-        <div className="relative flex shrink-0 flex-col border-l border-border bg-background" style={{ width: rightPanelWidth }}>
-          <div className="border-b border-border px-4 py-3">
-            <p className="text-sm font-medium text-foreground">AI processing</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Outline and comments will appear after transcription is completed.
-            </p>
-          </div>
-          <div className="space-y-3 px-4 py-4">
-            <div className="h-3 w-[78%] animate-pulse rounded-full bg-muted" />
-            <div className="h-3 w-[92%] animate-pulse rounded-full bg-muted" />
-            <div className="h-3 w-[68%] animate-pulse rounded-full bg-muted" />
-            <div className="h-3 w-[88%] animate-pulse rounded-full bg-muted" />
-            <div className="h-3 w-[62%] animate-pulse rounded-full bg-muted" />
-          </div>
+        <div className="relative flex shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center" style={{ width: rightPanelWidth }}>
+          <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/5">
+            <MessageSquarePlus className="size-5 text-primary/70" strokeWidth={1.7} />
+          </span>
+          <p className="mt-3 text-[13px] font-medium text-foreground">Outline & comments</p>
+          <p className="mt-1 max-w-[200px] text-[12px] leading-relaxed text-muted-foreground">Ready right after transcription finishes.</p>
         </div>
       ) : (
         <RightPanel

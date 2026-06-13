@@ -3,7 +3,7 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus, AlertCircle, Upload, Trash, X } from "@hugeicons/core-free-icons";
+import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -2906,7 +2906,7 @@ export function FloatingProgressWidget() {
   return createPortal(
     <div
       className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col rounded-[16px] overflow-hidden bg-popover border border-border"
-      style={{ width: "560px", maxWidth: "calc(100vw - 24px)", boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
+      style={{ width: "680px", maxWidth: "calc(100vw - 24px)", boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
     >
       <div className="flex items-end justify-between px-[16px] pt-[8px] shrink-0 border-b border-border">
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value === "history" ? "history" : value === "failed" ? "failed" : "uploaded")} className="gap-0 flex-1 min-w-0">
@@ -3043,14 +3043,9 @@ export function FloatingProgressWidget() {
                       </p>
                     )}
                     {isError && (
-                      <>
-                        <p className="text-[10px] text-destructive mt-[1px] truncate" title={errLabel}>
-                          {errLabel}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-[1px]">
-                          {canRetry ? "Check source file and retry upload" : "This file has no audio track. Please re-upload another file."}
-                        </p>
-                      </>
+                      <p className="text-[10px] text-destructive mt-[1px] truncate" title={errLabel}>
+                        {errLabel}
+                      </p>
                     )}
                   </div>
 
@@ -3145,16 +3140,23 @@ export function FloatingProgressWidget() {
                         {canRetry ? (
                           <Button
                             variant="ghost"
+                            size="icon"
                             onClick={() => retryJob(job.id)}
-                            className="transition-colors font-semibold text-[11px] text-destructive hover:underline p-0 h-auto flex items-center gap-[4px]"
+                            title="Retry upload"
+                            className="size-[24px] rounded-full flex items-center justify-center transition-colors text-destructive hover:bg-destructive/10"
                           >
-                            <Icon icon={Upload} className="size-[11px]" strokeWidth={1.8} />
-                            Retry
+                            <Icon icon={RefreshIcon} className="size-[13px]" strokeWidth={1.9} />
                           </Button>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground font-medium">
-                            Re-upload
-                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeJob(job.id)}
+                            title="Remove and re-upload another file"
+                            className="size-[24px] rounded-full flex items-center justify-center transition-colors text-muted-foreground hover:bg-accent"
+                          >
+                            <Icon icon={Upload} className="size-[12px]" strokeWidth={1.8} />
+                          </Button>
                         )}
                         <Button
                           variant="ghost"
