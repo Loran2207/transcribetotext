@@ -620,6 +620,19 @@ function TranscribingState({ phase, progress }: { phase: "uploading" | "processi
   );
 }
 
+// Translation loader — reuses the brand hourglass for the big translate operations.
+function TranslatingState({ what }: { what: string }) {
+  return (
+    <div className="flex h-full min-h-[460px] flex-col items-center justify-center px-8 text-center">
+      <LottieStage src="/lottie/hourglass-blue.json" w={140} h={140} />
+      <h3 className="mt-3 text-[17px] font-semibold text-foreground">Translating the {what}</h3>
+      <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">
+        Hang tight — your translated {what} appears here in a moment.
+      </p>
+    </div>
+  );
+}
+
 // Clean summary-generation loader (no gray skeleton sheet).
 function SummaryGeneratingState({ stage }: { stage: string }) {
   return (
@@ -640,19 +653,37 @@ function SummaryGeneratingState({ stage }: { stage: string }) {
 }
 
 // Clean error state for a failed summary translation (gray-free).
-function TranslationErrorState({ onRetry }: { onRetry: () => void }) {
+function TranslationErrorState({ onRetry, title, body }: { onRetry: () => void; title?: string; body?: string }) {
   return (
     <div className="flex h-full min-h-[460px] flex-col items-center justify-center px-8 text-center">
       <span className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EE1A1A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v4.5M12 16h.01" /></svg>
       </span>
-      <h3 className="mt-4 text-[15px] font-semibold text-foreground">Couldn't translate the summary</h3>
+      <h3 className="mt-4 text-[15px] font-semibold text-foreground">{title ?? "Couldn't translate the summary"}</h3>
       <p className="mt-1.5 max-w-[340px] text-[13px] leading-relaxed text-muted-foreground">
-        The transcript was translated, but the summary translation failed. Your original summary is still available on the Summary tab.
+        {body ?? "The transcript was translated, but the summary translation failed. Your original summary is still available on the Summary tab."}
       </p>
       <Button onClick={onRetry} className="mt-5 h-9 rounded-full px-5 text-[13px] font-medium">
         <Icon icon={RefreshIcon} className="mr-1.5 size-4" strokeWidth={1.9} />
         Try again
+      </Button>
+    </div>
+  );
+}
+
+function SummaryErrorState({ onRegenerate }: { onRegenerate: () => void }) {
+  return (
+    <div className="flex h-full min-h-[460px] flex-col items-center justify-center px-8 text-center">
+      <span className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EE1A1A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v4.5M12 16h.01" /></svg>
+      </span>
+      <h3 className="mt-4 text-[15px] font-semibold text-foreground">Couldn't generate the summary</h3>
+      <p className="mt-1.5 max-w-[340px] text-[13px] leading-relaxed text-muted-foreground">
+        Something went wrong while summarizing this transcript. Your transcript is safe — try generating the summary again.
+      </p>
+      <Button onClick={onRegenerate} className="mt-5 h-9 rounded-full px-5 text-[13px] font-medium">
+        <Icon icon={RefreshIcon} className="mr-1.5 size-4" strokeWidth={1.9} />
+        Regenerate summary
       </Button>
     </div>
   );
@@ -1543,6 +1574,8 @@ export function TranscriptionDetailPage() {
   const [translatedSegments, setTranslatedSegments] = useState<Record<number, string>>({});
   const [translatedSummary, setTranslatedSummary] = useState("");
   const [translationSummaryStatus, setTranslationSummaryStatus] = useState<"idle" | "loading" | "error" | "done">("idle");
+  const [translationTranscriptStatus, setTranslationTranscriptStatus] = useState<"idle" | "loading" | "error" | "done">("idle");
+  const [summaryError, setSummaryError] = useState(false);
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [isRightPanelResizing, setIsRightPanelResizing] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -1891,10 +1924,25 @@ export function TranscriptionDetailPage() {
     setTranslatedSegments({});
     setTranslatedSummary("");
     setTranslationSummaryStatus("idle");
+    setTranslationTranscriptStatus("idle");
+    setSummaryError(false);
 
-    // Demo: force a translation partial state (summary loading / failed) for design captures.
-    let flag: string | null = null;
-    try { flag = window.localStorage.getItem("ttt_demo_translate"); } catch { /* ignore */ }
+    // Demo: force result-page states for design captures.
+    const readFlag = (k: string) => { try { return window.localStorage.getItem(k); } catch { return null; } };
+
+    // Summary generation: loading / error
+    const sumFlag = readFlag("ttt_demo_summary");
+    if (sumFlag === "loading") {
+      setActiveTab("summary");
+      setIsSummaryLoading(true);
+      setSummaryStage("Generating sections");
+    } else if (sumFlag === "error") {
+      setActiveTab("summary");
+      setSummaryError(true);
+    }
+
+    // Summary translation partial: summary loading / failed (transcript already translated)
+    const flag = readFlag("ttt_demo_translate");
     if (flag === "loading" || flag === "error") {
       const lang = "es";
       setSelectedTranslationLang(lang);
@@ -1902,6 +1950,16 @@ export function TranscriptionDetailPage() {
       setTranslatedSegments(Object.fromEntries(MOCK_SEGMENTS.map((seg) => [seg.id, makeFallbackTranslation(seg.text, lang)])));
       setTranslationSummaryStatus(flag === "loading" ? "loading" : "error");
       setActiveTab("summary-translated");
+    }
+
+    // Transcript translation: loading / error (in the translated transcript tab)
+    const txFlag = readFlag("ttt_demo_translate_transcript");
+    if (txFlag === "loading" || txFlag === "error") {
+      const lang = "es";
+      setSelectedTranslationLang(lang);
+      setActiveTranslationLang(lang);
+      setTranslationTranscriptStatus(txFlag === "loading" ? "loading" : "error");
+      setActiveTab("transcript-translated");
     }
   }, [selectedRecord?.id]);
 
@@ -2119,7 +2177,16 @@ export function TranscriptionDetailPage() {
   }
 
   function regenerateSummary() {
-    toast.success("Summary regenerated");
+    setSummaryError(false);
+    setActiveTab("summary");
+    setIsSummaryLoading(true);
+    setSummaryStage("Analyzing the transcript");
+    setTimeout(() => setSummaryStage("Generating sections"), 1300);
+    setTimeout(() => setSummaryStage("Polishing the summary"), 2600);
+    setTimeout(() => {
+      setIsSummaryLoading(false);
+      toast.success("Summary regenerated");
+    }, 3600);
   }
 
   function syncTextToAudio() {
@@ -2555,6 +2622,8 @@ export function TranscriptionDetailPage() {
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : isSummaryLoading ? (
               <SummaryGeneratingState stage={summaryStage} />
+            ) : summaryError ? (
+              <SummaryErrorState onRegenerate={regenerateSummary} />
             ) : activeTemplateId === null ? (
               <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
                 <div className="size-14 rounded-2xl bg-primary/5 flex items-center justify-center mb-4">
@@ -2572,8 +2641,17 @@ export function TranscriptionDetailPage() {
               <SummaryTab summaryText={contentSummary} template={activeTemplate} />
             )}
           </TabsContent>
-          {activeTranslationMeta && !isJobTranscribing ? (
-            <TabsContent value="transcript-translated" className="flex-1 overflow-auto relative">
+          {(activeTranslationMeta || translationTranscriptStatus === "loading" || translationTranscriptStatus === "error") && !isJobTranscribing ? (
+            <TabsContent value="transcript-translated" className="flex flex-1 flex-col overflow-auto relative">
+              {translationTranscriptStatus === "loading" ? (
+                <TranslatingState what="transcript" />
+              ) : translationTranscriptStatus === "error" ? (
+                <TranslationErrorState
+                  onRetry={() => { void handleTranslate(); }}
+                  title="Couldn't translate the transcript"
+                  body="Something went wrong while translating. Your original transcript is still available on the Transcript tab."
+                />
+              ) : (
               <div className="px-8 pb-4">
                 {displaySegments.map((seg, index) => (
                   <TranscriptSegment
@@ -2604,12 +2682,13 @@ export function TranscriptionDetailPage() {
                   Translated with AI · Accuracy may vary for proper nouns and technical terms
                 </p>
               </div>
+              )}
             </TabsContent>
           ) : null}
           {activeTranslationMeta && !isJobTranscribing ? (
             <TabsContent value="summary-translated" className="flex flex-1 flex-col overflow-auto">
               {translationSummaryStatus === "loading" ? (
-                <SummaryGeneratingState stage="Translating the summary" />
+                <TranslatingState what="summary" />
               ) : translationSummaryStatus === "error" ? (
                 <TranslationErrorState onRetry={() => { void handleTranslate(); }} />
               ) : (
