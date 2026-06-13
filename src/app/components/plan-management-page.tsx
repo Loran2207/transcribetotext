@@ -12,9 +12,13 @@ export function usePlanStatePreview() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STATE_KEY);
-      if (saved === "never" || saved === "active" || saved === "expired") {
-        setStateInternal(saved);
+      const url = new URLSearchParams(window.location.search).get("plan");
+      const flag =
+        url ||
+        localStorage.getItem("ttt_demo_plan") ||
+        localStorage.getItem(STATE_KEY);
+      if (flag === "never" || flag === "active" || flag === "expired") {
+        setStateInternal(flag);
       }
     } catch {
       // ignore
@@ -31,48 +35,6 @@ export function usePlanStatePreview() {
   }
 
   return [state, setState] as const;
-}
-
-const STATE_SEGMENTS: { id: PlanState; label: string }[] = [
-  { id: "never", label: "Free" },
-  { id: "active", label: "Active" },
-  { id: "expired", label: "Expired" },
-];
-
-export function PlanStatePreview({
-  value,
-  onChange,
-}: {
-  value: PlanState;
-  onChange: (next: PlanState) => void;
-}) {
-  return (
-    <div
-      className="flex items-center gap-1 p-1 rounded-full bg-muted border border-border"
-      role="tablist"
-      aria-label="Preview different account states"
-    >
-      {STATE_SEGMENTS.map((seg) => {
-        const active = value === seg.id;
-        return (
-          <button
-            key={seg.id}
-            type="button"
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(seg.id)}
-            className={`h-7 px-3.5 rounded-full text-[12.5px] font-medium transition-all cursor-pointer ${
-              active
-                ? "bg-card text-foreground shadow-sm ring-1 ring-black/[0.04]"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {seg.label}
-          </button>
-        );
-      })}
-    </div>
-  );
 }
 
 const BENEFITS = [

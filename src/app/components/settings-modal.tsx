@@ -17,7 +17,6 @@ import {
 import { Icon } from "./ui/icon";
 import {
   PlanManagementPage,
-  PlanStatePreview,
   usePlanStatePreview,
 } from "./plan-management-page";
 import { MeetingsSettingsPanel } from "./calendar-settings";
@@ -670,6 +669,21 @@ function AccountPage() {
   );
 }
 
+// ── Invoices (coming soon) ────────────────────────────────────
+function InvoicesComingSoon() {
+  return (
+    <div className="flex flex-col items-center justify-center text-center py-20">
+      <div className="size-14 rounded-2xl bg-muted flex items-center justify-center mb-5">
+        <Icon icon={Invoice01Icon} className="size-7 text-muted-foreground" strokeWidth={1.4} />
+      </div>
+      <h2 className="text-[17px] font-semibold text-foreground">Invoices are coming soon</h2>
+      <p className="mt-2 max-w-[360px] text-[13.5px] leading-relaxed text-muted-foreground">
+        You'll be able to view and download your billing history and receipts here once your workspace has its first paid invoice.
+      </p>
+    </div>
+  );
+}
+
 // ── Settings Page (inline, full content area) ─────────────────
 interface SettingsPageProps {
   onClose: () => void;
@@ -704,10 +718,17 @@ const MAX_WIDTH: Record<SectionId, string> = {
 };
 
 export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
-  const [activeSection, setActiveSection] = useState<SectionId>("account");
-  const [planState, setPlanState] = usePlanStatePreview();
+  const [activeSection, setActiveSection] = useState<SectionId>(() => {
+    try {
+      const f = localStorage.getItem("ttt_demo_settings_section");
+      if (f === "account" || f === "plan" || f === "meetings" || f === "invoices" || f === "privacy" || f === "terms") {
+        return f as SectionId;
+      }
+    } catch { /* ignore */ }
+    return "account";
+  });
+  const [planState] = usePlanStatePreview();
 
-  const isPlan = activeSection === "plan";
   const sectionLabel =
     NAV_ITEMS.find((n) => n.id === activeSection)?.label ?? "Settings";
 
@@ -758,9 +779,6 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
           <h1 className="font-bold text-[22px] text-foreground tracking-tight">
             {sectionLabel}
           </h1>
-          {isPlan && (
-            <PlanStatePreview value={planState} onChange={setPlanState} />
-          )}
         </div>
 
         {/* Scrollable form */}
@@ -769,6 +787,7 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
             {activeSection === "account" && <AccountPage />}
             {activeSection === "plan" && <PlanManagementPage state={planState} />}
             {activeSection === "meetings" && <MeetingsSettingsPanel />}
+            {activeSection === "invoices" && <InvoicesComingSoon />}
             {activeSection === "privacy" && <PrivacyPolicyPage />}
             {activeSection === "terms" && <TermsOfUsePage />}
           </div>
