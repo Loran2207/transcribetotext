@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -199,6 +199,17 @@ const MOCK_SEGMENTS: Segment[] = [
   { id: 10, speaker: SPEAKERS[0], timestamp: "3:55", text: "Good point. Let's add that to the Q2 discussion. I'll create a separate agenda item for the next planning meeting. Anything else?" },
   { id: 11, speaker: SPEAKERS[1], timestamp: "4:18", text: "Nothing from my side. I think we're in good shape overall." },
   { id: 12, speaker: SPEAKERS[2], timestamp: "4:30", text: "Same here. Let's wrap up and get back to work. Thanks everyone." },
+];
+
+// Single-speaker (podcast / monologue / dictation) demo content — one voice, no speaker column.
+const MONO_SPEAKER: Speaker = { id: "mono", name: "Host", color: "#2563eb", initial: "H" };
+const MONO_SEGMENTS: Segment[] = [
+  { id: 101, speaker: MONO_SPEAKER, timestamp: "0:00", text: "Welcome back to the Northwind Labs product update. I'm recording this as a quick solo walkthrough of what shipped this week and what's coming next." },
+  { id: 102, speaker: MONO_SPEAKER, timestamp: "0:21", text: "First, the new dispatch dashboard is live for the Rotterdam hub. Early numbers look strong — average load assignment time dropped from about nine minutes to just under four." },
+  { id: 103, speaker: MONO_SPEAKER, timestamp: "0:48", text: "Second, we rewrote the notification engine. Alerts now batch intelligently, so drivers get one clear summary instead of a dozen pings during a route." },
+  { id: 104, speaker: MONO_SPEAKER, timestamp: "1:15", text: "A quick note on reliability: we moved the sync layer to the new queue, and over the last ten days we have not seen a single dropped event in staging." },
+  { id: 105, speaker: MONO_SPEAKER, timestamp: "1:42", text: "Looking ahead, next sprint is all about the mobile experience. The goal is a one-tap check-in flow that works even on a weak connection out in the yard." },
+  { id: 106, speaker: MONO_SPEAKER, timestamp: "2:09", text: "That's it for this week. If you have feedback, drop it in the product channel and I'll fold it into the planning notes. Thanks for listening." },
 ];
 
 const MOCK_OUTLINE: OutlineSection[] = [
@@ -437,6 +448,8 @@ function TranscriptSegment({
   commentValue,
   textHighlights,
   showActions = true,
+  hideSpeaker = false,
+  onSeekTimecode,
 }: {
   segment: Segment;
   nextTimestamp?: string;
@@ -458,6 +471,8 @@ function TranscriptSegment({
   commentValue: string;
   textHighlights: { start: number; end: number }[];
   showActions?: boolean;
+  hideSpeaker?: boolean;
+  onSeekTimecode?: (timestamp: string) => void;
 }) {
   const segmentText = editText ?? segment.text;
   const segmentEndTimestamp = nextTimestamp ?? segment.timestamp;
@@ -489,7 +504,7 @@ function TranscriptSegment({
     <div
       ref={segmentRef}
       data-segment-id={segment.id}
-      className={`group/seg relative -mx-2 grid grid-cols-[minmax(160px,220px)_1fr] gap-4 rounded-xl px-2 py-4 transition-colors duration-200 max-md:grid-cols-1 max-md:gap-2 ${
+      className={`group/seg relative -mx-2 grid ${hideSpeaker ? "grid-cols-1" : "grid-cols-[minmax(160px,220px)_1fr] max-md:grid-cols-1"} gap-4 rounded-xl px-2 py-4 transition-colors duration-200 max-md:gap-2 ${
         highlighted
           ? "bg-primary/8"
           : isSegHighlighted
@@ -510,21 +525,35 @@ function TranscriptSegment({
         />
       )}
 
-      <div className="min-w-0 pt-1">
-        <div className="flex items-center gap-2.5">
-          <div
-            className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-            style={{ backgroundColor: segment.speaker.color }}
-          >
-            {segment.speaker.initial}
+      {!hideSpeaker && (
+        <div className="min-w-0 pt-1">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+              style={{ backgroundColor: segment.speaker.color }}
+            >
+              {segment.speaker.initial}
+            </div>
+            <span className="truncate text-sm font-medium text-foreground">{segment.speaker.name}</span>
           </div>
-          <span className="truncate text-sm font-medium text-foreground">{segment.speaker.name}</span>
         </div>
-      </div>
+      )}
 
       <div className="relative min-w-0 pl-5 pr-28 max-md:pr-16">
         <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-full transition-colors ${lineTone}`} />
-        <span className="text-xs text-muted-foreground tabular-nums">{segment.timestamp}</span>
+        {onSeekTimecode ? (
+          <button
+            type="button"
+            onClick={() => onSeekTimecode(segment.timestamp)}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground tabular-nums transition-colors hover:text-primary"
+            title="Play from here"
+          >
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="opacity-0 transition-opacity group-hover/seg:opacity-100"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg>
+            {segment.timestamp}
+          </button>
+        ) : (
+          <span className="text-xs text-muted-foreground tabular-nums">{segment.timestamp}</span>
+        )}
 
         {isEditing ? (
           <textarea
@@ -604,6 +633,25 @@ function SummaryGeneratingState({ stage }: { stage: string }) {
         <svg width="13" height="13" viewBox="0 0 14 14" fill="none" className="shrink-0 animate-spin"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="20 10" /></svg>
         {stage || "Working on it"}…
       </p>
+    </div>
+  );
+}
+
+// Clean error state for a failed summary translation (gray-free).
+function TranslationErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex h-full min-h-[460px] flex-col items-center justify-center px-8 text-center">
+      <span className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EE1A1A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 8v4.5M12 16h.01" /></svg>
+      </span>
+      <h3 className="mt-4 text-[15px] font-semibold text-foreground">Couldn't translate the summary</h3>
+      <p className="mt-1.5 max-w-[340px] text-[13px] leading-relaxed text-muted-foreground">
+        The transcript was translated, but the summary translation failed. Your original summary is still available on the Summary tab.
+      </p>
+      <Button onClick={onRetry} className="mt-5 h-9 rounded-full px-5 text-[13px] font-medium">
+        <Icon icon={RefreshIcon} className="mr-1.5 size-4" strokeWidth={1.9} />
+        Try again
+      </Button>
     </div>
   );
 }
@@ -957,6 +1005,9 @@ function RightPanel({
   width: number;
   onResizeStart: () => void;
 }) {
+  const [panelTab, setPanelTab] = useState<"outline" | "comments">(() => {
+    try { return window.localStorage.getItem("ttt_demo_panel_tab") === "comments" ? "comments" : "outline"; } catch { return "outline"; }
+  });
   return (
     <div className="relative flex shrink-0 flex-col border-l border-border bg-background" style={{ width }}>
       <button
@@ -968,16 +1019,32 @@ function RightPanel({
           onResizeStart();
         }}
       />
-      {/* Outline & comments are coming soon - the video preview ships with them */}
-      <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <div className="size-14 rounded-2xl bg-primary/5 flex items-center justify-center mb-4 animate-[pulse_3s_ease-in-out_infinite]">
-          <MessageSquarePlus className="size-6 text-primary" strokeWidth={1.6} />
-        </div>
-        <h3 className="text-[15px] font-semibold text-foreground">Coming soon</h3>
-        <p className="text-[12px] text-muted-foreground leading-relaxed mt-1.5 max-w-[220px]">
-          Outline and comments are under development. Stay tuned for updates.
-        </p>
-      </div>
+      <Tabs value={panelTab} onValueChange={(v) => setPanelTab(v === "comments" ? "comments" : "outline")} className="flex flex-1 flex-col gap-0 min-h-0">
+        <TabsList variant="line" className="gap-5 border-b border-border px-4 pt-3 shrink-0">
+          <TabsTrigger value="outline" variant="line" className="text-[13px] font-semibold">Outline</TabsTrigger>
+          <TabsTrigger value="comments" variant="line" className="text-[13px] font-semibold">Comments</TabsTrigger>
+        </TabsList>
+        <TabsContent value="outline" className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="text-primary"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+          </div>
+          <h3 className="text-[15px] font-semibold text-foreground">Outline</h3>
+          <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
+          <p className="mt-2 max-w-[220px] text-[12px] leading-relaxed text-muted-foreground">
+            Auto-generated chapters and a jump-to-section outline are on the way.
+          </p>
+        </TabsContent>
+        <TabsContent value="comments" className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
+            <MessageSquarePlus className="size-6 text-primary" strokeWidth={1.6} />
+          </div>
+          <h3 className="text-[15px] font-semibold text-foreground">Comments</h3>
+          <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
+          <p className="mt-2 max-w-[220px] text-[12px] leading-relaxed text-muted-foreground">
+            Time-stamped comments and team discussion will live here soon.
+          </p>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -1443,6 +1510,7 @@ export function TranscriptionDetailPage() {
   const isJobTranscribing = Boolean(selectedJob && (selectedJob.status === "uploading" || selectedJob.status === "processing"));
   const previewSegments = selectedJob?.livePreviewSegments ?? [];
 
+
   const fallbackTitle = isLiveRecordingRoute ? "Live note" : "Weekly Team Sync \u2014 Product & Engineering";
   const recordTitle = selectedRecord ? getName(selectedRecord.id, selectedRecord.name) : fallbackTitle;
   const selectedFolder = useMemo(() => {
@@ -1472,6 +1540,7 @@ export function TranscriptionDetailPage() {
   const [isTranslationLoading, setIsTranslationLoading] = useState(false);
   const [translatedSegments, setTranslatedSegments] = useState<Record<number, string>>({});
   const [translatedSummary, setTranslatedSummary] = useState("");
+  const [translationSummaryStatus, setTranslationSummaryStatus] = useState<"idle" | "loading" | "error" | "done">("idle");
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [isRightPanelResizing, setIsRightPanelResizing] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -1522,6 +1591,13 @@ export function TranscriptionDetailPage() {
     () => (selectedJob?.source === "microphone" && previewDetailSegments.length > 0 ? previewDetailSegments : MOCK_SEGMENTS),
     [previewDetailSegments, selectedJob?.source],
   );
+  // Single-speaker / monologue mode: hide the speaker column when there's only one voice.
+  // Demo flag forces it with dedicated monologue content for design captures.
+  const forceSingleSpeaker = useMemo(() => {
+    try { return typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_single_speaker") === "1"; } catch { return false; }
+  }, []);
+  const displaySegments = forceSingleSpeaker ? MONO_SEGMENTS : contentSegments;
+  const isSingleSpeaker = forceSingleSpeaker || new Set(displaySegments.map((seg) => seg.speaker.id)).size <= 1;
   const activeTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
 
   const contentSummary = useMemo(() => {
@@ -1808,6 +1884,19 @@ export function TranscriptionDetailPage() {
     setIsTranslationLoading(false);
     setTranslatedSegments({});
     setTranslatedSummary("");
+    setTranslationSummaryStatus("idle");
+
+    // Demo: force a translation partial state (summary loading / failed) for design captures.
+    let flag: string | null = null;
+    try { flag = window.localStorage.getItem("ttt_demo_translate"); } catch { /* ignore */ }
+    if (flag === "loading" || flag === "error") {
+      const lang = "es";
+      setSelectedTranslationLang(lang);
+      setActiveTranslationLang(lang);
+      setTranslatedSegments(Object.fromEntries(MOCK_SEGMENTS.map((seg) => [seg.id, makeFallbackTranslation(seg.text, lang)])));
+      setTranslationSummaryStatus(flag === "loading" ? "loading" : "error");
+      setActiveTab("summary-translated");
+    }
   }, [selectedRecord?.id]);
 
   useEffect(() => {
@@ -1914,6 +2003,7 @@ export function TranscriptionDetailPage() {
 
       setTranslatedSegments(nextTranscript);
       setTranslatedSummary(nextSummary);
+      setTranslationSummaryStatus("done");
       setActiveTranslationLang(selectedTranslationLang);
       setActiveTab("transcript-translated");
       toast.success(`Translated to ${selectedTranslationLang.toUpperCase()}`);
@@ -2423,11 +2513,13 @@ export function TranscriptionDetailPage() {
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (
               <div className="animate-in fade-in duration-300 px-8 pb-4">
-                {contentSegments.map((seg, index) => (
+                {displaySegments.map((seg, index) => (
                   <TranscriptSegment
                     key={seg.id}
                     segment={seg}
-                    nextTimestamp={contentSegments[index + 1]?.timestamp}
+                    nextTimestamp={displaySegments[index + 1]?.timestamp}
+                    hideSpeaker={isSingleSpeaker}
+                    onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
                     editText={texts[seg.id]}
                     onEditChange={(t) => update(seg.id, t)}
@@ -2476,11 +2568,13 @@ export function TranscriptionDetailPage() {
           {activeTranslationMeta && !isJobTranscribing ? (
             <TabsContent value="transcript-translated" className="flex-1 overflow-auto relative">
               <div className="px-8 pb-4">
-                {contentSegments.map((seg, index) => (
+                {displaySegments.map((seg, index) => (
                   <TranscriptSegment
                     key={`${seg.id}-translated`}
                     segment={seg}
-                    nextTimestamp={contentSegments[index + 1]?.timestamp}
+                    nextTimestamp={displaySegments[index + 1]?.timestamp}
+                    hideSpeaker={isSingleSpeaker}
+                    onSeekTimecode={seekTo}
                     isEditing={false}
                     editText={translatedSegments[seg.id] ?? (texts[seg.id] ?? seg.text)}
                     highlighted={highlightedSegment === seg.id}
@@ -2506,8 +2600,14 @@ export function TranscriptionDetailPage() {
             </TabsContent>
           ) : null}
           {activeTranslationMeta && !isJobTranscribing ? (
-            <TabsContent value="summary-translated" className="flex-1 overflow-auto">
-              <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} />
+            <TabsContent value="summary-translated" className="flex flex-1 flex-col overflow-auto">
+              {translationSummaryStatus === "loading" ? (
+                <SummaryGeneratingState stage="Translating the summary" />
+              ) : translationSummaryStatus === "error" ? (
+                <TranslationErrorState onRetry={() => { void handleTranslate(); }} />
+              ) : (
+                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} />
+              )}
             </TabsContent>
           ) : null}
         </Tabs>
