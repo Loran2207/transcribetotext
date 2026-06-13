@@ -30,6 +30,7 @@ import { records, type RecordRow } from "./records-table";
 import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
 import { Icon } from "./ui/icon";
+import { LottieStage } from "./checkout-loader/lottie-stage";
 import { Skeleton } from "./ui/skeleton";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
 import { useTemplates } from "@/hooks/use-templates";
@@ -2414,13 +2415,10 @@ export function TranscriptionDetailPage() {
                   />
                 ))}
 
-                <div className="mt-3 rounded-[14px] border border-border/70 bg-muted/25 px-4 py-4">
-                  <div className="mb-2 h-3 w-[180px] animate-pulse rounded-full bg-muted" />
-                  <div className="space-y-2">
-                    <div className="h-3 w-[92%] animate-pulse rounded-full bg-muted" />
-                    <div className="h-3 w-[84%] animate-pulse rounded-full bg-muted" />
-                    <div className="h-3 w-[76%] animate-pulse rounded-full bg-muted" />
-                  </div>
+                <div className="mt-3 rounded-[14px] border border-border/70 bg-muted/25 px-4 py-6 flex flex-col items-center text-center">
+                  <LottieStage src="/lottie/hourglass-blue.json" w={120} h={120} />
+                  <p className="text-[13px] font-semibold text-foreground mt-[2px]">Transcribing your file…</p>
+                  <p className="text-xs text-muted-foreground mt-[3px]">The transcript will appear here as soon as it is ready</p>
                 </div>
               </div>
             ) : (

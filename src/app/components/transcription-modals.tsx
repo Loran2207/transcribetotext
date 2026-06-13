@@ -28,8 +28,6 @@ import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
 import { motion } from "motion/react";
-import { Progress } from "./ui/progress";
-import { LottieStage } from "./checkout-loader/lottie-stage";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -231,6 +229,25 @@ export function TranscriptionModalsProvider({
   useEffect(() => {
     jobsRef.current = jobs;
   }, [jobs]);
+
+  // Demo: seed widget jobs from localStorage for design captures.
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("ttt_demo_jobs");
+      if (raw) {
+        const parsed = JSON.parse(raw) as TranscriptionJob[];
+        if (Array.isArray(parsed) && parsed.length) setJobs(parsed);
+      }
+    } catch {
+      // ignore malformed demo payload
+    }
+    // Dev hook so captures can seed jobs without a reload (which drops the demo session).
+    if (import.meta.env.DEV) {
+      (window as unknown as { __tttSetJobs?: (j: TranscriptionJob[]) => void }).__tttSetJobs = (j) => {
+        if (Array.isArray(j)) setJobs(j);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     const hasActiveUploads = jobs.some(
@@ -706,6 +723,7 @@ export function TranscriptionModalsProvider({
     <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId }}>
       {children}
       <AllModals />
+      <DemoLeaveAlert />
       <RecordingPill />
       <FloatingProgressWidget />
     </Ctx.Provider>
@@ -1418,9 +1436,9 @@ function MultiLanguageSelector({ values, onChange, label }: {
   );
 }
 
-function SharedSettings({ state, onChange, userPlan, onUpgradeClick }: {
+function SharedSettings({ state, onChange, userPlan, onUpgradeClick, hideModeToggle = false }: {
   state: SharedSettingsState; onChange: (patch: Partial<SharedSettingsState>) => void;
-  userPlan: UserPlan; onUpgradeClick: () => void;
+  userPlan: UserPlan; onUpgradeClick: () => void; hideModeToggle?: boolean;
 }) {
   const handleModeChange = (m: "mono" | "bi") => onChange(
     m === "mono" ? { mode: m, langPrimary: "auto" } : { mode: m, langBilingual: ["auto"] }
@@ -1441,7 +1459,7 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick }: {
             />
           )}
         </div>
-        <TranscriptionModeToggle mode={state.mode} onChange={handleModeChange} compact />
+        {!hideModeToggle && <TranscriptionModeToggle mode={state.mode} onChange={handleModeChange} compact />}
       </div>
       <AdvancedSection>
         <div className="pt-[2px]">
@@ -1739,23 +1757,16 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
 }
 
 function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, removeJob, jobs, userPlan, consumePreloadedFiles, consumeDefaultFolderId } = useTranscriptionModals();
+  const { addJob, userPlan, consumePreloadedFiles, consumeDefaultFolderId } = useTranscriptionModals();
 
   const [files, setFiles] = useState<File[]>([]);
+  const [preparing, setPreparing] = useState<Set<string>>(new Set());
   const [dragActive, setDragActive] = useState(false);
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [uploadingIds, setUploadingIds] = useState<string[] | null>(null);
-  const [leaveAlertOpen, setLeaveAlertOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const uploadingJobs = useMemo(
-    () => (uploadingIds ? uploadingIds.map((id) => jobs.find((j) => j.id === id)).filter((j): j is TranscriptionJob => Boolean(j)) : []),
-    [jobs, uploadingIds]
-  );
-  const stillUploading = uploadingJobs.some((j) => j.status === "uploading");
 
   useEffect(() => {
     if (open) {
@@ -1772,37 +1783,25 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Once every file finishes uploading, hand the batch off to the floating widget.
-  useEffect(() => {
-    if (!uploadingIds || stillUploading) return;
-    const t = setTimeout(() => {
-      toast.success("Upload complete — transcription continues in the background");
-      resetForm();
-      onClose();
-    }, 900);
-    return () => clearTimeout(t);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uploadingIds, stillUploading]);
+  function resetForm() { setFiles([]); setPreparing(new Set()); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
+  function handleClose() { resetForm(); onClose(); }
 
-  function resetForm() {
-    setFiles([]); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null);
-    setUploadingIds(null); setLeaveAlertOpen(false);
-  }
-  function handleClose() {
-    if (uploadingIds && stillUploading) { setLeaveAlertOpen(true); return; }
-    resetForm(); onClose();
-  }
-  function continueInBackground() { resetForm(); onClose(); }
-  function cancelUploads() {
-    (uploadingIds ?? []).forEach((id) => removeJob(id));
-    toast("Upload cancelled");
-    resetForm(); onClose();
+  // Newly added files show a short "preparing" state while they are read.
+  function markPreparing(keys: string[]) {
+    setPreparing(prev => new Set([...prev, ...keys]));
+    const clear = () => {
+      if ((window as unknown as { __tttFreezePreparing?: boolean }).__tttFreezePreparing) { setTimeout(clear, 500); return; }
+      setPreparing(prev => { const next = new Set(prev); keys.forEach(k => next.delete(k)); return next; });
+    };
+    setTimeout(clear, 1100);
   }
 
   function addFiles(newFiles: File[]) {
     setFiles(prev => {
       const existing = new Set(prev.map(f => f.name + f.size));
-      return [...prev, ...newFiles.filter(f => !existing.has(f.name + f.size))];
+      const fresh = newFiles.filter(f => !existing.has(f.name + f.size));
+      if (fresh.length) markPreparing(fresh.map(f => f.name + f.size));
+      return [...prev, ...fresh];
     });
   }
 
@@ -1826,7 +1825,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
       return { file, isAudio, noAudioDetected };
     }));
 
-    const ids = prepared.map(({ file, isAudio, noAudioDetected }) =>
+    prepared.forEach(({ file, isAudio, noAudioDetected }) => {
       addJob(file.name, isAudio ? "audio" : "video", {
         lang: settings.mode === "mono" ? settings.langPrimary : undefined,
         langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
@@ -1835,9 +1834,9 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
         source: isAudio ? "mp3" : "mp4",
         mediaUrl: isAudio ? undefined : URL.createObjectURL(file),
         noAudioDetected: isAudio ? undefined : noAudioDetected,
-      })
-    );
-    setUploadingIds(ids);
+      });
+    });
+    handleClose();
   }
 
   if (!open) return null;
@@ -1846,43 +1845,10 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
     <>
       <ModalShell
         title="Audio & video files"
-        subtitle={uploadingIds ? "Uploading your files" : "Upload audio or video files for transcription"}
+        subtitle="Upload audio or video files for transcription"
         onClose={handleClose}
         onBackdropClick={handleClose}
       >
-        {uploadingIds ? (
-          <div className="px-[22px] pt-[2px] pb-[22px] flex flex-col items-center gap-[14px]">
-            <LottieStage src="/lottie/hourglass-blue.json" w={150} h={150} />
-            <div className="text-center">
-              <p className="font-bold text-[15px] text-foreground">
-                {uploadingJobs.length > 1 ? `Uploading ${uploadingJobs.length} files…` : "Uploading your file…"}
-              </p>
-              <p className="text-[12px] text-muted-foreground mt-[4px]">
-                Keep this page open until the upload finishes
-              </p>
-            </div>
-            <div className="w-full flex flex-col gap-[8px]">
-              {uploadingJobs.map((job) => {
-                const uploaded = job.status !== "uploading";
-                const pct = uploaded ? 100 : Math.round(job.uploadProgress ?? 0);
-                return (
-                  <div key={job.id} className="rounded-[12px] border border-border bg-card px-[14px] py-[11px]">
-                    <div className="flex items-center justify-between gap-[10px]">
-                      <p className="truncate font-medium text-[13px] text-foreground">{job.name}</p>
-                      <span className={`shrink-0 text-[11px] font-medium tabular-nums ${uploaded ? "text-primary" : "text-muted-foreground"}`}>
-                        {uploaded ? "Uploaded" : `${pct}%`}
-                      </span>
-                    </div>
-                    <Progress value={pct} className="h-[5px] mt-[8px]" />
-                  </div>
-                );
-              })}
-            </div>
-            <Button variant="pill-outline" onClick={continueInBackground} className="h-[36px] px-[18px] transition-colors">
-              <span className="font-medium text-[13px] text-foreground">Continue in background</span>
-            </Button>
-          </div>
-        ) : (
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
           {/* Drop zone — clickable + drag-and-drop, shrinks after files added */}
           <div
@@ -1927,16 +1893,23 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
                   {files.map((file, i) => {
                     const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
                     const isAudio = AUDIO_EXTS.includes(ext);
+                    const fileKey = file.name + file.size;
+                    const isPreparing = preparing.has(fileKey);
                     return (
                       <motion.div
-                        key={file.name + file.size}
+                        key={fileKey}
                         initial={{ opacity: 0, y: 8, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ type: "spring", stiffness: 380, damping: 28 }}
                         className="flex items-center gap-[10px] h-[48px] px-[12px] rounded-[12px] border border-border bg-card"
                       >
-                        <div className={`size-[30px] rounded-[8px] flex items-center justify-center shrink-0 ${isAudio ? "bg-primary/5" : "bg-violet-500/5"}`}>
-                          {isAudio ? (
+                        <div className={`size-[30px] rounded-[8px] flex items-center justify-center shrink-0 ${isPreparing || isAudio ? "bg-primary/5" : "bg-violet-500/5"}`}>
+                          {isPreparing ? (
+                            <svg className="size-[14px] text-primary animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="2.4" />
+                              <path d="M12 3a9 9 0 019 9" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+                            </svg>
+                          ) : isAudio ? (
                             <svg className="size-[14px] text-primary" fill="none" viewBox="0 0 24 24">
                               <path d="M9 18V5l12-2v13M9 18a3 3 0 11-3-3 3 3 0 013 3zM21 16a3 3 0 11-3-3 3 3 0 013 3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
@@ -1948,7 +1921,16 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="truncate font-medium text-[13px] text-foreground">{file.name}</p>
-                          <p className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</p>
+                          {isPreparing ? (
+                            <div className="flex items-center gap-[8px] mt-[3px]">
+                              <div className="h-[3px] w-[140px] rounded-full bg-primary/10 overflow-hidden">
+                                <div className="h-full w-[45%] rounded-full bg-primary/70 animate-pulse" />
+                              </div>
+                              <span className="text-[10px] text-muted-foreground">Preparing…</span>
+                            </div>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground">{formatBytes(file.size)}</p>
+                          )}
                         </div>
                         <Button variant="ghost" size="icon"
                           onClick={e => { e.stopPropagation(); setFiles(prev => prev.filter((_, idx) => idx !== i)); }}
@@ -1963,7 +1945,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
                   })}
                 </div>
                 {/* Settings */}
-                <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} />
+                <SharedSettings state={settings} onChange={p => setSettings(s => ({ ...s, ...p }))} userPlan={userPlan} onUpgradeClick={() => setUpgradeOpen(true)} hideModeToggle />
               </div>
             </div>
           </div>
@@ -1992,39 +1974,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           </div>
         </div>
-        )}
       </ModalShell>
-
-      {/* Leave-during-upload alert — mirrors the browser reload warning */}
-      {leaveAlertOpen && createPortal(
-        <div className="fixed inset-0 z-[200] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setLeaveAlertOpen(false)} />
-          <div className="relative rounded-[18px] w-[380px] p-[22px] flex flex-col gap-[16px] bg-popover"
-            style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.28)" }}>
-            <div className="flex flex-col items-center text-center gap-[12px]">
-              <div className="size-[44px] rounded-full bg-destructive/10 flex items-center justify-center">
-                <Icon icon={AlertCircle} size={22} className="text-destructive" />
-              </div>
-              <div>
-                <p className="font-bold text-[15px] text-foreground">Upload in progress</p>
-                <p className="text-[13px] text-muted-foreground mt-[6px] leading-relaxed">
-                  Your files are still uploading. If you close or reload this page now, the upload will stop and your progress will be lost.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-[8px]">
-              <Button variant="pill-outline" onClick={cancelUploads} className="flex-1 h-[38px] transition-colors">
-                <span className="font-medium text-[13px] text-destructive">Cancel upload</span>
-              </Button>
-              <Button onClick={() => setLeaveAlertOpen(false)}
-                className="flex-1 h-[38px] rounded-full transition-colors bg-primary text-primary-foreground hover:bg-primary/90">
-                <span className="font-semibold text-[13px]">Keep uploading</span>
-              </Button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
       <UpgradePrompt open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </>
   );
@@ -2751,6 +2701,47 @@ function RecordingReviewModal() {
   );
 }
 
+// Reload-warning design preview — shown only when the ttt_demo_leave_alert demo
+// flag is set (the real reload guard is the native beforeunload dialog).
+function DemoLeaveAlert() {
+  const [open, setOpen] = useState(() => {
+    try { return window.localStorage.getItem("ttt_demo_leave_alert") === "1"; } catch { return false; }
+  });
+  function close() {
+    try { window.localStorage.removeItem("ttt_demo_leave_alert"); } catch { /* demo flag only */ }
+    setOpen(false);
+  }
+  if (!open) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[200] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={close} />
+      <div className="relative rounded-[18px] w-[380px] p-[22px] flex flex-col gap-[16px] bg-popover"
+        style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.28)" }}>
+        <div className="flex flex-col items-center text-center gap-[12px]">
+          <div className="size-[44px] rounded-full bg-destructive/10 flex items-center justify-center">
+            <Icon icon={AlertCircle} size={22} className="text-destructive" />
+          </div>
+          <div>
+            <p className="font-bold text-[15px] text-foreground">Upload in progress</p>
+            <p className="text-[13px] text-muted-foreground mt-[6px] leading-relaxed">
+              Your files are still uploading. If you close or reload this page now, the upload will stop and your progress will be lost.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-[8px]">
+          <Button variant="pill-outline" onClick={close} className="flex-1 h-[38px] transition-colors">
+            <span className="font-medium text-[13px] text-destructive">Leave anyway</span>
+          </Button>
+          <Button onClick={close} className="flex-1 h-[38px] rounded-full transition-colors bg-primary text-primary-foreground hover:bg-primary/90">
+            <span className="font-semibold text-[13px]">Keep uploading</span>
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ════════════════════════════════════════════════════════════
 // Modal router
 // ════════════════════════════════════════════════════════════
@@ -2859,9 +2850,7 @@ export function FloatingProgressWidget() {
         : `Transcribing... (${doneCount}/${summaryJobs.length})`
       : `Uploading... (${doneCount}/${summaryJobs.length})`;
 
-  const pillBg = allDone
-    ? errorCount > 0 ? "#f59e0b" : undefined
-    : undefined;
+  const isErrorPill = allDone && errorCount > 0;
 
   if (!expanded) {
     return createPortal(
@@ -2875,11 +2864,13 @@ export function FloatingProgressWidget() {
             className={
               iconOnly
                 ? "size-[42px] rounded-full shadow-md transition-all bg-white text-muted-foreground border border-border hover:bg-accent/40"
-                : "flex items-center gap-[8px] h-[40px] px-[16px] rounded-full shadow-lg transition-all bg-primary text-primary-foreground hover:opacity-90"
+                : isErrorPill
+                  ? "flex items-center gap-[8px] h-[40px] px-[16px] rounded-full transition-all bg-white text-foreground border border-border hover:bg-accent/40"
+                  : "flex items-center gap-[8px] h-[40px] px-[16px] rounded-full shadow-lg transition-all bg-primary text-primary-foreground hover:opacity-90"
             }
-            style={iconOnly
-              ? { boxShadow: "0 6px 18px rgba(15,23,42,0.12)" }
-              : { backgroundColor: pillBg ?? undefined, boxShadow: "0 4px 20px rgba(37,99,235,0.35)" }}
+            style={iconOnly || isErrorPill
+              ? { boxShadow: "0 6px 18px rgba(15,23,42,0.14)" }
+              : { boxShadow: "0 4px 20px rgba(37,99,235,0.35)" }}
             title={iconOnly ? "Open upload history" : undefined}
           >
             {iconOnly ? (
@@ -2891,9 +2882,15 @@ export function FloatingProgressWidget() {
               <>
                 {/* Status icon */}
                 {allDone ? (
+                  isErrorPill ? (
+                    <span className="inline-flex size-[16px] items-center justify-center rounded-full bg-destructive/15 text-destructive shrink-0">
+                      <Icon icon={AlertCircle} className="size-[11px]" strokeWidth={2} />
+                    </span>
+                  ) : (
                   <svg className="size-[15px] shrink-0" fill="none" viewBox="0 0 24 24">
                     <path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
+                  )
                 ) : (
                   <svg className="size-[14px] shrink-0 animate-spin" viewBox="0 0 24 24" fill="none">
                     <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" />
@@ -2903,7 +2900,7 @@ export function FloatingProgressWidget() {
                 <span className="font-semibold text-[13px]">{pillLabel}</span>
                 {/* Chevron up */}
                 <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16">
-                  <path d="M4 10l4-4 4 4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </>
             )}
@@ -3023,7 +3020,11 @@ export function FloatingProgressWidget() {
             const canRetry = isError && job.errorType !== "no_audio";
             const uploadPct = Math.max(0, Math.min(100, Math.round(job.uploadProgress ?? (job.status === "uploading" ? job.progress : 100))));
             const transcribePct = Math.max(0, Math.min(100, Math.round(job.transcriptionProgress ?? (job.status === "processing" ? job.progress : (job.status === "done" ? 100 : 0)))));
-            const phaseLabel = job.status === "uploading" ? "Uploading" : "Transcribing";
+            const statusLabel = job.status === "uploading"
+              ? "Uploading"
+              : job.status === "processing"
+                ? (transcribePct < 15 ? "Processing" : transcribePct < 75 ? "Transcribing" : "Summarizing")
+                : job.status === "done" ? "Completed" : "Failed";
             const phasePct = job.status === "uploading" ? uploadPct : transcribePct;
 
             return (
@@ -3052,7 +3053,7 @@ export function FloatingProgressWidget() {
                     </p>
                     {isActive && (
                       <p className="text-[10px] text-muted-foreground mt-[1px]">
-                        {phaseLabel} {phasePct}%
+                        {statusLabel} {phasePct}%
                       </p>
                     )}
                     {isError && (
@@ -3109,7 +3110,7 @@ export function FloatingProgressWidget() {
                   <div className="w-[160px] shrink-0 flex items-center justify-end gap-[5px]">
                     {isActive && (
                       <div className="flex items-center gap-[8px] w-full">
-                        <span className="min-w-[56px] text-[10px] text-muted-foreground text-right">{job.status === "uploading" ? "Upload" : "Transcribe"}</span>
+                        <span className="min-w-[64px] text-[10px] text-muted-foreground text-right">{statusLabel}</span>
                         <div className="h-[6px] flex-1 rounded-full overflow-hidden bg-muted">
                           <div
                             className="h-full transition-all duration-300"
@@ -3132,6 +3133,7 @@ export function FloatingProgressWidget() {
                           <circle cx="12" cy="12" r="9" fill="#dcfce7" stroke="#22c55e" strokeWidth="1.4" />
                           <path d="M8 12.5l2.5 2.5 5-5" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
+                        <span className="text-[11px] text-muted-foreground font-medium">Completed</span>
                         <Button
                           variant="ghost"
                           onClick={() => {
