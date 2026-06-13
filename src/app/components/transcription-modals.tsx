@@ -2417,9 +2417,9 @@ function RecordingPill() {
   if (!visible || recordingDetailOpen) return null;
   return createPortal(
     <div className="fixed" style={{ bottom: "24px", right: "24px", zIndex: 9999 }}>
-      <div className="w-[min(320px,calc(100vw-24px))] rounded-[22px] border border-border bg-background shadow-lg">
-        <div className="flex items-center justify-between gap-[10px] px-[12px] pt-[10px] pb-[8px]">
-          <div className="flex min-w-0 flex-1 items-center gap-[8px]">
+      <div className="w-[min(372px,calc(100vw-24px))] overflow-hidden rounded-[22px] border border-border bg-background shadow-lg">
+        <div className="flex items-center gap-[10px] px-[14px] pt-[11px] pb-[9px]">
+          <div className="flex shrink-0 items-center gap-[8px]">
             {/* Status dot */}
             <span className="relative flex size-[8px] shrink-0">
               <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${!isPaused ? "animate-ping" : ""}`}
@@ -2437,7 +2437,7 @@ function RecordingPill() {
             </span>
           </div>
           {/* Mini waveform */}
-          <div className="flex min-w-[56px] flex-1">
+          <div className="flex min-w-0 flex-1 overflow-hidden px-[2px]">
             <MiniWaveform active={!isPaused} fill />
           </div>
 
@@ -3134,36 +3134,33 @@ export function FloatingProgressWidget() {
                     )}
                     {isError && (
                       <>
-                        <span className="inline-flex size-[18px] items-center justify-center rounded-full bg-destructive/15 text-destructive">
-                          <Icon icon={AlertCircle} className="size-[11px]" strokeWidth={2} />
-                        </span>
                         {canRetry ? (
                           <Button
                             variant="ghost"
-                            size="icon"
                             onClick={() => retryJob(job.id)}
                             title="Retry upload"
-                            className="size-[24px] rounded-full flex items-center justify-center transition-colors text-destructive hover:bg-destructive/10"
+                            className="h-[26px] rounded-full px-[10px] flex items-center gap-[5px] transition-colors text-destructive hover:bg-destructive/10"
                           >
-                            <Icon icon={RefreshIcon} className="size-[13px]" strokeWidth={1.9} />
+                            <Icon icon={RefreshIcon} className="size-[12px]" strokeWidth={1.9} />
+                            <span className="font-semibold text-[11px]">Retry</span>
                           </Button>
                         ) : (
                           <Button
                             variant="ghost"
-                            size="icon"
                             onClick={() => removeJob(job.id)}
-                            title="Remove and re-upload another file"
-                            className="size-[24px] rounded-full flex items-center justify-center transition-colors text-muted-foreground hover:bg-accent"
+                            title="Remove and upload another file"
+                            className="h-[26px] rounded-full px-[10px] flex items-center gap-[5px] transition-colors text-foreground hover:bg-accent"
                           >
                             <Icon icon={Upload} className="size-[12px]" strokeWidth={1.8} />
+                            <span className="font-semibold text-[11px]">Re-upload</span>
                           </Button>
                         )}
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => removeJob(job.id)}
-                          title="Remove failed file"
-                          className="size-[20px] rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                          title="Dismiss"
+                          className="size-[24px] rounded-full flex items-center justify-center hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
                         >
                           <Icon icon={X} className="size-[11px]" strokeWidth={2} />
                         </Button>

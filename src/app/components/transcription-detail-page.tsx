@@ -573,7 +573,7 @@ function TranscriptSegment({
 function TranscribingState({ phase, progress }: { phase: "uploading" | "processing"; progress: number }) {
   const heading = phase === "uploading" ? "Uploading your recording" : "Transcribing your recording";
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-8 py-16 text-center">
+    <div className="flex h-full min-h-[460px] flex-col items-center justify-center px-8 text-center">
       <LottieStage src="/lottie/hourglass-blue.json" w={140} h={140} />
       <h3 className="mt-3 text-[17px] font-semibold text-foreground">{heading}</h3>
       <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">
@@ -592,7 +592,7 @@ function TranscribingState({ phase, progress }: { phase: "uploading" | "processi
 // Clean summary-generation loader (no gray skeleton sheet).
 function SummaryGeneratingState({ stage }: { stage: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-8 py-16 text-center">
+    <div className="flex h-full min-h-[460px] flex-col items-center justify-center px-8 text-center">
       <span className="relative flex size-12 items-center justify-center">
         <span className="absolute inline-flex size-12 animate-ping rounded-full bg-primary/15" />
         <span className="relative inline-flex size-12 items-center justify-center rounded-full bg-primary/10">
@@ -2534,7 +2534,8 @@ export function TranscriptionDetailPage() {
             <MessageSquarePlus className="size-5 text-primary/70" strokeWidth={1.7} />
           </span>
           <p className="mt-3 text-[13px] font-medium text-foreground">Outline & comments</p>
-          <p className="mt-1 max-w-[200px] text-[12px] leading-relaxed text-muted-foreground">Ready right after transcription finishes.</p>
+          <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
+          <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">We're still building these — they'll show up here in a future update.</p>
         </div>
       ) : (
         <RightPanel
