@@ -1440,26 +1440,13 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick, hideModeTog
   state: SharedSettingsState; onChange: (patch: Partial<SharedSettingsState>) => void;
   userPlan: UserPlan; onUpgradeClick: () => void; hideModeToggle?: boolean;
 }) {
-  const handleModeChange = (m: "mono" | "bi") => onChange(
-    m === "mono" ? { mode: m, langPrimary: "auto" } : { mode: m, langBilingual: ["auto"] }
-  );
+  void hideModeToggle;
 
   return (
     <div className="flex flex-col gap-[16px]">
-      {/* Language selector + Mono/Bi toggle in one row */}
-      <div className="flex items-end gap-[6px]">
-        <div className="flex-1 min-w-0">
-          {state.mode === "mono" ? (
-            <LanguageSelector value={state.langPrimary} onChange={v => onChange({ langPrimary: v })} label="Transcription language" />
-          ) : (
-            <MultiLanguageSelector
-              values={state.langBilingual}
-              onChange={v => onChange({ langBilingual: v })}
-              label="Transcription languages"
-            />
-          )}
-        </div>
-        {!hideModeToggle && <TranscriptionModeToggle mode={state.mode} onChange={handleModeChange} compact />}
+      {/* Transcription language */}
+      <div className="flex-1 min-w-0">
+        <LanguageSelector value={state.langPrimary} onChange={v => onChange({ langPrimary: v })} label="Transcription language" />
       </div>
       <AdvancedSection>
         <div className="pt-[2px]">
@@ -2291,17 +2278,8 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
             <div style={{ overflow: "hidden" }}>
               <div className="flex flex-col gap-[18px] pb-[2px]">
                 {/* Language row */}
-                <div className="flex items-end gap-[6px]">
-                  <div className="flex-1 min-w-0">
-                    {mode === "mono"
-                      ? <LanguageSelector value={langId} onChange={setLangId} label="Transcription language" />
-                      : <MultiLanguageSelector values={langBilingual} onChange={setLangBilingual} label="Transcription languages" />}
-                  </div>
-                  <TranscriptionModeToggle
-                    mode={mode}
-                    onChange={m => { setMode(m); if (m === "mono") setLangId("auto"); else setLangBilingual(["auto"]); }}
-                    compact
-                  />
+                <div className="flex-1 min-w-0">
+                  <LanguageSelector value={langId} onChange={setLangId} label="Transcription language" />
                 </div>
                 {/* Advanced options */}
                 <AdvancedSection>
