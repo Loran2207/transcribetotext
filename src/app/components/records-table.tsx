@@ -1177,9 +1177,13 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const jobRecords = useMemo(() => jobs.map(mapJobToRecord), [jobs]);
   // Demo: ttt_starred_seed pads the list to 30 records and stars them all (design captures only; off by default).
   const demoStarAll = typeof window !== "undefined" && window.localStorage.getItem("ttt_starred_seed") === "1";
+  // Demo: ttt_demo_records = "loading" (skeleton list) | "many" (pad list so pagination shows). Off by default.
+  const demoRecordsFlag = typeof window !== "undefined" ? window.localStorage.getItem("ttt_demo_records") : null;
+  const demoRecordsLoading = demoRecordsFlag === "loading";
+  const demoRecordsMany = demoRecordsFlag === "many";
   const allRecords = useMemo(() => {
     const base = [...jobRecords, ...records];
-    if (!demoStarAll) return base;
+    if (!demoStarAll && !demoRecordsMany) return base;
     const names = [
       "Weekly Standup — Engineering", "Customer Interview — Acme Corp", "Q3 Roadmap Review", "Sales Call — Northwind Traders",
       "UX Research Debrief", "All-Hands — June", "Product Demo — Atlas Inc", "1:1 — Maria / Kirill", "Hiring Panel — Senior FE",
@@ -1190,7 +1194,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     ];
     const extra = names.map((name, i) => { const src = records[i % records.length]; return { ...src, id: src.id + "-demo-" + i, name }; });
     return [...base, ...extra];
-  }, [jobRecords, demoStarAll]);
+  }, [jobRecords, demoStarAll, demoRecordsMany]);
   const displayRecords = allRecords.map((r) => ({ ...r, name: getName(r.id, r.name) }));
   const activeRecords = displayRecords.filter((r) => !trashedIds.has(r.id));
   const trashRecords = displayRecords.filter((r) => trashedIds.has(r.id) && !hardDeletedIds.has(r.id));
@@ -1440,7 +1444,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             </div>
             )}
 
-            {filteredRecords.length === 0 ? (
+            {demoRecordsLoading ? (
+              <RecordsLoadingSkeleton />
+            ) : filteredRecords.length === 0 ? (
               hasActiveFilters ? <EmptyFilterState onClear={clearAllFilters} /> : <EmptyTabState tab={activeTab} onNew={() => setOpenModal("upload")} />
             ) : groupByDate ? (
               dateGroups.map((group) => (
@@ -1597,6 +1603,26 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       )}
 
       <PaginationBar total={filteredRecords.length} page={safePage} pageSize={pageSize} onPage={setPage} onPageSize={(n) => { setPageSize(n); setPage(1); }} />
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   Loading skeleton (first list load / page change)
+   ══════════════════════════════════════════════ */
+
+function RecordsLoadingSkeleton({ rows = 9 }: { rows?: number }) {
+  return (
+    <div className="animate-in fade-in duration-200">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center h-[40px] border-b border-border px-[12px] gap-[12px]">
+          <div className="size-[18px] rounded-[5px] bg-muted animate-pulse shrink-0" />
+          <div className="h-[12px] rounded-full bg-muted animate-pulse" style={{ width: (170 + (i % 4) * 46) + "px" }} />
+          <div className="ml-auto h-[11px] w-[88px] rounded-full bg-muted animate-pulse" />
+          <div className="h-[11px] w-[44px] rounded-full bg-muted animate-pulse" />
+          <div className="h-[11px] w-[64px] rounded-full bg-muted animate-pulse" />
+        </div>
+      ))}
     </div>
   );
 }

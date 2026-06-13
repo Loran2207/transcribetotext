@@ -1166,7 +1166,8 @@ export function TemplatesPage() {
     if (await remove(editTemplate.id)) setDetailTarget(null);
   }, [editTemplate, remove]);
 
-  if (isLoading) return <LoadingSkeleton />;
+  const demoTemplatesLoading = typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_templates") === "loading";
+  if (isLoading || demoTemplatesLoading) return <LoadingSkeleton />;
 
   if (editTemplate !== null) {
     return (
