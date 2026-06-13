@@ -449,6 +449,7 @@ function TranscriptSegment({
   textHighlights,
   showActions = true,
   hideSpeaker = false,
+  hideTimecodes = false,
   onSeekTimecode,
 }: {
   segment: Segment;
@@ -472,6 +473,7 @@ function TranscriptSegment({
   textHighlights: { start: number; end: number }[];
   showActions?: boolean;
   hideSpeaker?: boolean;
+  hideTimecodes?: boolean;
   onSeekTimecode?: (timestamp: string) => void;
 }) {
   const segmentText = editText ?? segment.text;
@@ -541,7 +543,7 @@ function TranscriptSegment({
 
       <div className="relative min-w-0 pl-5 pr-28 max-md:pr-16">
         <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-full transition-colors ${lineTone}`} />
-        {onSeekTimecode ? (
+        {!hideTimecodes && (onSeekTimecode ? (
           <button
             type="button"
             onClick={() => onSeekTimecode(segment.timestamp)}
@@ -553,7 +555,7 @@ function TranscriptSegment({
           </button>
         ) : (
           <span className="text-xs text-muted-foreground tabular-nums">{segment.timestamp}</span>
-        )}
+        ))}
 
         {isEditing ? (
           <textarea
@@ -567,7 +569,7 @@ function TranscriptSegment({
             {renderText(segmentText)}
           </p>
         )}
-        <span className="mt-2 block text-xs text-muted-foreground tabular-nums">{segmentEndTimestamp}</span>
+        {!hideTimecodes && <span className="mt-2 block text-xs text-muted-foreground tabular-nums">{segmentEndTimestamp}</span>}
 
         {/* Inline comment input */}
         {inlineComment && (
@@ -1596,8 +1598,12 @@ export function TranscriptionDetailPage() {
   const forceSingleSpeaker = useMemo(() => {
     try { return typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_single_speaker") === "1"; } catch { return false; }
   }, []);
-  const displaySegments = forceSingleSpeaker ? MONO_SEGMENTS : contentSegments;
-  const isSingleSpeaker = forceSingleSpeaker || new Set(displaySegments.map((seg) => seg.speaker.id)).size <= 1;
+  // Continuous monologue (podcast / dictation): one voice, no speaker column, no per-line timecodes.
+  const forcePlainMono = useMemo(() => {
+    try { return typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_mono_plain") === "1"; } catch { return false; }
+  }, []);
+  const displaySegments = (forceSingleSpeaker || forcePlainMono) ? MONO_SEGMENTS : contentSegments;
+  const isSingleSpeaker = forceSingleSpeaker || forcePlainMono || new Set(displaySegments.map((seg) => seg.speaker.id)).size <= 1;
   const activeTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
 
   const contentSummary = useMemo(() => {
@@ -2519,6 +2525,7 @@ export function TranscriptionDetailPage() {
                     segment={seg}
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker}
+                    hideTimecodes={forcePlainMono && !editMode}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
                     editText={texts[seg.id]}
