@@ -2685,6 +2685,14 @@ function DemoLeaveAlert() {
   const [open, setOpen] = useState(() => {
     try { return window.localStorage.getItem("ttt_demo_leave_alert") === "1"; } catch { return false; }
   });
+  useEffect(() => {
+    const openIt = () => setOpen(true);
+    window.addEventListener("ttt:leave-alert", openIt);
+    if (import.meta.env.DEV) {
+      (window as unknown as { __tttLeaveAlert?: () => void }).__tttLeaveAlert = openIt;
+    }
+    return () => window.removeEventListener("ttt:leave-alert", openIt);
+  }, []);
   function close() {
     try { window.localStorage.removeItem("ttt_demo_leave_alert"); } catch { /* demo flag only */ }
     setOpen(false);
