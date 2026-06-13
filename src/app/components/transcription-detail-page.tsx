@@ -633,20 +633,14 @@ function TranslatingState({ what }: { what: string }) {
   );
 }
 
-// Clean summary-generation loader (no gray skeleton sheet).
+// Summary-generation loader — same brand hourglass as the other big loaders.
 function SummaryGeneratingState({ stage }: { stage: string }) {
   return (
     <div className="flex h-full min-h-[460px] flex-col items-center justify-center px-8 text-center">
-      <span className="relative flex size-12 items-center justify-center">
-        <span className="absolute inline-flex size-12 animate-ping rounded-full bg-primary/15" />
-        <span className="relative inline-flex size-12 items-center justify-center rounded-full bg-primary/10">
-          <Icon icon={Zap} className="size-5 text-primary" strokeWidth={1.7} />
-        </span>
-      </span>
-      <h3 className="mt-4 text-[15px] font-semibold text-foreground">Generating your summary</h3>
-      <p className="mt-1.5 flex items-center gap-2 text-[13px] text-muted-foreground">
-        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" className="shrink-0 animate-spin"><circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="20 10" /></svg>
-        {stage || "Working on it"}…
+      <LottieStage src="/lottie/hourglass-blue.json" w={140} h={140} />
+      <h3 className="mt-3 text-[17px] font-semibold text-foreground">Generating your summary</h3>
+      <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">
+        {stage ? stage + "…" : "Hang tight — your summary appears here in a moment."}
       </p>
     </div>
   );
