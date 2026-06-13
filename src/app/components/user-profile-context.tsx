@@ -26,10 +26,13 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
     user?.email?.split("@")[0] ??
     "User";
 
-  const authAvatar =
-    user?.user_metadata?.avatar_url ??
-    user?.user_metadata?.picture ??
-    "/images/avatar.png";
+  // Demo: ttt_demo_no_avatar=1 clears the avatar so the initials fallback shows (new-user state)
+  const noAvatarDemo = (() => { try { return localStorage.getItem("ttt_demo_no_avatar") === "1"; } catch { return false; } })();
+  const authAvatar = noAvatarDemo
+    ? ""
+    : (user?.user_metadata?.avatar_url ??
+       user?.user_metadata?.picture ??
+       "/images/avatar.png");
 
   const [displayName, setDisplayName] = useState(authName);
   const [avatarSrc, setAvatarSrc] = useState(authAvatar);

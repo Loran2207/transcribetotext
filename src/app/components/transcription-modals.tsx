@@ -2751,9 +2751,11 @@ function AllModals() {
 
 export function FloatingProgressWidget() {
   const { jobs, retryJob, removeJob, clearFailedJobs } = useTranscriptionModals();
-  const [expanded, setExpanded] = useState(false); // false = collapsed pill, true = full widget
+  // Demo: ttt_demo_widget=empty_history forces the expanded widget open on an empty History tab.
+  const demoEmptyHistory = (() => { try { return import.meta.env.DEV && window.localStorage.getItem("ttt_demo_widget") === "empty_history"; } catch { return false; } })();
+  const [expanded, setExpanded] = useState(demoEmptyHistory); // false = collapsed pill, true = full widget
   const [iconOnly, setIconOnly] = useState(false);
-  const [activeTab, setActiveTab] = useState<"uploaded" | "history" | "failed">("uploaded");
+  const [activeTab, setActiveTab] = useState<"uploaded" | "history" | "failed">(demoEmptyHistory ? "history" : "uploaded");
   const widgetJobs = useMemo(
     () => jobs.filter((job) => job.source !== "microphone"),
     [jobs]
@@ -2821,7 +2823,7 @@ export function FloatingProgressWidget() {
     setActiveTab("uploaded");
   }, [newestJobId]);
 
-  if (!hasJobs) return null;
+  if (!hasJobs && !demoEmptyHistory) return null;
 
   const rowBorder = "1px solid var(--border)";
 

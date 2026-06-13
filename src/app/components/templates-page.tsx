@@ -993,10 +993,28 @@ function TemplateDetailLegacy({
 
 function LoadingSkeleton() {
   return (
-    <div className="flex-1 overflow-auto min-w-0"><div className="px-[32px] pt-[28px] pb-[24px]">
-      <div className="flex items-center justify-between mb-6"><Skeleton className="h-8 w-40" /><Skeleton className="h-9 w-[140px] rounded-full" /></div>
-      <Skeleton className="h-[36px] w-full mb-px" />
-      {Array.from({ length: 8 }).map((_, i) => (<Skeleton key={i} className="h-[40px] w-full mb-px" />))}
+    <div className="flex-1 overflow-auto min-w-0"><div className="px-[32px] pt-[28px] pb-[48px]">
+      <div className="flex items-center justify-between mb-[24px]"><Skeleton className="h-[34px] w-[160px]" /></div>
+      <div className="flex items-center gap-5 border-b border-border pb-3 mb-8">
+        {Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-[16px] w-[70px]" />))}
+      </div>
+      <Skeleton className="h-[18px] w-[120px] mb-5" />
+      <div className={CARD_GRID_CLASS}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="rounded-[16px] border border-border p-5 flex flex-col gap-3" style={{ minHeight: 236 }}>
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-10 rounded-[12px]" />
+              <Skeleton className="h-[16px] w-[140px]" />
+            </div>
+            <Skeleton className="h-[13px] w-full" />
+            <Skeleton className="h-[13px] w-[80%]" />
+            <div className="mt-auto flex flex-col gap-2">
+              <Skeleton className="h-[12px] w-[60%]" />
+              <Skeleton className="h-[12px] w-[45%]" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div></div>
   );
 }

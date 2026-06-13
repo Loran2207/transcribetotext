@@ -468,6 +468,14 @@ function ConfirmDialog({ title, description, confirmLabel, onConfirm, onClose }:
   );
 }
 
+// Two-letter initials from a display name, for the avatar fallback.
+function initialsOf(name: string): string {
+  const parts = String(name || "").trim().split(/[^A-Za-z0-9]+/).filter(Boolean);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
 // ── Account Tab ───────────────────────────────────────────────
 function AccountPage() {
   const { displayName: localName, avatarSrc, setDisplayName: setLocalName, setAvatarSrc } = useUserProfile();
@@ -545,8 +553,8 @@ function AccountPage() {
         <div className="flex items-center gap-4 py-5">
           <div className="relative group shrink-0">
             <Avatar className="size-14">
-              <AvatarImage src={avatarSrc} alt="Avatar" className="object-cover" />
-              <AvatarFallback className="text-base">{name.charAt(0).toUpperCase()}</AvatarFallback>
+              {avatarSrc ? <AvatarImage src={avatarSrc} alt="Avatar" className="object-cover" /> : null}
+              <AvatarFallback className="text-base font-semibold bg-primary/10 text-primary">{initialsOf(name)}</AvatarFallback>
             </Avatar>
             <Button variant="ghost"
               onClick={() => fileRef.current?.click()}

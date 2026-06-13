@@ -276,6 +276,8 @@ function FolderPlusIcon() {
 export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFolderId?: string | null; onFolderConsumed?: () => void } = {}) {
   const { t } = useLanguage();
   const { folders, folderAssignments, addFolder, deleteFolder, renameFolder, changeFolderColor, moveFolder } = useFolders();
+  // Demo: ttt_demo_records=loading -> skeleton the folder cards too (matches the table skeleton)
+  const demoRecordsLoading = typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_records") === "loading";
   const { setOpenModal, openUploadWithFiles, setDefaultFolderId } = useTranscriptionModals();
 
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
@@ -556,7 +558,15 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
         {/* Folder cards grid */}
         <div className={isInsideFolder ? "mt-[16px]" : "mt-[24px]"}>
-          {visibleFolders.length > 0 && (
+          {demoRecordsLoading && (
+            <div className="mb-[20px]">
+              <div className="mb-[8px] h-[14px] w-[56px] rounded-full bg-muted animate-pulse" />
+              <div className="grid gap-[12px]" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(176px, 1fr))" }}>
+                {Array.from({ length: 6 }).map((_, i) => (<div key={"folderskel" + i} className="h-[64px] rounded-[16px] bg-muted animate-pulse" />))}
+              </div>
+            </div>
+          )}
+          {!demoRecordsLoading && visibleFolders.length > 0 && (
             <div className="mb-[20px]">
             {visibleFolders.length > FOLDER_ROW_LIMIT && (
               <div className="mb-[8px] flex items-center justify-between">
