@@ -1,13 +1,14 @@
+import { useState } from "react";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "./ui/chart";
+import { ChartContainer, ChartTooltip, type ChartConfig } from "./ui/chart";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Icon } from "./ui/icon";
 import { ArrowUpRight01Icon, Analytics01Icon } from "@hugeicons/core-free-icons";
 
 /* ══════════════════════════════════════════════
    Right-panel analytics widget (Pro)
-   The plan is unlimited, so this replaces the usage
-   meter with all-time activity. Demo flag:
-   ttt_demo_analytics === "soon" -> coming-soon state.
+   All-time KPIs + a switchable activity chart.
+   Demo flag: ttt_demo_analytics === "soon" -> coming-soon state.
    ══════════════════════════════════════════════ */
 
 const CARD_HEIGHT = 452;
@@ -16,16 +17,50 @@ const chartConfig = {
   minutes: { label: "Minutes", color: "var(--primary)" },
 } satisfies ChartConfig;
 
-const weekly = [
-  { week: "Week 1", minutes: 210 },
-  { week: "Week 2", minutes: 340 },
-  { week: "Week 3", minutes: 290 },
-  { week: "Week 4", minutes: 460 },
-  { week: "Week 5", minutes: 520 },
-  { week: "Week 6", minutes: 410 },
-  { week: "Week 7", minutes: 640 },
-  { week: "Week 8", minutes: 720 },
-];
+type RangeKey = "7d" | "4w" | "12m";
+
+// Each point carries a real date label, shown in the tooltip on hover.
+const RANGE: Record<RangeKey, { unit: string; data: { label: string; minutes: number }[] }> = {
+  "7d": {
+    unit: "min / day",
+    data: [
+      { label: "Mon 6 May", minutes: 48 },
+      { label: "Tue 7 May", minutes: 72 },
+      { label: "Wed 8 May", minutes: 39 },
+      { label: "Thu 9 May", minutes: 96 },
+      { label: "Fri 10 May", minutes: 124 },
+      { label: "Sat 11 May", minutes: 34 },
+      { label: "Sun 12 May", minutes: 61 },
+    ],
+  },
+  "4w": {
+    unit: "min / week",
+    data: [
+      { label: "8 – 14 Apr", minutes: 290 },
+      { label: "15 – 21 Apr", minutes: 460 },
+      { label: "22 – 28 Apr", minutes: 410 },
+      { label: "29 Apr – 5 May", minutes: 640 },
+      { label: "6 – 12 May", minutes: 720 },
+    ],
+  },
+  "12m": {
+    unit: "min / month",
+    data: [
+      { label: "Jun 2025", minutes: 1520 },
+      { label: "Jul 2025", minutes: 1780 },
+      { label: "Aug 2025", minutes: 1420 },
+      { label: "Sep 2025", minutes: 2010 },
+      { label: "Oct 2025", minutes: 2360 },
+      { label: "Nov 2025", minutes: 2140 },
+      { label: "Dec 2025", minutes: 2620 },
+      { label: "Jan 2026", minutes: 2480 },
+      { label: "Feb 2026", minutes: 2900 },
+      { label: "Mar 2026", minutes: 2740 },
+      { label: "Apr 2026", minutes: 3120 },
+      { label: "May 2026", minutes: 3260 },
+    ],
+  },
+};
 
 const sources = [
   { label: "Zoom", value: 138 },
@@ -46,14 +81,34 @@ export function AnalyticsCard() {
   return comingSoon ? <AnalyticsComingSoon /> : <AnalyticsData />;
 }
 
+function ActivityTooltip({ active, payload }: { active?: boolean; payload?: { payload: { label: string; minutes: number } }[] }) {
+  if (!active || !payload || !payload.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="rounded-[10px] border border-border bg-card px-[12px] py-[8px] shadow-md">
+      <p className="text-[12px] font-semibold text-foreground">{d.label}</p>
+      <p className="mt-[2px] text-[11px] text-muted-foreground">
+        <span className="font-semibold text-foreground tabular-nums">{d.minutes.toLocaleString()}</span> min transcribed
+      </p>
+    </div>
+  );
+}
+
 function AnalyticsData() {
+  const [range, setRange] = useState<RangeKey>("4w");
+  const current = RANGE[range];
   return (
     <div className="rounded-[14px] overflow-hidden bg-card border border-border shadow-sm flex flex-col shrink-0" style={{ height: CARD_HEIGHT }}>
-      {/* Band A — header + KPIs */}
       <div className="px-[18px] pt-[16px] pb-[14px] shrink-0">
         <div className="flex items-center justify-between mb-[14px]">
           <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "11px" }}>Analytics</span>
-          <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "10.5px" }}>All time</span>
+          <Tabs value={range} onValueChange={(v) => setRange(v as RangeKey)}>
+            <TabsList className="h-[26px] rounded-full bg-muted p-[3px]">
+              <TabsTrigger value="7d" className="h-[20px] rounded-full px-[9px] text-[11px] font-medium data-[state=active]:shadow-sm">7d</TabsTrigger>
+              <TabsTrigger value="4w" className="h-[20px] rounded-full px-[9px] text-[11px] font-medium data-[state=active]:shadow-sm">4w</TabsTrigger>
+              <TabsTrigger value="12m" className="h-[20px] rounded-full px-[9px] text-[11px] font-medium data-[state=active]:shadow-sm">12m</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
         <div className="grid grid-cols-2 gap-[12px]">
           <div>
@@ -73,29 +128,23 @@ function AnalyticsData() {
           <span className="text-muted-foreground" style={{ fontWeight: 400, fontSize: "11px" }}>vs last month</span>
         </div>
       </div>
-
-      {/* Band B — weekly activity chart (absorbs remaining height) */}
       <div className="px-[14px] flex-1 min-h-0 flex flex-col">
         <div className="flex items-center justify-between mb-[6px] px-[4px]">
-          <span className="text-foreground" style={{ fontWeight: 600, fontSize: "11.5px" }}>Weekly activity</span>
-          <span className="text-muted-foreground" style={{ fontWeight: 400, fontSize: "10px" }}>min / week</span>
+          <span className="text-foreground" style={{ fontWeight: 600, fontSize: "11.5px" }}>Activity</span>
+          <span className="text-muted-foreground" style={{ fontWeight: 400, fontSize: "10px" }}>{current.unit}</span>
         </div>
         <div className="flex-1 min-h-0">
           <ChartContainer config={chartConfig} className="w-full h-full aspect-auto">
-            <AreaChart data={weekly} margin={{ top: 6, right: 6, left: 6, bottom: 2 }}>
-              <XAxis dataKey="week" hide />
+            <AreaChart data={current.data} margin={{ top: 6, right: 6, left: 6, bottom: 2 }}>
+              <XAxis dataKey="label" hide />
               <YAxis hide domain={["dataMin - 80", "dataMax + 60"]} />
-              <ChartTooltip cursor={{ stroke: "var(--primary)", strokeOpacity: 0.25, strokeWidth: 1 }} content={<ChartTooltipContent indicator="dot" />} />
+              <ChartTooltip cursor={{ stroke: "var(--primary)", strokeOpacity: 0.25, strokeWidth: 1 }} content={<ActivityTooltip />} />
               <Area dataKey="minutes" type="monotone" stroke="var(--primary)" strokeWidth={2} fill="var(--primary)" fillOpacity={0.14} dot={false} activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)", fill: "var(--primary)" }} isAnimationActive={false} />
             </AreaChart>
           </ChartContainer>
         </div>
       </div>
-
-      {/* Band C — divider */}
       <div className="mx-[18px] h-px bg-border shrink-0" />
-
-      {/* Band D — source breakdown */}
       <div className="px-[18px] pt-[14px] pb-[16px] shrink-0">
         <p className="text-muted-foreground mb-[10px]" style={{ fontWeight: 600, fontSize: "11px" }}>By source</p>
         <div className="flex flex-col gap-[10px]">
@@ -120,23 +169,21 @@ function AnalyticsData() {
 function AnalyticsComingSoon() {
   return (
     <div className="rounded-[14px] overflow-hidden bg-card border border-border shadow-sm relative shrink-0" style={{ height: CARD_HEIGHT }}>
-      {/* Faint chart ghost, bottom-anchored */}
       <div className="absolute bottom-0 left-0 right-0 h-[160px] opacity-[0.10] pointer-events-none">
         <ChartContainer config={chartConfig} className="w-full h-full aspect-auto">
-          <AreaChart data={weekly} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+          <AreaChart data={RANGE["4w"].data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="ttt-analytics-ghost" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--muted-foreground)" stopOpacity={0.5} />
                 <stop offset="100%" stopColor="var(--muted-foreground)" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="week" hide />
+            <XAxis dataKey="label" hide />
             <YAxis hide domain={["dataMin - 60", "dataMax + 60"]} />
             <Area dataKey="minutes" type="monotone" stroke="var(--muted-foreground)" strokeWidth={1.5} fill="url(#ttt-analytics-ghost)" dot={false} isAnimationActive={false} />
           </AreaChart>
         </ChartContainer>
       </div>
-      {/* Centered foreground */}
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-[24px]">
         <div className="size-[46px] rounded-full bg-muted flex items-center justify-center">
           <Icon icon={Analytics01Icon} className="size-[22px] text-muted-foreground" strokeWidth={1.8} />
