@@ -5,6 +5,7 @@ import { Smartphone, Zap, ChevronRight, Check, Mic, Globe, X } from "@hugeicons/
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { usePlan } from "./use-plan";
+import { AnalyticsCard } from "./analytics-card";
 import promoSvgPaths from "../../imports/svg-panhyaoz26";
 const imgGiftBox = "/images/gift-box.png";
 
@@ -370,6 +371,7 @@ export function RightPanel() {
         <div className="flex-1 overflow-y-auto px-[18px] py-[18px] flex flex-col gap-[14px]">
           {/* Widget Cards */}
           {plan === "free" && <PromoCard />}
+          {plan === "pro" && <AnalyticsCard />}
           <TipsCarousel />
           {plan === "free" && <FreePlanCard />}
 
