@@ -10,21 +10,21 @@ import { ArrowUpRight01Icon, Analytics01Icon } from "@hugeicons/core-free-icons"
    ttt_demo_analytics === "soon" -> coming-soon state.
    ══════════════════════════════════════════════ */
 
-const CARD_HEIGHT = 420;
+const CARD_HEIGHT = 452;
 
 const chartConfig = {
   minutes: { label: "Minutes", color: "var(--primary)" },
 } satisfies ChartConfig;
 
 const weekly = [
-  { week: "W1", minutes: 210 },
-  { week: "W2", minutes: 340 },
-  { week: "W3", minutes: 290 },
-  { week: "W4", minutes: 460 },
-  { week: "W5", minutes: 520 },
-  { week: "W6", minutes: 410 },
-  { week: "W7", minutes: 640 },
-  { week: "W8", minutes: 720 },
+  { week: "Week 1", minutes: 210 },
+  { week: "Week 2", minutes: 340 },
+  { week: "Week 3", minutes: 290 },
+  { week: "Week 4", minutes: 460 },
+  { week: "Week 5", minutes: 520 },
+  { week: "Week 6", minutes: 410 },
+  { week: "Week 7", minutes: 640 },
+  { week: "Week 8", minutes: 720 },
 ];
 
 const sources = [
@@ -52,15 +52,12 @@ function AnalyticsData() {
       {/* Band A — header + KPIs */}
       <div className="px-[18px] pt-[16px] pb-[14px] shrink-0">
         <div className="flex items-center justify-between mb-[14px]">
-          <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "10.5px", textTransform: "uppercase", letterSpacing: "0.6px" }}>Analytics</span>
+          <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "11px" }}>Analytics</span>
           <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "10.5px" }}>All time</span>
         </div>
         <div className="grid grid-cols-2 gap-[12px]">
           <div>
-            <div className="flex items-baseline gap-[3px]">
-              <span className="text-foreground tabular-nums" style={{ fontWeight: 700, fontSize: "28px", letterSpacing: "-0.6px", lineHeight: 1 }}>128.4</span>
-              <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "14px" }}>h</span>
-            </div>
+            <span className="block text-foreground tabular-nums" style={{ fontWeight: 700, fontSize: "28px", letterSpacing: "-0.6px", lineHeight: 1 }}>128.4</span>
             <p className="text-muted-foreground mt-[6px]" style={{ fontWeight: 400, fontSize: "11px" }}>Hours transcribed</p>
           </div>
           <div className="pl-[16px] border-l border-border">
@@ -85,18 +82,11 @@ function AnalyticsData() {
         </div>
         <div className="flex-1 min-h-0">
           <ChartContainer config={chartConfig} className="w-full h-full aspect-auto">
-            <AreaChart data={weekly} margin={{ top: 4, right: 4, left: 4, bottom: 2 }}>
-              <defs>
-                <linearGradient id="ttt-analytics-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.32} />
-                  <stop offset="55%" stopColor="var(--primary)" stopOpacity={0.1} />
-                  <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+            <AreaChart data={weekly} margin={{ top: 6, right: 6, left: 6, bottom: 2 }}>
               <XAxis dataKey="week" hide />
-              <YAxis hide domain={["dataMin - 60", "dataMax + 60"]} />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent indicator="line" hideLabel />} />
-              <Area dataKey="minutes" type="monotone" stroke="var(--primary)" strokeWidth={1.5} fill="url(#ttt-analytics-fill)" dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: "var(--primary)" }} isAnimationActive={false} />
+              <YAxis hide domain={["dataMin - 80", "dataMax + 60"]} />
+              <ChartTooltip cursor={{ stroke: "var(--primary)", strokeOpacity: 0.25, strokeWidth: 1 }} content={<ChartTooltipContent indicator="dot" />} />
+              <Area dataKey="minutes" type="monotone" stroke="var(--primary)" strokeWidth={2} fill="var(--primary)" fillOpacity={0.14} dot={false} activeDot={{ r: 4, strokeWidth: 2, stroke: "var(--card)", fill: "var(--primary)" }} isAnimationActive={false} />
             </AreaChart>
           </ChartContainer>
         </div>
@@ -107,7 +97,7 @@ function AnalyticsData() {
 
       {/* Band D — source breakdown */}
       <div className="px-[18px] pt-[14px] pb-[16px] shrink-0">
-        <p className="text-muted-foreground mb-[10px]" style={{ fontWeight: 600, fontSize: "10.5px", textTransform: "uppercase", letterSpacing: "0.6px" }}>By source</p>
+        <p className="text-muted-foreground mb-[10px]" style={{ fontWeight: 600, fontSize: "11px" }}>By source</p>
         <div className="flex flex-col gap-[10px]">
           {sources.map((s) => {
             const pct = (s.value / sourceTotal) * 100;
