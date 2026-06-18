@@ -88,7 +88,8 @@ function AnalyticsData() {
             <AreaChart data={weekly} margin={{ top: 4, right: 4, left: 4, bottom: 2 }}>
               <defs>
                 <linearGradient id="ttt-analytics-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.18} />
+                  <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.32} />
+                  <stop offset="55%" stopColor="var(--primary)" stopOpacity={0.1} />
                   <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                 </linearGradient>
               </defs>
@@ -154,10 +155,7 @@ function AnalyticsComingSoon() {
         <p className="text-muted-foreground mt-[5px] max-w-[230px]" style={{ fontWeight: 400, fontSize: "12px", lineHeight: 1.45 }}>
           Track your files, hours and activity over time.
         </p>
-        <span className="mt-[14px] inline-flex items-center gap-[5px] rounded-full px-[10px] py-[3px] bg-muted border border-border">
-          <span className="size-[6px] rounded-full bg-primary" />
-          <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "10.5px", letterSpacing: "0.3px" }}>Coming soon</span>
-        </span>
+        <span className="mt-[14px] inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
       </div>
     </div>
   );
