@@ -217,23 +217,14 @@ function FileSourceIcon() {
 /** Instagram icon */
 function InstagramSourceIcon() {
   return (
-    <div className="relative shrink-0 size-[18px]">
-      <svg viewBox="0 0 48 48" className="block size-full" aria-hidden="true">
-        <defs>
-          <linearGradient id="ig-grad-2022" x1="2" y1="46" x2="46" y2="2" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#FEDA75" />
-            <stop offset="0.25" stopColor="#FA7E1E" />
-            <stop offset="0.5" stopColor="#D62976" />
-            <stop offset="0.75" stopColor="#962FBF" />
-            <stop offset="1" stopColor="#4F5BD5" />
-          </linearGradient>
-        </defs>
-        <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#ig-grad-2022)" />
-        <rect x="13" y="13" width="22" height="22" rx="7" fill="none" stroke="#fff" strokeWidth="3" />
-        <circle cx="24" cy="24" r="6.4" fill="none" stroke="#fff" strokeWidth="3" />
-        <circle cx="33.2" cy="14.8" r="2.3" fill="#fff" />
-      </svg>
-    </div>
+    <img
+      src="/instagram-logo.webp"
+      alt="Instagram"
+      width={18}
+      height={18}
+      className="shrink-0 size-[18px] rounded-[4px] object-contain"
+      draggable={false}
+    />
   );
 }
 

@@ -137,7 +137,7 @@ function FilterChip({ label, icon, active, count, onClick, hasChevron }: {
 function FilterDropdown({ children, width }: { children: React.ReactNode; width?: number }) {
   return (
     <div
-      className="absolute top-[calc(100%+6px)] left-0 rounded-[12px] py-[6px] z-10 overflow-hidden bg-popover border border-border shadow-md"
+      className="absolute top-[calc(100%+6px)] left-0 rounded-[12px] py-[6px] z-[60] overflow-hidden bg-popover border border-border shadow-md"
       style={{ width: width || 260 }}
     >
       {children}
@@ -160,7 +160,7 @@ function DateFilterPanel({ selectedPreset, selectedDate, onSelectPreset, onSelec
   const isSelected = (d: Date) => selectedDate && d.getDate() === selectedDate.getDate() && d.getMonth() === selectedDate.getMonth() && d.getFullYear() === selectedDate.getFullYear();
 
   return (
-    <div className="absolute top-[calc(100%+6px)] left-0 w-[300px] rounded-[12px] z-10 overflow-hidden bg-popover border border-border shadow-md">
+    <div className="absolute top-[calc(100%+6px)] left-0 w-[300px] rounded-[12px] z-[60] overflow-hidden bg-popover border border-border shadow-md">
       <div className="flex items-center justify-between px-[14px] pt-[12px] pb-[4px]">
         <span className="font-medium text-[12px] text-muted-foreground tracking-[0.2px]">Created</span>
         <Button variant="link" onClick={onClear} className="h-auto p-0 font-medium text-[12px]">Clear</Button>
@@ -357,7 +357,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
               <FilterChip
                 label="Folders" hasChevron
                 icon={<Icon icon={FolderOpen} className={`size-[12px] ${selectedFolders.size > 0 ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />}
-                active={selectedFolders.size > 0} count={selectedFolders.size}
+                active={selectedFolders.size > 0 || activeDropdown === "folders"} count={selectedFolders.size}
                 onClick={() => setActiveDropdown(activeDropdown === "folders" ? null : "folders")}
               />
               {activeDropdown === "folders" && (
@@ -393,13 +393,13 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
               <FilterChip
                 label="Type" hasChevron
                 icon={<svg className="size-[12px]" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="3" height="10" rx="1.5" fill={selectedTypes.size > 0 ? "var(--primary)" : "var(--muted-foreground)"} opacity="0.6" /><rect x="6.5" y="1" width="3" height="14" rx="1.5" fill={selectedTypes.size > 0 ? "var(--primary)" : "var(--muted-foreground)"} /><rect x="12" y="5" width="3" height="6" rx="1.5" fill={selectedTypes.size > 0 ? "var(--primary)" : "var(--muted-foreground)"} opacity="0.4" /></svg>}
-                active={selectedTypes.size > 0} count={selectedTypes.size}
+                active={selectedTypes.size > 0 || activeDropdown === "types"} count={selectedTypes.size}
                 onClick={() => setActiveDropdown(activeDropdown === "types" ? null : "types")}
               />
               {activeDropdown === "types" && (
                 <FilterDropdown>
                   <div className="px-[10px] pt-[4px] pb-[2px]">
-                    <span className="font-medium text-[11px] text-muted-foreground tracking-[0.2px]">Source</span>
+                    <span className="font-medium text-[11px] text-muted-foreground tracking-[0.2px]">Type</span>
                   </div>
                   {DOC_TYPES.map(dt => (
                     <Button variant="ghost" key={dt.id} onClick={() => toggleSet(setSelectedTypes, dt.id)} className={`flex items-center gap-[8px] w-[calc(100%-8px)] h-[32px] px-[10px] rounded-[8px] mx-[4px] justify-start ${selectedTypes.has(dt.id) ? "bg-primary/5" : ""}`}>
@@ -419,7 +419,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
               <FilterChip
                 label="Creator" hasChevron
                 icon={<Icon icon={User} className={`size-[12px] ${selectedCreators.size > 0 ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />}
-                active={selectedCreators.size > 0} count={selectedCreators.size}
+                active={selectedCreators.size > 0 || activeDropdown === "creators"} count={selectedCreators.size}
                 onClick={() => setActiveDropdown(activeDropdown === "creators" ? null : "creators")}
               />
               {activeDropdown === "creators" && (
@@ -442,7 +442,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
               label={datePreset ? DATE_PRESETS.find(p => p.id === datePreset)?.label || "Date" : selectedDate ? selectedDate.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Date"}
               hasChevron
               icon={<Icon icon={Calendar} className={`size-[12px] ${(datePreset || selectedDate) ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />}
-              active={datePreset !== null || selectedDate !== null}
+              active={datePreset !== null || selectedDate !== null || activeDropdown === "date"}
               onClick={() => setActiveDropdown(activeDropdown === "date" ? null : "date")}
             />
             {activeDropdown === "date" && (
