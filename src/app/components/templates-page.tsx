@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -1056,6 +1056,16 @@ const CATEGORY_TAB_IDS = TEMPLATE_CATEGORIES
 export function TemplatesPage() {
   const { templates, isLoading, create, update, remove } = useTemplates();
   const [detailTarget, setDetailTarget] = useState<Template | "new" | null>(null);
+
+  // Demo: ttt_demo_apply=open jumps straight into the first template detail
+  // (whose Apply dialog then auto-opens) for deterministic captures.
+  useEffect(() => {
+    try {
+      if (import.meta.env.DEV && localStorage.getItem("ttt_demo_apply") === "open" && templates.length > 0) {
+        setDetailTarget((prev) => prev ?? templates[0]);
+      }
+    } catch { /* ignore */ }
+  }, [templates]);
   const [activeTab, setActiveTab] = useState<TabValue>("all");
 
   // Starred

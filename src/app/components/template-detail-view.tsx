@@ -17,6 +17,7 @@ import { SourceIcon } from "./source-icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
 import { usePlan } from "./use-plan";
 import { records } from "./records-table";
+import { ApplyTemplateDialog } from "./apply-template-dialog";
 import { sectionIcon } from "./templates-page";
 import type { Template } from "@/lib/templates";
 import { templateEmoji, categorize, hueForCategory, type CategoryId } from "@/lib/template-meta";
@@ -86,9 +87,10 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
       .filter((r) => !appliedFiles.some((a) => a.id === r.id)),
   ];
 
-  const handleApply = () => {
-    toast.success(`"${template.name}" will be applied to your next recordings`);
-  };
+  const [applyOpen, setApplyOpen] = useState(() => {
+    try { return import.meta.env.DEV && localStorage.getItem("ttt_demo_apply") === "open"; } catch { return false; }
+  });
+  const handleApply = () => setApplyOpen(true);
 
   const handleStar = () => {
     const next = new Set(loadStarred());
@@ -376,6 +378,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         </div>
       </div>
     </div>
+    <ApplyTemplateDialog open={applyOpen} onOpenChange={setApplyOpen} template={template} />
     </TooltipProvider>
   );
 }

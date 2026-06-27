@@ -1562,6 +1562,28 @@ export function TranscriptionDetailPage() {
   const [summaryStage, setSummaryStage] = useState("");
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const { templates } = useTemplates();
+
+  // PRO "Apply template" deep-link: a record opened with a template to apply.
+  const appliedFromRouteRef = useRef(false);
+  const applyTimersRef = useRef<number[]>([]);
+  useEffect(() => () => { applyTimersRef.current.forEach((t) => clearTimeout(t)); }, []);
+  useEffect(() => {
+    if (appliedFromRouteRef.current) return;
+    const tid = (location.state as { applyTemplateId?: string } | null)?.applyTemplateId;
+    if (!tid) return;
+    const selected = templates.find((t) => t.id === tid);
+    if (!selected) return;
+    appliedFromRouteRef.current = true;
+    setActiveTemplateId(tid);
+    setActiveTab("summary");
+    setIsSummaryLoading(true);
+    setSummaryStage("Analyzing the transcript");
+    applyTimersRef.current.push(window.setTimeout(() => setSummaryStage("Generating sections"), 1300));
+    applyTimersRef.current.push(window.setTimeout(() => setSummaryStage("Polishing the summary"), 2600));
+    applyTimersRef.current.push(window.setTimeout(() => { setIsSummaryLoading(false); toast.success(`Template "${selected.name}" applied`); }, 3600));
+    navigate(location.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templates]);
   const [selectedTranslationLang, setSelectedTranslationLang] = useState("");
   const [activeTranslationLang, setActiveTranslationLang] = useState<string | null>(null);
   const [isTranslationLoading, setIsTranslationLoading] = useState(false);

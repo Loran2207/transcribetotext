@@ -3,7 +3,7 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon } from "@hugeicons/core-free-icons";
+import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -45,15 +45,16 @@ export interface TranscriptionJob {
   progress: number;
   uploadProgress?: number;
   transcriptionProgress?: number;
-  status: "uploading" | "processing" | "done" | "error";
+  status: "uploading" | "connecting" | "recording" | "processing" | "done" | "error";
   fileType: "audio" | "video";
-  errorType?: "no_audio" | "corrupt" | "too_long" | "network";
+  errorType?: "no_audio" | "corrupt" | "too_long" | "network" | "bot_failed";
   noAudioDetected?: boolean;
   lang?: string;
   langBilingual?: string[];
   translationLang?: string;
   folderId?: string;
   source?: SourceType;
+  kind?: "meeting";
   mediaUrl?: string;
   livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
 }
@@ -62,6 +63,7 @@ const ERROR_LABELS: Record<string, string> = {
   no_audio: "No audio track found",
   corrupt: "File appears to be corrupted",
   too_long: "Exceeds 5-hour limit",
+  bot_failed: "Couldn't join the meeting",
   network: "Network error — upload failed",
 };
 
@@ -125,6 +127,7 @@ interface CtxValue {
   jobs: TranscriptionJob[];
   addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean }) => string;
   retryJob: (id: string) => void;
+  reconnectBot: (id: string) => void;
   removeJob: (id: string) => void;
   clearFailedJobs: () => void;
   meetingCounterRef: React.MutableRefObject<number>;
@@ -682,7 +685,7 @@ export function TranscriptionModalsProvider({
     setTimeout(tickUpload, 300);
   }
 
-  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean }) {
+  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean; kind?: "meeting" }) {
     const id = Math.random().toString(36).slice(2, 10);
     const createdAt = new Date().toISOString();
     let batchId: string | undefined;
@@ -700,15 +703,33 @@ export function TranscriptionModalsProvider({
       batchId = currentUploadBatchIdRef.current ?? undefined;
     }
 
-    setJobs(prev => [{ id, name, batchId, createdAt, progress: 0, uploadProgress: 0, transcriptionProgress: 0, status: "uploading", fileType, ...opts }, ...prev]);
+    setJobs(prev => [{ id, name, batchId, createdAt, progress: 0, uploadProgress: 0, transcriptionProgress: 0, status: opts?.kind === "meeting" ? "connecting" : "uploading", fileType, ...opts }, ...prev]);
     if (opts?.folderId) assignToFolder([id], opts.folderId);
-    simulateJob(id);
+    if (opts?.kind === "meeting") simulateMeetingJob(id); else simulateJob(id);
     return id;
   }
 
   function retryJob(id: string) {
     setJobs(prev => prev.map(j => j.id === id ? { ...j, progress: 0, uploadProgress: 0, transcriptionProgress: 0, status: "uploading", duration: undefined, errorType: undefined } : j));
     simulateJob(id);
+  }
+
+  function simulateMeetingJob(id: string) {
+    // Meeting-bot lifecycle: connecting -> recording -> (upload + transcription) -> done
+    setJobs(prev => prev.map(j => j.id === id ? { ...j, status: "connecting", progress: 0, uploadProgress: 0, transcriptionProgress: 0, errorType: undefined } : j));
+    setTimeout(() => {
+      setJobs(prev => prev.map(j => j.id === id && j.status === "connecting" ? { ...j, status: "recording" } : j));
+      setTimeout(() => {
+        const cur = jobsRef.current.find(j => j.id === id);
+        if (!cur || cur.status !== "recording") return;
+        setJobs(prev => prev.map(j => j.id === id ? { ...j, status: "uploading", uploadProgress: 0, progress: 0 } : j));
+        simulateJob(id);
+      }, 2600);
+    }, 1700);
+  }
+
+  function reconnectBot(id: string) {
+    simulateMeetingJob(id);
   }
 
   function removeJob(id: string) {
@@ -720,7 +741,7 @@ export function TranscriptionModalsProvider({
   }
 
   return (
-    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId }}>
+    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, reconnectBot, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId }}>
       {children}
       <AllModals />
       <DemoLeaveAlert />
@@ -2226,6 +2247,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
       translationLang: realTimeTranslation ? realTimeTranslationLang : undefined,
       folderId: selectedFolderId ?? undefined,
       source: detectMeetingSource(meetingUrl),
+      kind: "meeting",
     });
     handleClose();
   }
@@ -2750,7 +2772,7 @@ function AllModals() {
 // ════════════════════════════════════════════════════════════
 
 export function FloatingProgressWidget() {
-  const { jobs, retryJob, removeJob, clearFailedJobs } = useTranscriptionModals();
+  const { jobs, retryJob, reconnectBot, removeJob, clearFailedJobs } = useTranscriptionModals();
   // Demo: ttt_demo_widget=empty_history forces the expanded widget open on an empty History tab.
   const demoEmptyHistory = (() => { try { return import.meta.env.DEV && window.localStorage.getItem("ttt_demo_widget") === "empty_history"; } catch { return false; } })();
   const [expanded, setExpanded] = useState(demoEmptyHistory); // false = collapsed pill, true = full widget
@@ -2763,7 +2785,7 @@ export function FloatingProgressWidget() {
 
   const hasJobs = widgetJobs.length > 0;
   const newestJobId = widgetJobs[0]?.id ?? null;
-  const activeCount = widgetJobs.filter((j) => j.status === "uploading" || j.status === "processing").length;
+  const activeCount = widgetJobs.filter((j) => j.status === "uploading" || j.status === "processing" || j.status === "connecting" || j.status === "recording").length;
 
   const activeBatchIds = useMemo(() => {
     const ids = new Set<string>();
@@ -2814,6 +2836,8 @@ export function FloatingProgressWidget() {
   const processingCount = summaryJobs.filter((j) => j.status === "processing").length;
   const doneCount = summaryJobs.filter((j) => j.status === "done" || j.status === "error").length;
   const errorCount = summaryJobs.filter((j) => j.status === "error").length;
+  const connectingCount = summaryJobs.filter((j) => j.status === "connecting").length;
+  const recordingCount = summaryJobs.filter((j) => j.status === "recording").length;
 
   // Re-open the floating pill whenever a new upload job is added.
   useEffect(() => {
@@ -2839,6 +2863,7 @@ export function FloatingProgressWidget() {
       : `Uploading... (${doneCount}/${summaryJobs.length})`;
 
   const isErrorPill = allDone && errorCount > 0;
+  const activityLabel = recordingCount > 0 ? `Recording… (${recordingCount})` : connectingCount > 0 ? (connectingCount > 1 ? `Connecting bots… (${connectingCount})` : "Connecting bot…") : pillLabel;
 
   if (!expanded) {
     return createPortal(
@@ -2885,7 +2910,7 @@ export function FloatingProgressWidget() {
                     <path d="M12 3a9 9 0 019 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
                   </svg>
                 )}
-                <span className="font-semibold text-[13px]">{pillLabel}</span>
+                <span className="font-semibold text-[13px]">{activityLabel}</span>
                 {/* Chevron up */}
                 <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16">
                   <path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -3004,6 +3029,10 @@ export function FloatingProgressWidget() {
             const isActive = job.status === "uploading" || job.status === "processing";
             const isDone = job.status === "done";
             const isError = job.status === "error";
+            const isConnecting = job.status === "connecting";
+            const isRecording = job.status === "recording";
+            const isMeeting = job.kind === "meeting";
+            const isBotFailed = isError && job.errorType === "bot_failed";
             const errLabel = job.errorType ? (ERROR_LABELS[job.errorType] ?? "Upload failed") : "Upload failed";
             const canRetry = isError && job.errorType !== "no_audio";
             const uploadPct = Math.max(0, Math.min(100, Math.round(job.uploadProgress ?? (job.status === "uploading" ? job.progress : 100))));
@@ -3020,9 +3049,11 @@ export function FloatingProgressWidget() {
                 {/* Main row */}
                 <div className={`flex items-center gap-[8px] px-[14px] pt-[9px] pb-[10px] ${isError ? "bg-destructive/5" : ""}`}>
                   {/* File type icon */}
-                  <div className={`size-[26px] rounded-[7px] flex items-center justify-center shrink-0 ${isError ? "bg-destructive/10" : job.fileType === "audio" ? "bg-primary/5" : "bg-violet-500/5"}`}>
+                  <div className={`size-[26px] rounded-[7px] flex items-center justify-center shrink-0 ${isError ? "bg-destructive/10" : isMeeting ? "bg-primary/5" : job.fileType === "audio" ? "bg-primary/5" : "bg-violet-500/5"}`}>
                     {isError ? (
                       <Icon icon={AlertCircle} className="size-[14px] text-destructive" strokeWidth={1.9} />
+                    ) : isMeeting ? (
+                      <Icon icon={Video01Icon} className="size-[13px] text-primary" strokeWidth={1.7} />
                     ) : job.fileType === "audio" ? (
                       <svg className="size-[12px] text-primary" fill="none" viewBox="0 0 24 24">
                         <path d="M9 18V5l12-2v13M9 18a3 3 0 11-3-3 3 3 0 013 3zM21 16a3 3 0 11-3-3 3 3 0 013 3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -3110,6 +3141,18 @@ export function FloatingProgressWidget() {
                         </span>
                       </div>
                     )}
+                    {isConnecting && (
+                      <div className="flex items-center gap-[6px] text-muted-foreground">
+                        <Icon icon={Loading03Icon} className="size-[13px] animate-spin text-primary" strokeWidth={2} />
+                        <span className="text-[11px] font-medium">Connecting…</span>
+                      </div>
+                    )}
+                    {isRecording && (
+                      <div className="flex items-center gap-[6px] text-destructive">
+                        <span className="relative flex size-[8px]"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" /><span className="relative inline-flex size-[8px] rounded-full bg-destructive" /></span>
+                        <span className="text-[11px] font-medium">Recording…</span>
+                      </div>
+                    )}
                     {isDone && (
                       <>
                         <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 24 24">
@@ -3136,7 +3179,17 @@ export function FloatingProgressWidget() {
                     )}
                     {isError && (
                       <>
-                        {canRetry ? (
+                        {isBotFailed ? (
+                          <Button
+                            variant="ghost"
+                            onClick={() => reconnectBot(job.id)}
+                            title="Reconnect the meeting bot"
+                            className="h-[26px] rounded-full px-[10px] flex items-center gap-[5px] transition-colors text-primary hover:bg-primary/10"
+                          >
+                            <Icon icon={RefreshIcon} className="size-[12px]" strokeWidth={1.9} />
+                            <span className="font-semibold text-[11px]">Reconnect bot</span>
+                          </Button>
+                        ) : canRetry ? (
                           <Button
                             variant="ghost"
                             onClick={() => retryJob(job.id)}

@@ -1,5 +1,7 @@
 import svgPaths from "../../imports/svg-nwsvf5ddzt";
 import { imgGroup, imgGroup1 } from "../../imports/svg-lixh6";
+import { Icon } from "./ui/icon";
+import { Video01Icon, File01Icon, Instagram } from "@hugeicons/core-free-icons";
 
 export type SourceType =
   | "google-sheets"
@@ -11,7 +13,7 @@ export type SourceType =
   | "microphone"
   | "folder"
   | "mp4"
-  | "mp3";
+  | "mp3" | "meeting" | "file" | "instagram";
 
 /** Google Sheets icon */
 function GoogleSheetsIcon() {
@@ -194,6 +196,33 @@ function Mp3Icon() {
   );
 }
 
+/** Meeting (video call) icon — distinct from a plain file */
+function MeetingSourceIcon() {
+  return (
+    <div className="relative shrink-0 size-[18px] flex items-center justify-center text-primary">
+      <Icon icon={Video01Icon} size={17} strokeWidth={1.7} />
+    </div>
+  );
+}
+
+/** Generic file icon */
+function FileSourceIcon() {
+  return (
+    <div className="relative shrink-0 size-[18px] flex items-center justify-center text-muted-foreground">
+      <Icon icon={File01Icon} size={16} strokeWidth={1.7} />
+    </div>
+  );
+}
+
+/** Instagram icon */
+function InstagramSourceIcon() {
+  return (
+    <div className="relative shrink-0 size-[18px] flex items-center justify-center" style={{ color: "#E1306C" }}>
+      <Icon icon={Instagram} size={17} strokeWidth={1.7} />
+    </div>
+  );
+}
+
 /** Universal source icon component */
 export function SourceIcon({ source }: { source: SourceType }) {
   switch (source) {
@@ -207,6 +236,9 @@ export function SourceIcon({ source }: { source: SourceType }) {
     case "folder": return <FolderIcon />;
     case "mp4": return <Mp4Icon />;
     case "mp3": return <Mp3Icon />;
+    case "meeting": return <MeetingSourceIcon />;
+    case "file": return <FileSourceIcon />;
+    case "instagram": return <InstagramSourceIcon />;
     default: return <MicrophoneIcon />;
   }
 }

@@ -44,6 +44,8 @@ const DOC_TYPES: { id: string; label: string; source: SourceType }[] = [
   { id: "mp3", label: "MP3 File", source: "mp3" },
   { id: "youtube", label: "YouTube", source: "youtube" },
   { id: "dropbox", label: "Dropbox", source: "dropbox" },
+  { id: "instagram", label: "Instagram", source: "instagram" },
+  { id: "file", label: "File", source: "file" },
 ];
 
 const CREATOR_OPTIONS = [
