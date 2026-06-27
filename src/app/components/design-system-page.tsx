@@ -41,10 +41,10 @@ const NAV: { group: string; items: { id: string; label: string }[] }[] = [
 ];
 
 /**
- * `/design-system` — the technical board: an engineered spec sheet on blueprint
+ * `/design-system` - the technical board: an engineered spec sheet on blueprint
  * paper. Each component sits alone on a stage where a live measurement engine
  * draws its real dimensions and redline callouts. Foundations read from theme
- * tokens; components are the app's own. Reachable by URL only — no nav link.
+ * tokens; components are the app's own. Reachable by URL only - no nav link.
  */
 export function DesignSystemPage() {
   return (
@@ -97,7 +97,7 @@ export function DesignSystemPage() {
             <p className="m-0 max-w-[64ch] text-[15px] leading-[1.7] text-muted-foreground">
               One blue accent, a cool-tinted gray ramp, Inter throughout, and hairline borders instead of heavy
               shadow. The foundations read straight from the live theme tokens and the components are the real app
-              primitives — measured on the spot, so what you see here is what ships.
+              primitives - measured on the spot, so what you see here is what ships.
             </p>
             <div className="ds-mono mt-6 flex max-w-[560px] flex-wrap gap-x-3 gap-y-1.5 rounded-[8px] border border-border bg-white/70 px-4 py-3 text-[11px] text-muted-foreground">
               <span>Inter variable</span><span className="opacity-40">·</span>

@@ -56,7 +56,7 @@ export function SegmentedSection() {
       num="04"
       group="Components"
       title="Segmented control"
-      desc="A two-state switch for mutually exclusive options that should both stay visible — used for the Monolingual / Bilingual choice. The active pill lifts onto a raised surface."
+      desc="A two-state switch for mutually exclusive options that should both stay visible - used for the Monolingual / Bilingual choice. The active pill lifts onto a raised surface."
       spec
     >
       <Block label="Two-state switch">

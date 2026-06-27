@@ -173,7 +173,7 @@ export function ShareDialog({
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        // If there are chips and input is empty — send invitations
+        // If there are chips and input is empty - send invitations
         if (!chipInputValue.trim() && emailChips.length > 0) {
           sendRef.current();
           return;
@@ -434,7 +434,7 @@ export function ShareDialog({
               />
             </div>
 
-            {/* Send button — compact, right of input */}
+            {/* Send button - compact, right of input */}
             <AnimatePresence>
               {emailChips.length > 0 && (
                 <motion.div

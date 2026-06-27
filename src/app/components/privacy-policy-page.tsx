@@ -53,8 +53,8 @@ const SECTIONS: LegalSectionData[] = [
 
         <LegalH4>Usage data</LegalH4>
         <LegalP>
-          We collect information about how you interact with our service — IP
-          address, browser type, access times, and referring URLs — so we can
+          We collect information about how you interact with our service - IP
+          address, browser type, access times, and referring URLs - so we can
           understand and improve how it&apos;s used.
         </LegalP>
       </>
@@ -92,7 +92,7 @@ const SECTIONS: LegalSectionData[] = [
         <LegalTaggedUL>
           <LegalTaggedLI label="Service providers.">
             We may share information with vendors who perform services on our
-            behalf — payment processing, data analysis, email delivery, hosting.
+            behalf - payment processing, data analysis, email delivery, hosting.
           </LegalTaggedLI>
           <LegalTaggedLI label="Legal requirements.">
             We may disclose information if required by law or in response to
@@ -185,7 +185,7 @@ const SECTIONS: LegalSectionData[] = [
         </LegalP>
         <LegalContactCard />
         <p className="mt-[18px] text-[13px] text-muted-foreground">
-          Thank you for using Transcribetotext.ai — we&apos;re committed to
+          Thank you for using Transcribetotext.ai - we&apos;re committed to
           protecting your privacy and keeping your experience secure.
         </p>
       </>

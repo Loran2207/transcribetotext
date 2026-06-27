@@ -3,7 +3,7 @@ import { CHECKOUT_GREEN, STAGE_H, type CheckoutStatus, type LottieCandidate } fr
 
 /**
  * One loading state: a white card with the animation centered over a fixed-height
- * slot and the status line below it. No top bar, no button — during the real
+ * slot and the status line below it. No top bar, no button - during the real
  * charge the provider shows only this loader where the card fields used to be.
  */
 export function CheckoutLoading({ status, lottie }: { status: CheckoutStatus; lottie: LottieCandidate }) {

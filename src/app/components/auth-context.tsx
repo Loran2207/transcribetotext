@@ -76,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string): Promise<{ error: Error | null }> => {
-    // Demo login bypass — works everywhere except production domain
+    // Demo login bypass - works everywhere except production domain
     if (!isProduction && email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
       const demoUser = createDemoUser();
       const demoSession = createDemoSession(demoUser);
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null };
     }
 
-    // Send credentials exactly as typed — no trim/transform on password
+    // Send credentials exactly as typed - no trim/transform on password
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (!error) return { error: null };
 
@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     error: Error | null;
     needsEmailConfirmation?: boolean;
   }> => {
-    // Send email trimmed, password exactly as typed — no transform
+    // Send email trimmed, password exactly as typed - no transform
     const trimmedName = name?.trim();
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: new Error('An account with this email already exists. Try logging in instead.') };
     }
 
-    // If signup succeeded but no session — email confirmation is enabled.
+    // If signup succeeded but no session - email confirmation is enabled.
     // Don't attempt auto-sign-in (it will fail). Signal to the UI to show confirmation screen.
     if (data.user && !data.session) {
       return { error: null, needsEmailConfirmation: true };
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    // Demo session — just clear state, no Supabase call needed
+    // Demo session - just clear state, no Supabase call needed
     if (user?.id.startsWith("demo-")) {
       setUser(null);
       setSession(null);

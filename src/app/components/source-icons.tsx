@@ -1,7 +1,7 @@
 import svgPaths from "../../imports/svg-nwsvf5ddzt";
 import { imgGroup, imgGroup1 } from "../../imports/svg-lixh6";
 import { Icon } from "./ui/icon";
-import { Video01Icon, File01Icon, Instagram } from "@hugeicons/core-free-icons";
+import { Video01Icon, File01Icon } from "@hugeicons/core-free-icons";
 
 export type SourceType =
   | "google-sheets"
@@ -196,7 +196,7 @@ function Mp3Icon() {
   );
 }
 
-/** Meeting (video call) icon — distinct from a plain file */
+/** Meeting (video call) icon - distinct from a plain file */
 function MeetingSourceIcon() {
   return (
     <div className="relative shrink-0 size-[18px] flex items-center justify-center text-primary">
@@ -217,8 +217,22 @@ function FileSourceIcon() {
 /** Instagram icon */
 function InstagramSourceIcon() {
   return (
-    <div className="relative shrink-0 size-[18px] flex items-center justify-center" style={{ color: "#E1306C" }}>
-      <Icon icon={Instagram} size={17} strokeWidth={1.7} />
+    <div className="relative shrink-0 size-[18px]">
+      <svg viewBox="0 0 48 48" className="block size-full" aria-hidden="true">
+        <defs>
+          <linearGradient id="ig-grad-2022" x1="2" y1="46" x2="46" y2="2" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#FEDA75" />
+            <stop offset="0.25" stopColor="#FA7E1E" />
+            <stop offset="0.5" stopColor="#D62976" />
+            <stop offset="0.75" stopColor="#962FBF" />
+            <stop offset="1" stopColor="#4F5BD5" />
+          </linearGradient>
+        </defs>
+        <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#ig-grad-2022)" />
+        <rect x="13" y="13" width="22" height="22" rx="7" fill="none" stroke="#fff" strokeWidth="3" />
+        <circle cx="24" cy="24" r="6.4" fill="none" stroke="#fff" strokeWidth="3" />
+        <circle cx="33.2" cy="14.8" r="2.3" fill="#fff" />
+      </svg>
     </div>
   );
 }

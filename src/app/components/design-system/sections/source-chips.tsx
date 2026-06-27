@@ -43,7 +43,7 @@ export function SourceChipsSection() {
       num="09"
       group="Components"
       title="Source chips"
-      desc="Every record carries its origin. Brand and platform marks are hand-rolled multicolor SVGs — color-accurate, reused everywhere a source appears."
+      desc="Every record carries its origin. Brand and platform marks are hand-rolled multicolor SVGs - color-accurate, reused everywhere a source appears."
       spec
     >
       <Block label="Anatomy">

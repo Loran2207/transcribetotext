@@ -75,7 +75,7 @@ export function BadgesSection() {
         </StageGrid>
       </Block>
 
-      <Block label="Specs" note={<>Status pills carry a 6px leading dot over a 12% tint of their hue. The base <code>Badge</code> keeps a square-ish 8px radius — every pill badge is fully rounded.</>}>
+      <Block label="Specs" note={<>Status pills carry a 6px leading dot over a 12% tint of their hue. The base <code>Badge</code> keeps a square-ish 8px radius - every pill badge is fully rounded.</>}>
         <PropTable head={SPECS.head} rows={SPECS.rows} />
       </Block>
     </Section>

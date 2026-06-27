@@ -17,7 +17,7 @@ export type Anno =
   | { t: "w"; label?: string }
   | {
       t: "lead";
-      /** anchor point on the target, 0–1 of its width/height */
+      /** anchor point on the target, 0-1 of its width/height */
       fx?: number;
       fy?: number;
       /** leader offset from the anchor, px */
@@ -164,7 +164,7 @@ export function AnnoStage({
   );
 }
 
-/** A captioned stage — tag above, annotated component below. */
+/** A captioned stage - tag above, annotated component below. */
 export function Cell({
   tag,
   annos,

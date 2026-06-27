@@ -62,7 +62,7 @@ const FORMAT_OPTIONS: FormatOption[] = [
   },
 ];
 
-/** Items only — drop into any open DropdownMenuContent / DropdownMenuSubContent. */
+/** Items only - drop into any open DropdownMenuContent / DropdownMenuSubContent. */
 export function ExportFormatMenuItems({
   onSelect,
 }: {

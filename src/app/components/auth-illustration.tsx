@@ -25,7 +25,7 @@ const platformLogos = [
 ]
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Animated Waveform — 3-layer canvas (light blue/indigo palette)
+   Animated Waveform - 3-layer canvas (light blue/indigo palette)
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function AnimatedWaveform() {
@@ -62,7 +62,7 @@ function AnimatedWaveform() {
       const barWidth = width / bars
       const maxHeight = height * 0.65
 
-      // Layer 1 — Main prominent waveform
+      // Layer 1 - Main prominent waveform
       for (let i = 0; i < bars; i++) {
         const x = i * barWidth + barWidth / 2
         const normalizedX = i / bars
@@ -90,7 +90,7 @@ function AnimatedWaveform() {
         ctx.fill()
       }
 
-      // Layer 2 — Ghost waveform above
+      // Layer 2 - Ghost waveform above
       for (let i = 0; i < bars; i++) {
         const x = i * barWidth + barWidth / 2
         const normalizedX = i / bars
@@ -108,7 +108,7 @@ function AnimatedWaveform() {
         ctx.fill()
       }
 
-      // Layer 3 — Ghost waveform below
+      // Layer 3 - Ghost waveform below
       for (let i = 0; i < bars; i++) {
         const x = i * barWidth + barWidth / 2
         const normalizedX = i / bars
@@ -148,7 +148,7 @@ function AnimatedWaveform() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Light Beams — subtle moonlight effects
+   Light Beams - subtle moonlight effects
    ═══════════════════════════════════════════════════════════════════════════ */
 
 function LightBeams() {
@@ -272,7 +272,7 @@ export function AuthIllustration() {
       <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(to right, rgba(6,8,24,0.6) 0%, transparent 40%, transparent 60%, rgba(3,4,16,0.6) 100%)" }} />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 0%, rgba(4,6,18,1) 80%)" }} />
 
-      {/* Central accent glow — blue */}
+      {/* Central accent glow - blue */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full blur-[100px] pointer-events-none" style={{ background: "rgba(0,97,255,0.04)" }} />
 
       {/* Top edge highlight */}
@@ -327,7 +327,7 @@ export function AuthIllustration() {
             </div>
           </div>
 
-          {/* Platform logos — large cards with icon + name */}
+          {/* Platform logos - large cards with icon + name */}
           <div className="flex flex-col gap-2 2xl:gap-3">
             <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", color: "rgba(255,255,255,0.3)", textTransform: "uppercase" as const }}>
               Integrates with

@@ -15,7 +15,7 @@ const SPECS = [
   { title: "Menu", rows: [["surface", "popover · white"], ["elevation", "elevation-md"], ["radius", "8px"], ["item", "selected = accent + check"]] },
 ] satisfies { title: string; rows: [string, string][] }[];
 
-/** Static recreation of the open menu — the real menu is a click portal. */
+/** Static recreation of the open menu - the real menu is a click portal. */
 function FloatingMenu() {
   return (
     <div className="w-[220px] rounded-[8px] border border-border bg-popover p-1 shadow-md">

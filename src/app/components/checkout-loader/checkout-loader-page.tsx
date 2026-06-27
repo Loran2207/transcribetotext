@@ -2,7 +2,7 @@ import { CheckoutLoading } from "./checkout-card";
 import { CHECKOUT_STATUSES, LOTTIE_CANDIDATES } from "./data";
 
 /**
- * `/checkout-loader` — a handoff board (no app chrome, reachable by URL only).
+ * `/checkout-loader` - a handoff board (no app chrome, reachable by URL only).
  *
  * One box, four cards: each animation candidate across both status messages.
  * That's the whole set the new payment provider shows where the card fields used

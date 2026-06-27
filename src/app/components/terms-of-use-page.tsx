@@ -165,8 +165,8 @@ const SECTIONS: LegalSectionData[] = [
       <>
         <LegalH4>Ownership</LegalH4>
         <LegalP>
-          All content and materials on our service — text, graphics, logos,
-          software — are the property of the Company or its licensors and are
+          All content and materials on our service - text, graphics, logos,
+          software - are the property of the Company or its licensors and are
           protected by intellectual property laws.
         </LegalP>
 
@@ -208,8 +208,8 @@ const SECTIONS: LegalSectionData[] = [
         <LegalH4>Limitation of liability</LegalH4>
         <LegalP>
           To the maximum extent permitted by law, we&apos;re not liable for any
-          indirect, incidental, special, consequential, or punitive damages —
-          including loss of profits, revenue, data, use, or goodwill — arising
+          indirect, incidental, special, consequential, or punitive damages -
+          including loss of profits, revenue, data, use, or goodwill - arising
           from your use of (or inability to use) the service, unauthorized
           access to our systems, interruptions, bugs, errors in content, or the
           conduct of any third party.

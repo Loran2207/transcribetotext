@@ -62,7 +62,7 @@ function PagePlaceholder({ activePage }: { activePage: string }) {
   return (
     <div className="flex-1 flex items-center justify-center bg-background">
       <p className="text-sm text-muted-foreground">
-        {activePage.charAt(0).toUpperCase() + activePage.slice(1).replace(/-/g, " ")} — {t("common.comingSoon")}
+        {activePage.charAt(0).toUpperCase() + activePage.slice(1).replace(/-/g, " ")} - {t("common.comingSoon")}
       </p>
     </div>
   );

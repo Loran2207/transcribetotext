@@ -112,7 +112,7 @@ export function CalendarSidebar({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[12px] text-muted-foreground">
-                {nextMeeting.startTime} – {nextMeeting.endTime}
+                {nextMeeting.startTime} - {nextMeeting.endTime}
               </span>
               <span className="text-[11px] text-primary font-medium">
                 {formatCountdown(nextMeeting.date, nextMeeting.startTime, now)}

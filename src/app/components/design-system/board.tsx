@@ -4,7 +4,7 @@ import { cn } from "../ui/utils";
 /**
  * Documentation chrome for the technical /design-system board. The look is an
  * engineered spec sheet: a big mono section number, a hairline two-column head,
- * mono block labels. Sentence case throughout — no shouting. The real component
+ * mono block labels. Sentence case throughout - no shouting. The real component
  * looks come from the app's own components placed inside the stages.
  */
 
@@ -13,7 +13,7 @@ export function Mono({ children, className }: { children: ReactNode; className?:
   return <span className={cn("ds-mono text-[11px] text-muted-foreground", className)}>{children}</span>;
 }
 
-/** Shared reading width for the main column — keeps content compact on wide screens. */
+/** Shared reading width for the main column - keeps content compact on wide screens. */
 const SHEET = "mx-auto w-full max-w-[1080px]";
 
 /** Top-level group divider (Foundations / Components). */
@@ -161,7 +161,7 @@ export function SpecCols({ groups }: { groups: { title: string; rows: [string, R
   );
 }
 
-/** A compact props/spec matrix — one row per variant or size. */
+/** A compact props/spec matrix - one row per variant or size. */
 export function PropTable({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
   return (
     <div className="-mx-1 overflow-x-auto">

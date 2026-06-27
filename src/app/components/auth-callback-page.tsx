@@ -31,12 +31,12 @@ export function AuthCallbackPage() {
           navigate("/", { replace: true });
         }
       } else {
-        // No session yet — Supabase may still be processing the hash
+        // No session yet - Supabase may still be processing the hash
         const {
           data: { subscription },
         } = supabase.auth.onAuthStateChange((event, newSession) => {
           if (event === "PASSWORD_RECOVERY") {
-            // Don't go to dashboard — send to reset password form
+            // Don't go to dashboard - send to reset password form
             subscription.unsubscribe();
             navigate("/reset-password", { replace: true });
             return;

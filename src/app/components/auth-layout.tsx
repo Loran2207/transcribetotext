@@ -34,12 +34,12 @@ function AuthLogo() {
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-row w-full min-h-screen">
-      {/* Left panel — immersive dark branded side, hidden on mobile */}
+      {/* Left panel - immersive dark branded side, hidden on mobile */}
       <div className="hidden lg:block relative overflow-hidden" style={{ flex: "none", width: "55%" }}>
         <AuthIllustration />
       </div>
 
-      {/* Right panel — form */}
+      {/* Right panel - form */}
       <div className="flex-1 flex items-center justify-center p-6 bg-background overflow-y-auto">
         <div className="w-full max-w-sm">{children}</div>
       </div>

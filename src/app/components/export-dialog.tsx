@@ -23,7 +23,7 @@ import {
 } from "@/lib/export-formats";
 
 /* ══════════════════════════════════════════════
-   Export Dialog v5 — unified single & batch export
+   Export Dialog v5 - unified single & batch export
    · one settings panel, applied to every file
    · batch: left file tabs (preview per file), files
      can be removed from / added to the export
@@ -119,7 +119,7 @@ function OptionCheck({ id, label, checked, onChange }: { id: string; label: stri
   );
 }
 
-/* Transcript preview (center pane) — live: reflects the current export options */
+/* Transcript preview (center pane) - live: reflects the current export options */
 function TranscriptPreview({ record, options }: { record: ExportableRecord; options: ExportContentOptions }) {
   const view = transformForExport(record, options);
   record = view;
@@ -174,7 +174,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     if (wasOpen.current) return;
     wasOpen.current = true;
     const demo = typeof window !== "undefined" ? window.localStorage.getItem("ttt_export_demo") : null;
-    // ttt_export_full: design-capture flag — every toggle on, options expanded (off by default)
+    // ttt_export_full: design-capture flag - every toggle on, options expanded (off by default)
     const full = typeof window !== "undefined" && window.localStorage.getItem("ttt_export_full") === "1";
     setItems(records);
     setActiveId(records[0]?.id ?? "");
@@ -255,7 +255,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         setProgress(i + 1);
       }
       const m = await runExportPlan(plans, zipFileName);
-      // Single-file export: no confirmation screen — download and close.
+      // Single-file export: no confirmation screen - download and close.
       if (m.files.length === 1) { toast.success(m.downloadName + " downloaded"); onClose(); return; }
       setManifest(m);
       setPhase("success");
@@ -264,7 +264,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     }
   }
 
-  /* ── settings panel (right) — one set of settings, applied to every file ── */
+  /* ── settings panel (right) - one set of settings, applied to every file ── */
   const settingsPanel = (
     <div className="w-[340px] shrink-0 overflow-y-auto px-[24px] py-[6px]">
       {multi && (
@@ -358,7 +358,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           <DialogTitle className="font-semibold text-[17px] text-foreground">Export</DialogTitle>
         </div>
 
-        {/* Body — fixed height so toggling options never resizes the dialog */}
+        {/* Body - fixed height so toggling options never resizes the dialog */}
         <div className="h-[520px]">
           {phase === "processing" ? (
             <div className="flex h-full flex-col items-center justify-center px-[24px]">
@@ -486,7 +486,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                   )}
                 </nav>
               )}
-              {/* Center pane — live preview of the selected file */}
+              {/* Center pane - live preview of the selected file */}
               <div className="flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px]">
                 {activeRecord && <TranscriptPreview record={activeRecord} options={shared.options} />}
               </div>

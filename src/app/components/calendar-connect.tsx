@@ -101,7 +101,7 @@ function PrivacyNote() {
   );
 }
 
-/* Connect screen — shown when no calendar account is connected */
+/* Connect screen - shown when no calendar account is connected */
 
 interface CalendarConnectScreenProps {
   connecting: CalendarProvider | null;
@@ -137,7 +137,7 @@ export function CalendarConnectScreen({ connecting, onConnect }: CalendarConnect
   );
 }
 
-/* Empty state — calendar connected but no meetings */
+/* Empty state - calendar connected but no meetings */
 
 interface CalendarEmptyStateProps {
   onOpenSettings: () => void;

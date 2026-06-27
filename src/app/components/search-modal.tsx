@@ -15,12 +15,12 @@ const RECENT_SEARCHES = [
 ];
 
 const MOCK_RESULTS: SearchResult[] = [
-  { id: "sr1", name: "Acme Logistics — onboarding call", source: "zoom", date: "Mar 11, 2026 08:28", duration: "43min", creator: "Kirill Kuts", summary: "Walked the Acme team through workspace setup: batch-uploading dispatch calls, AI summaries with action items, and Word exports for the weekly report." },
-  { id: "sr2", name: "Support call — billing issue escalation", source: "teams", date: "Mar 10, 2026 09:15", duration: "12min", creator: "Maria Garcia", summary: "Customer was double-charged after switching plans. Refund issued on the call; engineering ticket opened to fix the proration bug." },
-  { id: "sr3", name: "Sales discovery — Brightline Media", source: "teams", date: "Mar 6, 2026 09:30", duration: "31min", creator: "Alex Johnson", summary: "Discovery call with a 40-person agency: they transcribe client briefings and need workspace roles plus SSO. Demo with their ops lead next week." },
-  { id: "sr4", name: "Weekly product sync — Q2 roadmap", source: "google-meet", date: "Mar 13, 2026 15:06", duration: "32min", creator: "Maria Garcia", summary: "The team locked the Q2 roadmap: the unified export flow ships this sprint and the noise-robust model goes to beta on April 18." },
-  { id: "sr5", name: "UX interview — power user, mobile workflows", source: "zoom", date: "Mar 6, 2026 11:00", duration: "35min", creator: "Kirill Kuts", summary: "A daily-active user walked through how she records client calls from her phone. Main friction: finding old recordings." },
-  { id: "sr6", name: "Customer feedback session — beta cohort", source: "zoom", date: "Mar 12, 2026 14:30", duration: "28min", creator: "Alex Johnson", summary: "Five beta users shared feedback on the new export flow. Two asked for shareable links and excluding filler words from transcripts." },
+  { id: "sr1", name: "Acme Logistics - onboarding call", source: "zoom", date: "Mar 11, 2026 08:28", duration: "43min", creator: "Kirill Kuts", summary: "Walked the Acme team through workspace setup: batch-uploading dispatch calls, AI summaries with action items, and Word exports for the weekly report." },
+  { id: "sr2", name: "Support call - billing issue escalation", source: "teams", date: "Mar 10, 2026 09:15", duration: "12min", creator: "Maria Garcia", summary: "Customer was double-charged after switching plans. Refund issued on the call; engineering ticket opened to fix the proration bug." },
+  { id: "sr3", name: "Sales discovery - Brightline Media", source: "teams", date: "Mar 6, 2026 09:30", duration: "31min", creator: "Alex Johnson", summary: "Discovery call with a 40-person agency: they transcribe client briefings and need workspace roles plus SSO. Demo with their ops lead next week." },
+  { id: "sr4", name: "Weekly product sync - Q2 roadmap", source: "google-meet", date: "Mar 13, 2026 15:06", duration: "32min", creator: "Maria Garcia", summary: "The team locked the Q2 roadmap: the unified export flow ships this sprint and the noise-robust model goes to beta on April 18." },
+  { id: "sr5", name: "UX interview - power user, mobile workflows", source: "zoom", date: "Mar 6, 2026 11:00", duration: "35min", creator: "Kirill Kuts", summary: "A daily-active user walked through how she records client calls from her phone. Main friction: finding old recordings." },
+  { id: "sr6", name: "Customer feedback session - beta cohort", source: "zoom", date: "Mar 12, 2026 14:30", duration: "28min", creator: "Alex Johnson", summary: "Five beta users shared feedback on the new export flow. Two asked for shareable links and excluding filler words from transcripts." },
 ];
 
 const MOCK_FOLDERS = [

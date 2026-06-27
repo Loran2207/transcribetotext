@@ -48,7 +48,7 @@ import {
 
 // ── Password requirements ─────────────────────────────────────
 const PW_RULES = [
-  { label: "8 – 20 characters",           test: (v: string) => v.length >= 8 && v.length <= 20 },
+  { label: "8 - 20 characters",           test: (v: string) => v.length >= 8 && v.length <= 20 },
   { label: "At least 1 uppercase letter",  test: (v: string) => /[A-Z]/.test(v) },
   { label: "At least 1 lowercase letter",  test: (v: string) => /[a-z]/.test(v) },
   { label: "At least 1 special character", test: (v: string) => /[^A-Za-z0-9]/.test(v) },
@@ -745,14 +745,14 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
 
       {/* ── Settings secondary nav ── */}
       <div className="flex flex-col shrink-0 h-full w-[260px] bg-background border-r border-border">
-        {/* "Settings" heading — aligned with dashboard greeting */}
+        {/* "Settings" heading - aligned with dashboard greeting */}
         <div className="px-[32px] pt-[28px] pb-6">
           <p className="whitespace-nowrap text-foreground" style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}>
             Settings
           </p>
         </div>
 
-        {/* Nav items — reusing sidebar navigation components */}
+        {/* Nav items - reusing sidebar navigation components */}
         <SidebarMenu className="px-[16px]">
           {NAV_ITEMS.map(({ id, label, icon: NavIcon, disabled, badge }) => (
             <SidebarMenuItem key={id}>

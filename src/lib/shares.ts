@@ -44,7 +44,7 @@ export interface ShareLink {
 }
 
 // ---------------------------------------------------------------------------
-// Queries — Shares (people-based)
+// Queries - Shares (people-based)
 // ---------------------------------------------------------------------------
 
 /** Fetch all shares for a specific resource. */
@@ -116,7 +116,7 @@ export async function removeShare(shareId: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Queries — Share Links (link-based)
+// Queries - Share Links (link-based)
 // ---------------------------------------------------------------------------
 
 /** Get the active share link for a resource, or create one if it doesn't exist.
@@ -155,7 +155,7 @@ export async function getOrCreateShareLink(
     return existing as ShareLink;
   }
 
-  // No link exists yet — create a new one
+  // No link exists yet - create a new one
   const token = crypto.randomUUID();
   const { data: created, error: createError } = await supabase
     .from('share_links')
@@ -231,7 +231,7 @@ export async function sendShareInvitationEmails(params: {
   shareLink?: string;
 }): Promise<void> {
   if (supabaseMisconfigured) {
-    console.warn('[shares] Supabase not configured — skipping email invitations');
+    console.warn('[shares] Supabase not configured - skipping email invitations');
     return;
   }
 

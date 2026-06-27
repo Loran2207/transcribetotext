@@ -54,7 +54,7 @@ export function ForgotPasswordPage() {
           transition: { type: "spring" as const, stiffness: 400, damping: 28, delay },
         };
 
-  // Success state — email sent
+  // Success state - email sent
   if (sentToEmail) {
     return (
       <AuthLayout>

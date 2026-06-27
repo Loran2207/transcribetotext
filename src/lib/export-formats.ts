@@ -247,7 +247,7 @@ export function buildSrt(records: ExportableRecord[]): string {
   let n = 1;
   for (const r of records) {
     if (records.length > 1) {
-      cues.push(`${n}\n00:00:00,000 --> 00:00:01,000\n— ${r.title} —\n`);
+      cues.push(`${n}\n00:00:00,000 --> 00:00:01,000\n- ${r.title} -\n`);
       n += 1;
     }
     for (let i = 0; i < r.segments.length; i++) {
@@ -287,7 +287,7 @@ export function buildVtt(records: ExportableRecord[]): string {
 }
 
 /* ──────────────────────────────────────────
-   PDF — minimal, hand-crafted, multi-page
+   PDF - minimal, hand-crafted, multi-page
    ────────────────────────────────────────── */
 
 interface PdfLine {
@@ -704,7 +704,7 @@ async function buildPlanEntries(plan: ExportFilePlan): Promise<ZipEntry[]> {
   }
   if (plan.includeSummary) out.push({ name: `${base}-summary.txt`, data: enc.encode(buildSummaryTxt(rec)) });
   if (plan.includeTranslation) {
-    // Prototype: mock records carry no real translation — export the transcript under the target-language name
+    // Prototype: mock records carry no real translation - export the transcript under the target-language name
     const lang = plan.translationLanguage ?? "es";
     out.push({ name: `${base}-${lang}.txt`, data: buildTranscriptData([rec], "txt") });
   }

@@ -201,11 +201,11 @@ const MOCK_SEGMENTS: Segment[] = [
   { id: 12, speaker: SPEAKERS[2], timestamp: "4:30", text: "Same here. Let's wrap up and get back to work. Thanks everyone." },
 ];
 
-// Single-speaker (podcast / monologue / dictation) demo content — one voice, no speaker column.
+// Single-speaker (podcast / monologue / dictation) demo content - one voice, no speaker column.
 const MONO_SPEAKER: Speaker = { id: "mono", name: "Host", color: "#2563eb", initial: "H" };
 const MONO_SEGMENTS: Segment[] = [
   { id: 101, speaker: MONO_SPEAKER, timestamp: "0:00", text: "Welcome back to the Northwind Labs product update. I'm recording this as a quick solo walkthrough of what shipped this week and what's coming next." },
-  { id: 102, speaker: MONO_SPEAKER, timestamp: "0:21", text: "First, the new dispatch dashboard is live for the Rotterdam hub. Early numbers look strong — average load assignment time dropped from about nine minutes to just under four." },
+  { id: 102, speaker: MONO_SPEAKER, timestamp: "0:21", text: "First, the new dispatch dashboard is live for the Rotterdam hub. Early numbers look strong - average load assignment time dropped from about nine minutes to just under four." },
   { id: 103, speaker: MONO_SPEAKER, timestamp: "0:48", text: "Second, we rewrote the notification engine. Alerts now batch intelligently, so drivers get one clear summary instead of a dozen pings during a route." },
   { id: 104, speaker: MONO_SPEAKER, timestamp: "1:15", text: "A quick note on reliability: we moved the sync layer to the new queue, and over the last ten days we have not seen a single dropped event in staging." },
   { id: 105, speaker: MONO_SPEAKER, timestamp: "1:42", text: "Looking ahead, next sprint is all about the mobile experience. The goal is a one-tap check-in flow that works even on a weak connection out in the yard." },
@@ -600,7 +600,7 @@ function TranscriptSegment({
 // ════════════════════════════════════════════════════════════
 
 // Single, calm "processing" state shown while a job is still transcribing.
-// No gray skeleton sheets, no fake finished segments — one hourglass + one progress.
+// No gray skeleton sheets, no fake finished segments - one hourglass + one progress.
 function TranscribingState({ phase, progress }: { phase: "uploading" | "processing"; progress: number }) {
   const heading = phase === "uploading" ? "Uploading your recording" : "Transcribing your recording";
   return (
@@ -608,7 +608,7 @@ function TranscribingState({ phase, progress }: { phase: "uploading" | "processi
       <LottieStage src="/lottie/hourglass-blue.json" w={140} h={140} />
       <h3 className="mt-3 text-[17px] font-semibold text-foreground">{heading}</h3>
       <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">
-        Hang tight — your transcript and summary appear here automatically once it's ready.
+        Hang tight - your transcript and summary appear here automatically once it's ready.
       </p>
       <div className="mt-7 w-full max-w-[320px]">
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
@@ -620,27 +620,27 @@ function TranscribingState({ phase, progress }: { phase: "uploading" | "processi
   );
 }
 
-// Translation loader — reuses the brand hourglass for the big translate operations.
+// Translation loader - reuses the brand hourglass for the big translate operations.
 function TranslatingState({ what }: { what: string }) {
   return (
     <div className="flex h-full min-h-[460px] flex-col items-center justify-center px-8 text-center">
       <LottieStage src="/lottie/hourglass-blue.json" w={140} h={140} />
       <h3 className="mt-3 text-[17px] font-semibold text-foreground">Translating the {what}</h3>
       <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">
-        Hang tight — your translated {what} appears here in a moment.
+        Hang tight - your translated {what} appears here in a moment.
       </p>
     </div>
   );
 }
 
-// Summary-generation loader — same brand hourglass as the other big loaders.
+// Summary-generation loader - same brand hourglass as the other big loaders.
 function SummaryGeneratingState({ stage }: { stage: string }) {
   return (
     <div className="flex h-full min-h-[460px] flex-col items-center justify-center px-8 text-center">
       <LottieStage src="/lottie/hourglass-blue.json" w={140} h={140} />
       <h3 className="mt-3 text-[17px] font-semibold text-foreground">Generating your summary</h3>
       <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">
-        {stage ? stage + "…" : "Hang tight — your summary appears here in a moment."}
+        {stage ? stage + "…" : "Hang tight - your summary appears here in a moment."}
       </p>
     </div>
   );
@@ -673,7 +673,7 @@ function SummaryErrorState({ onRegenerate }: { onRegenerate: () => void }) {
       </span>
       <h3 className="mt-4 text-[15px] font-semibold text-foreground">Couldn't generate the summary</h3>
       <p className="mt-1.5 max-w-[340px] text-[13px] leading-relaxed text-muted-foreground">
-        Something went wrong while summarizing this transcript. Your transcript is safe — try generating the summary again.
+        Something went wrong while summarizing this transcript. Your transcript is safe - try generating the summary again.
       </p>
       <Button onClick={onRegenerate} className="mt-5 h-9 rounded-full px-5 text-[13px] font-medium">
         <Icon icon={RefreshIcon} className="mr-1.5 size-4" strokeWidth={1.9} />
@@ -788,7 +788,7 @@ function TemplateSelectorButton({
 }
 
 // ════════════════════════════════════════════════════════════
-// Right Panel — Outline Tab
+// Right Panel - Outline Tab
 // ════════════════════════════════════════════════════════════
 
 function OutlineTab({ onSeek, onScrollToSegment }: { onSeek: (timestamp: string) => void; onScrollToSegment: (segmentId: number) => void }) {
@@ -884,7 +884,7 @@ function OutlineTab({ onSeek, onScrollToSegment }: { onSeek: (timestamp: string)
 }
 
 // ════════════════════════════════════════════════════════════
-// Right Panel — Comments Tab
+// Right Panel - Comments Tab
 // ════════════════════════════════════════════════════════════
 
 function CommentsTab({ comments, onSeek, onScrollToSegment }: { comments: Comment[]; onSeek: (timestamp: string) => void; onScrollToSegment: (segmentId: number) => void }) {
@@ -2325,7 +2325,7 @@ export function TranscriptionDetailPage() {
                 <span>Microphone</span>
               </span>
               <span className="text-border">{"\u2022"}</span>
-              <span>{isPaused ? "Paused — live transcript is on hold" : "Recording in real time"}</span>
+              <span>{isPaused ? "Paused - live transcript is on hold" : "Recording in real time"}</span>
               <span className="text-border">{"\u2022"}</span>
               <span>{new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
             </div>
@@ -2737,7 +2737,7 @@ export function TranscriptionDetailPage() {
           </span>
           <p className="mt-3 text-[13px] font-medium text-foreground">Outline & comments</p>
           <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
-          <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">We're still building these — they'll show up here in a future update.</p>
+          <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">We're still building these - they'll show up here in a future update.</p>
         </div>
       ) : (
         <RightPanel

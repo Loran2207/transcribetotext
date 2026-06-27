@@ -115,7 +115,7 @@ export function ResetPasswordPage() {
     );
   }
 
-  // No session — invalid or expired link
+  // No session - invalid or expired link
   if (!sessionReady) {
     return (
       <AuthLayout>

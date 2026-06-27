@@ -3,7 +3,7 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon } from "@hugeicons/core-free-icons";
+import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -64,7 +64,7 @@ const ERROR_LABELS: Record<string, string> = {
   corrupt: "File appears to be corrupted",
   too_long: "Exceeds 5-hour limit",
   bot_failed: "Couldn't join the meeting",
-  network: "Network error — upload failed",
+  network: "Network error - upload failed",
 };
 
 type RecordingPhase = "idle" | "recording" | "paused" | "review";
@@ -261,7 +261,7 @@ export function TranscriptionModalsProvider({
     }
   }, [jobs]);
 
-  // Warn before page unload while files are still uploading — a reload would
+  // Warn before page unload while files are still uploading - a reload would
   // lose the in-flight upload.
   useEffect(() => {
     const hasUploading = jobs.some(
@@ -448,7 +448,7 @@ export function TranscriptionModalsProvider({
       recorder.start();
       mediaRecorderRef.current = recorder;
     } catch {
-      // MediaRecorder unavailable (e.g. unsupported stream) — proceed without audio data
+      // MediaRecorder unavailable (e.g. unsupported stream) - proceed without audio data
       mediaRecorderRef.current = null;
     }
   }
@@ -485,7 +485,7 @@ export function TranscriptionModalsProvider({
     if (recordingPhase === "paused") {
       mediaRecorderRef.current?.resume();
     } else if (recordingPhase === "review" && recordingStreamRef.current) {
-      // Continue after review — start new recorder segment, keep existing chunks
+      // Continue after review - start new recorder segment, keep existing chunks
       _startMediaRecorder(recordingStreamRef.current);
     }
     recordingPhaseRef.current = "recording";
@@ -798,7 +798,7 @@ function mapJobToRecordState(job: TranscriptionJob) {
     name: job.name,
     iconColor: "#3B82F6",
     iconType: "square" as const,
-    duration: isDone ? (job.duration ?? "—") : isError ? "Failed" : "In progress",
+    duration: isDone ? (job.duration ?? "-") : isError ? "Failed" : "In progress",
     dateCreated: dateParts.dateCreated,
     dateGroup: dateParts.dateGroup,
     template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
@@ -1383,7 +1383,7 @@ function MultiLanguageSelector({ values, onChange, label }: {
   return (
     <div className="relative" ref={ref}>
       {label && <SectionLabel>{label}</SectionLabel>}
-      {/* Trigger — looks like a single-select input, chips render inside */}
+      {/* Trigger - looks like a single-select input, chips render inside */}
       <div
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center flex-wrap gap-[5px] min-h-[40px] pl-[12px] pr-[36px] py-[6px] rounded-[12px] cursor-pointer transition-all relative text-sm text-foreground bg-transparent border border-input"
@@ -1574,7 +1574,7 @@ function ModalShell({ title, subtitle, onClose, onBackdropClick, children, width
 }
 
 // ════════════════════════════════════════════════════════════
-// Modal 1 — Upload audio & video
+// Modal 1 - Upload audio & video
 // ════════════════════════════════════════════════════════════
 
 const ACCEPTED = ".mp3,.mp4,.m4a,.mov,.aac,.wav,.ogg,.opus,.mpeg,.wma,.wmv";
@@ -1858,7 +1858,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
         onBackdropClick={handleClose}
       >
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
-          {/* Drop zone — clickable + drag-and-drop, shrinks after files added */}
+          {/* Drop zone - clickable + drag-and-drop, shrinks after files added */}
           <div
             onDragOver={e => { e.preventDefault(); setDragActive(true); }}
             onDragLeave={() => setDragActive(false)}
@@ -1887,7 +1887,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
             )}
           </div>
 
-          {/* File list + settings — fade in smoothly after first file */}
+          {/* File list + settings - fade in smoothly after first file */}
           <div style={{
             display: "grid",
             gridTemplateRows: files.length > 0 ? "1fr" : "0fr",
@@ -2044,7 +2044,7 @@ function StopConfirmDialog({ open, onCancel, onStop }: { open: boolean; onCancel
 
 
 // ════════════════════════════════════════════════════════════
-// Modal 3 — Transcribe from link
+// Modal 3 - Transcribe from link
 // ════════════════════════════════════════════════════════════
 
 function isValidUrl(s: string) { try { new URL(s); return true; } catch { return false; } }
@@ -2151,7 +2151,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
             {urlError && <p className="text-xs text-destructive mt-[5px]">{urlError}</p>}
           </div>
 
-          {/* Settings — revealed smoothly after URL is typed */}
+          {/* Settings - revealed smoothly after URL is typed */}
           <div style={{
             display: "grid",
             gridTemplateRows: url.length > 0 ? "1fr" : "0fr",
@@ -2193,7 +2193,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 }
 
 // ════════════════════════════════════════════════════════════
-// Modal 4 — Meeting via bot
+// Modal 4 - Meeting via bot
 // ════════════════════════════════════════════════════════════
 
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -2290,7 +2290,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
             {meetingUrlError && <p className="text-xs text-destructive mt-[5px]">{meetingUrlError}</p>}
           </div>
 
-          {/* Language + Advanced options — revealed after URL is typed */}
+          {/* Language + Advanced options - revealed after URL is typed */}
           <div style={{
             display: "grid",
             gridTemplateRows: meetingUrl.length > 0 ? "1fr" : "0fr",
@@ -2364,7 +2364,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
 }
 
 // ════════════════════════════════════════════════════════════
-// Instant recording — floating pill widget
+// Instant recording - floating pill widget
 // ════════════════════════════════════════════════════════════
 
 const MINI_BAR_COUNT = 28;
@@ -2508,7 +2508,7 @@ function RecordingPill() {
 }
 
 // ════════════════════════════════════════════════════════════
-// Instant recording — review modal (post-stop)
+// Instant recording - review modal (post-stop)
 // ════════════════════════════════════════════════════════════
 
 // ── Recording review card with playback ──────────────────────
@@ -2521,7 +2521,7 @@ function RecordingCard({ elapsed, audioUrl, onContinue }: {
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0); // 0–1
+  const [progress, setProgress] = useState(0); // 0-1
 
   const bars = useMemo(() => Array.from({ length: REVIEW_BARS }, (_, i) => {
     const pseudo = ((elapsed * 31 + i * 17 + 7) * 1664525 + 1013904223) & 0x7fffffff;
@@ -2701,7 +2701,7 @@ function RecordingReviewModal() {
   );
 }
 
-// Reload-warning design preview — shown only when the ttt_demo_leave_alert demo
+// Reload-warning design preview - shown only when the ttt_demo_leave_alert demo
 // flag is set (the real reload guard is the native beforeunload dialog).
 function DemoLeaveAlert() {
   const [open, setOpen] = useState(() => {
@@ -3154,28 +3154,23 @@ export function FloatingProgressWidget() {
                       </div>
                     )}
                     {isDone && (
-                      <>
-                        <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="9" fill="#dcfce7" stroke="#22c55e" strokeWidth="1.4" />
-                          <path d="M8 12.5l2.5 2.5 5-5" stroke="#16a34a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <span className="text-[11px] text-muted-foreground font-medium">Completed</span>
-                        <Button
-                          variant="ghost"
-                          onClick={() => {
-                            const recordState = mapJobToRecordState(job);
-                            try {
-                              window.sessionStorage.setItem(`uploaded-record:${job.id}`, JSON.stringify(recordState));
-                            } catch {
-                              // best-effort cache; navigation should still work without it
-                            }
-                            window.location.assign(`/transcriptions/${job.id}`);
-                          }}
-                          className="transition-colors font-semibold text-[11px] text-primary hover:underline p-0 h-auto"
-                        >
-                          Open
-                        </Button>
-                      </>
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          const recordState = mapJobToRecordState(job);
+                          try {
+                            window.sessionStorage.setItem(`uploaded-record:${job.id}`, JSON.stringify(recordState));
+                          } catch {
+                            // best-effort cache; navigation should still work without it
+                          }
+                          window.location.assign(`/transcriptions/${job.id}`);
+                        }}
+                        title="Open transcription"
+                        className="h-[28px] rounded-full pl-[9px] pr-[12px] flex items-center gap-[6px] transition-colors text-emerald-600 hover:bg-emerald-600/10"
+                      >
+                        <Icon icon={CheckmarkCircle02Icon} className="size-[15px]" strokeWidth={2} />
+                        <span className="font-semibold text-[12px]">Open</span>
+                      </Button>
                     )}
                     {isError && (
                       <>

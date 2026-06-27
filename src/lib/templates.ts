@@ -100,7 +100,7 @@ export async function createTemplate(input: CreateTemplateData): Promise<Templat
   return data as Template;
 }
 
-/** Update a custom template (only if owned by current user — enforced by RLS). */
+/** Update a custom template (only if owned by current user - enforced by RLS). */
 export async function updateTemplate(id: string, input: UpdateTemplateData): Promise<Template> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
@@ -126,7 +126,7 @@ export async function updateTemplate(id: string, input: UpdateTemplateData): Pro
   return data as Template;
 }
 
-/** Delete a custom template (only if owned by current user — enforced by RLS). */
+/** Delete a custom template (only if owned by current user - enforced by RLS). */
 export async function deleteTemplate(id: string): Promise<void> {
   const { error } = await supabase
     .from('templates')

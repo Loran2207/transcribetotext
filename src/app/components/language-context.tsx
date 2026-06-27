@@ -177,12 +177,12 @@ const dict: Record<string, Record<LangCode, string>> = {
   "share.invitationsSent": { en: "Invitations sent to {count} people", ru: "Приглашения отправлены ({count})", es: "Invitaciones enviadas a {count} personas", de: "Einladungen an {count} Personen gesendet", fr: "Invitations envoyées à {count} personnes", ja: "{count}人に招待を送信しました" },
   "share.onlyInvited": { en: "Only invited", ru: "Только приглашённые", es: "Solo invitados", de: "Nur Eingeladene", fr: "Invités uniquement", ja: "招待されたユーザーのみ" },
   "share.anyoneCanView": { en: "Anyone with link", ru: "Все по ссылке", es: "Cualquiera con enlace", de: "Jeder mit Link", fr: "Quiconque avec le lien", ja: "リンクを持つ全員" },
-  "share.statusPending": { en: "Invited — no account yet", ru: "Приглашён — нет аккаунта", es: "Invitado — sin cuenta", de: "Eingeladen — kein Konto", fr: "Invité — pas encore de compte", ja: "招待済み — 未登録" },
-  "share.statusActive": { en: "Has account — not viewed yet", ru: "Есть аккаунт — ещё не смотрел", es: "Tiene cuenta — no visto aún", de: "Hat Konto — noch nicht angesehen", fr: "A un compte — pas encore consulté", ja: "アカウント有 — 未閲覧" },
+  "share.statusPending": { en: "Invited - no account yet", ru: "Приглашён - нет аккаунта", es: "Invitado - sin cuenta", de: "Eingeladen - kein Konto", fr: "Invité - pas encore de compte", ja: "招待済み - 未登録" },
+  "share.statusActive": { en: "Has account - not viewed yet", ru: "Есть аккаунт - ещё не смотрел", es: "Tiene cuenta - no visto aún", de: "Hat Konto - noch nicht angesehen", fr: "A un compte - pas encore consulté", ja: "アカウント有 - 未閲覧" },
   "share.statusViewed": { en: "Viewed", ru: "Просмотрено", es: "Visto", de: "Angesehen", fr: "Consulté", ja: "閲覧済み" },
   "share.resend": { en: "Resend invitation", ru: "Отправить повторно", es: "Reenviar invitación", de: "Einladung erneut senden", fr: "Renvoyer l'invitation", ja: "招待を再送信" },
   "share.invitationResent": { en: "Invitation resent to {email}", ru: "Приглашение повторно отправлено на {email}", es: "Invitación reenviada a {email}", de: "Einladung erneut gesendet an {email}", fr: "Invitation renvoyée à {email}", ja: "{email}に招待を再送信しました" },
-  "share.emailHint": { en: "Separate multiple emails with spaces. Press Enter to send.", ru: "Разделяйте имейлы пробелами. Enter — отправить.", es: "Separa emails con espacios. Enter para enviar.", de: "E-Mails mit Leerzeichen trennen. Enter zum Senden.", fr: "Séparez les e-mails par des espaces. Entrée pour envoyer.", ja: "スペースで複数メール区切り。Enterで送信。" },
+  "share.emailHint": { en: "Separate multiple emails with spaces. Press Enter to send.", ru: "Разделяйте имейлы пробелами. Enter - отправить.", es: "Separa emails con espacios. Enter para enviar.", de: "E-Mails mit Leerzeichen trennen. Enter zum Senden.", fr: "Séparez les e-mails par des espaces. Entrée pour envoyer.", ja: "スペースで複数メール区切り。Enterで送信。" },
   "share.shareFolder": { en: "Share folder", ru: "Поделиться папкой", es: "Compartir carpeta", de: "Ordner teilen", fr: "Partager le dossier", ja: "フォルダを共有" },
   "share.copyLink": { en: "Copy link", ru: "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0441\u0441\u044b\u043b\u043a\u0443", es: "Copiar enlace", de: "Link kopieren", fr: "Copier le lien", ja: "\u30ea\u30f3\u30af\u3092\u30b3\u30d4\u30fc" },
   "share.linkCopied": { en: "Link copied", ru: "\u0421\u0441\u044b\u043b\u043a\u0430 \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u0430", es: "Enlace copiado", de: "Link kopiert", fr: "Lien copi\u00e9", ja: "\u30ea\u30f3\u30af\u3092\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f" },
@@ -221,7 +221,7 @@ const dict: Record<string, Record<LangCode, string>> = {
   "shareView.goToApp": { en: "Go to Transcribe2Text", ru: "\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u0432 Transcribe2Text", es: "Ir a Transcribe2Text", de: "Zu Transcribe2Text", fr: "Aller sur Transcribe2Text", ja: "Transcribe2Text\u3078" },
   "shareView.sharedTranscription": { en: "Shared Transcription", ru: "\u041e\u0431\u0449\u0430\u044f \u0442\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0446\u0438\u044f", es: "Transcripci\u00f3n compartida", de: "Geteilte Transkription", fr: "Transcription partag\u00e9e", ja: "\u5171\u6709\u30c8\u30e9\u30f3\u30b9\u30af\u30ea\u30d7\u30c8" },
 
-  // ── Shared with me — owner display ──
+  // ── Shared with me - owner display ──
   "shared.unknownOwner": { en: "Someone", ru: "\u041a\u0442\u043e-\u0442\u043e", es: "Alguien", de: "Jemand", fr: "Quelqu'un", ja: "\u4e0d\u660e\u306a\u30e6\u30fc\u30b6\u30fc" },
 
   // ── Calendar page ──

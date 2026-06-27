@@ -21,20 +21,20 @@ const SIZE_SPECS = {
     ["sm", "32px · h-8", "12px · px-3", "14px / 500", "6px", "full"],
     ["default", "36px · h-9", "16px · px-4", "14px / 500", "8px", "full"],
     ["lg", "40px · h-10", "24px · px-6", "14px / 500", "8px", "full"],
-    ["icon", "36×36 · size-9", "—", "—", "—", "full · circle"],
+    ["icon", "36×36 · size-9", "-", "-", "-", "full · circle"],
   ],
 };
 
 const VARIANT_SPECS = {
   head: ["variant", "surface", "text", "border", "use"],
   rows: [
-    ["default", "primary", "primary-foreground", "—", "primary CTA"],
+    ["default", "primary", "primary-foreground", "-", "primary CTA"],
     ["pill-outline", "background", "foreground", "1px border", "secondary"],
-    ["pill-dark", "oauth", "oauth-foreground", "—", "OAuth / dark"],
-    ["ghost", "transparent", "foreground", "—", "subtle · inline"],
-    ["link", "—", "primary", "—", "inline text"],
-    ["destructive", "destructive", "white", "—", "delete"],
-    ["destructive-outline", "destructive / 10", "destructive", "—", "remove"],
+    ["pill-dark", "oauth", "oauth-foreground", "-", "OAuth / dark"],
+    ["ghost", "transparent", "foreground", "-", "subtle · inline"],
+    ["link", "-", "primary", "-", "inline text"],
+    ["destructive", "destructive", "white", "-", "delete"],
+    ["destructive-outline", "destructive / 10", "destructive", "-", "remove"],
   ],
 };
 
@@ -45,7 +45,7 @@ export function ButtonsSection() {
       num="01"
       group="Components"
       title="Buttons"
-      desc="Every button is a pill (rounded-full) — no exceptions; icon buttons are circular. Filled blue = primary, white-outline = secondary, slate-dark = OAuth."
+      desc="Every button is a pill (rounded-full) - no exceptions; icon buttons are circular. Filled blue = primary, white-outline = secondary, slate-dark = OAuth."
       spec
     >
       <Block label="Primary">
@@ -74,7 +74,7 @@ export function ButtonsSection() {
         label="Variants"
         note={
           <>
-            The gray <code>secondary</code> fill and the borderless <code>outline</code> variant exist in the component but are deliberately unused — <code>pill-outline</code> is the standard secondary.
+            The gray <code>secondary</code> fill and the borderless <code>outline</code> variant exist in the component but are deliberately unused - <code>pill-outline</code> is the standard secondary.
           </>
         }
       >

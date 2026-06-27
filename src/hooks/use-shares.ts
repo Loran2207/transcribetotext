@@ -124,7 +124,7 @@ export function useShares(
       : window.location.href;
 
     navigator.clipboard.writeText(url).catch(() => {
-      // Fallback: noop — toast is still shown
+      // Fallback: noop - toast is still shown
     });
   }, [shareLink]);
 

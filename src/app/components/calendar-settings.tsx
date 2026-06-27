@@ -21,7 +21,7 @@ import {
 } from "./calendar-accounts";
 
 /* ═══════════════════════════════════════════
-   Auto-record mode — shared between the
+   Auto-record mode - shared between the
    meetings list bar and the Settings tab
    ═══════════════════════════════════════════ */
 
@@ -156,7 +156,7 @@ function RadioRow({ id, value, label, description }: RadioRowProps) {
 }
 
 /* ═══════════════════════════════════════════
-   Calendar section — providers and accounts
+   Calendar section - providers and accounts
    ═══════════════════════════════════════════ */
 
 const PROVIDER_ORDER: CalendarProvider[] = ["google", "outlook"];

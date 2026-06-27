@@ -175,7 +175,7 @@ export function sectionIcon(title: string, iconId?: string) {
 
 
 // ---------------------------------------------------------------------------
-// Card grid — shared class strings
+// Card grid - shared class strings
 // ---------------------------------------------------------------------------
 
 // `auto-rows-fr` makes every card in a row stretch to the tallest card, which
@@ -285,7 +285,7 @@ function TemplateCard({
         {!isTrashed && (
           // Layout: [...] [star]. The "..." button collapses (width 0) when not
           // hovered, so a starred-but-not-hovered card shows just the star
-          // pinned to the right edge — exactly where "..." normally sits.
+          // pinned to the right edge - exactly where "..." normally sits.
           <div className="flex items-center shrink-0 -mr-[4px]" onClick={stop}>
             {/* Deleting templates is disabled for now - only starring remains */}
 
@@ -322,7 +322,7 @@ function TemplateCard({
         )}
       </div>
 
-      {/* File preview block — grows to fill, so the footer stays pinned below */}
+      {/* File preview block - grows to fill, so the footer stays pinned below */}
       <div className="relative mt-[18px] flex-1 flex flex-col min-h-0">
         <div
           aria-hidden
@@ -399,7 +399,7 @@ function TemplateCard({
         </div>
       </div>
 
-      {/* Footer — only used in trash mode for the Restore button. Non-trash
+      {/* Footer - only used in trash mode for the Restore button. Non-trash
           cards rely on click-to-open + the top-right "..." menu, so no footer. */}
       {isTrashed && (
         <div className="flex items-center justify-end mt-[14px] shrink-0" style={{ height: 28 }}>
@@ -426,7 +426,7 @@ function TemplateCard({
 // ---------------------------------------------------------------------------
 
 function SectionHeader({ label, subtitle }: { label: string; subtitle?: string }) {
-  const cleanSubtitle = subtitle?.replace(/^[—–-]\s*/, "");
+  const cleanSubtitle = subtitle?.replace(/^[---]\s*/, "");
   return (
     <div className="mb-[16px]">
       <h3
@@ -499,7 +499,7 @@ function DraggableSectionBlock({
             <div className="flex gap-[2px]"><div className="size-[3px] rounded-full bg-muted-foreground/30" /><div className="size-[3px] rounded-full bg-muted-foreground/30" /></div>
           </div>
         )}
-        {/* Icon — clickable picker when editable */}
+        {/* Icon - clickable picker when editable */}
         {!isReadOnly ? (
           <Popover>
             <PopoverTrigger asChild>
@@ -912,7 +912,7 @@ function TemplateDetailLegacy({
           {/* Two-column */}
           <div className="flex gap-10">
 
-            {/* Left — Editor */}
+            {/* Left - Editor */}
             <div className="flex-1 min-w-0 flex flex-col gap-8">
 
               {/* Sections */}
@@ -963,7 +963,7 @@ function TemplateDetailLegacy({
               </div>
             </div>
 
-            {/* Right — Preview */}
+            {/* Right - Preview */}
             <div className="w-[480px] shrink-0">
               <Preview sections={enabled} selectedRecordId={previewRecordId} onChangeRecord={setPreviewRecordId} />
             </div>

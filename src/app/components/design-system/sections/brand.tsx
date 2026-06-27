@@ -33,7 +33,7 @@ export function BrandSection() {
               <Mono>{brandGradient.blue}</Mono>
             </div>
             <p className="text-[12px] leading-relaxed text-muted-foreground">
-              Reserved for the logo mark and rare hero moments. The UI itself stays flat with solid brand blue — never gradients.
+              Reserved for the logo mark and rare hero moments. The UI itself stays flat with solid brand blue - never gradients.
             </p>
           </div>
         </div>

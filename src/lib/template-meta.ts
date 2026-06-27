@@ -3,7 +3,7 @@ import type { Template } from "@/lib/templates";
 /* Shared template metadata: emoji, categories, hue palette.
    Used by the Templates page, the template picker, and sample previews. */
 
-// Exact-name emoji overrides — every built-in from the seeded library has
+// Exact-name emoji overrides - every built-in from the seeded library has
 // a specific emoji so the card face reads like the design reference.
 const TEMPLATE_EMOJI_EXACT: Record<string, string> = {
   // Basic
@@ -51,7 +51,7 @@ const TEMPLATE_EMOJI_EXACT: Record<string, string> = {
   "Board Meeting": "\u{1F3DB}\u{FE0F}",
 };
 
-// Fallback keyword map — used for custom templates whose names don't appear above.
+// Fallback keyword map - used for custom templates whose names don't appear above.
 const TEMPLATE_EMOJI_MAP: { kw: string[]; emoji: string }[] = [
   { kw: ["general"], emoji: "\u{1F4CB}" },
   { kw: ["sales", "bant", "discovery"], emoji: "\u{1F4B0}" },
@@ -117,17 +117,17 @@ export interface CategoryMeta {
 
 export const TEMPLATE_CATEGORIES: CategoryMeta[] = [
   { id: "custom",      label: "My templates",     subtitle: "",                                              hue: "purple" },
-  { id: "basic",       label: "Basic",            subtitle: "— versatile formats suitable for any meeting",  hue: "blue"   },
-  { id: "sales",       label: "Sales",            subtitle: "— daily meetings, client meetings",             hue: "green"  },
-  { id: "hr",          label: "HR & Management",  subtitle: "— recruitment, evaluation, management",         hue: "amber"  },
-  { id: "engineering", label: "IT & Engineering", subtitle: "— project updates and technical aspects",       hue: "slate"  },
-  { id: "consulting",  label: "Consulting",       subtitle: "— client needs, analysis, solutions",           hue: "peach"  },
-  { id: "marketing",   label: "Marketing",        subtitle: "— campaigns, promotion, research",              hue: "pink"   },
-  { id: "medical",     label: "Medical",          subtitle: "— clinical notes, referrals, care plans",       hue: "rose"   },
-  { id: "education",   label: "Education",        subtitle: "— lectures, discussions, classroom notes",      hue: "indigo" },
-  { id: "writer",      label: "Writer",           subtitle: "— writing projects, ideas, publication",        hue: "teal"   },
-  { id: "media",       label: "Media & Podcasts", subtitle: "— videos, podcasts, media summaries",           hue: "violet" },
-  { id: "others",      label: "Others",           subtitle: "— general or uncategorized meetings",           hue: "gray"   },
+  { id: "basic",       label: "Basic",            subtitle: "- versatile formats suitable for any meeting",  hue: "blue"   },
+  { id: "sales",       label: "Sales",            subtitle: "- daily meetings, client meetings",             hue: "green"  },
+  { id: "hr",          label: "HR & Management",  subtitle: "- recruitment, evaluation, management",         hue: "amber"  },
+  { id: "engineering", label: "IT & Engineering", subtitle: "- project updates and technical aspects",       hue: "slate"  },
+  { id: "consulting",  label: "Consulting",       subtitle: "- client needs, analysis, solutions",           hue: "peach"  },
+  { id: "marketing",   label: "Marketing",        subtitle: "- campaigns, promotion, research",              hue: "pink"   },
+  { id: "medical",     label: "Medical",          subtitle: "- clinical notes, referrals, care plans",       hue: "rose"   },
+  { id: "education",   label: "Education",        subtitle: "- lectures, discussions, classroom notes",      hue: "indigo" },
+  { id: "writer",      label: "Writer",           subtitle: "- writing projects, ideas, publication",        hue: "teal"   },
+  { id: "media",       label: "Media & Podcasts", subtitle: "- videos, podcasts, media summaries",           hue: "violet" },
+  { id: "others",      label: "Others",           subtitle: "- general or uncategorized meetings",           hue: "gray"   },
 ];
 
 export const CATEGORY_META_BY_ID: Record<CategoryId, CategoryMeta> = TEMPLATE_CATEGORIES.reduce((acc, c) => {
@@ -135,7 +135,7 @@ export const CATEGORY_META_BY_ID: Record<CategoryId, CategoryMeta> = TEMPLATE_CA
   return acc;
 }, {} as Record<CategoryId, CategoryMeta>);
 
-// Order matters — first match wins. More specific domain keywords (writer, media,
+// Order matters - first match wins. More specific domain keywords (writer, media,
 // medical, others) are checked before broader ones (hr, sales, engineering) so
 // e.g. "Interview Article" lands under Writer, not HR.
 const CATEGORY_KEYWORDS: Array<{ cat: CategoryId; kws: string[] }> = [
@@ -163,7 +163,7 @@ export function hueForCategory(cat: CategoryId): HueTokens {
   return HUE_PALETTE[CATEGORY_META_BY_ID[cat].hue];
 }
 
-/** Short audience line for a template — shown in pickers under the name. */
+/** Short audience line for a template - shown in pickers under the name. */
 export function templateAudience(t: Template): string {
   if (t.description) return t.description;
   const cat = categorize(t);

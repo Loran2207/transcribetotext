@@ -36,11 +36,11 @@ const RANGE: Record<RangeKey, { unit: string; data: { label: string; minutes: nu
   "4w": {
     unit: "min / week",
     data: [
-      { label: "8 – 14 Apr", minutes: 290 },
-      { label: "15 – 21 Apr", minutes: 460 },
-      { label: "22 – 28 Apr", minutes: 410 },
-      { label: "29 Apr – 5 May", minutes: 640 },
-      { label: "6 – 12 May", minutes: 720 },
+      { label: "8 - 14 Apr", minutes: 290 },
+      { label: "15 - 21 Apr", minutes: 460 },
+      { label: "22 - 28 Apr", minutes: 410 },
+      { label: "29 Apr - 5 May", minutes: 640 },
+      { label: "6 - 12 May", minutes: 720 },
     ],
   },
   "12m": {

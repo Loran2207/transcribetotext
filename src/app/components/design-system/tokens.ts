@@ -1,5 +1,5 @@
 /**
- * Design-system tokens — mirrored verbatim from `src/styles/theme.css`.
+ * Design-system tokens - mirrored verbatim from `src/styles/theme.css`.
  *
  * The board reads these so the documented values can never silently drift from
  * the real product tokens. `css` is what actually paints the swatch (a live
@@ -13,7 +13,7 @@ import type { CSSProperties } from "react";
 
 export type ColorToken = {
   name: string;
-  /** Display label — the underlying OKLCH / hex / note. */
+  /** Display label - the underlying OKLCH / hex / note. */
   value: string;
   /** Paint value applied to the swatch. */
   css: string;
@@ -34,7 +34,7 @@ export const colorGroups: ColorGroup[] = [
   {
     id: "primary",
     title: "Brand blue",
-    note: "One accent carries every interactive moment — buttons, links, active nav, focus rings. Rationed against a near-white canvas.",
+    note: "One accent carries every interactive moment - buttons, links, active nav, focus rings. Rationed against a near-white canvas.",
     tokens: [
       { name: "--primary", value: "oklch(.488 .243 264)", css: "var(--primary)", usage: "CTAs · links · active" },
       { name: "primary / 90", value: "hover", css: "color-mix(in srgb, var(--primary) 90%, white)", usage: "filled hover" },
@@ -45,7 +45,7 @@ export const colorGroups: ColorGroup[] = [
   {
     id: "neutrals",
     title: "Neutrals",
-    note: "A cool-tinted ramp — every gray carries a faint 286° hue so it harmonises with the blue.",
+    note: "A cool-tinted ramp - every gray carries a faint 286° hue so it harmonises with the blue.",
     tokens: [
       { name: "--foreground", value: "oklch(.141 .005 286)", css: "var(--foreground)", usage: "default text" },
       { name: "--muted-foreground", value: "oklch(.552 .016 286)", css: "var(--muted-foreground)", usage: "secondary · placeholder" },
@@ -61,14 +61,14 @@ export const colorGroups: ColorGroup[] = [
     tokens: [
       { name: "--destructive", value: "#EE1A1A", css: "var(--destructive)", usage: "delete · error" },
       { name: "destructive / 10", value: "soft", css: "color-mix(in srgb, var(--destructive) 10%, white)", usage: "remove button bg", outline: true },
-      { name: "--strength-medium", value: "oklch(.795 .184 86)", css: "var(--strength-medium)", usage: "password — amber" },
-      { name: "--strength-strong", value: "oklch(.723 .219 150)", css: "var(--strength-strong)", usage: "password — green" },
+      { name: "--strength-medium", value: "oklch(.795 .184 86)", css: "var(--strength-medium)", usage: "password - amber" },
+      { name: "--strength-strong", value: "oklch(.723 .219 150)", css: "var(--strength-strong)", usage: "password - green" },
     ],
   },
   {
     id: "charts",
     title: "Chart ramp",
-    note: "A graduated cool-gray ramp — never rainbow. Data leans on value, not hue.",
+    note: "A graduated cool-gray ramp - never rainbow. Data leans on value, not hue.",
     tokens: [
       { name: "--chart-1", value: "oklch(.871 .006 286)", css: "var(--chart-1)" },
       { name: "--chart-2", value: "oklch(.552 .016 286)", css: "var(--chart-2)" },
@@ -116,7 +116,7 @@ export const headingScale: TypeSpec[] = [
 ];
 
 export const bodyScale: TypeSpec[] = [
-  { label: "body", sample: "The workhorse size — table rows, panels, most copy.", spec: "14 / 400 · 1.5", style: { fontSize: 14, fontWeight: 400, lineHeight: 1.5 } },
+  { label: "body", sample: "The workhorse size - table rows, panels, most copy.", spec: "14 / 400 · 1.5", style: { fontSize: 14, fontWeight: 400, lineHeight: 1.5 } },
   { label: "caption", sample: "Secondary descriptions, breadcrumbs, menu items.", spec: "13 / 400 · muted", style: { fontSize: 13, fontWeight: 400, lineHeight: 1.45, color: "var(--muted-foreground)" } },
   { label: "label", sample: "Form labels and inline emphasis.", spec: "13 / 500", style: { fontSize: 13, fontWeight: 500 } },
   { label: "micro", sample: "Meta, plan tags, ⌘K hints, timestamps.", spec: "11 / 400 · muted", style: { fontSize: 11, fontWeight: 400, color: "var(--muted-foreground)" } },

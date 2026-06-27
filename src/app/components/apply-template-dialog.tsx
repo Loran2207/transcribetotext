@@ -23,7 +23,15 @@ interface ApplyTemplateDialogProps {
 export function ApplyTemplateDialog({ open, onOpenChange, template }: ApplyTemplateDialogProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    // Demo: ttt_demo_apply=open pre-selects the first recording so the picker
+    // captures in a chosen state. DEV only; never affects real users.
+    try {
+      return import.meta.env.DEV && localStorage.getItem("ttt_demo_apply") === "open"
+        ? records[0]?.id ?? null
+        : null;
+    } catch { return null; }
+  });
 
   useEffect(() => {
     if (!open) { setQuery(""); setSelectedId(null); }

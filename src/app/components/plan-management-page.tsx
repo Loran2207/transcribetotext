@@ -39,9 +39,9 @@ export function usePlanStatePreview() {
 
 const BENEFITS = [
   { title: "Unlimited transcriptions", desc: "No daily caps, no queue." },
-  { title: "Up to 4 hours per file", desc: "Long meetings, long lectures — no limits." },
+  { title: "Up to 4 hours per file", desc: "Long meetings, long lectures - no limits." },
   { title: "AI meeting agent", desc: "Joins Zoom, Meet & Teams to take notes for you." },
-  { title: "Transcribe from links", desc: "Paste any URL — YouTube, Drive, Dropbox." },
+  { title: "Transcribe from links", desc: "Paste any URL - YouTube, Drive, Dropbox." },
   { title: "Priority processing", desc: "Files are processed first, even at peak times." },
   { title: "Premium support", desc: "Direct line to our team, faster responses." },
 ];
@@ -223,7 +223,7 @@ function HeroFree({ onUpgrade }: { onUpgrade: () => void }) {
             Unlock the full power of Transcribetotext
           </h3>
           <p className="text-[14px] text-muted-foreground leading-[1.55] max-w-[520px] m-0">
-            You're on the Free plan — 1 transcription per day, up to 30
+            You're on the Free plan - 1 transcription per day, up to 30
             minutes per file. Upgrade to remove every limit and let our AI
             agent join your meetings for you.
           </p>
@@ -263,7 +263,7 @@ function HeroActive({
           </h3>
           <p className="text-[14px] text-muted-foreground leading-[1.55] max-w-[520px] m-0">
             Thanks for being a Premium member. Your subscription renews
-            automatically — manage payment and billing below.
+            automatically - manage payment and billing below.
           </p>
         </div>
         <HeroPrice amount="$29.99" per="per month" />
@@ -291,7 +291,7 @@ function HeroExpired({ onRenew }: { onRenew: () => void }) {
           </h3>
           <p className="text-[14px] text-muted-foreground leading-[1.55] max-w-[520px] m-0">
             Your subscription ended on Apr 12, 2026. You're back on the Free
-            plan — pick up right where you left off and bring back unlimited
+            plan - pick up right where you left off and bring back unlimited
             transcriptions.
           </p>
         </div>
@@ -300,7 +300,7 @@ function HeroExpired({ onRenew }: { onRenew: () => void }) {
 
       <HeroMeta
         cells={[
-          { label: "Was active", value: "Jan – Apr 2026" },
+          { label: "Was active", value: "Jan - Apr 2026" },
           { label: "Expired on", value: "Apr 12, 2026" },
           { label: "Files transcribed", value: "128 in total" },
         ]}
@@ -313,7 +313,7 @@ function HeroExpired({ onRenew }: { onRenew: () => void }) {
       </div>
 
       <TrustLine>
-        Your templates, folders and records are safe — they'll all reactivate
+        Your templates, folders and records are safe - they'll all reactivate
         the moment you renew.
       </TrustLine>
     </HeroShell>

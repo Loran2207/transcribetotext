@@ -148,7 +148,7 @@ function MeetingRecorderCard() {
       <div className="flex-1 w-full relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative" style={{ width: "118px", height: "128px", marginLeft: "-15px" }}>
-            {/* Photo — offset right and down within composition */}
+            {/* Photo - offset right and down within composition */}
             <motion.div
               className="absolute"
               style={{ left: "30px", top: "15px" }}
@@ -160,7 +160,7 @@ function MeetingRecorderCard() {
                 <div className="absolute inset-[-2px] rounded-[8px]" style={{ border: "2px solid white" }} />
               </div>
             </motion.div>
-            {/* Icons pill — top-left corner of composition */}
+            {/* Icons pill - top-left corner of composition */}
             <motion.div
               className="absolute left-0 top-0 flex gap-[8px] items-center justify-center p-[8px] rounded-[6px] bg-white"
               animate={hovered ? { y: -4, x: 3, scale: 1.05 } : { y: 0, x: 0, scale: 1 }}
@@ -269,7 +269,7 @@ function AudioVideoFilesCard() {
       <div className="flex-1 w-full relative overflow-hidden">
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative" style={{ width: "155px", height: "82px" }}>
-            {/* Back row — partially hidden behind front row */}
+            {/* Back row - partially hidden behind front row */}
             {/* Orange MOV (back left) */}
             <motion.div
               className="absolute z-0"
@@ -439,7 +439,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
         <RightPanel />
       </motion.div>
 
-      {/* Drop zone pill — appears at bottom center while dragging */}
+      {/* Drop zone pill - appears at bottom center while dragging */}
       {dragOver && (
         <div
           className="absolute bottom-[28px] left-1/2 -translate-x-1/2 z-50 pointer-events-none"

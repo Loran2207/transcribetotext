@@ -32,7 +32,7 @@ export function TypographySection() {
         </div>
       </Block>
 
-      <Block label="Inter — variable, 4 weights">
+      <Block label="Inter - variable, 4 weights">
         <div className="flex flex-wrap items-end gap-8">
           {weights.map((fw) => (
             <div key={fw.w} className="flex flex-col gap-1">

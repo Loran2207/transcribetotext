@@ -46,7 +46,7 @@ function PromoCard() {
         Buy now <Icon icon={ChevronRight} className="size-[11px]" strokeWidth={2} />
       </p>
 
-      {/* Gift box image — clipped by overflow-hidden */}
+      {/* Gift box image - clipped by overflow-hidden */}
       <div className="absolute flex items-center justify-center" style={{ left: 211, top: -20, width: 113, height: 113 }}>
         <div className="shrink-0 rotate-[-4.31deg]">
           <div className="relative" style={{ width: 105.378, height: 105.378 }}>
@@ -55,7 +55,7 @@ function PromoCard() {
         </div>
       </div>
 
-      {/* Decorative sparkle stars — left cluster (near left edge of gift) */}
+      {/* Decorative sparkle stars - left cluster (near left edge of gift) */}
       <div className="absolute flex items-center justify-center" style={{ left: 229.51, top: 20.19, width: 3.471, height: 3.95, animation: "sparkle 2.4s ease-in-out infinite 0.3s" }}>
         <div className="shrink-0 rotate-[-5.01deg]">
           <svg className="block" style={{ width: 2.634, height: 3.074 }} fill="none" viewBox="0 0 2.63446 3.07354">
@@ -78,7 +78,7 @@ function PromoCard() {
         </div>
       </div>
 
-      {/* Decorative sparkle stars — right cluster (right of gift) */}
+      {/* Decorative sparkle stars - right cluster (right of gift) */}
       <div className="absolute flex items-center justify-center" style={{ left: 297.94, top: 19.32, width: 4.224, height: 4.541, animation: "sparkle 2.6s ease-in-out infinite 1.2s" }}>
         <div className="shrink-0 rotate-[19.8deg]">
           <svg className="block" style={{ width: 2.634, height: 3.074 }} fill="none" viewBox="0 0 2.63446 3.07354">
@@ -229,7 +229,7 @@ function FreePlanCard() {
         <span className="text-foreground" style={{ fontWeight: 700, fontSize: "18px", letterSpacing: "-0.3px" }}>You on Free Plan</span>
       </div>
 
-      {/* Usage section — files */}
+      {/* Usage section - files */}
       <div className="px-[18px] pt-[0px] pb-[16px]">
         <div className="flex items-baseline justify-between mb-[6px]">
           <span className="text-foreground" style={{ fontWeight: 600, fontSize: "13px" }}>
@@ -315,7 +315,7 @@ function MeetingItem({ meeting }: { meeting: Meeting }) {
         </div>
       </div>
 
-      {/* Hover action buttons — slide in from right */}
+      {/* Hover action buttons - slide in from right */}
       <div
         className="absolute right-0 top-0 bottom-0 flex items-center gap-[6px] pr-[10px] pl-[24px]"
         style={{

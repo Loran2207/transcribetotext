@@ -91,7 +91,7 @@ export function CalendarMeetingCard({
               "text-[14px] font-semibold tabular-nums shrink-0",
               isPast ? "text-muted-foreground" : "text-foreground",
             )}>
-              {meeting.startTime} – {meeting.endTime}
+              {meeting.startTime} - {meeting.endTime}
             </span>
             <span className="text-border w-px h-3.5 shrink-0 bg-border" />
             <h4 className={cn(

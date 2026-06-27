@@ -741,7 +741,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Drop zone pill — appears at bottom center while dragging */}
+      {/* Drop zone pill - appears at bottom center while dragging */}
       {dragOver && (
         <div
           className="absolute bottom-[28px] left-1/2 -translate-x-1/2 z-50 pointer-events-none"

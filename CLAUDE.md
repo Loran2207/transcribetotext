@@ -5,6 +5,13 @@
 
 ---
 
+## 0. WRITING RULES — COPY & MICROCOPY
+
+**No long dashes anywhere in user-visible text.** Never use an em dash (the long "--" character) or an en dash in file/record names, UI copy, labels, toasts, placeholders, button text, demo/mock data, transcripts, template samples, or any string a user can see. Long dashes are a top "this was written by AI" tell. Use a hyphen (-), a comma, a colon, or split into two sentences instead.
+
+This applies to ALL demo content (record names, mock transcripts, calendar/meeting data, template examples). When you add or edit any user-facing text, search the file for long dashes first and replace them with a hyphen. Re-check existing strings when you touch a file.
+
+---
 ## 1. PROJECT OVERVIEW
 
 **What it does:** A client-side web application for audio/video transcription management. Users can upload files, record audio, paste links, and manage transcription records organized in folders. Supports 6 languages (en, ru, es, de, fr, ja).

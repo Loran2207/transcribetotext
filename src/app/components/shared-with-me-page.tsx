@@ -85,7 +85,7 @@ export function SharedWithMePage() {
 
         setItems(mapped);
       } catch {
-        // Silently handle — demo app may not have DB tables
+        // Silently handle - demo app may not have DB tables
         if (!cancelled) setItems([]);
       } finally {
         if (!cancelled) setLoading(false);

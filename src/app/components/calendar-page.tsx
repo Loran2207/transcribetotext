@@ -290,7 +290,7 @@ export function CalendarPage() {
             Meetings
           </h1>
           <div className="flex items-center gap-3 shrink-0">
-            {/* Today button — only visible when navigated away */}
+            {/* Today button - only visible when navigated away */}
             <motion.div
               initial={false}
               animate={{
@@ -318,7 +318,7 @@ export function CalendarPage() {
           </div>
         </div>
 
-        {/* Tabs + connected calendars indicator — full width so the line reaches the edge */}
+        {/* Tabs + connected calendars indicator - full width so the line reaches the edge */}
         <div className="flex items-end justify-between border-b border-border mt-4">
             <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as MeetingsTab)} className="gap-0">
               <TabsList variant="line" className="gap-6 justify-start border-0">
@@ -342,7 +342,7 @@ export function CalendarPage() {
             />
         </div>
 
-        {/* Week strip — full width */}
+        {/* Week strip - full width */}
         {activeTab !== "settings" && (
           <div className="mt-4 flex items-end border-b border-border/30">
             <button
@@ -372,7 +372,7 @@ export function CalendarPage() {
         )}
 
 
-        {/* Content column — capped and centered for wide monitors */}
+        {/* Content column - capped and centered for wide monitors */}
         <div className={cn("flex-1 min-w-0 flex flex-col w-full mx-auto overflow-hidden", CONTENT_MAX_W)}>
           {activeTab === "settings" ? (
             <MeetingsSettingsTab
@@ -385,7 +385,7 @@ export function CalendarPage() {
             />
           ) : (
             <>
-              {/* Auto-record bar — full content width, upcoming only */}
+              {/* Auto-record bar - full content width, upcoming only */}
               {activeTab === "upcoming" && (
                 <div className="mt-4 flex items-center rounded-xl border border-border bg-card px-4 py-2.5">
                   <div className="flex items-center gap-1.5 text-[13px] font-medium text-foreground shrink-0 pr-3">
@@ -430,7 +430,7 @@ export function CalendarPage() {
                 </div>
               )}
 
-              {/* Meeting list — scrollable */}
+              {/* Meeting list - scrollable */}
               {meetings.length === 0 ? (
                 <CalendarEmptyState
                   onOpenSettings={() => setActiveTab("settings")}
