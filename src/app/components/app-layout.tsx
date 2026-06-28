@@ -9,6 +9,9 @@ import { MyRecordsPage } from "./my-records-page";
 import { TemplatesPage } from "./templates-page";
 import { useLanguage } from "./language-context";
 import { TopBar } from "./top-bar";
+import { MobileTopBar } from "./mobile-top-bar";
+import { BottomNav } from "./bottom-nav";
+import { CreateFab } from "./create-fab";
 import { SettingsPage } from "./settings-modal";
 import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
@@ -56,6 +59,7 @@ export function AppLayout() {
         <AppSidebar activePage={activePage} onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />
         <SidebarInset className="overflow-hidden bg-sidebar">
           <TopBar onNavigate={handleNavigate} />
+          <MobileTopBar onNavigate={handleNavigate} />
           <main className="flex flex-1 overflow-hidden rounded-tl-[32px] bg-background">
             {isSubRoute ? (
               <Outlet />
@@ -75,6 +79,12 @@ export function AppLayout() {
               </>
             )}
           </main>
+          {!isSubRoute && (
+            <>
+              <BottomNav activePage={activePage} onNavigate={handleNavigate} />
+              <CreateFab />
+            </>
+          )}
         </SidebarInset>
       </SidebarProvider>
     </UserProfileProvider>

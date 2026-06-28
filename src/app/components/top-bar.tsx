@@ -17,7 +17,7 @@ interface TopBarProps {
 }
 
 /* ── Profile Dropdown ── */
-function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void }) {
+export function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void }) {
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -44,7 +44,7 @@ function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => void })
         <div className="size-[28px] rounded-full overflow-hidden shrink-0">
           <img src={avatarSrc} alt="Avatar" className="size-full object-cover" />
         </div>
-        <div className="flex flex-col items-start">
+        <div className="hidden md:flex flex-col items-start">
           <span className="flex items-center gap-[4px] font-medium text-[12.5px] text-foreground whitespace-nowrap">
             {userEmail}
             <Icon icon={ChevronDown} className="size-[10px] text-muted-foreground" strokeWidth={2} />
@@ -113,7 +113,7 @@ export function TopBar({ onNavigate }: TopBarProps) {
   }, []);
 
   return (
-    <div className="shrink-0 flex items-center px-[16px] h-[56px] gap-[12px] bg-sidebar">
+    <div className="shrink-0 hidden lg:flex items-center px-[16px] h-[56px] gap-[12px] bg-sidebar">
       {/* Search trigger */}
       <Button variant="ghost"
         onClick={() => setSearchOpen(true)}

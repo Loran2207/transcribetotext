@@ -349,6 +349,21 @@ function MeetingItem({ meeting }: { meeting: Meeting }) {
    Right Panel
    ══════════════════════════════════════════════ */
 
+/* ══════════════════════════════════════════════
+   Plan widgets (mobile + tablet stream)
+   ══════════════════════════════════════════════ */
+
+export function PlanWidgets() {
+  const plan = usePlan();
+  return (
+    <div className="flex flex-col gap-[14px] lg:hidden">
+      {plan === "free" && <PromoCard />}
+      {plan === "pro" && <AnalyticsCard />}
+      {plan === "free" && <FreePlanCard />}
+    </div>
+  );
+}
+
 const DEFAULT_WIDTH = 360;
 
 export function RightPanel() {

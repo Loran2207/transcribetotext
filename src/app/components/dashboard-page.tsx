@@ -9,6 +9,9 @@ import { motion } from "motion/react";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
 import { useUserProfile } from "./user-profile-context";
+import { RecordsListMobile } from "./records-list-mobile";
+import { DashboardActionsMobile } from "./dashboard-actions-mobile";
+import { PlanWidgets } from "./right-panel";
 
 /* ═══════════════════════════════════════════
    Card 1: Instant Speach
@@ -401,15 +404,26 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
       )}
 
       <div className="flex-1 overflow-auto min-w-0">
-        <div className="px-[32px] pt-[28px]">
+        <div className="px-[16px] pt-[16px] pb-[96px] md:px-[24px] md:pt-[20px] md:pb-[40px] lg:px-[32px] lg:pt-[28px] lg:pb-0">
           <motion.p
-            className="whitespace-nowrap text-foreground"
-            style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}
+            className="text-foreground font-bold text-[22px] leading-[28px] tracking-[-0.4px] md:text-[26px] md:leading-[32px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap"
             {...fadeUp(0.72, 30)}
           >
             {greeting}
           </motion.p>
-          <motion.div className="flex gap-[12px] mt-[34px]" {...fadeUp(0.48, 50)}>
+
+          {/* Mobile: compact 2x2 create tiles */}
+          <DashboardActionsMobile />
+
+          {/* Tablet: the four illustrated cards in a 2x2 grid (no kbd) */}
+          <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[22px]">
+            {cards.map(({ card, key, modal }) => (
+              <div key={key} className="relative cursor-pointer" onClick={() => setOpenModal(modal)}>
+                {card}
+              </div>
+            ))}
+          </div>
+          <motion.div className="hidden lg:flex gap-[12px] mt-[34px]" {...fadeUp(0.48, 50)}>
             {cards.map(({ card, key, modal }) => (
               <div
                 key={key}
@@ -430,12 +444,21 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
               </div>
             ))}
           </motion.div>
-          <motion.div {...fadeUp(0.18, 70)}>
+          {/* Desktop: full records table */}
+          <motion.div className="hidden lg:block" {...fadeUp(0.18, 70)}>
             <RecordsTable onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />
           </motion.div>
+
+          {/* Mobile + tablet: records as cards */}
+          <RecordsListMobile onNavigateToRecords={() => onNavigate?.("records")} />
+
+          {/* Mobile + tablet: plan / analytics widgets */}
+          <div className="mt-[24px] lg:hidden">
+            <PlanWidgets />
+          </div>
         </div>
       </div>
-      <motion.div {...fadeUp(0.1, 70)}>
+      <motion.div className="hidden lg:block" {...fadeUp(0.1, 70)}>
         <RightPanel />
       </motion.div>
 
