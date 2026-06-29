@@ -10,6 +10,7 @@ import { ForgotPasswordPage } from "./components/forgot-password-page";
 import { ResetPasswordPage } from "./components/reset-password-page";
 import { ProtectedRoute } from "./components/protected-route";
 import { ShareViewPage } from "./components/share-view-page";
+import { CheckoutPage } from "./components/checkout-page";
 
 function ProtectedAppLayout() {
   return (
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
   { path: "/reset-password", Component: ResetPasswordPage },
   { path: "/share/:token", Component: ShareViewPage },
   { path: "/design-system", Component: DesignSystemPage },
+  { path: "/checkout", Component: CheckoutPage },
   {
     path: "/checkout-loader",
     lazy: async () => ({
