@@ -46,7 +46,7 @@ export function BottomNav({ activePage, onNavigate }: { activePage: string; onNa
       <button
         key={id}
         onClick={() => onNavigate(id)}
-        className={`flex flex-col items-center justify-center gap-[3px] w-[58px] h-full ${active ? "text-primary" : "text-muted-foreground"}`}
+        className={`flex flex-col items-center justify-center gap-[3px] flex-1 h-full ${active ? "text-primary" : "text-muted-foreground"}`}
       >
         <Icon icon={icon} className="size-[21px]" strokeWidth={active ? 2 : 1.6} />
         <span className="truncate max-w-full" style={{ fontSize: 10, fontWeight: 500, lineHeight: 1 }}>{t(labelKey)}</span>
@@ -56,12 +56,12 @@ export function BottomNav({ activePage, onNavigate }: { activePage: string; onNa
 
   return (
     <nav
-      className="md:hidden fixed left-1/2 -translate-x-1/2 z-40 flex items-center"
+      className="md:hidden fixed left-[16px] right-[16px] z-40 flex items-center"
       style={{ bottom: "calc(14px + env(safe-area-inset-bottom))" }}
     >
       <div
-        className="flex items-center gap-[2px] h-[60px] px-[10px] rounded-full bg-background"
-        style={{ boxShadow: "0 10px 30px rgba(16,24,40,0.16), 0 2px 8px rgba(16,24,40,0.08)", border: "1px solid var(--border)" }}
+        className="flex items-center w-full h-[58px] px-[12px] rounded-full bg-background"
+        style={{ boxShadow: "0 12px 34px -6px rgba(16,24,40,0.12), 0 3px 10px -4px rgba(16,24,40,0.05)", border: "1px solid var(--border)" }}
       >
         {LEFT_TABS.map(renderTab)}
 
@@ -69,9 +69,9 @@ export function BottomNav({ activePage, onNavigate }: { activePage: string; onNa
           <DrawerTrigger asChild>
             <button
               aria-label="New transcription"
-              className="flex items-center justify-center size-[44px] rounded-full bg-primary text-primary-foreground shrink-0 mx-[4px]"
+              className="flex items-center justify-center size-[40px] rounded-full bg-primary text-primary-foreground shrink-0 mx-[6px]"
             >
-              <Icon icon={Plus} className="size-[24px]" strokeWidth={2} />
+              <Icon icon={Plus} className="size-[22px]" strokeWidth={2} />
             </button>
           </DrawerTrigger>
           <DrawerContent>
