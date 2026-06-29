@@ -1750,7 +1750,7 @@ function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isH
           <InlineNameEditor value={record.name} onSave={onSaveName} onCancel={onCancelEdit} />
         ) : (
           <div className="flex items-center gap-[6px] min-w-0 flex-1">
-            <p className="truncate leading-[20px] font-medium text-[14px] text-foreground tracking-[-0.154px]">{record.name}</p>
+            <p className="truncate min-w-0 leading-[20px] font-medium text-[14px] text-foreground tracking-[-0.154px]">{record.name}</p>
             {isShared && !isTrash && <SharedBadge />}
           </div>
         )}
