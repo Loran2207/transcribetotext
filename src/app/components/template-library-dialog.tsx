@@ -158,7 +158,10 @@ function fmtDate(d: string | null): string {
   try { return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); } catch { return ""; }
 }
 
-/* In-dialog preview: the example summary this template produces, plus Use. */
+/* In-dialog preview, modeled on the template detail page: left = what the
+   template is made of (its sections), right = the example summary it produces.
+   Reuses sectionIcon + getTemplateSample so the content matches the real
+   template detail view. */
 function PreviewPanel({ template, onBack, onUse, isFree }: {
   template: Template; onBack: () => void; onUse: () => void; isFree: boolean;
 }) {
@@ -170,7 +173,7 @@ function PreviewPanel({ template, onBack, onUse, isFree }: {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-3 px-6 h-[60px] border-b border-border shrink-0">
+      <div className="flex items-center justify-between gap-3 px-6 h-[56px] border-b border-border shrink-0">
         <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
           Back to template library
@@ -189,45 +192,65 @@ function PreviewPanel({ template, onBack, onUse, isFree }: {
               {created && <span className="mx-1.5">&middot;</span>}
               {created && <span>{created}</span>}
             </p>
+            {template.description && (
+              <p className="text-[13px] text-muted-foreground leading-relaxed mt-2.5 max-w-[680px]">{template.description}</p>
+            )}
           </div>
         </div>
 
-        {template.description && (
-          <p className="text-[13px] text-muted-foreground leading-relaxed mt-4 max-w-[680px]">{template.description}</p>
-        )}
-
-        <div className="mt-7 max-w-[760px]">
-          <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ boxShadow: "var(--elevation-md)" }}>
-            <div className="px-7 pt-6 pb-4 border-b border-border">
-              <p className="text-[11px] font-medium text-muted-foreground mb-2">Example summary</p>
-              <p className="text-[15px] font-semibold text-foreground">{sample.source.title}</p>
-              <p className="text-[12px] text-muted-foreground mt-0.5">{sample.source.meta}</p>
-            </div>
-            <div className="px-7 py-6">
-              {template.sections.map((s, i) => {
-                const lines = sample.contentFor(s.title);
-                const isBullets = lines.length > 1;
-                return (
-                  <div key={s.id} className={i > 0 ? "mt-6" : ""}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Icon icon={sectionIcon(s.title, s.iconId)} size={15} className="text-foreground/60" />
-                      <h4 className="text-[14px] font-semibold text-foreground">{s.title}</h4>
+        <div className="flex gap-9 mt-8 items-start">
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-medium text-muted-foreground mb-3">What this template captures</p>
+            <div className="flex flex-col gap-2.5">
+              {template.sections.map((s, i) => (
+                <div key={s.id} className="rounded-xl border border-border bg-card px-4 py-3.5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center justify-center shrink-0 size-8 rounded-lg" style={{ background: hue.bg }}>
+                      <Icon icon={sectionIcon(s.title, s.iconId)} size={15} style={{ color: hue.chip }} />
                     </div>
-                    {isBullets ? (
-                      <ul className="flex flex-col gap-1.5">
-                        {lines.map((line, j) => (
-                          <li key={j} className="flex gap-2 text-[13px] text-muted-foreground leading-relaxed">
-                            <span className="text-muted-foreground/50 shrink-0 pt-[1px]">&bull;</span>
-                            <span>{line}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-[13px] text-muted-foreground leading-[1.7]">{lines[0]}</p>
-                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13.5px] font-semibold text-foreground">{s.title || `Section ${i + 1}`}</p>
+                      <p className="text-[12.5px] text-muted-foreground leading-relaxed mt-0.5">{s.instruction || "Auto-generated from the recording."}</p>
+                    </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-[420px] shrink-0">
+            <p className="text-[11px] font-medium text-muted-foreground mb-3">Example summary</p>
+            <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ boxShadow: "var(--elevation-md)" }}>
+              <div className="px-6 pt-5 pb-3.5 border-b border-border">
+                <p className="text-[14px] font-semibold text-foreground">{sample.source.title}</p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">{sample.source.meta}</p>
+              </div>
+              <div className="px-6 py-5">
+                {template.sections.map((s, i) => {
+                  const lines = sample.contentFor(s.title);
+                  const isBullets = lines.length > 1;
+                  return (
+                    <div key={s.id} className={i > 0 ? "mt-5" : ""}>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Icon icon={sectionIcon(s.title, s.iconId)} size={14} className="text-foreground/60" />
+                        <h4 className="text-[13.5px] font-semibold text-foreground">{s.title}</h4>
+                      </div>
+                      {isBullets ? (
+                        <ul className="flex flex-col gap-1.5">
+                          {lines.map((line, j) => (
+                            <li key={j} className="flex gap-2 text-[12.5px] text-muted-foreground leading-relaxed">
+                              <span className="text-muted-foreground/50 shrink-0 pt-px">&bull;</span>
+                              <span>{line}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-[12.5px] text-muted-foreground leading-[1.7]">{lines[0]}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -349,14 +372,14 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
             </aside>
 
             <div className="flex-1 min-w-0 flex flex-col">
-              <div className="px-7 h-[60px] flex items-center justify-end shrink-0 border-b border-border">
-                <div className="relative w-[260px] max-w-full">
-                  <Icon icon={SearchIcon} size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+              <div className="px-7 h-[64px] flex items-center shrink-0 border-b border-border">
+                <div className="relative w-full max-w-[440px]">
+                  <Icon icon={SearchIcon} size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search templates"
-                    className="w-full h-9 pl-9 pr-3 rounded-full bg-muted text-[13px] text-foreground placeholder:text-muted-foreground/60 outline-none focus:ring-2 focus:ring-primary/40"
+                    className="w-full h-10 pl-10 pr-3 rounded-full bg-muted border border-border text-[13px] text-foreground placeholder:text-muted-foreground/60 outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent"
                   />
                 </div>
               </div>
