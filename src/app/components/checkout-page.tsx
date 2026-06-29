@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router";
-import { PaymentError, PAYMENT_ERRORS, VARIANT_LABELS, VARIANT_ORDER, type PaymentErrorVariant } from "./payment-error";
+import { PaymentError, PAYMENT_ERRORS, VARIANT_ORDER, type PaymentErrorVariant } from "./payment-error";
 
 /* ─────────────────────────────────────────────────────────────
    Isolated mobile "Complete Checkout" screen (Figma node 2627:3)
@@ -7,7 +7,7 @@ import { PaymentError, PAYMENT_ERRORS, VARIANT_LABELS, VARIANT_ORDER, type Payme
    Standalone route, design + capture only.
    Query modes:
      ?err=<key>&v=<1..4>   error block above the payment buttons, design variant v
-     ?msgs=<1..4>          one design variant shown across all error messages
+     ?msgs=<1..4>          one design variant shown across every error message
    ───────────────────────────────────────────────────────────── */
 
 const ASSET = {
@@ -79,16 +79,21 @@ function ContinueButton() {
   );
 }
 
+/* One design variant shown across every error message. */
 function MessageGallery({ variant }: { variant: PaymentErrorVariant }) {
+  const fullBleed = variant === "1";
   return (
     <div className="min-h-screen w-full flex justify-center bg-background">
-      <div className="w-full max-w-[390px] px-[20px] pt-[40px] pb-[44px] flex flex-col gap-[16px]">
-        <div className="mb-[2px]">
-          <p className="text-[18px] font-bold text-foreground tracking-[-0.2px]">All messages</p>
-          <p className="text-[13px] text-muted-foreground mt-[3px]">Variant {variant} · {VARIANT_LABELS[variant]}, every error message.</p>
-        </div>
+      <div className={`w-full max-w-[390px] pt-[28px] pb-[40px] flex flex-col ${fullBleed ? "gap-[10px]" : "px-[20px] gap-[14px]"}`}>
         {MSG_ORDER.map((k) => (
-          <PaymentError key={k} variant={variant} title={PAYMENT_ERRORS[k].title} message={PAYMENT_ERRORS[k].message} onRetry={() => {}} />
+          <PaymentError
+            key={k}
+            variant={variant}
+            title={PAYMENT_ERRORS[k].title}
+            message={PAYMENT_ERRORS[k].message}
+            action={PAYMENT_ERRORS[k].action}
+            onAction={() => {}}
+          />
         ))}
       </div>
     </div>
@@ -124,10 +129,10 @@ export function CheckoutPage() {
           <SummaryRow label="Total today:" value="$25.99" bold />
         </div>
 
-        {/* Error - above all payment buttons (chosen placement) */}
+        {/* Error - above all payment buttons. Variant 1 bleeds edge to edge. */}
         {err && (
-          <div className="mt-[20px]">
-            <PaymentError variant={variant} title={err.title} message={err.message} onRetry={() => {}} />
+          <div className={variant === "1" ? "mt-[20px] -mx-[20px]" : "mt-[20px]"}>
+            <PaymentError variant={variant} title={err.title} message={err.message} action={err.action} onAction={() => {}} />
           </div>
         )}
 
