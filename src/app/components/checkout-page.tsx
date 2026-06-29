@@ -1,5 +1,5 @@
 import { useSearchParams } from "react-router";
-import { PaymentError, PAYMENT_ERRORS, VARIANT_LABELS, type PaymentErrorVariant } from "./payment-error";
+import { PaymentError, PAYMENT_ERRORS, VARIANT_LABELS, VARIANT_ORDER, type PaymentErrorVariant } from "./payment-error";
 
 /* ─────────────────────────────────────────────────────────────
    Isolated mobile "Complete Checkout" screen (Figma node 2627:3)
@@ -7,7 +7,7 @@ import { PaymentError, PAYMENT_ERRORS, VARIANT_LABELS, type PaymentErrorVariant 
    Standalone route, design + capture only.
    Query modes:
      ?err=<key>&v=<1..4>   error block above the payment buttons, design variant v
-     ?compare=1            the four error designs stacked for comparison
+     ?msgs=<1..4>          one design variant shown across all error messages
    ───────────────────────────────────────────────────────────── */
 
 const ASSET = {
@@ -17,7 +17,7 @@ const ASSET = {
   badges: "/checkout/badges.png",
 };
 
-const VARIANTS: PaymentErrorVariant[] = ["1", "2", "3", "4"];
+const MSG_ORDER = ["payment_error", "card_declined", "insufficient_funds", "card_expired", "incorrect_details"];
 
 function CloseButton() {
   return (
@@ -79,20 +79,16 @@ function ContinueButton() {
   );
 }
 
-function VariantCompare() {
-  const e = PAYMENT_ERRORS.payment_error;
+function MessageGallery({ variant }: { variant: PaymentErrorVariant }) {
   return (
     <div className="min-h-screen w-full flex justify-center bg-background">
-      <div className="w-full max-w-[390px] px-[20px] pt-[40px] pb-[44px] flex flex-col gap-[22px]">
-        <div>
-          <p className="text-[18px] font-bold text-foreground tracking-[-0.2px]">Payment error - design options</p>
-          <p className="text-[13px] text-muted-foreground mt-[3px]">Same message, four looks. Shown where it sits: above the payment buttons.</p>
+      <div className="w-full max-w-[390px] px-[20px] pt-[40px] pb-[44px] flex flex-col gap-[16px]">
+        <div className="mb-[2px]">
+          <p className="text-[18px] font-bold text-foreground tracking-[-0.2px]">All messages</p>
+          <p className="text-[13px] text-muted-foreground mt-[3px]">Variant {variant} · {VARIANT_LABELS[variant]}, every error message.</p>
         </div>
-        {VARIANTS.map((v) => (
-          <div key={v} className="flex flex-col gap-[8px]">
-            <span className="text-[12px] font-semibold uppercase tracking-[0.5px] text-muted-foreground">Variant {v} · {VARIANT_LABELS[v]}</span>
-            <PaymentError variant={v} title={e.title} message={e.message} onRetry={() => {}} />
-          </div>
+        {MSG_ORDER.map((k) => (
+          <PaymentError key={k} variant={variant} title={PAYMENT_ERRORS[k].title} message={PAYMENT_ERRORS[k].message} onRetry={() => {}} />
         ))}
       </div>
     </div>
@@ -101,12 +97,16 @@ function VariantCompare() {
 
 export function CheckoutPage() {
   const [params] = useSearchParams();
-  if (params.get("compare")) return <VariantCompare />;
+
+  const msgs = params.get("msgs");
+  if (msgs && VARIANT_ORDER.includes(msgs as PaymentErrorVariant)) {
+    return <MessageGallery variant={msgs as PaymentErrorVariant} />;
+  }
 
   const errKey = params.get("err");
   const err = errKey && PAYMENT_ERRORS[errKey] ? PAYMENT_ERRORS[errKey] : null;
   const vParam = params.get("v");
-  const variant: PaymentErrorVariant = (["1", "2", "3", "4"].includes(vParam || "") ? vParam : "1") as PaymentErrorVariant;
+  const variant: PaymentErrorVariant = (VARIANT_ORDER.includes(vParam as PaymentErrorVariant) ? vParam : "1") as PaymentErrorVariant;
 
   return (
     <div className="min-h-screen w-full flex justify-center bg-background">
