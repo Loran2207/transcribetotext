@@ -1,14 +1,13 @@
 import { useSearchParams } from "react-router";
-import { PaymentError, PAYMENT_ERRORS } from "./payment-error";
+import { PaymentError, PAYMENT_ERRORS, VARIANT_LABELS, type PaymentErrorVariant } from "./payment-error";
 
 /* ─────────────────────────────────────────────────────────────
-   Isolated mobile "Complete Checkout" screen.
-   Ported from Figma (node 2627:3) with the real brand-button and
-   trust-badge images. Standalone route, only for design + capture.
-   Modes (query params):
-     ?err=<key>            show a payment-error block (above payment buttons)
-     ?err=<key>&pos=bottom show it below the Continue button instead
-     ?gallery=1            show the error block in all five copy variants
+   Isolated mobile "Complete Checkout" screen (Figma node 2627:3)
+   with the real brand-button + no-Stripe trust-badge images.
+   Standalone route, design + capture only.
+   Query modes:
+     ?err=<key>&v=<1..4>   error block above the payment buttons, design variant v
+     ?compare=1            the four error designs stacked for comparison
    ───────────────────────────────────────────────────────────── */
 
 const ASSET = {
@@ -18,15 +17,11 @@ const ASSET = {
   badges: "/checkout/badges.png",
 };
 
-const ERROR_ORDER = ["payment_error", "card_declined", "insufficient_funds", "card_expired", "incorrect_details"];
+const VARIANTS: PaymentErrorVariant[] = ["1", "2", "3", "4"];
 
 function CloseButton() {
   return (
-    <button
-      type="button"
-      aria-label="Close"
-      className="absolute right-[16px] top-[16px] flex items-center justify-center size-[28px] rounded-full bg-primary/[0.08]"
-    >
+    <button type="button" aria-label="Close" className="absolute right-[16px] top-[16px] flex items-center justify-center size-[28px] rounded-full bg-primary/[0.08]">
       <svg className="size-[14px] text-primary" fill="none" viewBox="0 0 16 16">
         <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
       </svg>
@@ -84,21 +79,20 @@ function ContinueButton() {
   );
 }
 
-function ErrorGallery() {
+function VariantCompare() {
+  const e = PAYMENT_ERRORS.payment_error;
   return (
     <div className="min-h-screen w-full flex justify-center bg-background">
-      <div className="w-full max-w-[390px] px-[20px] pt-[40px] pb-[44px] flex flex-col gap-[16px]">
-        <div className="mb-[2px]">
-          <p className="text-[18px] font-bold text-foreground tracking-[-0.2px]">Payment error states</p>
-          <p className="text-[13px] text-muted-foreground mt-[3px]">One block, applied to different payment errors.</p>
+      <div className="w-full max-w-[390px] px-[20px] pt-[40px] pb-[44px] flex flex-col gap-[22px]">
+        <div>
+          <p className="text-[18px] font-bold text-foreground tracking-[-0.2px]">Payment error - design options</p>
+          <p className="text-[13px] text-muted-foreground mt-[3px]">Same message, four looks. Shown where it sits: above the payment buttons.</p>
         </div>
-        {ERROR_ORDER.map((k, i) => (
-          <PaymentError
-            key={k}
-            title={PAYMENT_ERRORS[k].title}
-            message={PAYMENT_ERRORS[k].message}
-            onRetry={i === 0 ? () => {} : undefined}
-          />
+        {VARIANTS.map((v) => (
+          <div key={v} className="flex flex-col gap-[8px]">
+            <span className="text-[12px] font-semibold uppercase tracking-[0.5px] text-muted-foreground">Variant {v} · {VARIANT_LABELS[v]}</span>
+            <PaymentError variant={v} title={e.title} message={e.message} onRetry={() => {}} />
+          </div>
         ))}
       </div>
     </div>
@@ -107,12 +101,12 @@ function ErrorGallery() {
 
 export function CheckoutPage() {
   const [params] = useSearchParams();
-  if (params.get("gallery")) return <ErrorGallery />;
+  if (params.get("compare")) return <VariantCompare />;
 
   const errKey = params.get("err");
   const err = errKey && PAYMENT_ERRORS[errKey] ? PAYMENT_ERRORS[errKey] : null;
-  const pos = params.get("pos") === "bottom" ? "bottom" : "top";
-  const errorBlock = err ? <PaymentError title={err.title} message={err.message} onRetry={() => {}} /> : null;
+  const vParam = params.get("v");
+  const variant: PaymentErrorVariant = (["1", "2", "3", "4"].includes(vParam || "") ? vParam : "1") as PaymentErrorVariant;
 
   return (
     <div className="min-h-screen w-full flex justify-center bg-background">
@@ -123,7 +117,6 @@ export function CheckoutPage() {
           Complete Checkout
         </h1>
 
-        {/* Order summary */}
         <div className="mt-[32px] flex flex-col gap-[8px]">
           <span className="text-[13px] text-muted-foreground">Order summary</span>
           <SummaryRow label="Regular 4-week price" value="$25.99" />
@@ -131,31 +124,19 @@ export function CheckoutPage() {
           <SummaryRow label="Total today:" value="$25.99" bold />
         </div>
 
-        {/* Error - above all payment buttons (recommended placement) */}
-        {pos === "top" && errorBlock && <div className="mt-[20px]">{errorBlock}</div>}
+        {/* Error - above all payment buttons (chosen placement) */}
+        {err && (
+          <div className="mt-[20px]">
+            <PaymentError variant={variant} title={err.title} message={err.message} onRetry={() => {}} />
+          </div>
+        )}
 
-        {/* Payment options */}
-        <div className="mt-[24px]">
-          <PaymentButtons />
-        </div>
+        <div className="mt-[24px]"><PaymentButtons /></div>
+        <div className="mt-[18px]"><CardFields /></div>
+        <div className="mt-[12px]"><ContinueButton /></div>
 
-        {/* Card form */}
-        <div className="mt-[18px]">
-          <CardFields />
-        </div>
-
-        {/* Primary CTA */}
-        <div className="mt-[12px]">
-          <ContinueButton />
-        </div>
-
-        {/* Error - alternate placement, below the Continue button */}
-        {pos === "bottom" && errorBlock && <div className="mt-[14px]">{errorBlock}</div>}
-
-        {/* Trust badges (no Stripe) */}
         <img src={ASSET.badges} alt="Guaranteed safe and secure checkout. Visa, Mastercard, American Express, Google Pay, Apple Pay, PayPal accepted." className="block w-full mt-[26px]" draggable={false} />
 
-        {/* Legal */}
         <p className="mt-[14px] text-center text-[12px] leading-[18px] text-muted-foreground">
           By proceeding with the purchase, you agree to our{" "}
           <span className="text-primary font-medium">Terms of Service</span>,{" "}
