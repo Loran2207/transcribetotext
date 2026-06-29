@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Lock, SearchIcon } from "@hugeicons/core-free-icons";
+import { Lock, SearchIcon, Layers } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
 import { cn } from "@/app/components/ui/utils";
 import { useTemplates } from "@/hooks/use-templates";
 import { usePlan } from "./use-plan";
+import { TemplateLibraryDialog } from "./template-library-dialog";
 import type { Template } from "@/lib/templates";
 import {
   templateEmoji,
@@ -48,6 +49,7 @@ export function TemplatePicker({
   const isFree = plan === "free";
 
   const [internalOpen, setInternalOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const isOpen = open ?? internalOpen;
   const [query, setQuery] = useState("");
   const [activeChip, setActiveChip] = useState<ChipId>("all");
@@ -159,6 +161,7 @@ export function TemplatePicker({
   };
 
   return (
+    <>
     <Popover open={isOpen} onOpenChange={setOpenState}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent align={align} className="w-[460px] p-0 z-[400]">
@@ -267,18 +270,19 @@ export function TemplatePicker({
           )}
         </div>
 
-        {onManageTemplates && (
-          <div className="border-t border-border/60 p-1.5">
-            <button
-              type="button"
-              onClick={() => { setOpenState(false); onManageTemplates(); }}
-              className="w-full rounded-lg px-2.5 py-1.5 text-left text-[12px] font-medium text-primary hover:bg-muted/60 transition-colors"
-            >
-              Browse all templates
-            </button>
-          </div>
-        )}
+        <div className="border-t border-border/60 p-1.5">
+          <button
+            type="button"
+            onClick={() => { setOpenState(false); setLibraryOpen(true); }}
+            className="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12px] font-medium text-primary hover:bg-muted/60 transition-colors"
+          >
+            <Icon icon={Layers} size={14} />
+            Template library
+          </button>
+        </div>
       </PopoverContent>
     </Popover>
+    <TemplateLibraryDialog open={libraryOpen} onOpenChange={setLibraryOpen} value={value} onSelect={onSelect} />
+    </>
   );
 }
