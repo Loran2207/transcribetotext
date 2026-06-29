@@ -3,16 +3,20 @@ import { Analytics01Icon } from "@hugeicons/core-free-icons";
 
 /* ══════════════════════════════════════════════
    Right-panel analytics widget (Pro)
-   Totals only: a clean white card with aligned stat rows (label left,
-   big value right, hairline dividers). No header, chart, comparison,
-   switcher or profile.
+   A 2x2 KPI grid of all-time totals (icon-free, Linear/Vercel-style):
+   four cells split by a hairline cross, each a small label over a big
+   number. No header, chart, comparison, switcher or profile.
+   NOTE: this is a deliberately simple "first version" - the full classic
+   chart analytics (Recharts + comparison + range switcher + by-source)
+   lives in git history before commit 82269ea and will return later.
    Demo flag: ttt_demo_analytics === "soon" -> coming-soon state.
    ══════════════════════════════════════════════ */
 
-const METRICS = [
-  { value: "128.4", label: "hours transcribed" },
-  { value: "342", label: "files transcribed" },
-  { value: "12", label: "day streak" },
+const STATS = [
+  { label: "hours transcribed", value: "128.4" },
+  { label: "files transcribed", value: "342" },
+  { label: "words transcribed", value: "1.2M" },
+  { label: "day streak", value: "12" },
 ];
 
 export function AnalyticsCard() {
@@ -28,16 +32,25 @@ export function AnalyticsCard() {
 
 function AnalyticsData() {
   return (
-    <div className="rounded-[16px] bg-card border border-border shadow-sm shrink-0 px-[20px] py-[4px]">
-      {METRICS.map((m, i) => (
-        <div
-          key={m.label}
-          className={`flex items-baseline justify-between py-[17px] ${i > 0 ? "border-t border-border" : ""}`}
-        >
-          <span className="text-muted-foreground" style={{ fontWeight: 400, fontSize: "13.5px" }}>{m.label}</span>
-          <span className="text-foreground tabular-nums" style={{ fontWeight: 700, fontSize: "25px", letterSpacing: "-0.6px", lineHeight: 1 }}>{m.value}</span>
-        </div>
-      ))}
+    <div
+      className="w-full shrink-0 overflow-hidden rounded-[16px] border border-border bg-card"
+      style={{ boxShadow: "var(--elevation-sm)" }}
+    >
+      <div className="grid grid-cols-2 grid-rows-2">
+        {STATS.map((s, i) => (
+          <div
+            key={s.label}
+            className={[
+              "flex flex-col gap-[8px] p-[22px]",
+              i % 2 === 0 ? "border-r border-border" : "",
+              i < 2 ? "border-b border-border" : "",
+            ].filter(Boolean).join(" ")}
+          >
+            <span className="text-[12px] font-medium leading-none text-muted-foreground">{s.label}</span>
+            <span className="text-[30px] font-semibold leading-none tracking-[-0.02em] tabular-nums text-foreground">{s.value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
