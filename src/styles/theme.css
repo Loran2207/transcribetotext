@@ -74,7 +74,7 @@
   /* The default border radius for elements such as buttons, tooltip, and other containers. */
   --radius: 0.625rem;
   /* The background color for sidebars, navigation menus, and other persistent elements. */
-  --sidebar: oklch(0.985 0 0);
+  --sidebar: oklch(0.967 0.001 286.375);
   /* The default color for text or elements that appear on top of sidebars, navigation menus, and other persistent elements. */
   --sidebar-foreground: oklch(0.141 0.005 285.823);
   /* The primary color used for buttons, links, and other interactive elements in sidebars and navigation menus. */
@@ -82,7 +82,7 @@
   /* The default color for text or elements that appear on top of primary colored elements in sidebars and navigation menus. */
   --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
   /* The accent color used for highlights, links, and other interactive elements in sidebars and navigation menus. */
-  --sidebar-accent: oklch(0.967 0.001 286.375);
+  --sidebar-accent: oklch(0.935 0.002 286.32);
   /* The default color for text or elements that appear on top of accent colored elements in sidebars and navigation menus. */
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   /* The default border color for elements in sidebars and navigation menus. */

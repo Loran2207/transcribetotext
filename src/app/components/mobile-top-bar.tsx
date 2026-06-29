@@ -27,14 +27,12 @@ export function MobileTopBar({ onNavigate }: { onNavigate: (page: string) => voi
 
       <button
         onClick={() => setSearchOpen(true)}
-        className="relative flex items-center flex-1 md:max-w-[420px] h-[40px] rounded-full bg-foreground/[0.04]"
+        className="relative flex items-center flex-1 md:max-w-[520px] h-[40px] rounded-full bg-foreground/[0.04]"
         aria-label="Search recordings"
       >
         <Icon icon={Search} className="absolute left-[14px] size-[16px] text-muted-foreground" strokeWidth={1.7} />
         <span className="absolute left-[40px] font-normal text-[13.5px] text-muted-foreground">Search recordings</span>
       </button>
-
-      <div className="hidden md:block md:flex-1" />
 
       <ProfileDropdown onNavigate={onNavigate} />
 

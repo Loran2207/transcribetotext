@@ -11,7 +11,6 @@ import { useLanguage } from "./language-context";
 import { TopBar } from "./top-bar";
 import { MobileTopBar } from "./mobile-top-bar";
 import { BottomNav } from "./bottom-nav";
-import { CreateFab } from "./create-fab";
 import { SettingsPage } from "./settings-modal";
 import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
@@ -79,12 +78,7 @@ export function AppLayout() {
               </>
             )}
           </main>
-          {!isSubRoute && (
-            <>
-              <BottomNav activePage={activePage} onNavigate={handleNavigate} />
-              <CreateFab />
-            </>
-          )}
+          {!isSubRoute && <BottomNav activePage={activePage} onNavigate={handleNavigate} />}
         </SidebarInset>
       </SidebarProvider>
     </UserProfileProvider>

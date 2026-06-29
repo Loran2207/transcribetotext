@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { Clock, MoreHorizontal, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
+import { Clock, MoreHorizontal } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -11,17 +11,18 @@ import {
 } from "./ui/dropdown-menu";
 import { SourceIcon } from "./source-icons";
 import { useStarred } from "./starred-context";
-import type { RecordRow } from "./records-table";
+import { LanguageBadge, type RecordRow } from "./records-table";
 
 /* A single recording rendered as a card (mobile + tablet replacement for the
    desktop records table). Whole card opens the transcript; the kebab is a
-   shadcn DropdownMenu and stops the click from reaching the card. */
+   shadcn DropdownMenu and stops the click from reaching the card.
+   Meta row mirrors the desktop table columns (duration, template, language)
+   instead of repeating the day already shown in the group header. */
 export function RecordCard({ record }: { record: RecordRow }) {
   const navigate = useNavigate();
   const { starred, toggleStar } = useStarred();
   const isStarred = starred.has(record.id);
   const open = () => navigate(`/transcriptions/${record.id}`);
-  const relDay = record.dateGroup.split(", ")[0];
 
   return (
     <div
@@ -35,18 +36,17 @@ export function RecordCard({ record }: { record: RecordRow }) {
       <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
         <p className="truncate text-foreground" style={{ fontWeight: 600, fontSize: 14, lineHeight: "19px" }}>{record.name}</p>
         <p className="line-clamp-2 text-muted-foreground" style={{ fontSize: 12.5, lineHeight: "17px" }}>{record.summary}</p>
-        <div className="flex items-center gap-[10px] mt-[2px] text-muted-foreground overflow-hidden" style={{ fontSize: 11.5 }}>
+        <div className="flex items-center gap-[8px] mt-[3px] text-muted-foreground" style={{ fontSize: 11.5 }}>
           <span className="inline-flex items-center gap-[4px] shrink-0 whitespace-nowrap">
             <Icon icon={Clock} className="size-[12px]" strokeWidth={1.7} />
             {record.duration}
           </span>
-          <span className="shrink-0 whitespace-nowrap">{relDay}</span>
-          {record.tasks > 0 && (
-            <span className="inline-flex items-center gap-[4px] shrink-0 whitespace-nowrap">
-              <Icon icon={CheckmarkCircle02Icon} className="size-[12px]" strokeWidth={1.7} />
-              {record.tasks}
-            </span>
-          )}
+          <span className="min-w-0 inline-flex items-center h-[18px] px-[7px] rounded-[5px] bg-muted">
+            <span className="truncate text-[11px]">{record.template}</span>
+          </span>
+          <span className="shrink-0 leading-none">
+            <LanguageBadge lang={record.language} />
+          </span>
         </div>
       </div>
 

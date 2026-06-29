@@ -1,12 +1,14 @@
 import { ChevronRight } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { RecordCard } from "./record-card";
+import { useLanguage } from "./language-context";
 import { records, type RecordRow } from "./records-table";
 
-/* The dashboard "Recents" list for mobile + tablet: records grouped by day,
-   rendered as cards (1 column on phone, 2 on tablet). Replaces the 122KB
+/* The dashboard recent-records list for mobile + tablet: records grouped by
+   day, rendered as cards (1 column on phone, 2 on tablet). Replaces the 122KB
    desktop table below lg. */
 export function RecordsListMobile({ onNavigateToRecords }: { onNavigateToRecords?: () => void }) {
+  const { t } = useLanguage();
   const groups: { label: string; items: RecordRow[] }[] = [];
   for (const r of records) {
     const g = groups.find((x) => x.label === r.dateGroup);
@@ -16,24 +18,22 @@ export function RecordsListMobile({ onNavigateToRecords }: { onNavigateToRecords
 
   return (
     <section className="mt-[24px] lg:hidden">
-      <div className="flex items-center justify-between mb-[12px]">
-        <h2 className="text-foreground" style={{ fontWeight: 600, fontSize: 15 }}>Recents</h2>
-        <button
-          onClick={onNavigateToRecords}
-          className="flex items-center gap-[2px] text-primary"
-          style={{ fontWeight: 500, fontSize: 12.5 }}
-        >
-          See all
-          <Icon icon={ChevronRight} className="size-[14px]" strokeWidth={2} />
-        </button>
-      </div>
+      {/* Header mirrors the desktop table: title + inline chevron, the whole
+          thing navigates to My Records (no separate "See all" button). */}
+      <button
+        onClick={onNavigateToRecords}
+        className="group flex items-center gap-[4px] mb-[12px]"
+      >
+        <span className="text-foreground" style={{ fontWeight: 600, fontSize: 17 }}>{t("table.myRecords")}</span>
+        <Icon icon={ChevronRight} className="size-[16px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+      </button>
 
       <div className="flex flex-col gap-[18px]">
         {groups.map((group) => (
           <div key={group.label}>
             <p
-              className="mb-[8px] text-muted-foreground uppercase"
-              style={{ fontWeight: 600, fontSize: 11, letterSpacing: "0.5px" }}
+              className="mb-[8px] text-muted-foreground"
+              style={{ fontWeight: 600, fontSize: 11.5 }}
             >
               {group.label}
             </p>

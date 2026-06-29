@@ -301,7 +301,7 @@ const languageFlags: Record<string, { flag: string; label: string }> = {
   ja: { flag: "\u{1F1EF}\u{1F1F5}", label: "Japanese" },
 };
 
-function LanguageBadge({ lang }: { lang: string }) {
+export function LanguageBadge({ lang }: { lang: string }) {
   const info = languageFlags[lang] ?? { flag: "\u{1F310}", label: lang };
   return <span className="text-[16px] leading-none" title={info.label}>{info.flag}</span>;
 }

@@ -375,7 +375,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
               <span>{t("nav.integrations")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
+          <SidebarMenuItem className="hidden lg:block">
             <SidebarMenuButton onClick={toggleSidebar} tooltip="Collapse">
               <Icon icon={ChevronsLeft} strokeWidth={1.3} />
               <span>Collapse</span>
