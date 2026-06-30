@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { House, FileText, Calendar, Layers, Plus, File01Icon, Mic, Video01Icon, Link01Icon } from "@hugeicons/core-free-icons";
+import { House, FileText, Calendar, Layers, Plus, File01Icon, Mic, Video01Icon, Link01Icon, X } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import {
   Drawer,
@@ -74,10 +74,13 @@ export function BottomNav({ activePage, onNavigate }: { activePage: string; onNa
               <Icon icon={Plus} className="size-[22px]" strokeWidth={2} />
             </button>
           </DrawerTrigger>
-          <DrawerContent>
-            <DrawerHeader className="text-left">
-              <DrawerTitle>New transcription</DrawerTitle>
-            </DrawerHeader>
+          <DrawerContent className="[&>div:first-child]:hidden">
+            <div className="flex items-center justify-between px-[18px] pt-[18px] pb-[10px]">
+              <DrawerTitle style={{ fontSize: 18, fontWeight: 600 }}>New transcription</DrawerTitle>
+              <button onClick={() => setCreateOpen(false)} aria-label="Close" className="-mr-[4px] size-[32px] rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
+                <Icon icon={X} className="size-[18px]" strokeWidth={2} />
+              </button>
+            </div>
             <div className="px-[16px] pb-[24px] flex flex-col gap-[8px]">
               {CREATE_ACTIONS.map(({ key, modal, icon, labelKey, tint, fg }) => (
                 <button

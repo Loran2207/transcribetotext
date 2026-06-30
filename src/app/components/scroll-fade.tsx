@@ -36,8 +36,8 @@ export function ScrollFade({ scrollRef }: { scrollRef: RefObject<HTMLElement | n
   return (
     <div
       aria-hidden
-      className="lg:hidden pointer-events-none absolute left-0 right-0 bottom-0 h-[84px] bg-gradient-to-t from-background via-background/85 to-transparent transition-opacity duration-300"
-      style={{ opacity: atBottom ? 0 : 1 }}
+      className="lg:hidden pointer-events-none absolute left-0 right-0 bottom-0 h-[72px] transition-opacity duration-300"
+      style={{ opacity: atBottom ? 0 : 1, background: "linear-gradient(to top, #ffffff 0%, rgba(255,255,255,0) 100%)" }}
     />
   );
 }
