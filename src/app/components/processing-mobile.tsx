@@ -184,9 +184,9 @@ export function MobileProcessing() {
             <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {(errorCount > 0 || historyJobs.length > 0) && (
-            <span className={"absolute -top-[4px] -right-[4px] min-w-[20px] h-[20px] px-[5px] rounded-full text-[11px] font-semibold flex items-center justify-center text-white " + (errorCount > 0 ? "bg-destructive" : "bg-primary")}>
-              {errorCount > 0 ? errorCount : historyJobs.length}
+          {errorCount > 0 && (
+            <span className="absolute -top-[4px] -right-[4px] min-w-[20px] h-[20px] px-[5px] rounded-full text-[11px] font-semibold flex items-center justify-center text-white bg-destructive">
+              {errorCount}
             </span>
           )}
         </button>,
@@ -210,12 +210,7 @@ export function MobileProcessing() {
               </TabsList>
             </Tabs>
           </div>
-          <div className="px-[16px] pt-[14px] pb-[26px] flex flex-col gap-[8px] overflow-auto" style={{ maxHeight: "56vh" }}>
-            {activeTab === "failed" && failedJobs.length > 0 && (
-              <button onClick={clearFailedJobs} className="self-end flex items-center gap-[4px] text-muted-foreground hover:text-destructive transition-colors" style={{ fontSize: 11.5 }}>
-                <Icon icon={Trash} className="size-[12px]" strokeWidth={1.7} />Clear failed
-              </button>
-            )}
+          <div className="px-[16px] pt-[14px] pb-[12px] flex flex-col gap-[8px] overflow-auto" style={{ maxHeight: "54vh" }}>
             {visibleJobs.length === 0 ? (
               <p className="py-[28px] text-center text-muted-foreground" style={{ fontSize: 13 }}>
                 {activeTab === "uploaded" ? "No files in the current upload batch yet." : activeTab === "failed" ? "No failed uploads." : "History is empty."}
@@ -224,6 +219,13 @@ export function MobileProcessing() {
               visibleJobs.map((job) => <MobileJobCard key={job.id} job={job} retryJob={retryJob} reconnectBot={reconnectBot} removeJob={removeJob} />)
             )}
           </div>
+          {activeTab === "failed" && failedJobs.length > 0 && (
+            <div className="px-[16px] pt-[2px] pb-[20px]">
+              <Button variant="pill-outline" onClick={clearFailedJobs} className="w-full h-[40px] gap-[6px] text-muted-foreground">
+                <Icon icon={Trash} className="size-[14px]" strokeWidth={1.7} />Clear failed
+              </Button>
+            </div>
+          )}
         </DrawerContent>
       </Drawer>
     </>
