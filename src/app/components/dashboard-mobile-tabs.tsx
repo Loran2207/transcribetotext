@@ -8,7 +8,7 @@ import { TodaysEvents } from "./todays-events";
    block swaps one panel in place so Recent records, Analytics and today's
    Meetings are each one tap away with little or no scroll. Desktop (>=lg) keeps
    the full records table + right panel and never renders this. */
-export function DashboardMobileTabs({ onNavigateToRecords }: { onNavigateToRecords?: () => void }) {
+export function DashboardMobileTabs({ onNavigateToRecords, onNavigateToMeetings }: { onNavigateToRecords?: () => void; onNavigateToMeetings?: () => void }) {
   const { t } = useLanguage();
   return (
     <Tabs defaultValue="recent" className="lg:hidden mt-[22px] gap-[16px]">
@@ -24,7 +24,7 @@ export function DashboardMobileTabs({ onNavigateToRecords }: { onNavigateToRecor
         <AnalyticsCard />
       </TabsContent>
       <TabsContent value="meetings">
-        <TodaysEvents />
+        <TodaysEvents onNavigate={onNavigateToMeetings} />
       </TabsContent>
     </Tabs>
   );

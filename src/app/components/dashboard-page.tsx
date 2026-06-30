@@ -452,7 +452,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           </motion.div>
 
           {/* Mobile + tablet: segmented Recent / Analytics / Meetings */}
-          <DashboardMobileTabs onNavigateToRecords={() => onNavigate?.("records")} />
+          <DashboardMobileTabs onNavigateToRecords={() => onNavigate?.("records")} onNavigateToMeetings={() => onNavigate?.("calendar")} />
 
           {/* Mobile + tablet: free-plan upsell (analytics lives in the Analytics tab) */}
           <div className="mt-[20px] lg:hidden">

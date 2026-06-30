@@ -178,10 +178,11 @@ export function MobileProcessing() {
   if (!hasJobs) return null;
 
   const visibleJobs = activeTab === "history" ? historyJobs : activeTab === "failed" ? failedJobs : uploadedNowJobs;
+  const showPill = activeCount > 0;
 
   return (
     <>
-      {!open && createPortal(
+      {!open && showPill && createPortal(
         <div className="fixed left-[16px] right-[16px] z-[45] flex" style={{ bottom: "calc(82px + env(safe-area-inset-bottom))" }}>
           <button
             onClick={() => { setActiveTab("uploaded"); setOpen(true); }}
@@ -204,6 +205,26 @@ export function MobileProcessing() {
             <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
         </div>,
+        document.body
+      )}
+
+      {!open && !showPill && createPortal(
+        <button
+          onClick={() => { setActiveTab(errorCount > 0 ? "failed" : "history"); setOpen(true); }}
+          className={"fixed right-[16px] z-[45] flex items-center justify-center size-[50px] rounded-full bg-card border " + (errorCount > 0 ? "border-destructive/30" : "border-border")}
+          style={{ bottom: "calc(82px + env(safe-area-inset-bottom))", boxShadow: "0 8px 20px rgba(16,24,40,0.12)" }}
+          aria-label="Upload history"
+        >
+          <svg className="size-[20px] text-foreground" viewBox="0 0 24 24" fill="none">
+            <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {(errorCount > 0 || historyJobs.length > 0) && (
+            <span className={"absolute -top-[4px] -right-[4px] min-w-[20px] h-[20px] px-[5px] rounded-full text-[11px] font-semibold flex items-center justify-center text-white " + (errorCount > 0 ? "bg-destructive" : "bg-primary")}>
+              {errorCount > 0 ? errorCount : historyJobs.length}
+            </span>
+          )}
+        </button>,
         document.body
       )}
 

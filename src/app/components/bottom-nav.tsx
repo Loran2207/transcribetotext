@@ -61,7 +61,7 @@ export function BottomNav({ activePage, onNavigate }: { activePage: string; onNa
     >
       <div
         className="flex items-center w-full h-[58px] px-[12px] rounded-full bg-background"
-        style={{ boxShadow: "0 12px 34px -6px rgba(16,24,40,0.12), 0 3px 10px -4px rgba(16,24,40,0.05)", border: "1px solid var(--border)" }}
+        style={{ boxShadow: "0 8px 20px rgba(16,24,40,0.10)", border: "1px solid var(--border)" }}
       >
         {LEFT_TABS.map(renderTab)}
 

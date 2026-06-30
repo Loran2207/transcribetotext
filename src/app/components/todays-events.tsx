@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mic, Globe } from "@hugeicons/core-free-icons";
+import { Mic, Globe, ChevronRight } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { SourceIcon } from "./source-icons";
@@ -80,15 +80,15 @@ export function MeetingItem({ meeting }: { meeting: Meeting }) {
 
 /* The mobile/tablet "Meetings" tab body: a small Today header plus today's
    meeting rows (or an empty state). */
-export function TodaysEvents() {
+export function TodaysEvents({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useLanguage();
   const todays = meetings.filter((m) => m.day === TODAY_STR);
   return (
     <div>
-      <div className="flex items-baseline gap-[7px] mb-[6px]">
-        <span className="text-foreground" style={{ fontWeight: 600, fontSize: "14px" }}>{t("panel.today")}</span>
-        <span className="text-muted-foreground tabular-nums" style={{ fontWeight: 500, fontSize: "12px" }}>{todays.length}</span>
-      </div>
+      <button onClick={onNavigate} className="group flex items-center gap-[4px] mb-[12px]">
+        <span className="text-foreground" style={{ fontWeight: 600, fontSize: 17 }}>{t("panel.today")}</span>
+        <Icon icon={ChevronRight} className="size-[16px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+      </button>
       {todays.length === 0 ? (
         <p className="py-[24px] text-center text-muted-foreground" style={{ fontSize: "13px" }}>{t("panel.noMeetings")}</p>
       ) : (
