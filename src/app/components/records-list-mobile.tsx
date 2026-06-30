@@ -7,7 +7,7 @@ import { records, type RecordRow } from "./records-table";
 /* The dashboard recent-records list for mobile + tablet: records grouped by
    day, rendered as cards (1 column on phone, 2 on tablet). Replaces the 122KB
    desktop table below lg. */
-export function RecordsListMobile({ onNavigateToRecords }: { onNavigateToRecords?: () => void }) {
+export function RecordsListMobile({ onNavigateToRecords, embedded }: { onNavigateToRecords?: () => void; embedded?: boolean }) {
   const { t } = useLanguage();
   const groups: { label: string; items: RecordRow[] }[] = [];
   for (const r of records) {
@@ -17,7 +17,7 @@ export function RecordsListMobile({ onNavigateToRecords }: { onNavigateToRecords
   }
 
   return (
-    <section className="mt-[24px] lg:hidden">
+    <section className={`lg:hidden ${embedded ? "" : "mt-[24px]"}`}>
       {/* Header mirrors the desktop table: title + inline chevron, the whole
           thing navigates to My Records (no separate "See all" button). */}
       <button

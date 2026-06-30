@@ -358,7 +358,6 @@ export function PlanWidgets() {
   return (
     <div className="flex flex-col gap-[14px] lg:hidden">
       {plan === "free" && <PromoCard />}
-      {plan === "pro" && <AnalyticsCard />}
       {plan === "free" && <FreePlanCard />}
     </div>
   );

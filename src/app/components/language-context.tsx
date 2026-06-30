@@ -64,6 +64,7 @@ const dict: Record<string, Record<LangCode, string>> = {
   "dash.card.meetingRecorder": { en: "Meeting Recorder", ru: "\u0417\u0430\u043f\u0438\u0441\u044c \u0432\u0441\u0442\u0440\u0435\u0447", es: "Grabador de reuniones", de: "Meeting-Recorder", fr: "Enregistreur de r\u00e9unions", ja: "\u4f1a\u8b70\u30ec\u30b3\u30fc\u30c0\u30fc" },
   "dash.card.transcribeFromLink": { en: "Transcribe from Link", ru: "\u0422\u0440\u0430\u043d\u0441\u043a\u0440\u0438\u043f\u0446\u0438\u044f \u043f\u043e \u0441\u0441\u044b\u043b\u043a\u0435", es: "Transcribir desde enlace", de: "Von Link transkribieren", fr: "Transcrire depuis un lien", ja: "\u30ea\u30f3\u30af\u304b\u3089\u6587\u5b57\u8d77\u3053\u3057" },
   "dash.card.audioVideoFiles": { en: "Audio & Video Files", ru: "\u0410\u0443\u0434\u0438\u043e \u0438 \u0432\u0438\u0434\u0435\u043e", es: "Archivos de audio y v\u00eddeo", de: "Audio & Video Dateien", fr: "Fichiers audio & vid\u00e9o", ja: "\u97f3\u58f0\u30fb\u52d5\u753b\u30d5\u30a1\u30a4\u30eb" },
+  "dash.tab.analytics": { en: "Analytics", ru: "Аналитика", es: "Analíticas", de: "Analysen", fr: "Analyses", ja: "分析" },
 
   // ── Records table ──
   "table.myRecords": { en: "My Records", ru: "Мои записи", es: "Mis grabaciones", de: "Meine Aufnahmen", fr: "Mes enregistrements", ja: "マイレコード" },

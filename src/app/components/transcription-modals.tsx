@@ -28,6 +28,8 @@ import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
 import { motion } from "motion/react";
+import { useIsMobile } from "./ui/use-mobile";
+import { MobileProcessing } from "./processing-mobile";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -59,7 +61,7 @@ export interface TranscriptionJob {
   livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
 }
 
-const ERROR_LABELS: Record<string, string> = {
+export const ERROR_LABELS: Record<string, string> = {
   no_audio: "No audio track found",
   corrupt: "File appears to be corrupted",
   too_long: "Exceeds 5-hour limit",
@@ -746,7 +748,7 @@ export function TranscriptionModalsProvider({
       <AllModals />
       <DemoLeaveAlert />
       <RecordingPill />
-      <FloatingProgressWidget />
+      <ProgressWidgetResponsive />
     </Ctx.Provider>
   );
 }
@@ -787,7 +789,7 @@ function normalizeSource(source: TranscriptionJob["source"], fileType: Transcrip
   return fileType === "audio" ? "mp3" : "mp4";
 }
 
-function mapJobToRecordState(job: TranscriptionJob) {
+export function mapJobToRecordState(job: TranscriptionJob) {
   const createdDate = job.createdAt ? new Date(job.createdAt) : new Date();
   const isDone = job.status === "done";
   const isError = job.status === "error";
@@ -2770,6 +2772,11 @@ function AllModals() {
 // ════════════════════════════════════════════════════════════
 // Floating Progress Widget
 // ════════════════════════════════════════════════════════════
+
+function ProgressWidgetResponsive() {
+  const isMobile = useIsMobile();
+  return isMobile ? <MobileProcessing /> : <FloatingProgressWidget />;
+}
 
 export function FloatingProgressWidget() {
   const { jobs, retryJob, reconnectBot, removeJob, clearFailedJobs } = useTranscriptionModals();

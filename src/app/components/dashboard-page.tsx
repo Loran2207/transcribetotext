@@ -9,7 +9,8 @@ import { motion } from "motion/react";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
 import { useUserProfile } from "./user-profile-context";
-import { RecordsListMobile } from "./records-list-mobile";
+import { DashboardMobileTabs } from "./dashboard-mobile-tabs";
+import { ScrollFade } from "./scroll-fade";
 import { DashboardActionsMobile } from "./dashboard-actions-mobile";
 import { PlanWidgets } from "./right-panel";
 
@@ -347,6 +348,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
   const { setOpenModal, openUploadWithFiles } = useTranscriptionModals();
   const [dragOver, setDragOver] = useState(false);
   const dragCounterRef = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const ease = [0.16, 1, 0.3, 1] as const;
   const fadeUp = (delay: number, distance = 60) => ({
@@ -403,7 +405,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
         />
       )}
 
-      <div className="flex-1 overflow-auto min-w-0">
+      <div ref={scrollRef} className="flex-1 overflow-auto min-w-0">
         <div className="px-[16px] pt-[16px] pb-[96px] md:px-[24px] md:pt-[20px] md:pb-[40px] lg:px-[32px] lg:pt-[28px] lg:pb-0">
           <motion.p
             className="text-foreground font-bold text-[22px] leading-[28px] tracking-[-0.4px] md:text-[26px] md:leading-[32px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap"
@@ -449,13 +451,16 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             <RecordsTable onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />
           </motion.div>
 
-          {/* Mobile + tablet: records as cards */}
-          <RecordsListMobile onNavigateToRecords={() => onNavigate?.("records")} />
+          {/* Mobile + tablet: segmented Recent / Analytics / Meetings */}
+          <DashboardMobileTabs onNavigateToRecords={() => onNavigate?.("records")} />
 
-          {/* Mobile + tablet: plan / analytics widgets */}
-          <div className="mt-[24px] lg:hidden">
+          {/* Mobile + tablet: free-plan upsell (analytics lives in the Analytics tab) */}
+          <div className="mt-[20px] lg:hidden">
             <PlanWidgets />
           </div>
+
+          {/* Mobile + tablet: bottom scroll-fade hint */}
+          <ScrollFade scrollRef={scrollRef} />
         </div>
       </div>
       <motion.div className="hidden lg:block" {...fadeUp(0.1, 70)}>
