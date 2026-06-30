@@ -303,7 +303,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
     const all = templates.filter((t) => !trashed.has(t.id) && match(t));
     const out: { id: string; label: string; subtitle: string; items: Template[] }[] = [];
     const favs = all.filter((t) => starred.has(t.id));
-    if (favs.length) out.push({ id: "favorites", label: "My favorites", subtitle: "Your starred templates", items: favs });
+    out.push({ id: "favorites", label: "My favorites", subtitle: "Templates you save show up here", items: favs });
     const custom = all.filter((t) => t.type === "custom" && !starred.has(t.id));
     if (custom.length) out.push({ id: "custom", label: "My templates", subtitle: "Templates you created", items: custom });
     for (const cat of TEMPLATE_CATEGORIES) {
@@ -314,7 +314,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
     return out;
   }, [templates, trashed, starred, query]);
 
-  useEffect(() => { if (groups.length && !groups.some((g) => g.id === activeNav)) setActiveNav(groups[0].id); }, [groups, activeNav]);
+  useEffect(() => { if (groups.length && !groups.some((g) => g.id === activeNav)) { const first = groups.find((g) => g.items.length > 0) ?? groups[0]; setActiveNav(first.id); } }, [groups, activeNav]);
 
   const toggleStar = (t: Template) => {
     setStarred((prev) => {
@@ -329,6 +329,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
     onSelect(t.id);
     onOpenChange(false);
   };
+  const firstCardId = groups.find((g) => g.items.length > 0)?.items[0]?.id;
   const goTo = (id: string) => {
     setActiveNav(id);
     const el = sectionRefs.current[id]; const c = scrollRef.current;
@@ -363,6 +364,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
                       onClick={() => goTo(g.id)}
                       className={`flex items-center gap-2 h-9 px-3 rounded-full text-[13px] transition-colors ${active ? "bg-primary/[0.06] text-primary font-medium" : "text-foreground/80 hover:bg-sidebar-accent"}`}
                     >
+                      {g.id === "favorites" && <span className="shrink-0 -ml-0.5"><StarGlyph filled={false} /></span>}
                       <span className="flex-1 text-left truncate">{g.label}</span>
                       <span className="shrink-0 opacity-50 text-[12px]">{g.items.length}</span>
                     </button>
@@ -379,7 +381,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search templates"
-                    className="w-full h-10 pl-10 pr-3 rounded-full bg-muted border border-border text-[13px] text-foreground placeholder:text-muted-foreground/60 outline-none focus:ring-2 focus:ring-primary/40 focus:border-transparent"
+                    className="w-full h-10 pl-10 pr-3 rounded-full bg-foreground/[0.04] text-[13px] text-foreground placeholder:text-muted-foreground/60 outline-none focus:bg-foreground/[0.06]"
                   />
                 </div>
               </div>
@@ -397,6 +399,13 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
                         <h3 className="font-semibold text-foreground" style={{ fontSize: 18, letterSpacing: "-0.01em", lineHeight: 1.2 }}>{g.label}</h3>
                         {g.subtitle && <p className="text-muted-foreground mt-1" style={{ fontSize: 13 }}>{g.subtitle}</p>}
                       </div>
+                      {g.id === "favorites" && g.items.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-border/80 py-12 px-6 flex flex-col items-center text-center">
+                          <span className="opacity-50"><StarGlyph filled={false} /></span>
+                          <p className="text-[13px] font-medium text-foreground mt-2.5">No saved templates yet</p>
+                          <p className="text-[12px] text-muted-foreground mt-1 max-w-[300px]">Tap the star on any template and it will show up here for quick access.</p>
+                        </div>
+                      ) : (
                       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 auto-rows-fr">
                         {g.items.map((t, idx) => (
                           <LibraryCard
@@ -407,10 +416,11 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
                             onPreview={() => setPreviewing(t)}
                             onUse={() => handleUse(t)}
                             isFree={isFree}
-                            forceActions={forceHover && gi === 0 && idx === 0}
+                            forceActions={forceHover && t.id === firstCardId}
                           />
                         ))}
                       </div>
+                      )}
                     </section>
                   ))
                 )}

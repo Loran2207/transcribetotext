@@ -213,7 +213,7 @@ export function TemplatePicker({
               type="button"
               aria-label="Scroll categories left"
               onClick={() => scrollChips(-1)}
-              className="absolute left-0 top-0 bottom-2 w-12 flex items-center justify-start pl-1.5 bg-gradient-to-r from-popover via-popover/85 to-transparent"
+              className="absolute left-0 top-0 bottom-2 w-12 flex items-center justify-start pl-1.5 bg-popover"
             >
               <span className="flex items-center justify-center size-6 rounded-full bg-card border border-border shadow-sm text-muted-foreground">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
@@ -225,7 +225,7 @@ export function TemplatePicker({
               type="button"
               aria-label="Scroll categories right"
               onClick={() => scrollChips(1)}
-              className="absolute right-0 top-0 bottom-2 w-12 flex items-center justify-end pr-1.5 bg-gradient-to-l from-popover via-popover/85 to-transparent"
+              className="absolute right-0 top-0 bottom-2 w-12 flex items-center justify-end pr-1.5 bg-popover"
             >
               <span className="flex items-center justify-center size-6 rounded-full bg-card border border-border shadow-sm text-muted-foreground">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
