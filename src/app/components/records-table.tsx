@@ -15,6 +15,7 @@ import { ShareDialog } from "./share-dialog";
 import { Icon } from "./ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
+import { RecordCard as RecordCardMobile } from "./record-card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
@@ -1087,6 +1088,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [mobileVisible, setMobileVisible] = useState(12);
   const [groupByDate, setGroupByDate] = useState(false);
   const [trashedIds, setTrashedIds] = useState<Set<string>>(() => {
     // Demo: ttt_trash_seed pre-fills Trash for design captures; off by default.
@@ -1248,6 +1250,8 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
   // Back to page 1 when the visible set changes shape
   useEffect(() => { setPage(1); }, [activeTab, searchQuery, pageSize]);
+  // Restart the below-lg card list when the visible set changes shape
+  useEffect(() => { setMobileVisible(12); }, [activeTab, searchQuery, typeFilter, templateFilter, langFilter, dateSort]);
 
 
   const allSelected = pagedRecords.length > 0 && pagedRecords.every(r => selectedRows.has(r.id));
@@ -1405,9 +1409,31 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         </div>
       </div>
 
+      {/* Mobile / tablet card list (below lg): flat filtered list as cleaned cards */}
+      <div className="lg:hidden pb-[24px]">
+        {filteredRecords.length === 0 ? (
+          <div className="flex items-center justify-center py-[48px] text-[14px] text-muted-foreground">{t("table.noRecords")}</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
+              {filteredRecords.slice(0, mobileVisible).map((record) => (
+                <RecordCardMobile key={record.id} record={record} />
+              ))}
+            </div>
+            {filteredRecords.length > mobileVisible && (
+              <div className="mt-[16px]">
+                <Button variant="pill-outline" onClick={() => setMobileVisible((c) => c + 12)} className="w-full h-[40px] text-[13px] font-medium">
+                  {t("table.loadMore")}
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
       {/* ══════ TABLE VIEW ══════ */}
       {viewMode === "table" && (
-        <div>
+        <div className="hidden lg:block">
           <div className="w-full overflow-visible bg-card border-b border-border">
             {/* Header row - replaced by MultiSelectBar when rows are selected */}
             {hasSelection ? (
@@ -1602,7 +1628,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         </div>
       )}
 
-      <PaginationBar total={filteredRecords.length} page={safePage} pageSize={pageSize} onPage={setPage} onPageSize={(n) => { setPageSize(n); setPage(1); }} />
+      <div className="hidden lg:block">
+        <PaginationBar total={filteredRecords.length} page={safePage} pageSize={pageSize} onPage={setPage} onPageSize={(n) => { setPageSize(n); setPage(1); }} />
+      </div>
     </div>
   );
 }
