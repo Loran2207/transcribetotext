@@ -317,7 +317,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[3px]" onClick={() => { closeDropdowns(); onClose(); }} />
 
       <div
-        className="relative w-[640px] rounded-[16px] overflow-visible flex flex-col bg-popover"
+        className="relative w-[calc(100vw-24px)] max-w-[560px] lg:w-[640px] lg:max-w-none rounded-[16px] overflow-visible flex flex-col bg-popover"
         style={{
           boxShadow: "0px 24px 64px rgba(0,0,0,0.12), 0px 8px 24px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
           maxHeight: "70vh",
