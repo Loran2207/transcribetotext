@@ -693,7 +693,7 @@ function SummaryTab({ summaryText, template }: { summaryText: string; template?:
   }
 
   return (
-    <div className="px-8 py-6">
+    <div className="px-4 py-6 lg:px-8">
       <div className="prose-custom max-w-none">
         {summaryText.split("\n").map((line, i) => {
           if (line.startsWith("## ")) {
@@ -1036,7 +1036,7 @@ function RightPanel({
     try { return window.localStorage.getItem("ttt_demo_panel_tab") === "comments" ? "comments" : "outline"; } catch { return "outline"; }
   });
   return (
-    <div className="relative flex shrink-0 flex-col border-l border-border bg-background" style={{ width }}>
+    <div className="relative hidden shrink-0 flex-col border-l border-border bg-background lg:flex" style={{ width }}>
       <button
         type="button"
         aria-label="Resize right panel"
@@ -1111,7 +1111,7 @@ function MediaPlayer({
   }
 
   return (
-    <div className="shrink-0 border-t border-border bg-background px-6 py-3">
+    <div className="shrink-0 border-t border-border bg-background px-4 py-3 lg:px-6">
       <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="mb-3 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
       <div className="flex items-center justify-between">
         <span className="min-w-[50px] text-xs tabular-nums text-muted-foreground">{formatTime(currentSeconds)}</span>
@@ -1352,7 +1352,7 @@ function PageHeader({
   }, [editingTitle]);
 
   return (
-    <div className="px-8 pt-6 pb-0">
+    <div className="px-4 pt-6 pb-0 lg:px-8">
       <div className="mb-2 flex items-start justify-between gap-4">
         <div
           className={`min-w-0 flex-1 rounded-xl py-2 pr-2 pl-0 transition-colors ${
@@ -1452,7 +1452,7 @@ function PageHeader({
           </DropdownMenu>
         </div>
       </div>
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      <div className="flex items-center gap-3 text-xs text-muted-foreground max-lg:flex-wrap">
         <div className="flex items-center gap-1.5">
           <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
           <span>{displayName}</span>
@@ -2412,7 +2412,7 @@ export function TranscriptionDetailPage() {
     <div ref={pageRef} className="flex flex-1 overflow-hidden">
       {/* Left column */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <div className="flex items-center justify-between gap-3 px-8 pt-4">
+        <div className="flex items-center justify-between gap-3 px-4 pt-4 lg:px-8">
           <div className="min-w-0">
             {(location.state as { from?: string } | null)?.from === "meetings" ? (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -2522,8 +2522,8 @@ export function TranscriptionDetailPage() {
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8 flex flex-1 flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-8">
-            <TabsList variant="line" className="border-b-0">
+          <div className="flex items-center justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
+            <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
               <TabsTrigger value="transcript" variant="line">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line">Summary</TabsTrigger>
               {activeTranslationMeta && !isJobTranscribing ? (
@@ -2545,7 +2545,7 @@ export function TranscriptionDetailPage() {
             </TabsList>
 
             {/* Right side of tab row: context-dependent */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 max-lg:shrink-0">
               {isJobTranscribing ? null : activeTab === "transcript" ? (
                 editMode ? (
                   <>
@@ -2601,7 +2601,7 @@ export function TranscriptionDetailPage() {
             {isJobTranscribing ? (
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (
-              <div className="animate-in fade-in duration-300 px-8 pb-4">
+              <div className="animate-in fade-in duration-300 px-4 pb-4 lg:px-8">
                 {displaySegments.map((seg, index) => (
                   <TranscriptSegment
                     key={seg.id}
@@ -2668,7 +2668,7 @@ export function TranscriptionDetailPage() {
                   body="Something went wrong while translating. Your original transcript is still available on the Transcript tab."
                 />
               ) : (
-              <div className="px-8 pb-4">
+              <div className="px-4 pb-4 lg:px-8">
                 {displaySegments.map((seg, index) => (
                   <TranscriptSegment
                     key={`${seg.id}-translated`}
@@ -2731,7 +2731,7 @@ export function TranscriptionDetailPage() {
 
       {/* Right panel */}
       {isJobTranscribing ? (
-        <div className="relative flex shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center" style={{ width: rightPanelWidth }}>
+        <div className="relative hidden shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center lg:flex" style={{ width: rightPanelWidth }}>
           <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/5">
             <MessageSquarePlus className="size-5 text-primary/70" strokeWidth={1.7} />
           </span>
