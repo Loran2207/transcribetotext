@@ -9,7 +9,8 @@ import { motion } from "motion/react";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
 import { useUserProfile } from "./user-profile-context";
-import { DashboardMobileTabs } from "./dashboard-mobile-tabs";
+import { RecordsListMobile } from "./records-list-mobile";
+import { AnalyticsStrip } from "./analytics-strip";
 import { ScrollFade } from "./scroll-fade";
 import { DashboardActionsMobile } from "./dashboard-actions-mobile";
 import { PlanWidgets } from "./right-panel";
@@ -451,12 +452,17 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             <RecordsTable onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />
           </motion.div>
 
-          {/* Mobile + tablet: segmented Recent / Analytics / Meetings */}
-          <DashboardMobileTabs onNavigateToRecords={() => onNavigate?.("records")} onNavigateToMeetings={() => onNavigate?.("calendar")} />
+          {/* Mobile + tablet: Pro-only analytics strip, expands to the full card */}
+          <AnalyticsStrip />
 
-          {/* Mobile + tablet: free-plan upsell (analytics lives in the Analytics tab) */}
+          {/* Mobile + tablet: free-plan upsell + promo banner region */}
           <div className="mt-[20px] lg:hidden">
             <PlanWidgets />
+          </div>
+
+          {/* Mobile + tablet: recent records as a flat list, rendered directly */}
+          <div className="mt-[20px] lg:hidden">
+            <RecordsListMobile onNavigateToRecords={() => onNavigate?.("records")} embedded />
           </div>
 
           {/* Mobile + tablet: bottom scroll-fade hint */}

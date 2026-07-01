@@ -13,6 +13,11 @@ import { Analytics01Icon } from "@hugeicons/core-free-icons";
 
 const chartConfig = { minutes: { label: "Minutes", color: "var(--primary)" } } satisfies ChartConfig;
 
+/* Headline KPI values shown in the two big cells below. Exported so the compact
+   mobile analytics strip reuses the exact same numbers instead of recomputing. */
+export const ANALYTICS_HOURS = 128.4;
+export const ANALYTICS_FILES = 342;
+
 // only used by the coming-soon ghost chart
 const ghostData = [
   { label: "w1", minutes: 290 },
@@ -28,7 +33,7 @@ const sources = [
   { label: "Microphone", value: 64 },
   { label: "File upload", value: 48 },
 ];
-const sourceTotal = 342;
+const sourceTotal = ANALYTICS_FILES;
 
 export function AnalyticsCard() {
   const comingSoon = (() => {
@@ -48,11 +53,11 @@ function AnalyticsData() {
         <span className="block mb-[14px] text-muted-foreground" style={{ fontWeight: 600, fontSize: "11px" }}>Analytics</span>
         <div className="grid grid-cols-2 gap-[12px]">
           <div>
-            <span className="block text-foreground tabular-nums" style={{ fontWeight: 700, fontSize: "28px", letterSpacing: "-0.6px", lineHeight: 1 }}>128.4</span>
+            <span className="block text-foreground tabular-nums" style={{ fontWeight: 700, fontSize: "28px", letterSpacing: "-0.6px", lineHeight: 1 }}>{ANALYTICS_HOURS}</span>
             <p className="text-muted-foreground mt-[6px]" style={{ fontWeight: 400, fontSize: "11px" }}>Hours transcribed</p>
           </div>
           <div className="pl-[16px] border-l border-border">
-            <span className="block text-foreground tabular-nums" style={{ fontWeight: 700, fontSize: "28px", letterSpacing: "-0.6px", lineHeight: 1 }}>342</span>
+            <span className="block text-foreground tabular-nums" style={{ fontWeight: 700, fontSize: "28px", letterSpacing: "-0.6px", lineHeight: 1 }}>{ANALYTICS_FILES}</span>
             <p className="text-muted-foreground mt-[6px]" style={{ fontWeight: 400, fontSize: "11px" }}>Files transcribed</p>
           </div>
         </div>
