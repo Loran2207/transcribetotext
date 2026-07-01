@@ -12,8 +12,7 @@ import { useUserProfile } from "./user-profile-context";
 import { RecordsListMobile } from "./records-list-mobile";
 import { AnalyticsStrip } from "./analytics-strip";
 import { ScrollFade } from "./scroll-fade";
-import { DashboardActionsMobile } from "./dashboard-actions-mobile";
-import { PlanWidgets } from "./right-panel";
+import { BannerCarousel } from "./banner-carousel";
 
 /* ═══════════════════════════════════════════
    Card 1: Instant Speach
@@ -415,9 +414,6 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             {greeting}
           </motion.p>
 
-          {/* Mobile: compact 2x2 create tiles */}
-          <DashboardActionsMobile />
-
           {/* Tablet: the four illustrated cards in a 2x2 grid (no kbd) */}
           <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[22px]">
             {cards.map(({ card, key, modal }) => (
@@ -455,10 +451,8 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           {/* Mobile + tablet: Pro-only analytics strip, expands to the full card */}
           <AnalyticsStrip />
 
-          {/* Mobile + tablet: free-plan upsell + promo banner region */}
-          <div className="mt-[20px] lg:hidden">
-            <PlanWidgets />
-          </div>
+          {/* Mobile + tablet: paywall + promo banner carousel */}
+          <BannerCarousel />
 
           {/* Mobile + tablet: recent records as a flat list, rendered directly */}
           <div className="mt-[20px] lg:hidden">

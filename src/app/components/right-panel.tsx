@@ -30,7 +30,7 @@ const platformSourceMap = { meet: "google-meet", zoom: "zoom", teams: "teams" } 
    Promo Card
    ══════════════════════════════════════════════ */
 
-function PromoCard() {
+export function PromoCard() {
   return (
     <div className="relative w-full overflow-hidden rounded-[12px] shrink-0" style={{ height: 63, minHeight: 63 }}>
       {/* Ticket-shaped background */}
