@@ -35,7 +35,6 @@ export function RecordCard({ record }: { record: RecordRow }) {
 
       <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
         <p className="truncate text-foreground" style={{ fontWeight: 600, fontSize: 14, lineHeight: "19px" }}>{record.name}</p>
-        <p className="line-clamp-2 text-muted-foreground" style={{ fontSize: 12.5, lineHeight: "17px" }}>{record.summary}</p>
         <div className="flex items-center gap-[8px] mt-[3px] text-muted-foreground" style={{ fontSize: 11.5 }}>
           <span className="inline-flex items-center gap-[4px] shrink-0 whitespace-nowrap">
             <Icon icon={Clock} className="size-[12px]" strokeWidth={1.7} />

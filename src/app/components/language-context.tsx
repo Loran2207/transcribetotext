@@ -101,6 +101,7 @@ const dict: Record<string, Record<LangCode, string>> = {
   "table.trashEmpty": { en: "Trash is empty", ru: "\u041a\u043e\u0440\u0437\u0438\u043d\u0430 \u043f\u0443\u0441\u0442\u0430", es: "Papelera vac\u00eda", de: "Papierkorb ist leer", fr: "Corbeille vide", ja: "\u30b4\u30df\u7bb1\u306f\u7a7a\u3067\u3059" },
   "table.noStarred": { en: "No starred records yet", ru: "\u041d\u0435\u0442 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u044b\u0445 \u0437\u0430\u043f\u0438\u0441\u0435\u0439", es: "Sin registros destacados", de: "Keine markierten Aufnahmen", fr: "Aucun favori", ja: "\u30b9\u30bf\u30fc\u4ed8\u304d\u306a\u3057" },
   "table.noRecords": { en: "No records found", ru: "\u0417\u0430\u043f\u0438\u0441\u0435\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", es: "Sin registros", de: "Keine Aufnahmen gefunden", fr: "Aucun enregistrement", ja: "\u8a18\u9332\u306a\u3057" },
+  "table.loadMore": { en: "Load more", ru: "Загрузить ещё", es: "Cargar más", de: "Mehr laden", fr: "Charger plus", ja: "もっと読み込む" },
   "table.showMore": { en: "Show more", ru: "\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0435\u0449\u0451", es: "Mostrar m\u00e1s", de: "Mehr anzeigen", fr: "Voir plus", ja: "\u3082\u3063\u3068\u898b\u308b" },
   "table.showLess": { en: "Show less", ru: "\u0421\u0432\u0435\u0440\u043d\u0443\u0442\u044c", es: "Mostrar menos", de: "Weniger anzeigen", fr: "Voir moins", ja: "\u6298\u308a\u305f\u305f\u3080" },
 

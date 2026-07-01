@@ -1,20 +1,22 @@
+import { useState } from "react";
 import { ChevronRight } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
+import { Button } from "./ui/button";
 import { RecordCard } from "./record-card";
 import { useLanguage } from "./language-context";
-import { records, type RecordRow } from "./records-table";
+import { records } from "./records-table";
 
-/* The dashboard recent-records list for mobile + tablet: records grouped by
-   day, rendered as cards (1 column on phone, 2 on tablet). Replaces the 122KB
-   desktop table below lg. */
+const PAGE_SIZE = 12;
+
+/* The dashboard recent-records list for mobile + tablet: a flat list of
+   records rendered as cards (1 column on phone, 2 on tablet), revealed in
+   batches of PAGE_SIZE via a "Load more" button. Replaces the 122KB desktop
+   table below lg. */
 export function RecordsListMobile({ onNavigateToRecords, embedded }: { onNavigateToRecords?: () => void; embedded?: boolean }) {
   const { t } = useLanguage();
-  const groups: { label: string; items: RecordRow[] }[] = [];
-  for (const r of records) {
-    const g = groups.find((x) => x.label === r.dateGroup);
-    if (g) g.items.push(r);
-    else groups.push({ label: r.dateGroup, items: [r] });
-  }
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const visible = records.slice(0, visibleCount);
+  const hasMore = visibleCount < records.length;
 
   return (
     <section className={`lg:hidden ${embedded ? "" : "mt-[24px]"}`}>
@@ -28,23 +30,23 @@ export function RecordsListMobile({ onNavigateToRecords, embedded }: { onNavigat
         <Icon icon={ChevronRight} className="size-[16px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
       </button>
 
-      <div className="flex flex-col gap-[18px]">
-        {groups.map((group) => (
-          <div key={group.label}>
-            <p
-              className="mb-[8px] text-muted-foreground"
-              style={{ fontWeight: 600, fontSize: 11.5 }}
-            >
-              {group.label}
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
-              {group.items.map((r) => (
-                <RecordCard key={r.id} record={r} />
-              ))}
-            </div>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
+        {visible.map((r) => (
+          <RecordCard key={r.id} record={r} />
         ))}
       </div>
+
+      {hasMore && (
+        <div className="flex justify-center mt-[16px]">
+          <Button
+            variant="pill-outline"
+            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            className="h-[36px] px-[18px] text-[13px] font-medium"
+          >
+            {t("table.loadMore")}
+          </Button>
+        </div>
+      )}
     </section>
   );
 }
