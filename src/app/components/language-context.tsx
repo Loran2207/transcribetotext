@@ -51,6 +51,9 @@ const dict: Record<string, Record<LangCode, string>> = {
   // ── Common ──
   "common.cancel": { en: "Cancel", ru: "\u041e\u0442\u043c\u0435\u043d\u0430", es: "Cancelar", de: "Abbrechen", fr: "Annuler", ja: "\u30ad\u30e3\u30f3\u30bb\u30eb" },
   "common.rename": { en: "Rename", ru: "\u041f\u0435\u0440\u0435\u0438\u043c\u0435\u043d\u043e\u0432\u0430\u0442\u044c", es: "Renombrar", de: "Umbenennen", fr: "Renommer", ja: "\u540d\u524d\u5909\u66f4" },
+  "common.share": { en: "Share", ru: "\u041f\u043e\u0434\u0435\u043b\u0438\u0442\u044c\u0441\u044f", es: "Compartir", de: "Teilen", fr: "Partager", ja: "\u5171\u6709" },
+  "common.star": { en: "Star", ru: "\u0412 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435", es: "Destacar", de: "Markieren", fr: "Favori", ja: "\u30b9\u30bf\u30fc" },
+  "common.unstar": { en: "Unstar", ru: "\u0418\u0437 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0433\u043e", es: "Quitar", de: "Entfernen", fr: "Retirer", ja: "\u30b9\u30bf\u30fc\u89e3\u9664" },
   "common.delete": { en: "Delete", ru: "\u0423\u0434\u0430\u043b\u0438\u0442\u044c", es: "Eliminar", de: "L\u00f6schen", fr: "Supprimer", ja: "\u524a\u9664" },
   "common.restore": { en: "Restore", ru: "\u0412\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c", es: "Restaurar", de: "Wiederherstellen", fr: "Restaurer", ja: "\u5fa9\u5143" },
   "common.download": { en: "Download", ru: "\u0421\u043a\u0430\u0447\u0430\u0442\u044c", es: "Descargar", de: "Herunterladen", fr: "T\u00e9l\u00e9charger", ja: "\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9" },

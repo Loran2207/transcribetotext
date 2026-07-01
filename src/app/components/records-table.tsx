@@ -789,7 +789,7 @@ function FolderTreeItem({ folder, depth, selectedId, onSelect }: { folder: Folde
   );
 }
 
-function MoveToFolderDialog({ open, onClose, count, onMove, onCreateFolder, folders: ctxFolders }: { open: boolean; onClose: () => void; count: number; onMove: (folderId: string) => void; onCreateFolder: () => void; folders?: { id: string; name: string; color: string }[] }) {
+export function MoveToFolderDialog({ open, onClose, count, onMove, onCreateFolder, folders: ctxFolders }: { open: boolean; onClose: () => void; count: number; onMove: (folderId: string) => void; onCreateFolder: () => void; folders?: { id: string; name: string; color: string }[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { t } = useLanguage();
   useEffect(() => { if (open) setSelectedId(null); }, [open]);
