@@ -46,6 +46,9 @@ const dict: Record<string, Record<LangCode, string>> = {
   "folder.moveTitle": { en: "Move {0} file{1} to folder", ru: "\u041f\u0435\u0440\u0435\u043c\u0435\u0441\u0442\u0438\u0442\u044c {0} \u0444\u0430\u0439\u043b{1}", es: "Mover {0} archivo{1} a carpeta", de: "{0} Datei{1} verschieben", fr: "D\u00e9placer {0} fichier{1}", ja: "{0}\u4ef6\u3092\u30d5\u30a9\u30eb\u30c0\u306b\u79fb\u52d5" },
   "folder.chooseDestination": { en: "Choose a destination folder", ru: "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u043f\u0430\u043f\u043a\u0443", es: "Elige una carpeta de destino", de: "Zielordner ausw\u00e4hlen", fr: "Choisir un dossier", ja: "\u79fb\u52d5\u5148\u3092\u9078\u629e" },
   "folder.createNewFolder": { en: "Create new folder", ru: "\u0421\u043e\u0437\u0434\u0430\u0442\u044c \u043d\u043e\u0432\u0443\u044e \u043f\u0430\u043f\u043a\u0443", es: "Crear nueva carpeta", de: "Neuen Ordner erstellen", fr: "Cr\u00e9er un dossier", ja: "\u65b0\u898f\u30d5\u30a9\u30eb\u30c0" },
+  "folder.folders": { en: "Folders", ru: "Папки", es: "Carpetas", de: "Ordner", fr: "Dossiers", ja: "フォルダ" },
+  "folder.fileOne": { en: "{0} file", ru: "{0} файл", es: "{0} archivo", de: "{0} Datei", fr: "{0} fichier", ja: "{0} 件" },
+  "folder.fileOther": { en: "{0} files", ru: "{0} файлов", es: "{0} archivos", de: "{0} Dateien", fr: "{0} fichiers", ja: "{0} 件" },
   "folder.moveHere": { en: "Move here", ru: "\u041f\u0435\u0440\u0435\u043c\u0435\u0441\u0442\u0438\u0442\u044c", es: "Mover aqu\u00ed", de: "Hierher verschieben", fr: "D\u00e9placer ici", ja: "\u3053\u3053\u306b\u79fb\u52d5" },
 
   // ── Common ──

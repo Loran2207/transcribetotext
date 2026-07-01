@@ -1065,7 +1065,7 @@ interface RecordsTableProps {
   scopedFolderId?: string | null;
   showInlineFolderRows?: boolean;
   onNavigateToRecords?: () => void;
-  onOpenFolder?: (folderId: string) => void;
+  onOpenFolder?: (folderId: string | null) => void;
 }
 
 export function RecordsTable({ hideTopHeader = false, showAddFolderButton = false, scopedFolderId = null, showInlineFolderRows = true, onNavigateToRecords, onOpenFolder }: RecordsTableProps = {}) {
@@ -1175,6 +1175,31 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     }
     return find(userFolders, scopedFolderId)?.children ?? [];
   }, [userFolders, scopedFolderId]);
+
+  // Mobile (below lg): the folder we are currently scoped into, for the in-folder back affordance.
+  const scopedFolder = useMemo(() => {
+    if (!scopedFolderId) return null;
+    function find(list: FolderItem[], id: string): FolderItem | null {
+      for (const f of list) { if (f.id === id) return f; const c = find(f.children ?? [], id); if (c) return c; } return null;
+    }
+    return find(userFolders, scopedFolderId);
+  }, [userFolders, scopedFolderId]);
+
+  // Mobile (below lg): total record count per folder (own + descendants), mirrors the desktop cards.
+  const mobileFolderCounts = useMemo(() => {
+    const direct = new Map<string, number>();
+    Object.values(folderAssignments).forEach((fid) => direct.set(fid, (direct.get(fid) ?? 0) + 1));
+    const totals = new Map<string, number>();
+    function collect(f: FolderItem): number {
+      const own = direct.get(f.id) ?? 0;
+      const kids = (f.children ?? []).reduce((s, c) => s + collect(c), 0);
+      const total = own + kids;
+      totals.set(f.id, total);
+      return total;
+    }
+    userFolders.forEach(collect);
+    return totals;
+  }, [userFolders, folderAssignments]);
 
   const jobRecords = useMemo(() => jobs.map(mapJobToRecord), [jobs]);
   // Demo: ttt_starred_seed pads the list to 30 records and stars them all (design captures only; off by default).
@@ -1407,6 +1432,57 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
           )}
 
         </div>
+      </div>
+
+      {/* Mobile / tablet folder block (below lg): folders live above the record card list. */}
+      <div className="lg:hidden">
+        {scopedFolderId ? (
+          <button
+            type="button"
+            onClick={() => onOpenFolder?.(null)}
+            aria-label={t("nav.myRecords")}
+            className="mt-[12px] mb-[6px] flex items-center gap-[8px] w-full h-[40px] px-[6px] rounded-[12px] text-left active:bg-muted/60 transition-colors"
+          >
+            <span className="flex items-center justify-center size-[28px] shrink-0 text-muted-foreground">
+              <svg className="size-[18px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </span>
+            {scopedFolder && <svg className="size-[18px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={scopedFolder.color} /></svg>}
+            <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-foreground">{scopedFolder?.name ?? t("nav.myRecords")}</span>
+          </button>
+        ) : (
+          <div className="mt-[12px] mb-[6px]">
+            <div className="flex items-center justify-between px-[2px] mb-[8px]">
+              <span className="text-[13px] font-semibold text-foreground">{t("folder.folders")}</span>
+              <Button variant="ghost" size="icon" onClick={() => setFolderModalOpen(true)} className="size-[32px] text-muted-foreground" aria-label={t("folder.addFolder")} title={t("folder.addFolder")}>
+                <Icon icon={FolderPlus} className="size-[18px]" strokeWidth={1.7} />
+              </Button>
+            </div>
+            {userFolders.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
+                {userFolders.map((folder) => {
+                  const count = mobileFolderCounts.get(folder.id) ?? 0;
+                  return (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      onClick={() => onOpenFolder?.(folder.id)}
+                      className="group flex items-center gap-[12px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left"
+                    >
+                      <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
+                        <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
+                      </span>
+                      <span className="flex-1 min-w-0 flex flex-col gap-[2px]">
+                        <span className="truncate font-semibold text-[14px] leading-[19px] text-foreground">{folder.name}</span>
+                        <span className="text-[11.5px] text-muted-foreground">{t(count === 1 ? "folder.fileOne" : "folder.fileOther", count)}</span>
+                      </span>
+                      <Icon icon={ChevronRight} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.7} />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Mobile / tablet card list (below lg): flat filtered list as cleaned cards */}

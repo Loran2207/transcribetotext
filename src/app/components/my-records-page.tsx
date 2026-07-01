@@ -497,7 +497,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             <Button
               variant="pill-outline"
               onClick={() => setCreateOpen(true)}
-              className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
+              className="hidden lg:flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
             >
               <FolderPlusIcon />
               <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
@@ -558,6 +558,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
         {/* Folder cards grid */}
         <div className={isInsideFolder ? "mt-[16px]" : "mt-[24px]"}>
+          <div className="hidden lg:block">
           {demoRecordsLoading && (
             <div className="mb-[20px]">
               <div className="mb-[8px] h-[14px] w-[56px] rounded-full bg-muted animate-pulse" />
@@ -666,6 +667,8 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             </div>
             </div>
           )}
+
+          </div>
 
           <RecordsTable hideTopHeader showAddFolderButton={false} scopedFolderId={activeFolderId} onOpenFolder={(folderId) => setActiveFolderId(folderId)} />
         </div>
