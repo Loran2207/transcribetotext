@@ -1553,10 +1553,10 @@ function ModalShell({ title, subtitle, onClose, onBackdropClick, children, width
   }, [onClose]);
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[3px]" onClick={onBackdropClick} />
-      <div className="relative rounded-[20px] flex flex-col overflow-hidden bg-popover"
-        style={{ width: `min(${width}px, calc(100vw - 32px))`, maxHeight: "calc(100vh - 40px)", boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 md:items-center md:p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[3px] md:bg-black/40" onClick={onBackdropClick} />
+      <div className="relative flex flex-col overflow-hidden bg-popover w-full max-h-[90vh] rounded-t-[24px] rounded-b-none pb-[env(safe-area-inset-bottom)] md:w-[min(var(--modal-w),calc(100vw_-_32px))] md:max-h-[calc(100vh_-_40px)] md:rounded-[20px] md:pb-0"
+        style={{ "--modal-w": `${width}px`, boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" } as React.CSSProperties}>
         {/* Header */}
         <div className="flex items-center justify-between px-[22px] pt-[18px] pb-[16px] shrink-0">
           <div>
