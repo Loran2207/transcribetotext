@@ -1,26 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronRight, FolderPlus } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { RecordCard } from "./record-card";
 import { useLanguage } from "./language-context";
 import { useFolders } from "./folder-context";
-import { records, CreateFolderModal } from "./records-table";
+import { records, CreateFolderModal, PaginationBar } from "./records-table";
 
 const PAGE_SIZE = 12;
 
 /* The dashboard recent-records list for mobile + tablet: a flat list of
-   records rendered as cards (1 column on phone, 2 on tablet), revealed in
-   batches of PAGE_SIZE via a "Load more" button. Replaces the 122KB desktop
-   table below lg. The header carries an "Add folder" control that opens the
-   shared CreateFolderModal (name + color) wired to useFolders().addFolder. */
+   records rendered as cards (1 column on phone, 2 on tablet), paginated with
+   the shared arrow PaginationBar (compact variant) - the same prev/next paging
+   the desktop table uses. Replaces the 122KB desktop table below lg. The header
+   carries an "Add folder" control that opens the shared CreateFolderModal
+   (name + color) wired to useFolders().addFolder. */
 export function RecordsListMobile({ onNavigateToRecords, embedded }: { onNavigateToRecords?: () => void; embedded?: boolean }) {
   const { t } = useLanguage();
   const { addFolder } = useFolders();
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
-  const visible = records.slice(0, visibleCount);
-  const hasMore = visibleCount < records.length;
+  // Reset to the first page whenever the list changes shape.
+  useEffect(() => { setPage(1); }, [records.length]);
+  const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const visible = records.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <section className={`lg:hidden ${embedded ? "" : "mt-[24px]"}`}>
@@ -50,17 +54,7 @@ export function RecordsListMobile({ onNavigateToRecords, embedded }: { onNavigat
         ))}
       </div>
 
-      {hasMore && (
-        <div className="flex justify-center mt-[16px]">
-          <Button
-            variant="pill-outline"
-            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-            className="h-[36px] px-[18px] text-[13px] font-medium"
-          >
-            {t("table.loadMore")}
-          </Button>
-        </div>
-      )}
+      <PaginationBar compact total={records.length} page={safePage} pageSize={PAGE_SIZE} onPage={setPage} onPageSize={() => {}} />
 
       <CreateFolderModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={(name, color) => addFolder(name, color)} />
     </section>

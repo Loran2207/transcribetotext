@@ -1088,7 +1088,6 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
-  const [mobileVisible, setMobileVisible] = useState(12);
   const [groupByDate, setGroupByDate] = useState(false);
   const [trashedIds, setTrashedIds] = useState<Set<string>>(() => {
     // Demo: ttt_trash_seed pre-fills Trash for design captures; off by default.
@@ -1275,8 +1274,6 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
   // Back to page 1 when the visible set changes shape
   useEffect(() => { setPage(1); }, [activeTab, searchQuery, pageSize]);
-  // Restart the below-lg card list when the visible set changes shape
-  useEffect(() => { setMobileVisible(12); }, [activeTab, searchQuery, typeFilter, templateFilter, langFilter, dateSort]);
 
 
   const allSelected = pagedRecords.length > 0 && pagedRecords.every(r => selectedRows.has(r.id));
@@ -1485,24 +1482,18 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         )}
       </div>
 
-      {/* Mobile / tablet card list (below lg): flat filtered list as cleaned cards */}
+      {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
       <div className="lg:hidden pb-[24px]">
         {filteredRecords.length === 0 ? (
           <div className="flex items-center justify-center py-[48px] text-[14px] text-muted-foreground">{t("table.noRecords")}</div>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
-              {filteredRecords.slice(0, mobileVisible).map((record) => (
+              {pagedRecords.map((record) => (
                 <RecordCardMobile key={record.id} record={record} />
               ))}
             </div>
-            {filteredRecords.length > mobileVisible && (
-              <div className="mt-[16px]">
-                <Button variant="pill-outline" onClick={() => setMobileVisible((c) => c + 12)} className="w-full h-[40px] text-[13px] font-medium">
-                  {t("table.loadMore")}
-                </Button>
-              </div>
-            )}
+            <PaginationBar compact total={filteredRecords.length} page={safePage} pageSize={pageSize} onPage={setPage} onPageSize={(n) => { setPageSize(n); setPage(1); }} />
           </>
         )}
       </div>
@@ -1747,11 +1738,11 @@ function pageWindow(page: number, total: number): (number | "ellipsis")[] {
   return out;
 }
 
-function PaginationBar({ total, page, pageSize, onPage, onPageSize }: {
-  total: number; page: number; pageSize: number; onPage: (p: number) => void; onPageSize: (n: number) => void;
+export function PaginationBar({ total, page, pageSize, onPage, onPageSize, compact = false }: {
+  total: number; page: number; pageSize: number; onPage: (p: number) => void; onPageSize: (n: number) => void; compact?: boolean;
 }) {
   const [gotoValue, setGotoValue] = useState("");
-  if (total <= PAGE_SIZE_OPTIONS[0]) return null;
+  if (total <= (compact ? pageSize : PAGE_SIZE_OPTIONS[0])) return null;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
@@ -1760,6 +1751,19 @@ function PaginationBar({ total, page, pageSize, onPage, onPageSize }: {
     if (!Number.isNaN(n)) onPage(Math.min(totalPages, Math.max(1, n)));
     setGotoValue("");
   };
+  if (compact) {
+    return (
+      <div className="flex items-center justify-center gap-[14px] h-[52px] px-[8px] bg-background border-t border-border">
+        <Button variant="ghost" size="icon" disabled={page <= 1} onClick={() => onPage(page - 1)} className="size-[30px] rounded-full disabled:opacity-30" title="Previous page">
+          <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </Button>
+        <span className="text-[12.5px] text-muted-foreground whitespace-nowrap">{from}-{to} of {total}</span>
+        <Button variant="ghost" size="icon" disabled={page >= totalPages} onClick={() => onPage(page + 1)} className="size-[30px] rounded-full disabled:opacity-30" title="Next page">
+          <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M6 3L10.5 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className="sticky bottom-0 z-30 flex items-center gap-[14px] h-[52px] px-[8px] bg-background border-t border-border">
       <div className="flex items-center gap-[8px]">
