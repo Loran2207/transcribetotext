@@ -33,8 +33,8 @@ const CREATE_ACTIONS = [
 
 /* Floating pill tab bar for mobile only (hidden at md+, where the sidebar is the
    nav). A solid white pill with a soft, tight shadow - no real blur, so it
-   captures cleanly to Figma. The active tab lifts its icon into a soft primary
-   chip and turns its label primary. */
+   captures cleanly to Figma. The active tab colors its icon and label primary, with
+   no chip behind the active icon. */
 export function BottomNav({ activePage, onNavigate }: { activePage: string; onNavigate: (page: string) => void }) {
   const { t } = useLanguage();
   const { setOpenModal } = useTranscriptionModals();
@@ -59,7 +59,7 @@ export function BottomNav({ activePage, onNavigate }: { activePage: string; onNa
                 aria-current={active ? "page" : undefined}
                 className="flex flex-col items-center justify-center gap-[3px] flex-1 h-full min-w-0"
               >
-                <span className={`flex items-center justify-center size-[34px] rounded-full transition-colors ${active ? "bg-primary/10 text-primary" : "text-muted-foreground"}`}>
+                <span className={`flex items-center justify-center size-[34px] transition-colors ${active ? "text-primary" : "text-muted-foreground"}`}>
                   <Icon icon={icon} className="size-[21px]" strokeWidth={active ? 2 : 1.6} />
                 </span>
                 <span className={`truncate max-w-full ${active ? "text-primary" : "text-muted-foreground"}`} style={{ fontSize: 10, fontWeight: active ? 600 : 500, lineHeight: 1 }}>{t(labelKey)}</span>

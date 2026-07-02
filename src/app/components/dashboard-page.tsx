@@ -408,14 +408,14 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
       <div ref={scrollRef} className="flex-1 overflow-auto min-w-0">
         <div className="px-[16px] pt-[16px] pb-[96px] md:px-[24px] md:pt-[20px] md:pb-[40px] lg:px-[32px] lg:pt-[28px] lg:pb-0">
           <motion.p
-            className="text-foreground font-bold text-[22px] leading-[28px] tracking-[-0.4px] md:text-[26px] md:leading-[32px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap"
+            className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap"
             {...fadeUp(0.72, 30)}
           >
             {greeting}
           </motion.p>
 
           {/* Tablet: the four illustrated cards in a 2x2 grid (no kbd) */}
-          <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[22px]">
+          <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[16px]">
             {cards.map(({ card, key, modal }) => (
               <div key={key} className="relative cursor-pointer" onClick={() => setOpenModal(modal)}>
                 {card}
@@ -455,7 +455,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           <UpgradeBanner />
 
           {/* Mobile + tablet: recent records as a flat list, rendered directly */}
-          <div className="mt-[20px] lg:hidden">
+          <div className="mt-[16px] lg:hidden">
             <RecordsListMobile onNavigateToRecords={() => onNavigate?.("records")} embedded />
           </div>
 

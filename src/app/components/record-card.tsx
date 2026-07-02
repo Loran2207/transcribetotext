@@ -111,21 +111,21 @@ export function RecordCard({ record }: { record: RecordRow }) {
   return (
     <div
       onClick={open}
-      className="group flex items-start gap-[12px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors cursor-pointer"
+      className="group flex items-start gap-[10px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors cursor-pointer"
     >
       <div className="shrink-0 mt-[1px] flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
         <SourceIcon source={record.source} />
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
-        <p className="truncate text-foreground" style={{ fontWeight: 600, fontSize: 14, lineHeight: "19px" }}>{displayName}</p>
-        <div className="flex items-center gap-[8px] mt-[3px] text-muted-foreground" style={{ fontSize: 11.5 }}>
+        <p className="truncate text-foreground" style={{ fontWeight: 500, fontSize: 14, lineHeight: "19px" }}>{displayName}</p>
+        <div className="flex items-center gap-[8px] mt-[3px] text-muted-foreground" style={{ fontSize: 12, lineHeight: "16px" }}>
           <span className="inline-flex items-center gap-[4px] shrink-0 whitespace-nowrap">
             <Icon icon={Clock} className="size-[12px]" strokeWidth={1.7} />
             {record.duration}
           </span>
           <span className="min-w-0 inline-flex items-center h-[18px] px-[7px] rounded-[5px] bg-muted">
-            <span className="truncate text-[11px]">{record.template}</span>
+            <span className="truncate text-[12px]">{record.template}</span>
           </span>
           <span className="shrink-0 leading-none">
             <LanguageBadge lang={record.language} />

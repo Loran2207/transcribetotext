@@ -35,7 +35,7 @@ export function RecordsListMobile({ onNavigateToRecords, embedded }: { onNavigat
           onClick={onNavigateToRecords}
           className="group flex items-center gap-[4px] min-w-0"
         >
-          <span className="truncate text-foreground" style={{ fontWeight: 600, fontSize: 17 }}>{t("table.myRecords")}</span>
+          <span className="truncate text-foreground" style={{ fontWeight: 600, fontSize: 15, lineHeight: "20px" }}>{t("table.myRecords")}</span>
           <Icon icon={ChevronRight} className="size-[16px] shrink-0 text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
         </button>
         <Button
