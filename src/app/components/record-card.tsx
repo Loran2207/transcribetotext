@@ -196,20 +196,20 @@ export function RecordCard({ record }: { record: RecordRow }) {
 
             <div className="grid grid-cols-4 gap-[8px] px-[16px] pt-[6px] pb-[14px]">
               {[
-                { key: "copy", icon: Copy, label: t("table.copySummary"), run: doCopy },
-                { key: "move", icon: FolderOpen, label: t("table.moveToFolder"), run: () => setMoveOpen(true) },
+                { key: "copy", icon: Copy, label: t("sheet.copy"), run: doCopy },
+                { key: "move", icon: FolderOpen, label: t("sheet.moveTo"), run: () => setMoveOpen(true) },
                 { key: "export", icon: Upload, label: t("common.export"), run: () => setExportOpen(true) },
                 { key: "share", icon: Share, label: t("common.share"), run: () => setShareOpen(true) },
               ].map(({ key, icon, label, run }) => (
                 <button
                   key={key}
                   onClick={() => { setSheetOpen(false); run(); }}
-                  className="flex flex-col items-center gap-[7px] py-[12px] rounded-[14px] bg-muted active:bg-muted/70 transition-colors"
+                  className="flex flex-col items-center justify-start gap-[7px] h-[92px] pt-[12px] rounded-[14px] bg-muted active:bg-muted/70 transition-colors"
                 >
                   <span className="flex items-center justify-center size-[40px] rounded-full bg-background">
                     <Icon icon={icon} className="size-[19px] text-foreground" strokeWidth={1.7} />
                   </span>
-                  <span className="text-[11px] leading-[13px] text-muted-foreground text-center px-[2px]">{label}</span>
+                  <span className="whitespace-nowrap text-[11px] leading-[13px] text-muted-foreground text-center px-[2px]">{label}</span>
                 </button>
               ))}
             </div>

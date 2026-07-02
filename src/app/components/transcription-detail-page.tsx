@@ -36,6 +36,7 @@ import { useTranscriptionModals, type TranscriptionJob } from "./transcription-m
 import { useTemplates } from "@/hooks/use-templates";
 import type { Template } from "@/lib/templates";
 import { ShareDialog } from "./share-dialog";
+import { setInnerScreen } from "./inner-screen";
 import { SharedUsersAvatars } from "./shared-users-avatars";
 import { useShares } from "@/hooks/use-shares";
 import type { Share as ShareRecord } from "@/lib/shares";
@@ -1632,6 +1633,17 @@ export function TranscriptionDetailPage() {
     if (!folderId) return null;
     return folders.find((folder) => folder.id === folderId) ?? null;
   }, [selectedRecord, folderAssignments, folders]);
+  /* Phone chrome: the top bar becomes back + the nesting path (no hamburger/search). */
+  const fromMeetings = (location.state as { from?: string } | null)?.from === "meetings";
+  useEffect(() => {
+    setInnerScreen({
+      back: () => (fromMeetings ? navigate("/", { state: { page: "calendar" } }) : navigate("/")),
+      parent: fromMeetings || !selectedFolder ? undefined : "My records",
+      title: fromMeetings ? "Meetings" : (selectedFolder ? selectedFolder.name : "My records"),
+    });
+    return () => setInnerScreen(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromMeetings, selectedFolder]);
   const [title, setTitle] = useState(recordTitle);
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("transcript");
@@ -2502,7 +2514,7 @@ export function TranscriptionDetailPage() {
     <div ref={pageRef} className="flex flex-1 overflow-hidden">
       {/* Left column */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <div className="flex items-center justify-between gap-3 px-4 pt-4 lg:px-8">
+        <div className="max-md:hidden flex items-center justify-between gap-3 px-4 pt-4 lg:px-8">
           <div className="min-w-0">
             {(location.state as { from?: string } | null)?.from === "meetings" ? (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

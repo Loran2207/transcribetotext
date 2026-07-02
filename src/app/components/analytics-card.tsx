@@ -27,12 +27,13 @@ const ghostData = [
   { label: "w5", minutes: 720 },
 ];
 
-const sources = [
+export const ANALYTICS_SOURCES = [
   { label: "Zoom", value: 138 },
   { label: "Google Meet", value: 92 },
   { label: "Microphone", value: 64 },
   { label: "File upload", value: 48 },
 ];
+const sources = ANALYTICS_SOURCES;
 const sourceTotal = ANALYTICS_FILES;
 
 export function AnalyticsCard() {

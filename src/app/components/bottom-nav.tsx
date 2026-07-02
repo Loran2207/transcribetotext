@@ -10,6 +10,7 @@ import {
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
 import { FAB_RIGHT, ADD_FAB_SIZE, ADD_FAB_BOTTOM } from "./mobile-fab-layout";
+import { useInnerScreen } from "./inner-screen";
 
 /* Four navigation tabs only. The create "+" moved out of the pill into the
    floating FAB stack at the bottom-right (the add FAB below plus the
@@ -39,6 +40,9 @@ export function BottomNav({ activePage, onNavigate }: { activePage: string; onNa
   const { t } = useLanguage();
   const { setOpenModal } = useTranscriptionModals();
   const [createOpen, setCreateOpen] = useState(false);
+  const inner = useInnerScreen();
+
+  if (inner?.hideNav) return null;
 
   return (
     <>

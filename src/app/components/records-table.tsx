@@ -1384,7 +1384,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             type="button"
             onClick={() => onOpenFolder?.(null)}
             aria-label={t("nav.myRecords")}
-            className="mt-[12px] mb-[6px] flex items-center gap-[8px] w-full h-[40px] px-[6px] rounded-[12px] text-left active:bg-muted/60 transition-colors"
+            className="mt-[12px] mb-[6px] hidden md:flex items-center gap-[8px] w-full h-[40px] px-[6px] rounded-[12px] text-left active:bg-muted/60 transition-colors"
           >
             <span className="flex items-center justify-center size-[28px] shrink-0 text-muted-foreground">
               <svg className="size-[18px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -1753,15 +1753,30 @@ export function PaginationBar({ total, page, pageSize, onPage, onPageSize, compa
     setGotoValue("");
   };
   if (compact) {
+    // Same anatomy as the desktop bar, sized for a phone: per-page select,
+    // range, then arrows around the current page window.
     return (
-      <div className="flex items-center justify-center gap-[14px] h-[52px] px-[8px] bg-background border-t border-border">
-        <Button variant="ghost" size="icon" disabled={page <= 1} onClick={() => onPage(page - 1)} className="size-[30px] rounded-full disabled:opacity-30" title="Previous page">
-          <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </Button>
-        <span className="text-[12.5px] text-muted-foreground whitespace-nowrap">{from}-{to} of {total}</span>
-        <Button variant="ghost" size="icon" disabled={page >= totalPages} onClick={() => onPage(page + 1)} className="size-[30px] rounded-full disabled:opacity-30" title="Next page">
-          <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M6 3L10.5 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </Button>
+      <div className="flex items-center justify-between gap-[8px] h-[52px] px-[4px] bg-background border-t border-border">
+        <Select value={String(pageSize)} onValueChange={(v) => onPageSize(parseInt(v, 10))}>
+          <SelectTrigger className="h-[30px] w-[64px] rounded-[8px] text-[12.5px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {PAGE_SIZE_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <span className="text-[12px] text-muted-foreground whitespace-nowrap">{from}-{to} of {total}</span>
+        <div className="flex items-center gap-[2px]">
+          <Button variant="ghost" size="icon" disabled={page <= 1} onClick={() => onPage(page - 1)} className="size-[30px] rounded-full disabled:opacity-30" title="Previous page">
+            <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </Button>
+          {pageWindow(page, totalPages).map((p, i) => p === "ellipsis" ? (
+            <span key={"e" + i} className="px-[2px] text-[12px] text-muted-foreground">&#8230;</span>
+          ) : (
+            <Button key={p} variant="ghost" onClick={() => onPage(p)} className={"h-[28px] min-w-[28px] px-[6px] rounded-full text-[12.5px] " + (p === page ? "bg-primary text-primary-foreground font-semibold hover:bg-primary hover:text-primary-foreground" : "text-foreground")}>{p}</Button>
+          ))}
+          <Button variant="ghost" size="icon" disabled={page >= totalPages} onClick={() => onPage(page + 1)} className="size-[30px] rounded-full disabled:opacity-30" title="Next page">
+            <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M6 3L10.5 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </Button>
+        </div>
       </div>
     );
   }

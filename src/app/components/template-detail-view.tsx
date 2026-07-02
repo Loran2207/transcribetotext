@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PencilEdit01Icon, StarsIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
@@ -38,6 +38,8 @@ function saveStarred(s: Set<string>) {
   localStorage.setItem(STARRED_KEY, JSON.stringify([...s]));
 }
 
+import { setInnerScreen } from "./inner-screen";
+
 const AVATAR_COLORS = ["#2E68EE", "#0E918A", "#D96823", "#6D44E0", "#D14E8D"];
 
 function speakerInitials(name) {
@@ -76,7 +78,15 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   const sample = getTemplateSample(template);
 
   const [isStarred, setIsStarred] = useState(() => loadStarred().has(template.id));
-  const [exampleOpen, setExampleOpen] = useState(false);
+  const [detailTab, setDetailTab] = useState<"summary" | "example">("summary");
+
+  /* Phone chrome: back + "Templates / <name>" replaces the top bar; the bottom
+     nav hides so the pinned Apply bar owns the bottom edge. */
+  useEffect(() => {
+    setInnerScreen({ back: onBack, parent: "Templates", title: template.name, hideNav: true });
+    return () => setInnerScreen(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template.name]);
 
   const [appliedFiles, setAppliedFiles] = useState<typeof records>([]);
   const usageIds = USAGE_BY_CATEGORY[categorize(template)] ?? [];
@@ -110,10 +120,10 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   return (
     <TooltipProvider>
     <div className="flex-1 overflow-auto min-w-0">
-      <div className="px-4 lg:px-[32px] pt-[28px] pb-[48px]">
+      <div className="px-4 lg:px-[32px] pt-[28px] pb-[48px] max-md:pb-[104px]">
 
         {/* Breadcrumb */}
-        <Breadcrumb>
+        <Breadcrumb className="max-md:hidden">
           <BreadcrumbList className="text-[13px]">
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
@@ -180,7 +190,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
             {isFree ? (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button className="rounded-full h-9 px-5 text-[13px] font-medium">Apply template</Button>
+                  <Button className="rounded-full h-9 px-5 text-[13px] font-medium max-md:hidden">Apply template</Button>
                 </PopoverTrigger>
                 <PopoverContent align="end" side="bottom" className="w-[300px] p-5">
                   <div className="flex flex-col items-center text-center">
@@ -205,7 +215,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                 </PopoverContent>
               </Popover>
             ) : (
-              <Button className="rounded-full h-9 px-5 text-[13px] font-medium" onClick={handleApply}>
+              <Button className="rounded-full h-9 px-5 text-[13px] font-medium max-md:hidden" onClick={handleApply}>
                 Apply template
               </Button>
             )}
@@ -213,11 +223,25 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         </div>
 
         {/* Two-column: large example (left) + summary card (right) */}
-        <div className="flex flex-col-reverse gap-8 lg:flex-row lg:gap-10 lg:items-start">
+        {/* Phone/tablet: one switcher instead of two stacked cards - compare Summary vs Example */}
+        <div className="lg:hidden mb-4 flex items-center gap-[6px]">
+          {(["summary", "example"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setDetailTab(tab)}
+              className={`h-[32px] px-[16px] rounded-full text-[13px] font-medium transition-colors ${detailTab === tab ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+            >
+              {tab === "summary" ? "Summary" : "Example"}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-8 lg:flex-row lg:gap-10 lg:items-start">
 
           {/* Left - the source recording example, full width */}
-          <div className="flex-1 min-w-0 flex flex-col gap-6">
-            <div className="relative rounded-2xl border border-border bg-card overflow-hidden max-lg:order-2">
+          <div className="flex-1 min-w-0 flex flex-col gap-6 max-lg:order-2">
+            <div className={`relative rounded-2xl border border-border bg-card overflow-hidden ${detailTab === "example" ? "" : "max-lg:hidden"}`}>
               <div className="px-7 pt-6 pb-5 border-b border-border/60">
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Example recording</p>
@@ -225,7 +249,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                   <p className="text-[12px] text-muted-foreground mt-0.5">{sample.source.meta}</p>
                 </div>
               </div>
-              <div className={`px-7 py-6 flex flex-col gap-5 ${exampleOpen ? "" : "max-lg:max-h-[300px] max-lg:overflow-hidden"}`}>
+              <div className="px-7 py-6 flex flex-col gap-5">
                 {(() => {
                   const speakerColor = new Map();
                   for (const sg of sample.source.segments) {
@@ -256,25 +280,10 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                   Recording continues - this is a short excerpt.
                 </p>
               </div>
-              <div className="lg:hidden relative">
-                {!exampleOpen && (
-                  <div
-                    className="pointer-events-none absolute -top-[72px] left-0 right-0 h-[72px]"
-                    style={{ background: "linear-gradient(to top, #ffffff 8%, rgba(255,255,255,0.02))" }}
-                  />
-                )}
-                <button
-                  type="button"
-                  onClick={() => setExampleOpen((v) => !v)}
-                  className="w-full h-[44px] border-t border-border/60 text-[13px] font-medium text-primary active:bg-muted/60 transition-colors"
-                >
-                  {exampleOpen ? "Show less" : "Show full example"}
-                </button>
-              </div>
             </div>
 
             {/* Usage history */}
-            <div className="max-lg:order-1 lg:mt-0">
+            <div>
               <h3 className="text-[14px] font-semibold text-foreground mb-1">Recently used in</h3>
               <p className="text-[12px] text-muted-foreground mb-3">
                 Files where this template generated the summary.
@@ -354,7 +363,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
           </div>
 
           {/* Right - the summary this template produces */}
-          <div className="w-full lg:w-[480px] lg:shrink-0">
+          <div className={`w-full lg:w-[480px] lg:shrink-0 max-lg:order-1 ${detailTab === "summary" ? "" : "max-lg:hidden"}`}>
             <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ boxShadow: "var(--elevation-md)" }}>
               <div className="px-7 pt-6 pb-4 border-b border-border">
                 <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2">
@@ -393,6 +402,42 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
           </div>
         </div>
       </div>
+    </div>
+    {/* Phone: the primary action pinned to the bottom edge (bottom nav hides here) */}
+    <div
+      className="md:hidden fixed inset-x-0 bottom-0 z-50 bg-background border-t border-border px-[16px] pt-[10px]"
+      style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
+    >
+      {isFree ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button className="w-full h-[46px] rounded-full text-[14px] font-semibold">Apply template</Button>
+          </PopoverTrigger>
+          <PopoverContent align="center" side="top" sideOffset={10} className="w-[300px] p-5">
+            <div className="flex flex-col items-center text-center">
+              <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                <Icon icon={StarsIcon} size={20} className="text-primary" />
+              </div>
+              <h4 className="text-[14px] font-semibold text-foreground">A Pro feature</h4>
+              <p className="text-[12px] text-muted-foreground leading-relaxed mt-1">
+                Applying templates to your recordings is available on the Pro plan.
+              </p>
+              <Button
+                className="w-full rounded-full h-9 mt-4 text-[13px] font-medium"
+                onClick={() => {
+                  try { localStorage.setItem("ttt_plan", "pro"); } catch { /* ignore */ }
+                  toast.success("Pro trial activated");
+                  window.setTimeout(() => window.location.reload(), 700);
+                }}
+              >
+                Upgrade to Pro
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <Button className="w-full h-[46px] rounded-full text-[14px] font-semibold" onClick={handleApply}>Apply template</Button>
+      )}
     </div>
     <ApplyTemplateDialog open={applyOpen} onOpenChange={setApplyOpen} template={template} />
     </TooltipProvider>

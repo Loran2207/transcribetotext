@@ -161,6 +161,8 @@ const dict: Record<string, Record<LangCode, string>> = {
   "common.add": { en: "Add", ru: "\u0414\u043e\u0431\u0430\u0432\u0438\u0442\u044c", es: "A\u00f1adir", de: "Hinzuf\u00fcgen", fr: "Ajouter", ja: "\u8ffd\u52a0" },
   "common.export": { en: "Export", ru: "\u042d\u043a\u0441\u043f\u043e\u0440\u0442", es: "Exportar", de: "Exportieren", fr: "Exporter", ja: "\u30a8\u30af\u30b9\u30dd\u30fc\u30c8" },
   "common.copied": { en: "Copied!", ru: "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e!", es: "\u00a1Copiado!", de: "Kopiert!", fr: "Copi\u00e9 !", ja: "\u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f" },
+  "sheet.copy": { en: "Copy", ru: "Копировать", es: "Copiar", de: "Kopieren", fr: "Copier", ja: "コピー" },
+  "sheet.moveTo": { en: "Move to", ru: "Переместить", es: "Mover a", de: "Verschieben", fr: "Déplacer", ja: "移動" },
   "table.copySummary": { en: "Copy Summary", ru: "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c Summary", es: "Copiar resumen", de: "Zusammenfassung kopieren", fr: "Copier le r\u00e9sum\u00e9", ja: "\u8981\u7d04\u3092\u30b3\u30d4\u30fc" },
   "table.copyTasks": { en: "Copy All Tasks", ru: "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0437\u0430\u0434\u0430\u0447\u0438", es: "Copiar tareas", de: "Aufgaben kopieren", fr: "Copier les t\u00e2ches", ja: "\u30bf\u30b9\u30af\u3092\u30b3\u30d4\u30fc" },
   "table.summary": { en: "Summary", ru: "Summary", es: "Resumen", de: "Zusammenfassung", fr: "R\u00e9sum\u00e9", ja: "\u8981\u7d04" },

@@ -6,6 +6,7 @@ import { useTranscriptionModals } from "./transcription-modals";
 import { RecordsTable, records as mockRecords, type RecordRow } from "./records-table";
 import { ExportFormatSubMenu } from "./export-format-menu";
 import { ScrollFade } from "./scroll-fade";
+import { setInnerScreen } from "./inner-screen";
 import {
   exportRecords,
   type ExportableRecord,
@@ -395,6 +396,34 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   const pageScrollRef = useRef<HTMLDivElement>(null);
 
+  /* Phone chrome: inside a folder the top bar becomes back + "My Records / <name>"
+     with the folder kebab on the right; the wrapping desktop header hides below md. */
+  useEffect(() => {
+    if (!activeFolder) { setInnerScreen(null); return; }
+    setInnerScreen({
+      back: () => setActiveFolderId(null),
+      parent: t("nav.myRecords"),
+      title: activeFolder.name,
+      menu: (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="size-[40px] shrink-0 text-foreground" aria-label="Folder actions">
+              <Icon icon={MoreHorizontal} className="size-5" strokeWidth={2} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[190px]">
+            <DropdownMenuItem className="gap-2" onClick={() => setEditingFolder(activeFolder)}>
+              <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+              Edit folder
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    });
+    return () => setInnerScreen(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFolder]);
+
   return (
     <div
       ref={pageScrollRef}
@@ -416,8 +445,8 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
       <div className="px-[16px] pt-[16px] pb-[24px] md:px-[24px] md:pt-[20px] lg:px-[32px] lg:pt-[28px]">
 
-        {/* Header row */}
-        <div className="flex items-center justify-between gap-[12px]">
+        {/* Header row (phones hide it inside a folder - the inner top bar takes over) */}
+        <div className={`flex items-center justify-between gap-[12px] ${isInsideFolder ? "max-md:hidden" : ""}`}>
           {isInsideFolder ? (
             <Breadcrumb>
               <BreadcrumbList className="text-[13px]">
