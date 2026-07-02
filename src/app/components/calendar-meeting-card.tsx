@@ -72,7 +72,7 @@ export function CalendarMeetingCard({
   return (
     <div
       className={cn(
-        "group rounded-xl border border-border bg-card px-5 py-4 mb-2.5 transition-all duration-150",
+        "group rounded-xl border border-border bg-card px-4 py-3.5 lg:px-5 lg:py-4 mb-2.5 transition-all duration-150",
         isLive && "border-primary/40 bg-primary/[0.02]",
       )}
       style={{
@@ -83,8 +83,8 @@ export function CalendarMeetingCard({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
-      <div className="flex items-start gap-3">
-        <div className="flex-1 min-w-0">
+      <div className="flex items-start gap-3 max-lg:flex-col max-lg:gap-2.5">
+        <div className="flex-1 min-w-0 max-lg:w-full">
           {/* Time + title + live badge */}
           <div className="flex items-center gap-2">
             <span className={cn(
@@ -127,9 +127,10 @@ export function CalendarMeetingCard({
           {/* Transcription language */}
           {!isPast && (
             <div className="flex items-center gap-1.5 mt-2">
-              <span className="text-[12px] text-muted-foreground">
+              <span className="text-[12px] text-muted-foreground max-lg:hidden">
                 Transcription language:
               </span>
+              <span className="text-[12px] text-muted-foreground lg:hidden">Language:</span>
               <Select value={language} onValueChange={(v) => { if (LANG_CODES.has(v)) onLanguageChange(v as LangCode); }}>
                 <SelectTrigger className="h-5 w-auto min-w-[70px] border-none shadow-none bg-transparent px-0 text-[12px] font-medium text-foreground/80 gap-1 hover:text-foreground transition-colors">
                   <span className="text-[11px] leading-none shrink-0">{LANG_FLAGS[language] ?? LANG_FLAGS.en}</span>
@@ -148,7 +149,7 @@ export function CalendarMeetingCard({
         </div>
 
         {/* Right side: status + actions */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3 shrink-0 max-lg:w-full max-lg:justify-between max-lg:border-t max-lg:border-border/60 max-lg:pt-2.5">
           {/* Live: join the ongoing meeting */}
           {isLive && meeting.videoLink && (
             <Button
