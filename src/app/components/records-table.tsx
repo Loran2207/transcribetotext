@@ -1393,7 +1393,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-foreground">{scopedFolder?.name ?? t("nav.myRecords")}</span>
           </button>
         ) : (
-          <div className="mt-[16px] mb-[6px]">
+          <div className="mt-[16px] mb-[14px]">
             {userFolders.length > 0 && (
               <div className="flex gap-[8px] overflow-x-auto scrollbar-hide -mx-[16px] px-[16px] md:-mx-[24px] md:px-[24px] pb-[2px]">
                 {userFolders.map((folder) => {
@@ -1747,28 +1747,34 @@ export function PaginationBar({ total, page, pageSize, onPage, onPageSize, compa
     setGotoValue("");
   };
   if (compact) {
-    // Same anatomy as the desktop bar, sized for a phone: per-page select,
-    // range, then arrows around the current page window.
+    // Phone pagination: TWO rows so the numbers get real tap targets and the FAB
+    // (bottom-right) never crowds them. Row 1 = range + per-page; row 2 = full-width
+    // arrows around a centered page-number window (36px targets).
     return (
-      <div className="flex items-center justify-between gap-[8px] h-[52px] px-[4px] bg-background border-t border-border">
-        <Select value={String(pageSize)} onValueChange={(v) => onPageSize(parseInt(v, 10))}>
-          <SelectTrigger className="h-[30px] w-[64px] rounded-[8px] text-[12.5px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {PAGE_SIZE_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <span className="text-[12px] text-muted-foreground whitespace-nowrap">{from}-{to} of {total}</span>
-        <div className="flex items-center gap-[2px]">
-          <Button variant="ghost" size="icon" disabled={page <= 1} onClick={() => onPage(page - 1)} className="size-[30px] rounded-full disabled:opacity-30" title="Previous page">
-            <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      <div className="flex flex-col gap-[10px] px-[4px] pt-[12px] pb-[8px] bg-background border-t border-border">
+        <div className="flex items-center justify-between px-[4px]">
+          <span className="text-[12.5px] text-muted-foreground whitespace-nowrap tabular-nums">{from}-{to} of {total}</span>
+          <div className="flex items-center gap-[6px]">
+            <span className="text-[12px] text-muted-foreground whitespace-nowrap">Per page</span>
+            <Select value={String(pageSize)} onValueChange={(v) => onPageSize(parseInt(v, 10))}>
+              <SelectTrigger className="h-[30px] w-[62px] rounded-[8px] text-[12.5px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-[6px]">
+          <Button variant="pill-outline" size="icon" disabled={page <= 1} onClick={() => onPage(page - 1)} className="size-[36px] disabled:opacity-30" title="Previous page">
+            <svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </Button>
           {pageWindow(page, totalPages).map((p, i) => p === "ellipsis" ? (
-            <span key={"e" + i} className="px-[2px] text-[12px] text-muted-foreground">&#8230;</span>
+            <span key={"e" + i} className="w-[24px] text-center text-[13px] text-muted-foreground">&#8230;</span>
           ) : (
-            <Button key={p} variant="ghost" onClick={() => onPage(p)} className={"h-[28px] min-w-[28px] px-[6px] rounded-full text-[12.5px] " + (p === page ? "bg-primary text-primary-foreground font-semibold hover:bg-primary hover:text-primary-foreground" : "text-foreground")}>{p}</Button>
+            <Button key={p} variant="ghost" onClick={() => onPage(p)} className={"h-[36px] min-w-[36px] px-[10px] rounded-full text-[14px] tabular-nums " + (p === page ? "bg-primary text-primary-foreground font-semibold hover:bg-primary hover:text-primary-foreground" : "text-foreground border border-border")}>{p}</Button>
           ))}
-          <Button variant="ghost" size="icon" disabled={page >= totalPages} onClick={() => onPage(page + 1)} className="size-[30px] rounded-full disabled:opacity-30" title="Next page">
-            <svg className="size-[13px]" fill="none" viewBox="0 0 16 16"><path d="M6 3L10.5 8L6 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <Button variant="pill-outline" size="icon" disabled={page >= totalPages} onClick={() => onPage(page + 1)} className="size-[36px] disabled:opacity-30" title="Next page">
+            <svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M6 3L10.5 8L6 13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </Button>
         </div>
       </div>

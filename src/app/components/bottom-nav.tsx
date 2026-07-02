@@ -11,6 +11,7 @@ import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
 import { FAB_RIGHT, ADD_FAB_SIZE, ADD_FAB_BOTTOM } from "./mobile-fab-layout";
 import { useInnerScreen } from "./inner-screen";
+import { useFabHidden } from "./fab-visibility";
 
 /* Four navigation tabs only. The create "+" moved out of the pill into the
    floating FAB stack at the bottom-right (the add FAB below plus the
@@ -41,6 +42,7 @@ export function BottomNav({ activePage, onNavigate }: { activePage: string; onNa
   const { setOpenModal } = useTranscriptionModals();
   const [createOpen, setCreateOpen] = useState(false);
   const inner = useInnerScreen();
+  const fabHidden = useFabHidden();
 
   if (inner?.hideNav) return null;
 
@@ -78,7 +80,7 @@ export function BottomNav({ activePage, onNavigate }: { activePage: string; onNa
           <button
             aria-label="New transcription"
             data-mobile-fab="add"
-            className="md:hidden fixed z-[45] flex items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition-transform motion-reduce:transition-none motion-reduce:active:scale-100"
+            className={`md:hidden fixed z-[45] flex items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition-all motion-reduce:transition-none motion-reduce:active:scale-100 ${fabHidden ? "opacity-0 translate-y-3 pointer-events-none" : "opacity-100"}`}
             style={{ right: FAB_RIGHT, bottom: ADD_FAB_BOTTOM, width: ADD_FAB_SIZE, height: ADD_FAB_SIZE, boxShadow: "0 10px 24px -6px rgba(37,99,235,0.5), 0 3px 8px -3px rgba(37,99,235,0.4)" }}
           >
             <Icon icon={Plus} className="size-[26px]" strokeWidth={2} />

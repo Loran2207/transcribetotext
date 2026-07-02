@@ -8,6 +8,7 @@ import { ExportFormatSubMenu } from "./export-format-menu";
 import { ScrollFade } from "./scroll-fade";
 import { Drawer, DrawerContent, DrawerTitle } from "./ui/drawer";
 import { setInnerScreen } from "./inner-screen";
+import { setFabHidden } from "./fab-visibility";
 import {
   exportRecords,
   type ExportableRecord,
@@ -398,6 +399,16 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   const pageScrollRef = useRef<HTMLDivElement>(null);
 
+  /* Hide the floating "+" while the pagination bar (list bottom) is in view so it never overlaps. */
+  useEffect(() => {
+    const el = pageScrollRef.current;
+    if (!el) return;
+    const check = () => setFabHidden(el.scrollHeight - el.scrollTop - el.clientHeight < 96 && el.scrollHeight > el.clientHeight + 40);
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    return () => { el.removeEventListener("scroll", check); setFabHidden(false); };
+  }, [activeFolderId]);
+
   /* Phone chrome: inside a folder the top bar becomes back + "My Records / <name>"
      with the folder kebab on the right; the wrapping desktop header hides below md. */
   useEffect(() => {
@@ -408,8 +419,8 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
       title: activeFolder.name,
       hideNav: true,
       bottomBar: (
-        <Button onClick={() => setFolderAddOpen(true)} className="w-full h-[46px] rounded-full text-[14px] font-semibold gap-[8px]">
-          <Icon icon={CloudUpload} className="size-[17px]" strokeWidth={1.7} />
+        <Button variant="pill-outline" onClick={() => setFolderAddOpen(true)} className="w-full h-[46px] rounded-full text-[14px] font-semibold gap-[8px] text-foreground">
+          <Icon icon={CloudUpload} className="size-[17px] text-foreground" strokeWidth={1.7} />
           Add file
         </Button>
       ),
@@ -599,7 +610,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
         </div>
 
         {/* Folder cards grid */}
-        <div className={isInsideFolder ? "mt-[16px]" : "mt-[24px] max-lg:mt-[16px]"}>
+        <div className={isInsideFolder ? "max-md:mt-0 mt-[16px]" : "mt-[24px] max-lg:mt-[16px]"}>
           <div className="hidden lg:block">
           {demoRecordsLoading && (
             <div className="mb-[20px]">

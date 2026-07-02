@@ -120,7 +120,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   return (
     <TooltipProvider>
     <div className="flex-1 overflow-auto min-w-0">
-      <div className="px-4 lg:px-[32px] pt-[28px] pb-[48px] max-md:pb-[104px]">
+      <div className="px-4 lg:px-[32px] pt-[16px] lg:pt-[28px] pb-[48px] max-md:pb-[104px]">
 
         {/* Breadcrumb */}
         <Breadcrumb className="max-md:hidden">
@@ -136,7 +136,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         </Breadcrumb>
 
         {/* Title + compact actions (aligned with the file detail page) */}
-        <div className="mt-5 mb-7 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+        <div className="max-md:mt-1 mt-5 max-md:mb-5 mb-7 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <div

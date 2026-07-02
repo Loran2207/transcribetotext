@@ -349,22 +349,23 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           </div>
         </div>
 
-        {/* Phone: scope switch below the full-width search field */}
-        <div className="md:hidden flex items-center gap-[6px] px-[14px] py-[8px] shrink-0 border-b border-border">
+        {/* Phone: scope as LINE tabs (matches the app tabs everywhere else) */}
+        <div className="md:hidden flex items-center gap-6 px-[16px] shrink-0 border-b border-border">
           {(["recordings", "folders"] as const).map((sc) => (
             <button
               key={sc}
               type="button"
               onClick={(e) => { e.stopPropagation(); setScope(sc); }}
-              className={`h-[30px] px-[14px] rounded-full text-[13px] font-medium transition-colors ${scope === sc ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+              className={`relative -mb-px py-[10px] text-[13px] font-medium transition-colors ${scope === sc ? "text-primary" : "text-muted-foreground"}`}
             >
               {sc === "recordings" ? "Recordings" : "Folders"}
+              {scope === sc && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />}
             </button>
           ))}
         </div>
 
         {/* ─── Filter Chips ─── */}
-        <div className="flex items-center gap-[6px] px-[14px] py-[8px] shrink-0 flex-wrap border-b border-border">
+        <div className="flex items-center gap-[6px] px-[16px] py-[10px] shrink-0 max-md:overflow-x-auto max-md:flex-nowrap max-md:[&::-webkit-scrollbar]:hidden md:flex-wrap border-b border-border">
           {/* Folders */}
           {scope === "recordings" && (
             <div className="relative" onClick={e => e.stopPropagation()}>

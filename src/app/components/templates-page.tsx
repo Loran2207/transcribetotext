@@ -1244,7 +1244,7 @@ export function TemplatesPage() {
   };
 
   return (
-    <div ref={tplScrollRef} className="flex-1 overflow-auto min-w-0"><ScrollFade scrollRef={tplScrollRef} /><div className="px-4 lg:px-[32px] pt-[28px] pb-[48px]">
+    <div ref={tplScrollRef} className="flex-1 overflow-auto min-w-0"><ScrollFade scrollRef={tplScrollRef} /><div className="px-4 lg:px-[32px] pt-[16px] lg:pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between gap-[12px] mb-[24px]">
         <p className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap">Templates</p>
         
