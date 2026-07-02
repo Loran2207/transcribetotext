@@ -1321,6 +1321,9 @@ interface PageHeaderProps {
   onRegenerateSummary: () => void;
   onSyncTextToAudio: () => void;
   onDelete: () => void;
+  onTranslateTo: (code: string) => void;
+  activeTranslationLang: string | null;
+  translationDisabled: boolean;
 }
 
 function PageHeader({
@@ -1342,6 +1345,9 @@ function PageHeader({
   onRegenerateSummary,
   onSyncTextToAudio,
   onDelete,
+  onTranslateTo,
+  activeTranslationLang,
+  translationDisabled,
 }: PageHeaderProps) {
   const [editingTitle, setEditingTitle] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1373,19 +1379,19 @@ function PageHeader({
             Share
           </Button>
           {hasSummary ? (
-            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer" onClick={onCopySummary}>
+            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onCopySummary}>
               <Icon icon={Copy} className="size-[14px] text-foreground" strokeWidth={1.5} />
               <span className="font-medium text-[13px] text-foreground">Copy summary</span>
             </Button>
           ) : (
-            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer" onClick={onSetTemplate}>
+            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onSetTemplate}>
               <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
               <span className="font-medium text-[13px] text-foreground">Apply template</span>
             </Button>
           )}
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-8 rounded-full" onClick={onCopyLink} aria-label="Copy link">
+              <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" onClick={onCopyLink} aria-label="Copy link">
                 <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.8} />
               </Button>
             </TooltipTrigger>
@@ -1402,6 +1408,45 @@ function PageHeader({
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={8} className="z-[120] w-[230px]">
+              {/* Mobile only: actions relocated from the header row + translate picker */}
+              {hasSummary ? (
+                <DropdownMenuItem className="gap-2 lg:hidden" onClick={onCopySummary}>
+                  <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  Copy summary
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem className="gap-2 lg:hidden" onClick={onSetTemplate}>
+                  <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  Apply template
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem className="gap-2 lg:hidden" onClick={onCopyLink}>
+                <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                Copy link
+              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2 lg:hidden">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-4 text-muted-foreground"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
+                  Translate to
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-[200px]">
+                  {TRANSLATION_LANGUAGES.map((language) => (
+                    <DropdownMenuItem
+                      key={language.code}
+                      className="gap-2"
+                      disabled={translationDisabled}
+                      onClick={() => onTranslateTo(language.code)}
+                    >
+                      <span>{language.flag}</span>
+                      <span className="flex-1">{language.label}</span>
+                      {activeTranslationLang === language.code ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-auto size-3.5 text-primary"><path d="M20 6L9 17l-5-5" /></svg>
+                      ) : null}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator className="lg:hidden" />
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="gap-2">
                   <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
@@ -1470,8 +1515,8 @@ function PageHeader({
         <span>{meta.dateLabel}</span>
         <span className="text-border">{"\u2022"}</span>
         <span>{meta.durationLabel}</span>
-        <span className="text-border">{"\u2022"}</span>
-        <span>{meta.screenshotsCount} {meta.screenshotsCount === 1 ? "screenshot" : "screenshots"}</span>
+        <span className="text-border max-lg:hidden">{"\u2022"}</span>
+        <span className="max-lg:hidden">{meta.screenshotsCount} {meta.screenshotsCount === 1 ? "screenshot" : "screenshots"}</span>
       </div>
     </div>
   );
@@ -2071,22 +2116,26 @@ export function TranscriptionDetailPage() {
     return makeFallbackTranslation(contentSummary, targetLanguage);
   }
 
-  async function handleTranslate() {
-    if (!canApplyTranslation) return;
+  async function handleTranslate(langOverride?: string) {
+    const targetLang = langOverride ?? selectedTranslationLang;
+    if (!targetLang || isTranslationLoading || isJobTranscribing) return;
+    if (!langOverride && !canApplyTranslation) return;
+    if (targetLang === activeTranslationLang) { setActiveTab("transcript-translated"); return; }
+    if (langOverride && langOverride !== selectedTranslationLang) setSelectedTranslationLang(langOverride);
     setIsTranslationLoading(true);
 
     try {
       const [nextTranscript, nextSummary] = await Promise.all([
-        translateTranscriptBatch(selectedTranslationLang),
-        translateSummaryBatch(selectedTranslationLang),
+        translateTranscriptBatch(targetLang),
+        translateSummaryBatch(targetLang),
       ]);
 
       setTranslatedSegments(nextTranscript);
       setTranslatedSummary(nextSummary);
       setTranslationSummaryStatus("done");
-      setActiveTranslationLang(selectedTranslationLang);
+      setActiveTranslationLang(targetLang);
       setActiveTab("transcript-translated");
-      toast.success(`Translated to ${selectedTranslationLang.toUpperCase()}`);
+      toast.success(`Translated to ${targetLang.toUpperCase()}`);
     } finally {
       setIsTranslationLoading(false);
     }
@@ -2418,21 +2467,23 @@ export function TranscriptionDetailPage() {
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <button
                   type="button"
-                  className="rounded-full px-1.5 py-0.5 transition-colors hover:bg-muted/45 hover:text-foreground"
+                  className="rounded-full px-1.5 py-0.5 transition-colors hover:bg-muted/45 hover:text-foreground max-lg:inline-flex max-lg:items-center max-lg:gap-1"
                   onClick={() => navigate("/", { state: { page: "calendar" } })}
                 >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3.5 lg:hidden"><path d="M15 18l-6-6 6-6" /></svg>
                   Meetings
                 </button>
-                <span className="text-muted-foreground/50">/</span>
-                <span className="truncate text-xs text-muted-foreground">{title}</span>
+                <span className="text-muted-foreground/50 max-lg:hidden">/</span>
+                <span className="truncate text-xs text-muted-foreground max-lg:hidden">{title}</span>
               </div>
             ) : selectedFolder ? (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <button
                   type="button"
-                  className="rounded-full px-1.5 py-0.5 transition-colors hover:bg-muted/45 hover:text-foreground"
+                  className="rounded-full px-1.5 py-0.5 transition-colors hover:bg-muted/45 hover:text-foreground max-lg:inline-flex max-lg:items-center max-lg:gap-1"
                   onClick={() => navigate("/")}
                 >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3.5 lg:hidden"><path d="M15 18l-6-6 6-6" /></svg>
                   My records
                 </button>
                 <span className="text-muted-foreground/50">/</span>
@@ -2440,14 +2491,14 @@ export function TranscriptionDetailPage() {
                   <span className="size-1.5 rounded-full" style={{ backgroundColor: selectedFolder.color }} />
                   <span>{selectedFolder.name}</span>
                 </span>
-                <span className="text-muted-foreground/50">/</span>
-                <span className="truncate text-xs text-muted-foreground">{title}</span>
+                <span className="text-muted-foreground/50 max-lg:hidden">/</span>
+                <span className="truncate text-xs text-muted-foreground max-lg:hidden">{title}</span>
               </div>
             ) : (
               <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
             )}
           </div>
-          <div className="inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
+          <div className="inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 max-lg:hidden">
             <Select
               value={selectedTranslationLang || undefined}
               onValueChange={setSelectedTranslationLang}
@@ -2510,6 +2561,9 @@ export function TranscriptionDetailPage() {
           onRegenerateSummary={regenerateSummary}
           onSyncTextToAudio={syncTextToAudio}
           onDelete={deleteTranscript}
+          onTranslateTo={(code) => { void handleTranslate(code); }}
+          activeTranslationLang={activeTranslationLang}
+          translationDisabled={isTranslationLoading || isJobTranscribing}
         />
         <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
 
