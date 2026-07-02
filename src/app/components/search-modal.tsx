@@ -326,7 +326,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
       >
         {/* ─── Search Header ─── */}
         <div className="flex items-center gap-[8px] px-[14px] h-[52px] shrink-0 border-b border-border">
-          <ScopeSelector scope={scope} onChange={setScope} />
+          <div className="shrink-0 max-md:hidden"><ScopeSelector scope={scope} onChange={setScope} /></div>
           <div className="flex items-center gap-[8px] flex-1 min-w-0" onClick={e => e.stopPropagation()}>
             <Icon icon={Search} className="size-[15px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
             <Input
@@ -347,6 +347,20 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
               <Icon icon={X} className="size-[15px] text-muted-foreground" strokeWidth={1.5} />
             </Button>
           </div>
+        </div>
+
+        {/* Phone: scope switch below the full-width search field */}
+        <div className="md:hidden flex items-center gap-[6px] px-[14px] py-[8px] shrink-0 border-b border-border">
+          {(["recordings", "folders"] as const).map((sc) => (
+            <button
+              key={sc}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setScope(sc); }}
+              className={`h-[30px] px-[14px] rounded-full text-[13px] font-medium transition-colors ${scope === sc ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+            >
+              {sc === "recordings" ? "Recordings" : "Folders"}
+            </button>
+          ))}
         </div>
 
         {/* ─── Filter Chips ─── */}

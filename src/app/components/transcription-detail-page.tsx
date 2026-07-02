@@ -145,7 +145,7 @@ function mapJobToDetailRecord(job: TranscriptionJob): RecordRow {
     name: job.name,
     iconColor: "#3B82F6",
     iconType: "square",
-    duration: isDone ? (job.duration ?? "\u2014") : isError ? "Failed" : "In progress",
+    duration: isDone ? (job.duration ?? "-") : isError ? "Failed" : "In progress",
     dateCreated: dateParts.dateCreated,
     dateGroup: dateParts.dateGroup,
     template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
@@ -187,14 +187,14 @@ const LIVE_RECORDING_SPEAKER: Speaker = {
 };
 
 const MOCK_SEGMENTS: Segment[] = [
-  { id: 1, speaker: SPEAKERS[0], timestamp: "0:01", text: "Good morning everyone. Let's get started with the weekly sync. I wanted to cover three main topics today \u2014 the product roadmap update, the Q2 planning timeline, and a quick review of the design handoff process." },
+  { id: 1, speaker: SPEAKERS[0], timestamp: "0:01", text: "Good morning everyone. Let's get started with the weekly sync. I wanted to cover three main topics today - the product roadmap update, the Q2 planning timeline, and a quick review of the design handoff process." },
   { id: 2, speaker: SPEAKERS[1], timestamp: "0:32", text: "Sounds good. Before we dive in, I just want to flag that the design team finished the new onboarding flow mockups yesterday. I'll share the Figma link in Slack after this call." },
   { id: 3, speaker: SPEAKERS[2], timestamp: "0:58", text: "Great, that's actually related to what I wanted to bring up. The engineering team has been waiting on those mockups to start the sprint planning for next week. We'll need to review them by Thursday at the latest." },
   { id: 4, speaker: SPEAKERS[0], timestamp: "1:24", text: "Perfect. Let's make sure we schedule a quick design review session tomorrow or Wednesday. Maria, can you coordinate that with the design leads?" },
   { id: 5, speaker: SPEAKERS[1], timestamp: "1:45", text: "Absolutely. I'll set something up for Wednesday morning. That gives us a day to incorporate any feedback before James's team picks it up on Thursday." },
   { id: 6, speaker: SPEAKERS[2], timestamp: "2:10", text: "Works for me. On the roadmap side, we're about 80% through the current milestone. The remaining items are mostly backend API work and some performance optimizations. I don't see any blockers at this point." },
   { id: 7, speaker: SPEAKERS[0], timestamp: "2:42", text: "That's encouraging. Let's keep the momentum going. Any questions or concerns before we move on to Q2 planning?" },
-  { id: 8, speaker: SPEAKERS[1], timestamp: "3:05", text: "One thing \u2014 we should probably discuss the user research findings from last week. Some of the feedback might influence the Q2 priorities, especially around the notification system." },
+  { id: 8, speaker: SPEAKERS[1], timestamp: "3:05", text: "One thing - we should probably discuss the user research findings from last week. Some of the feedback might influence the Q2 priorities, especially around the notification system." },
   { id: 9, speaker: SPEAKERS[2], timestamp: "3:28", text: "Agreed. The data shows that about 40% of users are finding the current notification settings confusing. That's a significant usability issue we should address sooner rather than later." },
   { id: 10, speaker: SPEAKERS[0], timestamp: "3:55", text: "Good point. Let's add that to the Q2 discussion. I'll create a separate agenda item for the next planning meeting. Anything else?" },
   { id: 11, speaker: SPEAKERS[1], timestamp: "4:18", text: "Nothing from my side. I think we're in good shape overall." },
@@ -221,7 +221,7 @@ const MOCK_OUTLINE: OutlineSection[] = [
 ];
 
 const MOCK_COMMENTS: Comment[] = [
-  { id: "c1", segmentId: 3, quote: "The engineering team has been waiting on those mockups...", timestamp: "0:58", author: "Alex Johnson", avatarColor: "#3b82f6", avatarInitial: "A", text: "We should track this dependency more formally going forward.", createdAt: "2h ago", replies: [{ id: "r1", author: "James Chen", avatarColor: "#10b981", avatarInitial: "J", text: "Agreed \u2014 I'll add it to our sprint retro.", createdAt: "1h ago" }] },
+  { id: "c1", segmentId: 3, quote: "The engineering team has been waiting on those mockups...", timestamp: "0:58", author: "Alex Johnson", avatarColor: "#3b82f6", avatarInitial: "A", text: "We should track this dependency more formally going forward.", createdAt: "2h ago", replies: [{ id: "r1", author: "James Chen", avatarColor: "#10b981", avatarInitial: "J", text: "Agreed - I'll add it to our sprint retro.", createdAt: "1h ago" }] },
   { id: "c2", segmentId: 9, quote: "40% of users are finding the current notification settings confusing", timestamp: "3:28", author: "Maria Garcia", avatarColor: "#8b5cf6", avatarInitial: "M", text: "This aligns with what we saw in the support tickets last month. Definitely needs attention.", createdAt: "45m ago", replies: [] },
 ];
 
@@ -1359,9 +1359,9 @@ function PageHeader({
 
   return (
     <div className="px-4 pt-4 pb-0 lg:px-8 lg:pt-6">
-      <div className="mb-2 flex items-start justify-between gap-4 max-md:flex-col max-md:items-start">
+      <div className="mb-2 flex items-start justify-between gap-4">
         <div
-          className={`min-w-0 flex-1 max-md:w-full rounded-xl py-2 pr-2 pl-0 transition-colors ${
+          className={`min-w-0 flex-1 rounded-xl py-2 pr-2 pl-0 transition-colors ${
             editingTitle ? "bg-muted/55" : "cursor-text hover:bg-muted/45"
           }`}
           onClick={() => { if (!editingTitle) setEditingTitle(true); }}
@@ -1372,9 +1372,9 @@ function PageHeader({
             <h1 className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal">{title}</h1>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 max-md:w-full max-md:justify-start">
-          <SharedUsersAvatars shares={shares} />
-          <Button size="sm" className="h-8 rounded-full gap-2 px-4 text-sm" onClick={onShare}>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>
+          <Button size="sm" className="h-8 rounded-full gap-2 px-4 text-sm max-md:hidden" onClick={onShare}>
             <Icon icon={Share} className="size-4" strokeWidth={1.7} />
             Share
           </Button>
@@ -1410,22 +1410,22 @@ function PageHeader({
             <DropdownMenuContent align="end" sideOffset={8} className="z-[120] w-[230px]">
               {/* Mobile only: actions relocated from the header row + translate picker */}
               {hasSummary ? (
-                <DropdownMenuItem className="gap-2 lg:hidden" onClick={onCopySummary}>
+                <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={onCopySummary}>
                   <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                   Copy summary
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem className="gap-2 lg:hidden" onClick={onSetTemplate}>
+                <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={onSetTemplate}>
                   <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                   Apply template
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem className="gap-2 lg:hidden" onClick={onCopyLink}>
+              <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={onCopyLink}>
                 <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                 Copy link
               </DropdownMenuItem>
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2 lg:hidden">
+                <DropdownMenuSubTrigger className="gap-2 max-md:hidden lg:hidden">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-4 text-muted-foreground"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
                   Translate to
                 </DropdownMenuSubTrigger>
@@ -1446,7 +1446,7 @@ function PageHeader({
                   ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuSeparator className="lg:hidden" />
+              <DropdownMenuSeparator className="max-md:hidden lg:hidden" />
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="gap-2">
                   <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
@@ -1498,13 +1498,13 @@ function PageHeader({
         </div>
       </div>
       <div className="flex items-center gap-3 text-xs text-muted-foreground max-lg:flex-wrap">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 max-md:hidden">
           <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
           <span>{displayName}</span>
         </div>
         {source && (
           <>
-            <span className="text-border">{"\u2022"}</span>
+            <span className="text-border max-md:hidden">{"\u2022"}</span>
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="scale-[0.9]"><SourceIcon source={source} /></span>
               <span>{getSourceLabel(source)}</span>
@@ -1517,6 +1517,47 @@ function PageHeader({
         <span>{meta.durationLabel}</span>
         <span className="text-border max-lg:hidden">{"\u2022"}</span>
         <span className="max-lg:hidden">{meta.screenshotsCount} {meta.screenshotsCount === 1 ? "screenshot" : "screenshots"}</span>
+      </div>
+      {/* Phone action tiles: Share / Translate / Copy-or-Template / Copy link */}
+      <div className="md:hidden mt-3 grid grid-cols-4 gap-2">
+        <button type="button" onClick={onShare} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
+          <Icon icon={Share} className="size-[18px] text-foreground" strokeWidth={1.7} />
+          <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Share</span>
+        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" disabled={translationDisabled} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-[18px] text-foreground"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
+              <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Translate</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" sideOffset={6} className="z-[120] w-[200px]">
+            {TRANSLATION_LANGUAGES.map((language) => (
+              <DropdownMenuItem key={language.code} className="gap-2" disabled={translationDisabled} onClick={() => onTranslateTo(language.code)}>
+                <span>{language.flag}</span>
+                <span className="flex-1">{language.label}</span>
+                {activeTranslationLang === language.code ? (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-auto size-3.5 text-primary"><path d="M20 6L9 17l-5-5" /></svg>
+                ) : null}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {hasSummary ? (
+          <button type="button" onClick={onCopySummary} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
+            <Icon icon={Copy} className="size-[18px] text-foreground" strokeWidth={1.7} />
+            <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Copy</span>
+          </button>
+        ) : (
+          <button type="button" onClick={onSetTemplate} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
+            <Icon icon={Zap} className="size-[18px] text-foreground" strokeWidth={1.7} />
+            <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Template</span>
+          </button>
+        )}
+        <button type="button" onClick={onCopyLink} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
+          <Icon icon={Link} className="size-[18px] text-foreground" strokeWidth={1.7} />
+          <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Copy link</span>
+        </button>
       </div>
     </div>
   );
@@ -1583,7 +1624,7 @@ export function TranscriptionDetailPage() {
   const previewSegments = selectedJob?.livePreviewSegments ?? [];
 
 
-  const fallbackTitle = isLiveRecordingRoute ? "Live note" : "Weekly Team Sync \u2014 Product & Engineering";
+  const fallbackTitle = isLiveRecordingRoute ? "Live note" : "Weekly Team Sync - Product & Engineering";
   const recordTitle = selectedRecord ? getName(selectedRecord.id, selectedRecord.name) : fallbackTitle;
   const selectedFolder = useMemo(() => {
     if (!selectedRecord) return null;

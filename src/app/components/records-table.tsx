@@ -957,7 +957,7 @@ function mapJobToRecord(job: TranscriptionJob): RecordRow {
     name: job.name,
     iconColor: "#3B82F6",
     iconType: "square",
-    duration: isDone ? (job.duration ?? "\u2014") : isError ? "Failed" : "In progress",
+    duration: isDone ? (job.duration ?? "-") : isError ? "Failed" : "In progress",
     dateCreated: dateParts.dateCreated,
     dateGroup: dateParts.dateGroup,
     template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
@@ -1376,6 +1376,58 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         resourceName={displayRecords.find(r => r.id === shareDialogRecord)?.name ?? ""}
       />
 
+      {/* Mobile / tablet folder block (below lg): Google Drive pattern - a horizontally
+          scrollable row of compact folder chips ABOVE the tab strip. */}
+      <div className="lg:hidden">
+        {scopedFolderId ? (
+          <button
+            type="button"
+            onClick={() => onOpenFolder?.(null)}
+            aria-label={t("nav.myRecords")}
+            className="mt-[12px] mb-[6px] flex items-center gap-[8px] w-full h-[40px] px-[6px] rounded-[12px] text-left active:bg-muted/60 transition-colors"
+          >
+            <span className="flex items-center justify-center size-[28px] shrink-0 text-muted-foreground">
+              <svg className="size-[18px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </span>
+            {scopedFolder && <svg className="size-[18px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={scopedFolder.color} /></svg>}
+            <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-foreground">{scopedFolder?.name ?? t("nav.myRecords")}</span>
+          </button>
+        ) : (
+          <div className="mt-[12px] mb-[6px]">
+            <div className="flex items-center justify-between px-[2px] mb-[8px]">
+              <span className="text-[15px] leading-[20px] font-semibold text-foreground">{t("folder.folders")}</span>
+              <Button variant="ghost" size="icon" onClick={() => setFolderModalOpen(true)} className="size-[32px] text-muted-foreground" aria-label={t("folder.addFolder")} title={t("folder.addFolder")}>
+                <Icon icon={FolderPlus} className="size-[18px]" strokeWidth={1.7} />
+              </Button>
+            </div>
+            {userFolders.length > 0 && (
+              <div className="flex gap-[8px] overflow-x-auto scrollbar-hide -mx-[16px] px-[16px] md:-mx-[24px] md:px-[24px] pb-[2px]">
+                {userFolders.map((folder) => {
+                  const count = mobileFolderCounts.get(folder.id) ?? 0;
+                  return (
+                    <button
+                      key={folder.id}
+                      type="button"
+                      onClick={() => onOpenFolder?.(folder.id)}
+                      className="group shrink-0 flex items-center gap-[8px] h-[48px] pl-[10px] pr-[14px] rounded-[14px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left"
+                    >
+                      <span className="shrink-0 flex items-center justify-center size-[30px] rounded-[9px] bg-muted">
+                        <svg className="size-[17px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
+                      </span>
+                      <span className="min-w-0 flex flex-col gap-[1px]">
+                        <span className="truncate font-medium text-[13px] leading-[17px] text-foreground max-w-[128px]">{folder.name}</span>
+                        <span className="text-[11px] leading-[14px] text-muted-foreground">{t(count === 1 ? "folder.fileOne" : "folder.fileOther", count)}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+
       {/* Tabs */}
       <div className="relative">
         <div className="flex items-center">
@@ -1429,57 +1481,6 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
           )}
 
         </div>
-      </div>
-
-      {/* Mobile / tablet folder block (below lg): folders live above the record card list. */}
-      <div className="lg:hidden">
-        {scopedFolderId ? (
-          <button
-            type="button"
-            onClick={() => onOpenFolder?.(null)}
-            aria-label={t("nav.myRecords")}
-            className="mt-[12px] mb-[6px] flex items-center gap-[8px] w-full h-[40px] px-[6px] rounded-[12px] text-left active:bg-muted/60 transition-colors"
-          >
-            <span className="flex items-center justify-center size-[28px] shrink-0 text-muted-foreground">
-              <svg className="size-[18px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </span>
-            {scopedFolder && <svg className="size-[18px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={scopedFolder.color} /></svg>}
-            <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-foreground">{scopedFolder?.name ?? t("nav.myRecords")}</span>
-          </button>
-        ) : (
-          <div className="mt-[12px] mb-[6px]">
-            <div className="flex items-center justify-between px-[2px] mb-[8px]">
-              <span className="text-[15px] leading-[20px] font-semibold text-foreground">{t("folder.folders")}</span>
-              <Button variant="ghost" size="icon" onClick={() => setFolderModalOpen(true)} className="size-[32px] text-muted-foreground" aria-label={t("folder.addFolder")} title={t("folder.addFolder")}>
-                <Icon icon={FolderPlus} className="size-[18px]" strokeWidth={1.7} />
-              </Button>
-            </div>
-            {userFolders.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
-                {userFolders.map((folder) => {
-                  const count = mobileFolderCounts.get(folder.id) ?? 0;
-                  return (
-                    <button
-                      key={folder.id}
-                      type="button"
-                      onClick={() => onOpenFolder?.(folder.id)}
-                      className="group flex items-center gap-[10px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left"
-                    >
-                      <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
-                        <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
-                      </span>
-                      <span className="flex-1 min-w-0 flex flex-col gap-[2px]">
-                        <span className="truncate font-semibold text-[14px] leading-[19px] text-foreground">{folder.name}</span>
-                        <span className="text-[12px] leading-[16px] text-muted-foreground">{t(count === 1 ? "folder.fileOne" : "folder.fileOther", count)}</span>
-                      </span>
-                      <Icon icon={ChevronRight} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.7} />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}

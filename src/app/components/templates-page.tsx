@@ -182,7 +182,7 @@ export function sectionIcon(title: string, iconId?: string) {
 // `auto-rows-fr` makes every card in a row stretch to the tallest card, which
 // combined with the card's internal `flex flex-col` + `flex-1` on the preview
 // block keeps the footer pinned to the bottom.
-const CARD_GRID_CLASS = "grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 auto-rows-fr";
+const CARD_GRID_CLASS = "grid gap-[10px] lg:gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 lg:auto-rows-fr";
 
 // ---------------------------------------------------------------------------
 // Template card
@@ -242,7 +242,7 @@ function TemplateCard({
         }
       } : undefined}
       className={cn(
-        "relative rounded-[18px] transition-all overflow-hidden outline-none flex flex-col h-full",
+        "relative rounded-[18px] lg:min-h-[236px] transition-all overflow-hidden outline-none flex flex-col h-full",
         "focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2",
         clickable ? "cursor-pointer" : "cursor-default",
       )}
@@ -250,7 +250,6 @@ function TemplateCard({
         background: cardBg,
         boxShadow: cardShadow,
         padding: "18px",
-        minHeight: 236,
         transform: hovered ? "translateY(-2px)" : "translateY(0)",
         transitionDuration: "180ms",
         transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
@@ -1055,6 +1054,7 @@ const CATEGORY_TAB_IDS = TEMPLATE_CATEGORIES
   .map((c) => c.id) as CategoryTabId[];
 
 export function TemplatesPage() {
+  const tplScrollRef = useRef<HTMLDivElement>(null);
   const { templates, isLoading, create, update, remove } = useTemplates();
   const [detailTarget, setDetailTarget] = useState<Template | "new" | null>(null);
 
@@ -1243,7 +1243,6 @@ export function TemplatesPage() {
     return <>{starredSection}{categorySections}</>;
   };
 
-  const tplScrollRef = useRef<HTMLDivElement>(null);
   return (
     <div ref={tplScrollRef} className="flex-1 overflow-auto min-w-0"><ScrollFade scrollRef={tplScrollRef} /><div className="px-4 lg:px-[32px] pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between gap-[12px] mb-[24px]">

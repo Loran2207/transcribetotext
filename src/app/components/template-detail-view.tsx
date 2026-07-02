@@ -76,6 +76,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   const sample = getTemplateSample(template);
 
   const [isStarred, setIsStarred] = useState(() => loadStarred().has(template.id));
+  const [exampleOpen, setExampleOpen] = useState(false);
 
   const [appliedFiles, setAppliedFiles] = useState<typeof records>([]);
   const usageIds = USAGE_BY_CATEGORY[categorize(template)] ?? [];
@@ -212,11 +213,11 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         </div>
 
         {/* Two-column: large example (left) + summary card (right) */}
-        <div className="flex flex-col gap-8 lg:flex-row lg:gap-10 lg:items-start">
+        <div className="flex flex-col-reverse gap-8 lg:flex-row lg:gap-10 lg:items-start">
 
           {/* Left - the source recording example, full width */}
-          <div className="flex-1 min-w-0">
-            <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="flex-1 min-w-0 flex flex-col gap-6">
+            <div className="relative rounded-2xl border border-border bg-card overflow-hidden max-lg:order-2">
               <div className="px-7 pt-6 pb-5 border-b border-border/60">
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Example recording</p>
@@ -224,7 +225,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                   <p className="text-[12px] text-muted-foreground mt-0.5">{sample.source.meta}</p>
                 </div>
               </div>
-              <div className="px-7 py-6 flex flex-col gap-5">
+              <div className={`px-7 py-6 flex flex-col gap-5 ${exampleOpen ? "" : "max-lg:max-h-[300px] max-lg:overflow-hidden"}`}>
                 {(() => {
                   const speakerColor = new Map();
                   for (const sg of sample.source.segments) {
@@ -255,10 +256,25 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                   Recording continues - this is a short excerpt.
                 </p>
               </div>
+              <div className="lg:hidden relative">
+                {!exampleOpen && (
+                  <div
+                    className="pointer-events-none absolute -top-[72px] left-0 right-0 h-[72px]"
+                    style={{ background: "linear-gradient(to top, #ffffff 8%, rgba(255,255,255,0.02))" }}
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setExampleOpen((v) => !v)}
+                  className="w-full h-[44px] border-t border-border/60 text-[13px] font-medium text-primary active:bg-muted/60 transition-colors"
+                >
+                  {exampleOpen ? "Show less" : "Show full example"}
+                </button>
+              </div>
             </div>
 
             {/* Usage history */}
-            <div className="mt-6">
+            <div className="max-lg:order-1 lg:mt-0">
               <h3 className="text-[14px] font-semibold text-foreground mb-1">Recently used in</h3>
               <p className="text-[12px] text-muted-foreground mb-3">
                 Files where this template generated the summary.
