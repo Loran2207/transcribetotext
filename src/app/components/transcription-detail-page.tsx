@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -1403,7 +1403,7 @@ function PageHeader({
               <button
                 type="button"
                 aria-label="More actions"
-                className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="max-md:hidden inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 <Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} />
               </button>
@@ -1544,21 +1544,39 @@ function PageHeader({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-        {hasSummary ? (
-          <button type="button" onClick={onCopySummary} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
-            <Icon icon={Copy} className="size-[18px] text-foreground" strokeWidth={1.7} />
-            <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Copy</span>
-          </button>
-        ) : (
-          <button type="button" onClick={onSetTemplate} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
-            <Icon icon={Zap} className="size-[18px] text-foreground" strokeWidth={1.7} />
-            <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Template</span>
-          </button>
-        )}
-        <button type="button" onClick={onCopyLink} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
-          <Icon icon={Link} className="size-[18px] text-foreground" strokeWidth={1.7} />
-          <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Copy link</span>
+        <button type="button" onClick={onCopySummary} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
+          <Icon icon={Copy} className="size-[18px] text-foreground" strokeWidth={1.7} />
+          <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Copy</span>
         </button>
+        {/* More: secondary actions. Applying a template lives on the Summary tab, so it is a
+            secondary action here (also reachable from the Summary tab picker), not a top tile. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button type="button" className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors">
+              <Icon icon={MoreHorizontal} className="size-[18px] text-foreground" strokeWidth={2} />
+              <span className="text-[11.5px] leading-none font-medium text-muted-foreground">More</span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[210px]">
+            <DropdownMenuItem className="gap-2" onClick={onCopyLink}>
+              <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+              Copy link
+            </DropdownMenuItem>
+            <DropdownMenuItem className="gap-2" onClick={onSetTemplate}>
+              <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+              Apply template
+            </DropdownMenuItem>
+            <DropdownMenuItem className="gap-2" onSelect={() => onExport()}>
+              <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+              Export…
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem variant="destructive" className="gap-2" onClick={onDelete}>
+              <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

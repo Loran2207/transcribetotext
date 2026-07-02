@@ -290,6 +290,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
   // Create folder dialog
   const [createOpen, setCreateOpen] = useState(false);
   const [folderAddOpen, setFolderAddOpen] = useState(false);
+  const [folderActionsOpen, setFolderActionsOpen] = useState(false);
   // If set, after creating a new folder we move this folder ID into it
   const [moveAfterCreate, setMoveAfterCreate] = useState<string | null>(null);
 
@@ -413,31 +414,26 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
      with the folder kebab on the right; the wrapping desktop header hides below md. */
   useEffect(() => {
     if (!activeFolder) { setInnerScreen(null); return; }
+    // Max nesting is two levels (folder in folder). The top bar shows the immediate
+    // parent + current folder ("Client Calls / Q2 notes" when nested, "My Records /
+    // Client Calls" at the top level); back climbs ONE level. The folder "..." moved
+    // to the bottom bar (next to Add file) since it acts on the whole folder.
+    const parentFolder = activeFolderPath.length > 1 ? activeFolderPath[activeFolderPath.length - 2] : null;
     setInnerScreen({
-      back: () => setActiveFolderId(null),
-      parent: t("nav.myRecords"),
+      back: () => setActiveFolderId(parentFolder ? parentFolder.id : null),
+      parent: parentFolder ? parentFolder.name : t("nav.myRecords"),
       title: activeFolder.name,
       hideNav: true,
       bottomBar: (
-        <Button variant="pill-outline" onClick={() => setFolderAddOpen(true)} className="w-full h-[46px] rounded-full text-[14px] font-semibold gap-[8px] text-foreground">
-          <Icon icon={CloudUpload} className="size-[17px] text-foreground" strokeWidth={1.7} />
-          Add file
-        </Button>
-      ),
-      menu: (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-[40px] shrink-0 text-foreground" aria-label="Folder actions">
-              <Icon icon={MoreHorizontal} className="size-5" strokeWidth={2} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[190px]">
-            <DropdownMenuItem className="gap-2" onClick={() => setEditingFolder(activeFolder)}>
-              <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-              Edit folder
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-[10px]">
+          <Button variant="pill-outline" onClick={() => setFolderAddOpen(true)} className="flex-1 h-[46px] rounded-full text-[14px] font-semibold gap-[8px] text-foreground">
+            <Icon icon={CloudUpload} className="size-[17px] text-foreground" strokeWidth={1.7} />
+            Add file
+          </Button>
+          <Button variant="pill-outline" size="icon" onClick={() => setFolderActionsOpen(true)} className="size-[46px] shrink-0 text-foreground" aria-label="Folder actions">
+            <Icon icon={MoreHorizontal} className="size-5" strokeWidth={2} />
+          </Button>
+        </div>
       ),
     });
     return () => setInnerScreen(null);
@@ -742,6 +738,26 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
           }
         }}
       />
+
+      {/* Folder actions sheet (opened from the "..." in the bottom bar) - acts on the whole folder */}
+      <Drawer open={folderActionsOpen} onOpenChange={setFolderActionsOpen}>
+        <DrawerContent className="[&>div:first-child]:hidden">
+          <div className="flex items-center gap-[10px] px-[18px] pt-[18px] pb-[10px]">
+            {activeFolder && <svg className="size-[22px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={FOLDER_PATH} fill={activeFolder.color} /></svg>}
+            <DrawerTitle className="flex-1 min-w-0 truncate" style={{ fontSize: 15, fontWeight: 600 }}>{activeFolder?.name}</DrawerTitle>
+          </div>
+          <div className="px-[10px] pb-[calc(16px+env(safe-area-inset-bottom))] pt-[4px] flex flex-col">
+            <button onClick={() => { setFolderActionsOpen(false); if (activeFolder) setEditingFolder(activeFolder); }} className="flex items-center gap-[13px] h-[52px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
+              <Icon icon={Edit} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
+              <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Edit folder</span>
+            </button>
+            <button onClick={() => { setFolderActionsOpen(false); if (activeFolder) setDeletingFolderId(activeFolder.id); }} className="flex items-center gap-[13px] h-[52px] px-[12px] rounded-[12px] active:bg-destructive/10 transition-colors text-left">
+              <Icon icon={Trash} className="size-[19px] text-destructive" strokeWidth={1.7} />
+              <span className="flex-1 text-destructive" style={{ fontSize: 14, fontWeight: 500 }}>Delete folder</span>
+            </button>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Folder inner-screen: the pinned "Add file" bar opens these create options, scoped to the folder */}
       <Drawer open={folderAddOpen} onOpenChange={setFolderAddOpen}>
