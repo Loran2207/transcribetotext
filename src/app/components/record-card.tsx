@@ -134,7 +134,7 @@ export function RecordCard({ record }: { record: RecordRow }) {
       </div>
 
       {/* Wrapper stops the click bubbling to the card */}
-      <div onClick={(e) => e.stopPropagation()} className="shrink-0 -mr-[4px]">
+      <div onClick={(e) => e.stopPropagation()} className="shrink-0 -mr-[4px] self-center">
         {isMobile ? (
           <Button variant="ghost" size="icon" onClick={() => setSheetOpen(true)} className="size-[32px] text-muted-foreground" aria-label="Record actions">
             <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={1.8} />

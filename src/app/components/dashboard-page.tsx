@@ -12,7 +12,7 @@ import { useUserProfile } from "./user-profile-context";
 import { RecordsListMobile } from "./records-list-mobile";
 import { AnalyticsStrip } from "./analytics-strip";
 import { ScrollFade } from "./scroll-fade";
-import { BannerCarousel } from "./banner-carousel";
+import { UpgradeBanner } from "./upgrade-banner";
 
 /* ═══════════════════════════════════════════
    Card 1: Instant Speach
@@ -448,11 +448,11 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             <RecordsTable onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />
           </motion.div>
 
-          {/* Mobile + tablet: Pro-only analytics strip, expands to the full card */}
+          {/* Mobile + tablet: analytics banner (all plans), expands to the full card */}
           <AnalyticsStrip />
 
-          {/* Mobile + tablet: paywall + promo banner carousel */}
-          <BannerCarousel />
+          {/* Mobile + tablet: upgrade banner (free users only) */}
+          <UpgradeBanner />
 
           {/* Mobile + tablet: recent records as a flat list, rendered directly */}
           <div className="mt-[20px] lg:hidden">

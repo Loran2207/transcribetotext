@@ -705,7 +705,7 @@ const folderColors = [
   { id: "purple", color: "#8B5CF6" }, { id: "pink", color: "#EC4899" }, { id: "cyan", color: "#06B6D4" }, { id: "gray", color: "#6B7280" },
 ];
 
-function CreateFolderModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (name: string, color: string) => void }) {
+export function CreateFolderModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (name: string, color: string) => void }) {
   const [name, setName] = useState("");
   const [selectedColor, setSelectedColor] = useState("#3B82F6");
   const inputRef = useRef<HTMLInputElement>(null);

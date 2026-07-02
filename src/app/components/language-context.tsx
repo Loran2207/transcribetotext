@@ -73,6 +73,9 @@ const dict: Record<string, Record<LangCode, string>> = {
   "dash.banner.unlockPro": { en: "Unlock everything with Pro", ru: "Откройте всё с Pro", es: "Desbloquea todo con Pro", de: "Alles mit Pro freischalten", fr: "Débloquez tout avec Pro", ja: "Proですべてを解除" },
   "dash.tab.analytics": { en: "Analytics", ru: "Аналитика", es: "Analíticas", de: "Analysen", fr: "Analyses", ja: "分析" },
   "dash.analytics.summary": { en: "{0} files - {1} hrs", ru: "{0} файлов - {1} ч", es: "{0} archivos - {1} h", de: "{0} Dateien - {1} Std", fr: "{0} fichiers - {1} h", ja: "{0} ファイル - {1} 時間" },
+  "dash.analytics.files": { en: "files", ru: "файлов", es: "archivos", de: "Dateien", fr: "fichiers", ja: "ファイル" },
+  "dash.analytics.hrs": { en: "hrs", ru: "ч", es: "h", de: "Std", fr: "h", ja: "時間" },
+  "dash.banner.proSub": { en: "Unlimited files, longer recordings, and more", ru: "Безлимитные файлы, длинные записи и больше", es: "Archivos ilimitados, grabaciones más largas y más", de: "Unbegrenzte Dateien, längere Aufnahmen und mehr", fr: "Fichiers illimités, enregistrements plus longs et plus", ja: "無制限のファイル、より長い録音など" },
 
   // ── Records table ──
   "table.myRecords": { en: "My Records", ru: "Мои записи", es: "Mis grabaciones", de: "Meine Aufnahmen", fr: "Mes enregistrements", ja: "マイレコード" },
