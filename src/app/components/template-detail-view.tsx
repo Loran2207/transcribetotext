@@ -154,7 +154,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 pt-0.5">
+          <div className="max-md:hidden flex items-center gap-2 shrink-0 pt-0.5">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -223,16 +223,17 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         </div>
 
         {/* Two-column: large example (left) + summary card (right) */}
-        {/* Phone/tablet: one switcher instead of two stacked cards - compare Summary vs Example */}
-        <div className="lg:hidden mb-4 flex items-center gap-[6px]">
+        {/* Phone/tablet: line tabs (matches the category tabs) to compare Summary vs Example */}
+        <div className="lg:hidden mb-5 flex items-center gap-6 border-b border-border">
           {(["summary", "example"] as const).map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => setDetailTab(tab)}
-              className={`h-[32px] px-[16px] rounded-full text-[13px] font-medium transition-colors ${detailTab === tab ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+              className={`relative -mb-px pb-2.5 text-[13px] font-medium transition-colors ${detailTab === tab ? "text-primary" : "text-muted-foreground"}`}
             >
               {tab === "summary" ? "Summary" : "Example"}
+              {detailTab === tab && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />}
             </button>
           ))}
         </div>
@@ -323,40 +324,22 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                   </Popover>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="pl-5 text-[11px]">Name</TableHead>
-                        <TableHead className="text-[11px]">Template</TableHead>
-                        <TableHead className="text-[11px]">Duration</TableHead>
-                        <TableHead className="pr-5 text-[11px]">Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {usedIn.map((r) => (
-                        <TableRow
-                          key={r.id}
-                          className="cursor-pointer"
-                          onClick={() => navigate(`/transcriptions/${r.id}`)}
-                        >
-                          <TableCell className="pl-5 max-w-[340px]">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <SourceIcon source={r.source} />
-                              <span className="text-[13px] font-medium text-foreground truncate">{r.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-[3px] text-[11px] text-muted-foreground whitespace-nowrap">
-                              {template.name}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">{r.duration}</TableCell>
-                          <TableCell className="pr-5 text-[12px] text-muted-foreground whitespace-nowrap">{r.dateCreated}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
+                  {usedIn.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => navigate(`/transcriptions/${r.id}`)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-muted/50 hover:bg-muted/30 transition-colors"
+                    >
+                      <span className="shrink-0"><SourceIcon source={r.source} /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-medium text-foreground truncate">{r.name}</span>
+                        <span className="block text-[12px] text-muted-foreground truncate">{r.duration} · {r.dateCreated}</span>
+                      </span>
+                      <span className="shrink-0 inline-flex items-center rounded-full bg-muted px-2.5 py-[3px] text-[11px] text-muted-foreground whitespace-nowrap">{template.name}</span>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
@@ -408,10 +391,18 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
       className="md:hidden fixed inset-x-0 bottom-0 z-50 bg-background border-t border-border px-[16px] pt-[10px]"
       style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
     >
+      <div className="flex items-center gap-[8px]">
+        <Button variant="pill-outline" className="h-[46px] px-[14px] gap-1.5 text-[13px] font-medium shrink-0" onClick={() => toast("Template editing is coming soon")}>
+          <Icon icon={PencilEdit01Icon} size={14} />
+          Edit
+        </Button>
+        <Button variant="pill-outline" className="size-[46px] p-0 shrink-0" onClick={handleStar} aria-label={isStarred ? "Remove from starred" : "Add to starred"}>
+          <svg width={17} height={17} fill="none" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </Button>
       {isFree ? (
         <Popover>
           <PopoverTrigger asChild>
-            <Button className="w-full h-[46px] rounded-full text-[14px] font-semibold">Apply template</Button>
+            <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold">Apply template</Button>
           </PopoverTrigger>
           <PopoverContent align="center" side="top" sideOffset={10} className="w-[300px] p-5">
             <div className="flex flex-col items-center text-center">
@@ -436,8 +427,9 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
           </PopoverContent>
         </Popover>
       ) : (
-        <Button className="w-full h-[46px] rounded-full text-[14px] font-semibold" onClick={handleApply}>Apply template</Button>
+        <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold" onClick={handleApply}>Apply template</Button>
       )}
+      </div>
     </div>
     <ApplyTemplateDialog open={applyOpen} onOpenChange={setApplyOpen} template={template} />
     </TooltipProvider>

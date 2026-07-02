@@ -194,7 +194,8 @@ export function RecordCard({ record }: { record: RecordRow }) {
               </button>
             </div>
 
-            <div className="grid grid-cols-4 gap-[8px] px-[16px] pt-[6px] pb-[14px]">
+            {/* Action tiles - same bordered style as the result-page tiles (one component look) */}
+            <div className="grid grid-cols-4 gap-[8px] px-[16px] pt-[4px] pb-[10px]">
               {[
                 { key: "copy", icon: Copy, label: t("sheet.copy"), run: doCopy },
                 { key: "move", icon: FolderOpen, label: t("sheet.moveTo"), run: () => setMoveOpen(true) },
@@ -204,12 +205,10 @@ export function RecordCard({ record }: { record: RecordRow }) {
                 <button
                   key={key}
                   onClick={() => { setSheetOpen(false); run(); }}
-                  className="flex flex-col items-center justify-start gap-[7px] h-[92px] pt-[12px] rounded-[14px] bg-muted active:bg-muted/70 transition-colors"
+                  className="flex flex-col items-center justify-center gap-[7px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors"
                 >
-                  <span className="flex items-center justify-center size-[40px] rounded-full bg-background">
-                    <Icon icon={icon} className="size-[19px] text-foreground" strokeWidth={1.7} />
-                  </span>
-                  <span className="whitespace-nowrap text-[11px] leading-[13px] text-muted-foreground text-center px-[2px]">{label}</span>
+                  <Icon icon={icon} className="size-[19px] text-foreground" strokeWidth={1.7} />
+                  <span className="whitespace-nowrap text-[11.5px] leading-none font-medium text-muted-foreground">{label}</span>
                 </button>
               ))}
             </div>

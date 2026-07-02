@@ -6,6 +6,7 @@ import { useTranscriptionModals } from "./transcription-modals";
 import { RecordsTable, records as mockRecords, type RecordRow } from "./records-table";
 import { ExportFormatSubMenu } from "./export-format-menu";
 import { ScrollFade } from "./scroll-fade";
+import { Drawer, DrawerContent, DrawerTitle } from "./ui/drawer";
 import { setInnerScreen } from "./inner-screen";
 import {
   exportRecords,
@@ -287,6 +288,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   // Create folder dialog
   const [createOpen, setCreateOpen] = useState(false);
+  const [folderAddOpen, setFolderAddOpen] = useState(false);
   // If set, after creating a new folder we move this folder ID into it
   const [moveAfterCreate, setMoveAfterCreate] = useState<string | null>(null);
 
@@ -404,6 +406,13 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
       back: () => setActiveFolderId(null),
       parent: t("nav.myRecords"),
       title: activeFolder.name,
+      hideNav: true,
+      bottomBar: (
+        <Button onClick={() => setFolderAddOpen(true)} className="w-full h-[46px] rounded-full text-[14px] font-semibold gap-[8px]">
+          <Icon icon={CloudUpload} className="size-[17px]" strokeWidth={1.7} />
+          Add file
+        </Button>
+      ),
       menu: (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -501,7 +510,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="pill-outline"
-                  className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
+                  className="max-lg:hidden flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
                 >
                   <Icon icon={CloudUpload} className="size-[15px] text-foreground" strokeWidth={1.5} />
                   <span className="font-medium text-[13px] text-foreground">Upload</span>
@@ -530,7 +539,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             <Button
               variant="pill-outline"
               onClick={() => setCreateOpen(true)}
-              className="hidden lg:flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
+              className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
             >
               <FolderPlusIcon />
               <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
@@ -722,6 +731,41 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
           }
         }}
       />
+
+      {/* Folder inner-screen: the pinned "Add file" bar opens these create options, scoped to the folder */}
+      <Drawer open={folderAddOpen} onOpenChange={setFolderAddOpen}>
+        <DrawerContent className="[&>div:first-child]:hidden">
+          <div className="px-[18px] pt-[18px] pb-[10px]">
+            <DrawerTitle style={{ fontSize: 18, fontWeight: 600 }}>Add file to folder</DrawerTitle>
+          </div>
+          <div className="px-[16px] pb-[24px] flex flex-col gap-[8px]">
+            <button key="upload" onClick={() => { setFolderAddOpen(false); openModalInFolder("upload"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+              <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#ECEAFE", color: "#7C3AED" }}>
+                <Icon icon={Upload} className="size-[20px]" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Audio & video files</span>
+            </button>
+            <button key="record" onClick={() => { setFolderAddOpen(false); openModalInFolder("record"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+              <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#E3F0FE", color: "#2563EB" }}>
+                <Icon icon={Microphone} className="size-[20px]" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Instant speech</span>
+            </button>
+            <button key="meeting" onClick={() => { setFolderAddOpen(false); openModalInFolder("meeting"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+              <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#FFF1DC", color: "#D97706" }}>
+                <Icon icon={Video} className="size-[20px]" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Meeting recorder</span>
+            </button>
+            <button key="link" onClick={() => { setFolderAddOpen(false); openModalInFolder("link"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+              <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#FEECEB", color: "#EF4444" }}>
+                <Icon icon={Link} className="size-[20px]" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Transcribe from link</span>
+            </button>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Edit folder dialog */}
       <FolderFormDialog

@@ -10,6 +10,9 @@ export const FAB_RIGHT = 16; // px, shared right edge for both FABs
 export const ADD_FAB_SIZE = 56; // px, primary "+" add button (bottom of the stack)
 export const HISTORY_FAB_SIZE = 48; // px, upload-history button (above the add button)
 export const FAB_STACK_GAP = 12; // px, vertical gap between the two FABs
+// The history FAB is narrower than the add FAB; nudge its right edge so the two
+// share a common CENTER line (not just a right edge) - reads as one aligned stack.
+export const HISTORY_FAB_RIGHT = FAB_RIGHT + (ADD_FAB_SIZE - HISTORY_FAB_SIZE) / 2; // 20px
 
 /* Nav pill footprint - mirrors the values used in bottom-nav.tsx. */
 const NAV_PILL_BOTTOM = 14; // px, nav pill distance from the bottom (before safe area)

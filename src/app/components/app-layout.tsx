@@ -11,6 +11,7 @@ import { useLanguage } from "./language-context";
 import { TopBar } from "./top-bar";
 import { MobileTopBar } from "./mobile-top-bar";
 import { BottomNav } from "./bottom-nav";
+import { InnerScreenBottomBar } from "./inner-screen";
 import { SettingsPage } from "./settings-modal";
 import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
@@ -79,6 +80,7 @@ export function AppLayout() {
             )}
           </main>
           {!isSubRoute && <BottomNav activePage={activePage} onNavigate={handleNavigate} />}
+          <InnerScreenBottomBar />
         </SidebarInset>
       </SidebarProvider>
     </UserProfileProvider>

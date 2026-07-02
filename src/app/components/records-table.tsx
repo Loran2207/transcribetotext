@@ -1393,13 +1393,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-foreground">{scopedFolder?.name ?? t("nav.myRecords")}</span>
           </button>
         ) : (
-          <div className="mt-[12px] mb-[6px]">
-            <div className="flex items-center justify-between px-[2px] mb-[8px]">
-              <span className="text-[15px] leading-[20px] font-semibold text-foreground">{t("folder.folders")}</span>
-              <Button variant="ghost" size="icon" onClick={() => setFolderModalOpen(true)} className="size-[32px] text-muted-foreground" aria-label={t("folder.addFolder")} title={t("folder.addFolder")}>
-                <Icon icon={FolderPlus} className="size-[18px]" strokeWidth={1.7} />
-              </Button>
-            </div>
+          <div className="mt-[16px] mb-[6px]">
             {userFolders.length > 0 && (
               <div className="flex gap-[8px] overflow-x-auto scrollbar-hide -mx-[16px] px-[16px] md:-mx-[24px] md:px-[24px] pb-[2px]">
                 {userFolders.map((folder) => {

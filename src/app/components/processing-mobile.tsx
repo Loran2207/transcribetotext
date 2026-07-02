@@ -7,7 +7,7 @@ import { Drawer, DrawerContent, DrawerTitle } from "./ui/drawer";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { SourceIcon } from "./source-icons";
 import { useTranscriptionModals, ERROR_LABELS, mapJobToRecordState, type TranscriptionJob } from "./transcription-modals";
-import { FAB_RIGHT, HISTORY_FAB_SIZE, HISTORY_FAB_BOTTOM } from "./mobile-fab-layout";
+import { HISTORY_FAB_RIGHT, HISTORY_FAB_SIZE, HISTORY_FAB_BOTTOM } from "./mobile-fab-layout";
 
 /* Mobile (<768) upload-processing surface. The 680px desktop FloatingProgressWidget
    is unusable on a phone, so below md we show a slim status pill docked above the
@@ -164,8 +164,9 @@ export function MobileProcessing() {
       {!open && createPortal(
         <button
           onClick={() => { setActiveTab(activeCount > 0 ? "uploaded" : errorBadge > 0 ? "failed" : "history"); setOpen(true); }}
+          data-mobile-fab="history"
           className={"md:hidden fixed z-[45] flex items-center justify-center rounded-full bg-card active:scale-95 transition-transform motion-reduce:transition-none motion-reduce:active:scale-100 border " + (badgeIsError ? "border-destructive/30" : "border-border")}
-          style={{ right: FAB_RIGHT, bottom: HISTORY_FAB_BOTTOM, width: HISTORY_FAB_SIZE, height: HISTORY_FAB_SIZE, boxShadow: "0 8px 20px -6px rgba(16,24,40,0.16), 0 2px 6px -2px rgba(16,24,40,0.08)" }}
+          style={{ right: HISTORY_FAB_RIGHT, bottom: HISTORY_FAB_BOTTOM, width: HISTORY_FAB_SIZE, height: HISTORY_FAB_SIZE, boxShadow: "0 8px 20px -6px rgba(16,24,40,0.16), 0 2px 6px -2px rgba(16,24,40,0.08)" }}
           aria-label={showSpinner ? activityLabel : "Upload history"}
         >
           {showSpinner && (

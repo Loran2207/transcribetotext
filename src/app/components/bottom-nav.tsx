@@ -77,6 +77,7 @@ export function BottomNav({ activePage, onNavigate }: { activePage: string; onNa
         <DrawerTrigger asChild>
           <button
             aria-label="New transcription"
+            data-mobile-fab="add"
             className="md:hidden fixed z-[45] flex items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition-transform motion-reduce:transition-none motion-reduce:active:scale-100"
             style={{ right: FAB_RIGHT, bottom: ADD_FAB_BOTTOM, width: ADD_FAB_SIZE, height: ADD_FAB_SIZE, boxShadow: "0 10px 24px -6px rgba(37,99,235,0.5), 0 3px 8px -3px rgba(37,99,235,0.4)" }}
           >
