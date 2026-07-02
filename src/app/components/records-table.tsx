@@ -1478,7 +1478,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       </div>
 
       {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
-      <div className="lg:hidden pb-[24px]">
+      <div className="lg:hidden mt-[12px] pb-[40px]">
         {filteredRecords.length === 0 ? (
           <div className="flex items-center justify-center py-[48px] text-[14px] text-muted-foreground">{t("table.noRecords")}</div>
         ) : (
@@ -1757,7 +1757,7 @@ export function PaginationBar({ total, page, pageSize, onPage, onPageSize, compa
           <div className="flex items-center gap-[6px]">
             <span className="text-[12px] text-muted-foreground whitespace-nowrap">Per page</span>
             <Select value={String(pageSize)} onValueChange={(v) => onPageSize(parseInt(v, 10))}>
-              <SelectTrigger className="h-[30px] w-[62px] rounded-[8px] text-[12.5px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-[30px] w-[74px] rounded-[8px] text-[12.5px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PAGE_SIZE_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
               </SelectContent>
