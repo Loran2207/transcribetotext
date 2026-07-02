@@ -109,7 +109,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   return (
     <TooltipProvider>
     <div className="flex-1 overflow-auto min-w-0">
-      <div className="px-[32px] pt-[28px] pb-[48px]">
+      <div className="px-4 lg:px-[32px] pt-[28px] pb-[48px]">
 
         {/* Breadcrumb */}
         <Breadcrumb>
@@ -125,7 +125,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         </Breadcrumb>
 
         {/* Title + compact actions (aligned with the file detail page) */}
-        <div className="mt-5 mb-7 flex items-start justify-between gap-6">
+        <div className="mt-5 mb-7 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <div
@@ -212,7 +212,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         </div>
 
         {/* Two-column: large example (left) + summary card (right) */}
-        <div className="flex gap-10 items-start">
+        <div className="flex flex-col gap-8 lg:flex-row lg:gap-10 lg:items-start">
 
           {/* Left - the source recording example, full width */}
           <div className="flex-1 min-w-0">
@@ -338,7 +338,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
           </div>
 
           {/* Right - the summary this template produces */}
-          <div className="w-[480px] shrink-0">
+          <div className="w-full lg:w-[480px] lg:shrink-0">
             <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ boxShadow: "var(--elevation-md)" }}>
               <div className="px-7 pt-6 pb-4 border-b border-border">
                 <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2">

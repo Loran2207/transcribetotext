@@ -993,9 +993,9 @@ function TemplateDetailLegacy({
 
 function LoadingSkeleton() {
   return (
-    <div className="flex-1 overflow-auto min-w-0"><div className="px-[32px] pt-[28px] pb-[48px]">
+    <div className="flex-1 overflow-auto min-w-0"><div className="px-4 lg:px-[32px] pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between mb-[24px]"><Skeleton className="h-[34px] w-[160px]" /></div>
-      <div className="flex items-center gap-5 border-b border-border pb-3 mb-8">
+      <div className="flex items-center gap-5 border-b border-border pb-3 mb-8 overflow-x-auto [&::-webkit-scrollbar]:hidden">
         {Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-[16px] w-[70px]" />))}
       </div>
       <Skeleton className="h-[18px] w-[120px] mb-5" />
@@ -1243,13 +1243,13 @@ export function TemplatesPage() {
   };
 
   return (
-    <div className="flex-1 overflow-auto min-w-0"><div className="px-[32px] pt-[28px] pb-[48px]">
+    <div className="flex-1 overflow-auto min-w-0"><div className="px-4 lg:px-[32px] pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between gap-[12px] mb-[24px]">
         <p className="whitespace-nowrap text-foreground" style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}>Templates</p>
         
       </div>
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex-1 min-w-0 gap-0">
-        <div className="overflow-x-auto -mx-[32px] px-[32px] border-b border-border [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+        <div className="overflow-x-auto -mx-4 px-4 lg:-mx-[32px] lg:px-[32px] border-b border-border [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
           <TabsList variant="line" className="gap-5 whitespace-nowrap w-max border-0">
             <TabsTrigger value="all" variant="line">All <span className="opacity-50 font-[inherit] ml-1">{allCount}</span></TabsTrigger>
             <TabsTrigger value="starred" variant="line">Starred <span className="opacity-50 font-[inherit] ml-1">{starredCount}</span></TabsTrigger>
