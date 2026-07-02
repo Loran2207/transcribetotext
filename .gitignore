@@ -39,3 +39,7 @@ Thumbs.db
 # Playwright test artifacts
 test-results/
 .playwright-mcp/
+# stray capture scratch (local only)
+_*.png
+_*.mjs
+v2_*.png
