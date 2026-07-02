@@ -337,7 +337,6 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                         <span className="block text-[13px] font-medium text-foreground truncate">{r.name}</span>
                         <span className="block text-[12px] text-muted-foreground truncate">{r.duration} · {r.dateCreated}</span>
                       </span>
-                      <span className="shrink-0 inline-flex items-center rounded-full bg-muted px-2.5 py-[3px] text-[11px] text-muted-foreground whitespace-nowrap">{template.name}</span>
                     </button>
                   ))}
                 </div>
