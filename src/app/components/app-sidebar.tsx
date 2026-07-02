@@ -1,4 +1,5 @@
 import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
+import { useIsMobile } from "./ui/use-mobile";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -233,6 +234,7 @@ const NAV_ITEMS = [
 ] as const;
 
 export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarProps) {
+  const isMobile = useIsMobile();
   const [starredOpen, setStarredOpen] = useState(true);
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
@@ -263,7 +265,9 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
         {/* ── Primary Navigation ── */}
         <SidebarGroup>
           <SidebarMenu>
-            {NAV_ITEMS.map(({ id, labelKey, icon: NavIcon }) => (
+            {/* Phones already carry Home / My Records / Meetings / Templates in the bottom
+                nav pill - the drawer only keeps what is NOT there (Shared with me). */}
+            {(isMobile ? NAV_ITEMS.filter((n) => n.id === "shared") : NAV_ITEMS).map(({ id, labelKey, icon: NavIcon }) => (
               <SidebarMenuItem key={id}>
                 <SidebarMenuButton
                   isActive={activePage === id}
