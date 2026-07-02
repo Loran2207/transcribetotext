@@ -37,6 +37,8 @@ import {
   AlertDialogCancel,
 } from "./ui/alert-dialog";
 import { useUserProfile } from "./user-profile-context";
+import { setInnerScreen } from "./inner-screen";
+import { ChevronRight } from "@hugeicons/core-free-icons";
 import { useAuth } from "./auth-context";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -736,18 +738,27 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
     return "account";
   });
   const [planState] = usePlanStatePreview();
+  const [mobileDetail, setMobileDetail] = useState(false);
 
   const sectionLabel =
     NAV_ITEMS.find((n) => n.id === activeSection)?.label ?? "Settings";
+
+  useEffect(() => {
+    const isPhone = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+    if (!mobileDetail || !isPhone) { setInnerScreen(null); return; }
+    setInnerScreen({ back: () => setMobileDetail(false), parent: "Settings", title: sectionLabel, hideNav: true });
+    return () => setInnerScreen(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mobileDetail, sectionLabel]);
 
   return (
     <div className="flex flex-1 overflow-hidden h-full">
 
       {/* ── Settings secondary nav ── */}
-      <div className="flex flex-col shrink-0 h-full w-[260px] bg-background border-r border-border">
+      <div className={`flex-col shrink-0 h-full w-full md:w-[260px] bg-background md:border-r md:border-border overflow-y-auto ${mobileDetail ? "hidden md:flex" : "flex"}`}>
         {/* "Settings" heading - aligned with dashboard greeting */}
-        <div className="px-[32px] pt-[28px] pb-6">
-          <p className="whitespace-nowrap text-foreground" style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}>
+        <div className="px-[16px] pt-[16px] pb-4 lg:px-[32px] lg:pt-[28px] lg:pb-6">
+          <p className="whitespace-nowrap text-foreground text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px]" style={{ fontWeight: 700 }}>
             Settings
           </p>
         </div>
@@ -759,7 +770,7 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
               <SidebarMenuButton
                 isActive={!disabled && activeSection === id}
                 aria-disabled={disabled || undefined}
-                onClick={disabled ? undefined : () => setActiveSection(id)}
+                onClick={disabled ? undefined : () => { setActiveSection(id); setMobileDetail(true); }}
                 className={
                   disabled
                     ? "cursor-not-allowed text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
@@ -773,6 +784,7 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
                     {badge}
                   </span>
                 )}
+                {!disabled && !badge && <Icon icon={ChevronRight} className="ml-auto size-4 text-muted-foreground/60 md:hidden" strokeWidth={1.6} />}
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
@@ -780,10 +792,10 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
       </div>
 
       {/* ── Content area ── */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background">
+      <div className={`flex-col flex-1 min-w-0 overflow-hidden bg-background ${mobileDetail ? "flex" : "hidden md:flex"}`}>
 
         {/* Section header */}
-        <div className="flex items-center justify-between gap-4 px-[32px] pt-[28px] pb-5 shrink-0 border-b border-border">
+        <div className="max-md:hidden flex items-center justify-between gap-4 px-[32px] pt-[28px] pb-5 shrink-0 border-b border-border">
           <h1 className="font-bold text-[22px] text-foreground tracking-tight">
             {sectionLabel}
           </h1>
@@ -791,7 +803,7 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
 
         {/* Scrollable form */}
         <div className="flex-1 overflow-y-auto">
-          <div className={`${MAX_WIDTH[activeSection]} px-[32px] pt-6 pb-12`}>
+          <div className={`${MAX_WIDTH[activeSection]} px-[16px] pt-4 pb-12 lg:px-[32px] lg:pt-6`}>
             {activeSection === "account" && <AccountPage />}
             {activeSection === "plan" && <PlanManagementPage state={planState} />}
             {activeSection === "meetings" && <MeetingsSettingsPanel />}
