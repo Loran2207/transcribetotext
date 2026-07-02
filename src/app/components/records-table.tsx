@@ -15,6 +15,7 @@ import { ShareDialog } from "./share-dialog";
 import { Icon } from "./ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
+import { useSidebar } from "./ui/sidebar";
 import { RecordCard as RecordCardMobile } from "./record-card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -1071,6 +1072,7 @@ interface RecordsTableProps {
 export function RecordsTable({ hideTopHeader = false, showAddFolderButton = false, scopedFolderId = null, showInlineFolderRows = true, onNavigateToRecords, onOpenFolder }: RecordsTableProps = {}) {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { state: sidebarState } = useSidebar();
   const { jobs, setOpenModal } = useTranscriptionModals();
   const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder, deleteFolder, renameFolder, changeFolderColor, moveFolder } = useFolders();
   const [deletingInlineFolderId, setDeletingInlineFolderId] = useState<string | null>(null);
@@ -1483,7 +1485,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
           <div className="flex items-center justify-center py-[48px] text-[14px] text-muted-foreground">{t("table.noRecords")}</div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
+            <div className={`grid grid-cols-1 gap-[10px] ${sidebarState === "collapsed" ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
               {pagedRecords.map((record) => (
                 <RecordCardMobile key={record.id} record={record} />
               ))}
