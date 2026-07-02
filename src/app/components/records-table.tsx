@@ -1380,12 +1380,12 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       <div className="relative">
         <div className="flex items-center">
           <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); clearSelection(); clearAllFilters(); }} className="flex-1 min-w-0 gap-0">
-            <TabsList variant="line" className="gap-6 w-full justify-start">
+            <TabsList variant="line" className="gap-5 lg:gap-6 w-full justify-start scrollbar-hide max-lg:overflow-x-auto">
               {tabs.map((tab) => {
                 const isTrash = tab === "Trash";
                 const count = tab === "Recent" ? recentCount : tab === "Starred" ? starredCount : tab === "Shared" ? sharedCount : trashCount;
                 return (
-                  <TabsTrigger key={tab} value={tab} variant="line" className={activeTab === tab && isTrash ? "text-destructive data-[state=active]:text-destructive data-[state=active]:after:bg-destructive" : ""}>
+                  <TabsTrigger key={tab} value={tab} variant="line" className={`max-lg:text-[13px] max-lg:whitespace-nowrap max-lg:shrink-0 ${activeTab === tab && isTrash ? "text-destructive data-[state=active]:text-destructive data-[state=active]:after:bg-destructive" : ""}`}>
                     {tab === "Recent" ? t("table.recent") : tab === "Starred" ? t("table.starred") : tab === "Shared" ? t("table.shared") : t("table.trash")}
                     <span className="opacity-50 font-[inherit]">{count}</span>
                   </TabsTrigger>
@@ -1449,7 +1449,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         ) : (
           <div className="mt-[12px] mb-[6px]">
             <div className="flex items-center justify-between px-[2px] mb-[8px]">
-              <span className="text-[13px] font-semibold text-foreground">{t("folder.folders")}</span>
+              <span className="text-[15px] leading-[20px] font-semibold text-foreground">{t("folder.folders")}</span>
               <Button variant="ghost" size="icon" onClick={() => setFolderModalOpen(true)} className="size-[32px] text-muted-foreground" aria-label={t("folder.addFolder")} title={t("folder.addFolder")}>
                 <Icon icon={FolderPlus} className="size-[18px]" strokeWidth={1.7} />
               </Button>
@@ -1463,14 +1463,14 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                       key={folder.id}
                       type="button"
                       onClick={() => onOpenFolder?.(folder.id)}
-                      className="group flex items-center gap-[12px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left"
+                      className="group flex items-center gap-[10px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left"
                     >
                       <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
                         <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
                       </span>
                       <span className="flex-1 min-w-0 flex flex-col gap-[2px]">
                         <span className="truncate font-semibold text-[14px] leading-[19px] text-foreground">{folder.name}</span>
-                        <span className="text-[11.5px] text-muted-foreground">{t(count === 1 ? "folder.fileOne" : "folder.fileOther", count)}</span>
+                        <span className="text-[12px] leading-[16px] text-muted-foreground">{t(count === 1 ? "folder.fileOne" : "folder.fileOther", count)}</span>
                       </span>
                       <Icon icon={ChevronRight} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.7} />
                     </button>

@@ -409,7 +409,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
         />
       )}
 
-      <div className="px-[32px] pt-[28px] pb-[24px]">
+      <div className="px-[16px] pt-[16px] pb-[24px] md:px-[24px] md:pt-[20px] lg:px-[32px] lg:pt-[28px]">
 
         {/* Header row */}
         <div className="flex items-center justify-between gap-[12px]">
@@ -446,8 +446,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             </Breadcrumb>
           ) : (
             <p
-              className="whitespace-nowrap text-foreground"
-              style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}
+              className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap"
             >
               {t("nav.myRecords")}
             </p>
@@ -557,7 +556,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
         </div>
 
         {/* Folder cards grid */}
-        <div className={isInsideFolder ? "mt-[16px]" : "mt-[24px]"}>
+        <div className={isInsideFolder ? "mt-[16px]" : "mt-[24px] max-lg:mt-[16px]"}>
           <div className="hidden lg:block">
           {demoRecordsLoading && (
             <div className="mb-[20px]">
