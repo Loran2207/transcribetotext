@@ -314,7 +314,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[10vh]">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[3px]" onClick={() => { closeDropdowns(); onClose(); }} />
+      <div className="absolute inset-0 bg-[rgba(15,23,42,0.55)] backdrop-blur-[3px]" onClick={() => { closeDropdowns(); onClose(); }} />
 
       <div
         className="md:relative max-md:fixed max-md:inset-0 max-md:z-[210] md:w-[calc(100vw-24px)] md:max-w-[560px] lg:w-[640px] lg:max-w-none md:rounded-[16px] overflow-visible flex flex-col md:bg-popover max-md:bg-background max-md:!max-h-none max-md:!shadow-none max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)]"
@@ -469,7 +469,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {scope === "recordings" && (hasQuery || hasFilters) && recordingResults.length > 0 && (
             <div className="px-[10px] py-[6px]">
               <div className="px-[8px] pt-[6px] pb-[4px]">
-                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px]">Best matches</span>
+                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px] max-lg:text-[15px] max-lg:leading-[20px] max-lg:font-semibold max-lg:text-foreground max-lg:tracking-normal">Best matches</span>
               </div>
               {recordingResults.map(r => (
                 <Button variant="ghost"
@@ -506,7 +506,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {scope === "folders" && (hasQuery || hasFilters) && folderResults.length > 0 && (
             <div className="px-[10px] py-[6px]">
               <div className="px-[8px] pt-[6px] pb-[4px]">
-                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px]">Matching folders</span>
+                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px] max-lg:text-[15px] max-lg:leading-[20px] max-lg:font-semibold max-lg:text-foreground max-lg:tracking-normal">Matching folders</span>
               </div>
               {folderResults.map(f => (
                 <Button variant="ghost"
@@ -538,7 +538,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {!hasQuery && !hasFilters && (
             <div className="px-[10px] py-[6px]">
               <div className="px-[8px] pt-[6px] pb-[4px]">
-                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px]">Recent searches</span>
+                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px] max-lg:text-[15px] max-lg:leading-[20px] max-lg:font-semibold max-lg:text-foreground max-lg:tracking-normal">Recent searches</span>
               </div>
               {recentSearches.length === 0 ? (
                 <div className="px-[8px] py-[14px] text-center">

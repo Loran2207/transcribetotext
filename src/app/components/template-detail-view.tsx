@@ -134,7 +134,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
               >
                 <span>{emoji}</span>
               </div>
-              <h1 className="text-2xl font-bold text-foreground leading-tight truncate">
+              <h1 className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground truncate lg:text-2xl lg:leading-tight lg:tracking-normal">
                 {template.name}
               </h1>
             </div>

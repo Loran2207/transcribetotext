@@ -1358,7 +1358,7 @@ function PageHeader({
   }, [editingTitle]);
 
   return (
-    <div className="px-4 pt-6 pb-0 lg:px-8">
+    <div className="px-4 pt-4 pb-0 lg:px-8 lg:pt-6">
       <div className="mb-2 flex items-start justify-between gap-4 max-md:flex-col max-md:items-start">
         <div
           className={`min-w-0 flex-1 max-md:w-full rounded-xl py-2 pr-2 pl-0 transition-colors ${
@@ -1369,7 +1369,7 @@ function PageHeader({
           {editingTitle ? (
             <Input ref={inputRef} value={title} onChange={(e) => onTitleChange(e.target.value)} onBlur={() => setEditingTitle(false)} onKeyDown={(e) => { if (e.key === "Enter") setEditingTitle(false); }} className="h-auto border-none bg-transparent p-0 text-2xl font-bold shadow-none focus-visible:ring-0" style={{ fontSize: "24px", lineHeight: "1.3" }} />
           ) : (
-            <h1 className="text-2xl font-bold text-foreground leading-tight">{title}</h1>
+            <h1 className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal">{title}</h1>
           )}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 max-md:w-full max-md:justify-start">
@@ -2365,7 +2365,7 @@ export function TranscriptionDetailPage() {
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <div className="border-b border-border px-8 pt-6 pb-5">
             <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
-            <h1 className="mt-1 text-[30px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+            <h1 className="mt-1 text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]">
               {title || "Live note"}
             </h1>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -2575,20 +2575,20 @@ export function TranscriptionDetailPage() {
           resourceName={title}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8 flex flex-1 flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
             <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
-              <TabsTrigger value="transcript" variant="line">Transcript</TabsTrigger>
-              <TabsTrigger value="summary" variant="line">Summary</TabsTrigger>
+              <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">Transcript</TabsTrigger>
+              <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px]">Summary</TabsTrigger>
               {activeTranslationMeta && !isJobTranscribing ? (
                 <>
-                  <TabsTrigger value="transcript-translated" variant="line">
+                  <TabsTrigger value="transcript-translated" variant="line" className="max-lg:text-[13px]">
                     <span className="inline-flex items-center gap-1.5">
                       <span>{activeTranslationMeta.flag}</span>
                       <span>Transcript {activeTranslationMeta.short}</span>
                     </span>
                   </TabsTrigger>
-                  <TabsTrigger value="summary-translated" variant="line">
+                  <TabsTrigger value="summary-translated" variant="line" className="max-lg:text-[13px]">
                     <span className="inline-flex items-center gap-1.5">
                       <span>{activeTranslationMeta.flag}</span>
                       <span>Summary {activeTranslationMeta.short}</span>

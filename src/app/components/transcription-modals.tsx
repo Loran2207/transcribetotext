@@ -1554,7 +1554,7 @@ function ModalShell({ title, subtitle, onClose, onBackdropClick, children, width
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 md:items-center md:p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[3px] md:bg-black/40" onClick={onBackdropClick} />
+      <div className="absolute inset-0 bg-[rgba(15,23,42,0.55)] backdrop-blur-[3px]" onClick={onBackdropClick} />
       <div className="relative flex flex-col overflow-hidden bg-popover w-full max-h-[90vh] rounded-t-[24px] rounded-b-none pb-[env(safe-area-inset-bottom)] md:w-[min(var(--modal-w),calc(100vw_-_32px))] md:max-h-[calc(100vh_-_40px)] md:rounded-[20px] md:pb-0"
         style={{ "--modal-w": `${width}px`, boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" } as React.CSSProperties}>
         {/* Header */}

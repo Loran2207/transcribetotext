@@ -272,7 +272,7 @@ function TemplateCard({
           <span>{emoji}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="truncate font-semibold text-[15px] text-foreground leading-snug">
+          <p className="truncate font-semibold text-[14px] lg:text-[15px] text-foreground leading-snug">
             {template.name}
           </p>
           {template.description && (
@@ -1245,18 +1245,18 @@ export function TemplatesPage() {
   return (
     <div className="flex-1 overflow-auto min-w-0"><div className="px-4 lg:px-[32px] pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between gap-[12px] mb-[24px]">
-        <p className="whitespace-nowrap text-foreground" style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}>Templates</p>
+        <p className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap">Templates</p>
         
       </div>
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex-1 min-w-0 gap-0">
         <div className="overflow-x-auto -mx-4 px-4 lg:-mx-[32px] lg:px-[32px] border-b border-border [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
           <TabsList variant="line" className="gap-5 whitespace-nowrap w-max border-0">
-            <TabsTrigger value="all" variant="line">All <span className="opacity-50 font-[inherit] ml-1">{allCount}</span></TabsTrigger>
-            <TabsTrigger value="starred" variant="line">Starred <span className="opacity-50 font-[inherit] ml-1">{starredCount}</span></TabsTrigger>
+            <TabsTrigger value="all" variant="line" className="max-lg:text-[13px]">All <span className="opacity-50 font-[inherit] ml-1">{allCount}</span></TabsTrigger>
+            <TabsTrigger value="starred" variant="line" className="max-lg:text-[13px]">Starred <span className="opacity-50 font-[inherit] ml-1">{starredCount}</span></TabsTrigger>
             {CATEGORY_TAB_IDS.map((catId) => {
               const meta = CATEGORY_META_BY_ID[catId];
               return (
-                <TabsTrigger key={catId} value={catId} variant="line">
+                <TabsTrigger key={catId} value={catId} variant="line" className="max-lg:text-[13px]">
                   {meta.label}
                   <span className="opacity-50 font-[inherit] ml-1">{countByCategory[catId] ?? 0}</span>
                 </TabsTrigger>
