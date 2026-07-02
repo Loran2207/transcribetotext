@@ -23,7 +23,7 @@ export const meetings: Meeting[] = [
 
 const platformSourceMap = { meet: "google-meet", zoom: "zoom", teams: "teams" } as const;
 
-const TODAY_STR = "03/16";
+export const TODAY_STR = "03/16";
 
 export function MeetingItem({ meeting }: { meeting: Meeting }) {
   const { t } = useLanguage();

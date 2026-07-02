@@ -10,7 +10,7 @@ import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
 import { useUserProfile } from "./user-profile-context";
 import { RecordsListMobile } from "./records-list-mobile";
-import { AnalyticsStrip } from "./analytics-strip";
+import { DashboardInsights } from "./dashboard-insights";
 import { ScrollFade } from "./scroll-fade";
 import { UpgradeBanner } from "./upgrade-banner";
 
@@ -449,7 +449,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           </motion.div>
 
           {/* Mobile + tablet: analytics banner (all plans), expands to the full card */}
-          <AnalyticsStrip />
+          <DashboardInsights onNavigate={onNavigate} />
 
           {/* Mobile + tablet: upgrade banner (free users only) */}
           <UpgradeBanner />
