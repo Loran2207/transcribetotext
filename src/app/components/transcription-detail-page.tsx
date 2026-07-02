@@ -1353,9 +1353,9 @@ function PageHeader({
 
   return (
     <div className="px-4 pt-6 pb-0 lg:px-8">
-      <div className="mb-2 flex items-start justify-between gap-4">
+      <div className="mb-2 flex items-start justify-between gap-4 max-md:flex-col max-md:items-start">
         <div
-          className={`min-w-0 flex-1 rounded-xl py-2 pr-2 pl-0 transition-colors ${
+          className={`min-w-0 flex-1 max-md:w-full rounded-xl py-2 pr-2 pl-0 transition-colors ${
             editingTitle ? "bg-muted/55" : "cursor-text hover:bg-muted/45"
           }`}
           onClick={() => { if (!editingTitle) setEditingTitle(true); }}
@@ -1366,7 +1366,7 @@ function PageHeader({
             <h1 className="text-2xl font-bold text-foreground leading-tight">{title}</h1>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 max-md:w-full max-md:justify-start">
           <SharedUsersAvatars shares={shares} />
           <Button size="sm" className="h-8 rounded-full gap-2 px-4 text-sm" onClick={onShare}>
             <Icon icon={Share} className="size-4" strokeWidth={1.7} />
