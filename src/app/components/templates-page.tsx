@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { ScrollFade } from "./scroll-fade";
 import {
   Add01Icon,
   Copy01Icon,
@@ -1242,8 +1243,9 @@ export function TemplatesPage() {
     return <>{starredSection}{categorySections}</>;
   };
 
+  const tplScrollRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="flex-1 overflow-auto min-w-0"><div className="px-4 lg:px-[32px] pt-[28px] pb-[48px]">
+    <div ref={tplScrollRef} className="flex-1 overflow-auto min-w-0"><ScrollFade scrollRef={tplScrollRef} /><div className="px-4 lg:px-[32px] pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between gap-[12px] mb-[24px]">
         <p className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap">Templates</p>
         

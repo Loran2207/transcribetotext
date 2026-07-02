@@ -5,6 +5,7 @@ import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
 import { RecordsTable, records as mockRecords, type RecordRow } from "./records-table";
 import { ExportFormatSubMenu } from "./export-format-menu";
+import { ScrollFade } from "./scroll-fade";
 import {
   exportRecords,
   type ExportableRecord,
@@ -132,7 +133,7 @@ function FolderFormDialog({ open, onClose, folder, onSave, title, submitLabel }:
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
       <div className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">{title}</h2>
@@ -209,7 +210,7 @@ function MoveFolderDialog({ open, onClose, movingFolder, allFolders, onMove }: {
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
       <div className="relative rounded-[20px] w-[360px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">Move to folder</h2>
@@ -392,8 +393,11 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
     }
   }
 
+  const pageScrollRef = useRef<HTMLDivElement>(null);
+
   return (
     <div
+      ref={pageScrollRef}
       className={`flex-1 overflow-auto min-w-0 relative ${dragOver ? "bg-primary/[0.04]" : ""}`}
       style={{ transition: "background-color 0.15s ease" }}
       onDragEnter={handleDragEnter}
@@ -401,6 +405,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
+      <ScrollFade scrollRef={pageScrollRef} />
       {/* Drag-over border highlight */}
       {dragOver && (
         <div

@@ -121,7 +121,7 @@ function DialogShell({
   title, onClose, children,
 }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/30 backdrop-blur-[3px]">
+    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
       <div className="relative flex flex-col bg-background border border-border shadow-xl"
         style={{ width: "480px", maxWidth: "calc(100vw - 32px)", borderRadius: "18px" }}>
         <div className="flex items-center justify-between px-6 pt-6 pb-5">

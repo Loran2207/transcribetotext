@@ -882,7 +882,7 @@ function CreateFolderDialog({
 
   return createPortal(
     <div className="fixed inset-0 z-[180] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
       <div
         className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover"
         style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}
@@ -1517,7 +1517,7 @@ function UpgradePrompt({ open, onClose }: { open: boolean; onClose: () => void }
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
       <div className="relative rounded-[20px] w-[360px] p-[28px] flex flex-col items-center text-center gap-[16px] bg-popover"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.22)" }}>
         <div className="absolute top-[14px] right-[14px]"><XBtn onClick={onClose} /></div>

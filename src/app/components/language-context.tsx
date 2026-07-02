@@ -75,6 +75,7 @@ const dict: Record<string, Record<LangCode, string>> = {
   "dash.analytics.summary": { en: "{0} files - {1} hrs", ru: "{0} файлов - {1} ч", es: "{0} archivos - {1} h", de: "{0} Dateien - {1} Std", fr: "{0} fichiers - {1} h", ja: "{0} ファイル - {1} 時間" },
   "dash.analytics.files": { en: "files", ru: "файлов", es: "archivos", de: "Dateien", fr: "fichiers", ja: "ファイル" },
   "dash.analytics.hrs": { en: "hrs", ru: "ч", es: "h", de: "Std", fr: "h", ja: "時間" },
+  "dash.banner.proSubShort": { en: "Unlimited files and more", ru: "Безлимитные файлы и больше", es: "Archivos ilimitados y más", de: "Unbegrenzte Dateien und mehr", fr: "Fichiers illimités et plus", ja: "無制限のファイルなど" },
   "dash.banner.proSub": { en: "Unlimited files, longer recordings, and more", ru: "Безлимитные файлы, длинные записи и больше", es: "Archivos ilimitados, grabaciones más largas y más", de: "Unbegrenzte Dateien, längere Aufnahmen und mehr", fr: "Fichiers illimités, enregistrements plus longs et plus", ja: "無制限のファイル、より長い録音など" },
 
   // ── Records table ──
