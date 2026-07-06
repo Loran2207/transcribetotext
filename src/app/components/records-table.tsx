@@ -716,7 +716,7 @@ export function CreateFolderModal({ open, onClose, onCreate }: { open: boolean; 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="relative rounded-[20px] w-[400px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">{t("folder.createNew")}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center transition-colors"><svg className="size-[16px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></Button>
@@ -835,7 +835,7 @@ function InlineFolderEditDialog({ open, folder, onClose, onSave }: { open: boole
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="relative rounded-[20px] w-[400px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">Edit folder</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center">

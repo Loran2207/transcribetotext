@@ -137,7 +137,7 @@ function FolderFormDialog({ open, onClose, folder, onSave, title, submitLabel }:
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="relative rounded-[20px] w-[400px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">{title}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center">
@@ -214,7 +214,7 @@ function MoveFolderDialog({ open, onClose, movingFolder, allFolders, onMove }: {
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[360px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="relative rounded-[20px] w-[360px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">Move to folder</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full">

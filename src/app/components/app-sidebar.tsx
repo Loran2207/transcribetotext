@@ -106,7 +106,7 @@ function CreateFolderDialog({ open, onClose, onCreate }: { open: boolean; onClos
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[16px] w-[400px] overflow-hidden bg-popover shadow-md">
+      <div className="relative rounded-[16px] w-[400px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover shadow-md">
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="text-[17px] font-semibold text-foreground">Create New Folder</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full"><svg className="size-[16px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></Button>
