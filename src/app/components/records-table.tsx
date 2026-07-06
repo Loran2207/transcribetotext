@@ -1458,9 +1458,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
       {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
       <div className="lg:hidden mt-[12px] pb-[40px]">
-        {!demoRecordsLoading && filteredRecords.length > 0 && (
+        {!demoRecordsLoading && (filteredRecords.length > 0 || hasActiveFilters) && (
           <div className="flex items-center justify-end mb-[10px]">
-            <RecordsMobileSort dateSort={dateSort} setDateSort={setDateSort} />
+            <RecordsMobileSort dateSort={dateSort} setDateSort={setDateSort} typeFilter={typeFilter} setTypeFilter={setTypeFilter} typeOptions={typeFilterOptions} templateFilter={templateFilter} setTemplateFilter={setTemplateFilter} templateOptions={templateFilterOptions} langFilter={langFilter} setLangFilter={setLangFilter} langOptions={langFilterOptions} onClearAll={clearAllFilters} />
           </div>
         )}
         {activeTab === "Recent" && !scopedFolderId && !hasActiveFilters && inlineFolders.length > 0 && (
