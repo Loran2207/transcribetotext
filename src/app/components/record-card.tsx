@@ -71,7 +71,7 @@ function RenameForm({ initial, onSave, onCancel }: { initial: string; onSave: (n
   );
 }
 
-export function RecordCard({ record }: { record: RecordRow }) {
+export function RecordCard({ record, isTrash = false }: { record: RecordRow; isTrash?: boolean }) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { t } = useLanguage();
@@ -84,6 +84,7 @@ export function RecordCard({ record }: { record: RecordRow }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmForever, setConfirmForever] = useState(false);
 
   const isStarred = starred.has(record.id);
   const displayName = getName(record.id, record.name);
@@ -104,6 +105,8 @@ export function RecordCard({ record }: { record: RecordRow }) {
       () => toast.error("Copy failed"),
     );
   };
+
+  const doRestore = () => toast.success("Restored to My Records");
 
   const starLabel = isStarred ? t("common.unstar") : t("common.star");
   const starIconClass = isStarred ? "text-amber-500" : "text-muted-foreground";
@@ -135,6 +138,31 @@ export function RecordCard({ record }: { record: RecordRow }) {
 
       {/* Wrapper stops the click bubbling to the card */}
       <div onClick={(e) => e.stopPropagation()} className="shrink-0 -mr-[4px] self-center">
+        {isTrash ? (
+          <div className="flex items-center gap-[6px]">
+            <Button variant="pill-outline" onClick={doRestore} className="h-[30px] px-[11px] gap-[5px] text-[12.5px] font-medium">
+              <svg className="size-[13px] text-foreground" fill="none" viewBox="0 0 16 16"><path d="M2 7.333A6 6 0 018 2a6 6 0 016 6 6 6 0 01-6 6 5.98 5.98 0 01-4.243-1.757" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /><path d="M2 3.333v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              {t("common.restore")}
+            </Button>
+            <Button variant="pill-outline" size="icon" onClick={() => setConfirmForever(true)} aria-label="Delete forever" className="size-[30px] border-destructive/30 text-destructive hover:bg-destructive/5">
+              <Icon icon={Trash} className="size-[15px]" strokeWidth={1.7} />
+            </Button>
+            {confirmForever && (
+              <AlertDialog open onOpenChange={(o) => { if (!o) setConfirmForever(false); }}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete record forever?</AlertDialogTitle>
+                    <AlertDialogDescription>"{displayName}" and its transcript will be permanently deleted. This action cannot be undone.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => { toast.success("Record deleted forever"); setConfirmForever(false); }} className="bg-destructive text-white hover:bg-destructive/90">Delete forever</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        ) : (<>
         {isMobile ? (
           <Button variant="ghost" size="icon" onClick={() => setSheetOpen(true)} className="size-[32px] text-muted-foreground" aria-label="Record actions">
             <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={1.8} />
@@ -296,6 +324,7 @@ export function RecordCard({ record }: { record: RecordRow }) {
             </AlertDialogContent>
           </AlertDialog>
         )}
+        </>)}
       </div>
     </div>
   );

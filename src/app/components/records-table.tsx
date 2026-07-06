@@ -1481,13 +1481,15 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
       {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
       <div className="lg:hidden mt-[12px] pb-[40px]">
-        {filteredRecords.length === 0 ? (
-          <div className="flex items-center justify-center py-[48px] text-[14px] text-muted-foreground">{t("table.noRecords")}</div>
+        {demoRecordsLoading ? (
+          <div className="flex flex-col gap-[10px]">{Array.from({ length: 6 }).map((_, i) => (<div key={i} className="h-[74px] rounded-[14px] border border-border/60 bg-card animate-pulse" />))}</div>
+        ) : filteredRecords.length === 0 ? (
+          hasActiveFilters ? <EmptyFilterState onClear={clearAllFilters} /> : <EmptyTabState tab={activeTab} onNew={() => setOpenModal("upload")} />
         ) : (
           <>
             <div className={`grid grid-cols-1 gap-[10px] ${sidebarState === "collapsed" ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
               {pagedRecords.map((record) => (
-                <RecordCardMobile key={record.id} record={record} />
+                <RecordCardMobile key={record.id} record={record} isTrash={activeTab === "Trash"} />
               ))}
             </div>
             <PaginationBar compact total={filteredRecords.length} page={safePage} pageSize={pageSize} onPage={setPage} onPageSize={(n) => { setPageSize(n); setPage(1); }} />
