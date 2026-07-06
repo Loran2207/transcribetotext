@@ -799,7 +799,7 @@ export function MoveToFolderDialog({ open, onClose, count, onMove, onCreateFolde
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[420px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="relative rounded-[20px] w-[420px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[6px]">
           <h2 className="font-bold text-[17px] text-foreground">{t("folder.moveTitle", count, count !== 1 ? "s" : "")}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center transition-colors"><svg className="size-[16px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></Button>

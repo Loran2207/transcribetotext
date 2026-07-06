@@ -266,7 +266,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
 
   /* ── settings panel (right) - one set of settings, applied to every file ── */
   const settingsPanel = (
-    <div className="w-[340px] shrink-0 overflow-y-auto px-[24px] py-[6px]">
+    <div className="w-[340px] shrink-0 overflow-y-auto px-[24px] py-[6px] max-lg:w-full max-lg:shrink max-lg:overflow-visible max-lg:pb-[20px]">
       {multi && (
         <div className="border-b border-border py-[16px]">
           <p className="font-semibold text-[14.5px] text-foreground">Export name</p>
@@ -353,13 +353,13 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="p-0 gap-0 overflow-hidden sm:max-w-[960px]" aria-describedby={undefined}>
-        <div className="flex items-center justify-between px-[24px] h-[52px] border-b border-border">
+      <DialogContent className="p-0 gap-0 overflow-hidden flex flex-col bg-background lg:max-w-[960px] max-lg:max-w-none! max-lg:h-[100dvh] max-lg:top-0 max-lg:left-0 max-lg:translate-x-0 max-lg:translate-y-0 max-lg:rounded-none max-lg:border-0" aria-describedby={undefined}>
+        <div className="flex items-center justify-between px-[24px] h-[52px] border-b border-border max-lg:shrink-0">
           <DialogTitle className="font-semibold text-[17px] text-foreground">Export</DialogTitle>
         </div>
 
         {/* Body - fixed height so toggling options never resizes the dialog */}
-        <div className="h-[520px]">
+        <div className="h-[520px] max-lg:h-auto max-lg:flex-1 max-lg:min-h-0">
           {phase === "processing" ? (
             <div className="flex h-full flex-col items-center justify-center px-[24px]">
               <div className="size-[64px] rounded-full bg-primary/5 flex items-center justify-center mb-[18px]">
@@ -367,11 +367,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               </div>
               <p className="font-semibold text-[16px] text-foreground mb-[4px]">Preparing your export…</p>
               <p className="text-[13px] text-muted-foreground mb-[18px]">{multi ? `File ${Math.min(progress + 1, items.length)} of ${items.length}` : "This only takes a moment"}</p>
-              <div className="w-[320px] h-[6px] rounded-full bg-muted overflow-hidden mb-[24px]">
+              <div className="w-[320px] max-w-full h-[6px] rounded-full bg-muted overflow-hidden mb-[24px]">
                 <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${Math.max(8, (progress / Math.max(1, items.length)) * 100)}%` }} />
               </div>
               {multi && (
-                <div className="w-[380px] max-h-[180px] overflow-y-auto flex flex-col gap-[2px]">
+                <div className="w-[380px] max-w-full max-h-[180px] overflow-y-auto flex flex-col gap-[2px]">
                   {items.map((r, i) => (
                     <div key={r.id} className="flex items-center gap-[10px] h-[30px]">
                       {i < progress
@@ -410,7 +410,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                   ? <>{manifest.files.length} files packed into <span className="font-medium text-foreground">{manifest.downloadName}</span></>
                   : <><span className="font-medium text-foreground">{manifest.downloadName}</span> has been downloaded</>}
               </p>
-              <div className="w-[520px] max-h-[240px] overflow-y-auto rounded-[12px] border border-border divide-y divide-border">
+              <div className="w-[520px] max-w-full max-h-[240px] overflow-y-auto rounded-[12px] border border-border divide-y divide-border">
                 {manifest.files.map((f) => (
                   <div key={f.name} className="flex items-center gap-[12px] h-[42px] px-[14px]">
                     <FormatIcon format={f.format} size={24} />
@@ -425,11 +425,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               </button>
             </div>
           ) : (
-            <div className="flex h-full">
+            <div className="flex h-full max-lg:flex-col max-lg:overflow-y-auto">
               {showNav && (
-                <nav className="export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px]">
-                  <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground">{items.length === 1 ? "1 file" : `${items.length} files`}</p>
-                  <div className="flex-1 min-h-0 overflow-y-auto px-[8px] flex flex-col gap-[2px]">
+                <nav className={"export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px] max-lg:w-full max-lg:shrink-0 max-lg:border-r-0 max-lg:border-b max-lg:flex-row max-lg:items-stretch max-lg:py-[8px] " + (multi ? "" : "max-lg:hidden")}>
+                  <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground max-lg:pb-0 max-lg:pl-[12px] max-lg:pr-[4px] max-lg:self-center max-lg:whitespace-nowrap">{items.length === 1 ? "1 file" : `${items.length} files`}</p>
+                  <div className="flex-1 min-h-0 overflow-y-auto px-[8px] flex flex-col gap-[2px] max-lg:flex-row max-lg:overflow-x-auto max-lg:overflow-y-hidden max-lg:items-center">
                     {items.map((r) => {
                       const isActive = activeId === r.id;
                       return (
@@ -458,7 +458,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                     })}
                   </div>
                   {addable.length > 0 && (
-                    <div className="px-[8px] pt-[8px] mt-[8px] border-t border-border">
+                    <div className="px-[8px] pt-[8px] mt-[8px] border-t border-border max-lg:mt-0 max-lg:pt-0 max-lg:border-t-0 max-lg:border-l max-lg:pl-[8px] max-lg:self-center max-lg:shrink-0">
                       <Popover open={addOpen} onOpenChange={setAddOpen}>
                         <PopoverTrigger asChild>
                           <button type="button" className="flex w-full items-center gap-[8px] h-[34px] px-[14px] rounded-full text-[12.5px] font-medium text-primary hover:bg-primary/5 transition-colors">
@@ -487,7 +487,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                 </nav>
               )}
               {/* Center pane - live preview of the selected file */}
-              <div className="flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px]">
+              <div className="flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px] max-lg:hidden">
                 {activeRecord && <TranscriptPreview record={activeRecord} options={shared.options} />}
               </div>
               {settingsPanel}
@@ -496,7 +496,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center gap-[12px] px-[24px] h-[60px] border-t border-border bg-background">
+        <div className="flex items-center gap-[12px] px-[24px] h-[60px] border-t border-border bg-background max-lg:shrink-0">
           {phase === "success" && manifest ? (
             <>
               <div className="flex items-center gap-[8px] flex-1 min-w-0">
