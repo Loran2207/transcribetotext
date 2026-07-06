@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { useSidebar } from "./ui/sidebar";
 import { RecordCard as RecordCardMobile } from "./record-card";
+import { RecordsMobileSort } from "./records-mobile-sort";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
@@ -1481,6 +1482,12 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
       {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
       <div className="lg:hidden mt-[12px] pb-[40px]">
+        {!demoRecordsLoading && filteredRecords.length > 0 && (
+          <div className="flex items-center justify-between gap-[10px] mb-[10px]">
+            <span className="text-[13px] text-muted-foreground">{filteredRecords.length} {filteredRecords.length === 1 ? "record" : "records"}</span>
+            <RecordsMobileSort dateSort={dateSort} setDateSort={setDateSort} />
+          </div>
+        )}
         {demoRecordsLoading ? (
           <div className="flex flex-col gap-[10px]">{Array.from({ length: 6 }).map((_, i) => (<div key={i} className="h-[74px] rounded-[14px] border border-border/60 bg-card animate-pulse" />))}</div>
         ) : filteredRecords.length === 0 ? (
