@@ -1406,13 +1406,13 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                       key={folder.id}
                       type="button"
                       onClick={() => onOpenFolder?.(folder.id)}
-                      className="group shrink-0 flex items-center gap-[8px] h-[48px] pl-[10px] pr-[14px] rounded-[14px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left"
+                      className="group shrink-0 flex items-center gap-[10px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left"
                     >
-                      <span className="shrink-0 flex items-center justify-center size-[30px] rounded-[9px] bg-muted">
-                        <svg className="size-[17px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
+                      <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
+                        <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
                       </span>
                       <span className="min-w-0 flex flex-col gap-[1px]">
-                        <span className="truncate font-medium text-[13px] leading-[17px] text-foreground max-w-[128px]">{folder.name}</span>
+                        <span className="truncate font-medium text-[14px] leading-[19px] text-foreground max-w-[150px]">{folder.name}</span>
                         <span className="text-[11px] leading-[14px] text-muted-foreground">{t(count === 1 ? "folder.fileOne" : "folder.fileOther", count)}</span>
                       </span>
                     </button>
@@ -1483,8 +1483,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
       <div className="lg:hidden mt-[12px] pb-[40px]">
         {!demoRecordsLoading && filteredRecords.length > 0 && (
-          <div className="flex items-center justify-between gap-[10px] mb-[10px]">
-            <span className="text-[13px] text-muted-foreground">{filteredRecords.length} {filteredRecords.length === 1 ? "record" : "records"}</span>
+          <div className="flex items-center justify-end mb-[10px]">
             <RecordsMobileSort dateSort={dateSort} setDateSort={setDateSort} />
           </div>
         )}

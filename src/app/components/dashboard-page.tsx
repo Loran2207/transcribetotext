@@ -446,10 +446,11 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
               </div>
             ))}
           </motion.div>
-          {plan === "pro" && <DashboardInsights onNavigate={onNavigate} />}
+          
           <UpgradeBanner />
           {plan === "free" && <div className="lg:hidden mt-[12px]"><PromoCard /></div>}
           {plan === "free" && <div className="hidden lg:block mt-[16px]"><UpgradeBanner desktop /></div>}
+          <DashboardInsights onNavigate={onNavigate} />
           {/* Records: folder chips + tabs + cards on mobile, full table on desktop */}
           <motion.div {...fadeUp(0.18, 70)}>
             <RecordsTable onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />

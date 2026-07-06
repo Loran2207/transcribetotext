@@ -2,87 +2,78 @@ import { useRef, useState } from "react";
 import { ChevronRight } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { useLanguage } from "./language-context";
+import { usePlan } from "./use-plan";
 import { ANALYTICS_FILES, ANALYTICS_HOURS, ANALYTICS_SOURCES } from "./analytics-card";
 import { meetings, MeetingItem, TODAY_STR } from "./todays-events";
 
-/* Home (mobile/tablet) insight carousel: two swipeable cards, Analytics and
-   Todays Events, with dot indicators under the greeting. The swipe track is a
-   FIXED height (just the two card headers), so swiping never changes height and
-   the cards never jump. Tapping the active card opens its detail in an accordion
-   BELOW the track, decoupled from the swipe, so expansion never resizes the swipe
-   row. Desktop (>=lg) keeps the right panel and never renders this. */
+/* Home (mobile/tablet) insight carousel. Today events (meetings) ALWAYS show,
+   regardless of plan - that is the whole point of the scroll. Pro additionally
+   gets an Analytics slide; Free does not (no stats without a plan). Fixed-height
+   swipe track + a detail accordion below, so the cards never jump on swipe.
+   Desktop (>=lg) uses the right panel and never renders this. */
 export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const { t } = useLanguage();
+  const plan = usePlan();
   const trackRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const todays = meetings.filter((m) => m.day === TODAY_STR);
   const nextMeeting = todays[0];
-
-  const onScroll = () => {
-    const el = trackRef.current;
-    if (!el) return;
-    const i = Math.round(el.scrollLeft / el.clientWidth);
-    if (i !== active) { setActive(i); setExpanded(false); }
-  };
+  const slides = plan === "pro" ? ["analytics", "events"] : ["events"];
+  const onScroll = () => { const el = trackRef.current; if (!el) return; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== active) { setActive(i); setExpanded(false); } };
   const toggle = (i: number) => { if (active === i) setExpanded((v) => !v); else { setActive(i); setExpanded(true); } };
-
   const headCls = "flex h-[76px] w-full items-center justify-between gap-[12px] rounded-[16px] bg-card border border-border shadow-sm px-[16px] text-left active:bg-muted/40 transition-colors";
 
+  const analyticsHeader = (i: number) => (
+    <button type="button" onClick={() => toggle(i)} aria-expanded={active === i && expanded} className={headCls}>
+      <span className="flex min-w-0 flex-col gap-[8px]">
+        <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>{t("dash.tab.analytics")}</span>
+        <span className="flex items-baseline gap-[8px] text-foreground">
+          <span className="tabular-nums" style={{ fontWeight: 700, fontSize: "26px", letterSpacing: "-0.6px", lineHeight: 1 }}>{ANALYTICS_FILES}</span>
+          <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px" }}>{t("dash.analytics.files")}</span>
+          <span className="text-muted-foreground/40" style={{ fontWeight: 400, fontSize: "16px", lineHeight: 1 }}>{"·"}</span>
+          <span className="tabular-nums" style={{ fontWeight: 700, fontSize: "26px", letterSpacing: "-0.6px", lineHeight: 1 }}>{ANALYTICS_HOURS}</span>
+          <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px" }}>{t("dash.analytics.hrs")}</span>
+        </span>
+      </span>
+      <Icon icon={ChevronRight} className="size-[18px] shrink-0 text-muted-foreground transition-transform duration-200" strokeWidth={2} style={{ transform: active === i && expanded ? "rotate(90deg)" : "rotate(0deg)" }} />
+    </button>
+  );
+
+  const eventsHeader = (i: number) => (
+    <button type="button" onClick={() => toggle(i)} aria-expanded={active === i && expanded} className={headCls}>
+      <span className="flex min-w-0 flex-col gap-[8px]">
+        <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>{"Today's events"}</span>
+        {nextMeeting ? (
+          <span className="flex items-baseline gap-[8px] text-foreground">
+            <span className="tabular-nums" style={{ fontWeight: 700, fontSize: "26px", letterSpacing: "-0.6px", lineHeight: 1 }}>{todays.length}</span>
+            <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px" }}>{todays.length === 1 ? "call" : "calls"}</span>
+            <span className="text-muted-foreground/40" style={{ fontWeight: 400, fontSize: "16px", lineHeight: 1 }}>{"·"}</span>
+            <span className="truncate text-muted-foreground" style={{ fontWeight: 500, fontSize: "13px", lineHeight: "18px" }}>{nextMeeting.time.split(" ")[0]}</span>
+          </span>
+        ) : (
+          <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "13px", lineHeight: "18px" }}>No calls today</span>
+        )}
+      </span>
+      <Icon icon={ChevronRight} className="size-[18px] shrink-0 text-muted-foreground transition-transform duration-200" strokeWidth={2} style={{ transform: active === i && expanded ? "rotate(90deg)" : "rotate(0deg)" }} />
+    </button>
+  );
+
+  const activeKey = slides[active] || slides[0];
   return (
     <div className="lg:hidden mt-[16px]">
-      {/* Fixed-height swipe track: only the card headers live here, so swiping
-          between slides never changes height. */}
-      <div
-        ref={trackRef}
-        onScroll={onScroll}
-        className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] gap-[12px]"
-        style={{ scrollbarWidth: "none" }}
-      >
-        {/* Slide 1 - Analytics */}
-        <div className="snap-center shrink-0 w-full">
-          <button type="button" onClick={() => toggle(0)} aria-expanded={active === 0 && expanded} className={headCls}>
-            <span className="flex min-w-0 flex-col gap-[8px]">
-              <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>{t("dash.tab.analytics")}</span>
-              <span className="flex items-baseline gap-[8px] text-foreground">
-                <span className="tabular-nums" style={{ fontWeight: 700, fontSize: "26px", letterSpacing: "-0.6px", lineHeight: 1 }}>{ANALYTICS_FILES}</span>
-                <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px" }}>{t("dash.analytics.files")}</span>
-                <span className="text-muted-foreground/40" style={{ fontWeight: 400, fontSize: "16px", lineHeight: 1 }}>{"·"}</span>
-                <span className="tabular-nums" style={{ fontWeight: 700, fontSize: "26px", letterSpacing: "-0.6px", lineHeight: 1 }}>{ANALYTICS_HOURS}</span>
-                <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px" }}>{t("dash.analytics.hrs")}</span>
-              </span>
-            </span>
-            <Icon icon={ChevronRight} className="size-[18px] shrink-0 text-muted-foreground transition-transform duration-200" strokeWidth={2} style={{ transform: active === 0 && expanded ? "rotate(90deg)" : "rotate(0deg)" }} />
-          </button>
-        </div>
-
-        {/* Slide 2 - Today events */}
-        <div className="snap-center shrink-0 w-full">
-          <button type="button" onClick={() => toggle(1)} aria-expanded={active === 1 && expanded} className={headCls}>
-            <span className="flex min-w-0 flex-col gap-[8px]">
-              <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>{"Today's events"}</span>
-              {nextMeeting ? (
-                <span className="flex items-baseline gap-[8px] text-foreground">
-                  <span className="tabular-nums" style={{ fontWeight: 700, fontSize: "26px", letterSpacing: "-0.6px", lineHeight: 1 }}>{todays.length}</span>
-                  <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px" }}>{todays.length === 1 ? "call" : "calls"}</span>
-                  <span className="text-muted-foreground/40" style={{ fontWeight: 400, fontSize: "16px", lineHeight: 1 }}>{"·"}</span>
-                  <span className="truncate text-muted-foreground" style={{ fontWeight: 500, fontSize: "13px", lineHeight: "18px" }}>{nextMeeting.time.split(" ")[0]}</span>
-                </span>
-              ) : (
-                <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "13px", lineHeight: "18px" }}>No calls today</span>
-              )}
-            </span>
-            <Icon icon={ChevronRight} className="size-[18px] shrink-0 text-muted-foreground transition-transform duration-200" strokeWidth={2} style={{ transform: active === 1 && expanded ? "rotate(90deg)" : "rotate(0deg)" }} />
-          </button>
-        </div>
+      <div ref={trackRef} onScroll={onScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
+        {slides.map((key, i) => (
+          <div key={key} className="snap-center shrink-0 w-full">
+            {key === "analytics" ? analyticsHeader(i) : eventsHeader(i)}
+          </div>
+        ))}
       </div>
 
-      {/* Detail accordion for the active slide, outside the swipe track, so
-          expanding never changes the track height (the cards never jump). */}
       {expanded && (
         <div className="mt-[10px] rounded-[16px] bg-card border border-border shadow-sm overflow-hidden">
           <div className="px-[16px] py-[16px]">
-            {active === 0 ? (
+            {activeKey === "analytics" ? (
               <>
                 <p className="text-muted-foreground mb-[10px]" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>By source</p>
                 <div className="flex flex-col gap-[10px]">
@@ -116,15 +107,13 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
         </div>
       )}
 
-      {/* Dot indicators */}
-      <div className="mt-[10px] flex items-center justify-center gap-[6px]">
-        {[0, 1].map((i) => (
-          <span
-            key={i}
-            className={i === active ? "h-[6px] w-[16px] rounded-full bg-primary transition-all" : "size-[6px] rounded-full bg-muted-foreground/30 transition-all"}
-          />
-        ))}
-      </div>
+      {slides.length > 1 && (
+        <div className="mt-[10px] flex items-center justify-center gap-[6px]">
+          {slides.map((key, i) => (
+            <span key={key} className={i === active ? "h-[6px] w-[16px] rounded-full bg-primary transition-all" : "size-[6px] rounded-full bg-muted-foreground/30 transition-all"} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
