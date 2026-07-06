@@ -5,7 +5,8 @@ import { Button } from "./ui/button";
 import { RecordCard } from "./record-card";
 import { useLanguage } from "./language-context";
 import { useFolders } from "./folder-context";
-import { records, CreateFolderModal, PaginationBar } from "./records-table";
+import { records, CreateFolderModal, PaginationBar, EmptyTabState } from "./records-table";
+import { useTranscriptionModals } from "./transcription-modals";
 
 const PAGE_SIZE = 12;
 
@@ -18,13 +19,17 @@ const PAGE_SIZE = 12;
 export function RecordsListMobile({ onNavigateToRecords, embedded }: { onNavigateToRecords?: () => void; embedded?: boolean }) {
   const { t } = useLanguage();
   const { addFolder } = useFolders();
+  const { setOpenModal } = useTranscriptionModals();
+  // Demo: ?empty=1 / ttt_empty forces the no-records empty state for design captures.
+  const forceEmpty = typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("empty") === "1" || window.localStorage.getItem("ttt_empty") === "1");
+  const list = forceEmpty ? [] : records;
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   // Reset to the first page whenever the list changes shape.
-  useEffect(() => { setPage(1); }, [records.length]);
-  const totalPages = Math.max(1, Math.ceil(records.length / PAGE_SIZE));
+  useEffect(() => { setPage(1); }, [list.length]);
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const visible = records.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const visible = list.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <section className={`lg:hidden ${embedded ? "" : "mt-[24px]"}`}>
@@ -48,13 +53,18 @@ export function RecordsListMobile({ onNavigateToRecords, embedded }: { onNavigat
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
-        {visible.map((r) => (
-          <RecordCard key={r.id} record={r} />
-        ))}
-      </div>
-
-      <PaginationBar compact total={records.length} page={safePage} pageSize={PAGE_SIZE} onPage={setPage} onPageSize={() => {}} />
+      {list.length === 0 ? (
+        <EmptyTabState tab="Recent" onNew={() => setOpenModal("upload")} />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
+            {visible.map((r) => (
+              <RecordCard key={r.id} record={r} />
+            ))}
+          </div>
+          <PaginationBar compact total={list.length} page={safePage} pageSize={PAGE_SIZE} onPage={setPage} onPageSize={() => {}} />
+        </>
+      )}
 
       <CreateFolderModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={(name, color) => addFolder(name, color)} />
     </section>

@@ -636,7 +636,7 @@ function RecordCard({ record, isStarred, onStar }: { record: RecordRow; isStarre
    Empty State
    ══════════════════════════════════════════════ */
 
-function EmptyFilterState({ onClear }: { onClear: () => void }) {
+export function EmptyFilterState({ onClear }: { onClear: () => void }) {
   const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center py-[56px] px-[24px]">
@@ -656,7 +656,7 @@ function EmptyFilterState({ onClear }: { onClear: () => void }) {
   );
 }
 
-function EmptyTabState({ tab, onNew }: { tab: string; onNew?: () => void }) {
+export function EmptyTabState({ tab, onNew }: { tab: string; onNew?: () => void }) {
   const { t } = useLanguage();
 
   // Trash / Starred keep their simple single-line message.

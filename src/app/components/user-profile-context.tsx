@@ -34,14 +34,17 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
        user?.user_metadata?.picture ??
        "/images/avatar.png");
 
-  const [displayName, setDisplayName] = useState(authName);
+  // Demo: ttt_demo_no_name=1 clears the name so the greeting drops it (new-user state)
+  const noNameDemo = (() => { try { return localStorage.getItem("ttt_demo_no_name") === "1"; } catch { return false; } })();
+  const effName = noNameDemo ? "" : authName;
+  const [displayName, setDisplayName] = useState(effName);
   const [avatarSrc, setAvatarSrc] = useState(authAvatar);
 
   // Sync when auth user changes (login/logout/profile update)
   useEffect(() => {
-    setDisplayName(authName);
+    setDisplayName(effName);
     setAvatarSrc(authAvatar);
-  }, [authName, authAvatar]);
+  }, [effName, authAvatar]);
 
   return (
     <UserProfileCtx.Provider value={{ displayName, avatarSrc, setDisplayName, setAvatarSrc }}>
