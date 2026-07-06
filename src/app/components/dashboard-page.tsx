@@ -417,6 +417,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             {greeting}
           </motion.p>
 
+          {plan === "free" && <div className="hidden lg:block mt-[20px]"><UpgradeBanner desktop /></div>}
           {/* Tablet: the four illustrated cards in a 2x2 grid (no kbd) */}
           <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[16px]">
             {cards.map(({ card, key, modal }) => (
@@ -447,9 +448,6 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             ))}
           </motion.div>
           
-          <UpgradeBanner />
-          {plan === "free" && <div className="lg:hidden mt-[12px]"><PromoCard /></div>}
-          {plan === "free" && <div className="hidden lg:block mt-[16px]"><UpgradeBanner desktop /></div>}
           <DashboardInsights onNavigate={onNavigate} />
           {/* Records: folder chips + tabs + cards on mobile, full table on desktop */}
           <motion.div {...fadeUp(0.18, 70)}>

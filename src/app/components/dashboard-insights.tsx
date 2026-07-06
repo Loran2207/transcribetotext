@@ -3,13 +3,15 @@ import { ChevronRight } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { useLanguage } from "./language-context";
 import { usePlan } from "./use-plan";
+import { UpgradeBanner } from "./upgrade-banner";
+import { PromoCard } from "./right-panel";
 import { ANALYTICS_FILES, ANALYTICS_HOURS, ANALYTICS_SOURCES } from "./analytics-card";
 import { meetings, MeetingItem, TODAY_STR } from "./todays-events";
 
-/* Home (mobile/tablet) insight carousel. Today events (meetings) ALWAYS show,
-   regardless of plan - that is the whole point of the scroll. Pro additionally
-   gets an Analytics slide; Free does not (no stats without a plan). Fixed-height
-   swipe track + a detail accordion below, so the cards never jump on swipe.
+/* Home (mobile/tablet) insight carousel - ONE horizontal scroll, no stacked
+   banners. Free swipes [Pro upsell][gift promo][Today events]; Pro swipes
+   [Analytics][Today events]. Meetings ALWAYS show, any plan. Fixed-height track
+   + a detail accordion BELOW it, so expanding an event never makes the row jump.
    Desktop (>=lg) uses the right panel and never renders this. */
 export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const { t } = useLanguage();
@@ -19,10 +21,11 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   const [expanded, setExpanded] = useState(false);
   const todays = meetings.filter((m) => m.day === TODAY_STR);
   const nextMeeting = todays[0];
-  const slides = plan === "pro" ? ["analytics", "events"] : ["events"];
+  const slides = plan === "pro" ? ["analytics", "events"] : ["banner", "promo", "events"];
   const onScroll = () => { const el = trackRef.current; if (!el) return; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== active) { setActive(i); setExpanded(false); } };
   const toggle = (i: number) => { if (active === i) setExpanded((v) => !v); else { setActive(i); setExpanded(true); } };
-  const headCls = "flex h-[76px] w-full items-center justify-between gap-[12px] rounded-[16px] bg-card border border-border shadow-sm px-[16px] text-left active:bg-muted/40 transition-colors";
+  const expandable = (key: string) => key === "analytics" || key === "events";
+  const headCls = "flex h-[84px] w-full items-center justify-between gap-[12px] rounded-[16px] bg-card border border-border shadow-sm px-[16px] text-left active:bg-muted/40 transition-colors";
 
   const analyticsHeader = (i: number) => (
     <button type="button" onClick={() => toggle(i)} aria-expanded={active === i && expanded} className={headCls}>
@@ -59,18 +62,23 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
     </button>
   );
 
+  const renderSlide = (key: string, i: number) => {
+    if (key === "banner") return <div className="h-[84px] flex items-center"><UpgradeBanner bare /></div>;
+    if (key === "promo") return <div className="h-[84px] flex items-center"><PromoCard /></div>;
+    if (key === "analytics") return analyticsHeader(i);
+    return eventsHeader(i);
+  };
+
   const activeKey = slides[active] || slides[0];
   return (
     <div className="lg:hidden mt-[16px]">
       <div ref={trackRef} onScroll={onScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
         {slides.map((key, i) => (
-          <div key={key} className="snap-center shrink-0 w-full">
-            {key === "analytics" ? analyticsHeader(i) : eventsHeader(i)}
-          </div>
+          <div key={key} className="snap-center shrink-0 w-full">{renderSlide(key, i)}</div>
         ))}
       </div>
 
-      {expanded && (
+      {expanded && expandable(activeKey) && (
         <div className="mt-[10px] rounded-[16px] bg-card border border-border shadow-sm overflow-hidden">
           <div className="px-[16px] py-[16px]">
             {activeKey === "analytics" ? (

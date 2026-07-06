@@ -7,13 +7,13 @@ import { useLanguage } from "./language-context";
    primary-gradient card with a value line and a prominent Upgrade CTA. Pro
    users see nothing here. Desktop (>=lg) keeps the right-panel upsell and never
    renders this. */
-export function UpgradeBanner({ desktop = false }: { desktop?: boolean } = {}) {
+export function UpgradeBanner({ desktop = false, bare = false }: { desktop?: boolean; bare?: boolean } = {}) {
   const plan = usePlan();
   const { t } = useLanguage();
   if (plan !== "free") return null;
 
   return (
-    <div className={(desktop ? "" : "lg:hidden") + " mt-[12px]"}>
+    <div className={bare ? "" : ((desktop ? "" : "lg:hidden") + " mt-[12px]")}>
       <button
         type="button"
         className="group relative flex w-full items-center gap-[12px] overflow-hidden rounded-[16px] px-[16px] py-[13px] text-left transition-transform active:scale-[0.99]"
