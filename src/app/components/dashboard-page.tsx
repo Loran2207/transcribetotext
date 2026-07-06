@@ -409,7 +409,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
       )}
 
       <div ref={scrollRef} className="flex-1 overflow-auto min-w-0">
-        <div className="px-[16px] pt-[16px] pb-[96px] md:px-[24px] md:pt-[20px] md:pb-[40px] lg:px-[32px] lg:pt-[28px] lg:pb-0">
+        <div className="px-[16px] pt-[16px] pb-[112px] md:px-[24px] md:pt-[20px] md:pb-[40px] lg:px-[32px] lg:pt-[28px] lg:pb-0">
           <motion.p
             className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap"
             {...fadeUp(0.72, 30)}

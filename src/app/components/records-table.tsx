@@ -1243,7 +1243,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     if (langFilter.size > 0) filteredRecords = filteredRecords.filter((r) => langFilter.has(r.language));
   }
   if (dateSort === "newest") filteredRecords = [...filteredRecords].sort((a, b) => b.dateCreated.localeCompare(a.dateCreated));
-  else filteredRecords = [...filteredRecords].sort((a, b) => a.dateCreated.localeCompare(b.dateCreated));
+  else if (dateSort === "oldest") filteredRecords = [...filteredRecords].sort((a, b) => a.dateCreated.localeCompare(b.dateCreated));
+  else if (dateSort === "name-asc") filteredRecords = [...filteredRecords].sort((a, b) => a.name.localeCompare(b.name));
+  else if (dateSort === "name-desc") filteredRecords = [...filteredRecords].sort((a, b) => b.name.localeCompare(a.name));
   // Demo: ?empty=1 (or localStorage ttt_empty) forces the empty-records state for design captures; off by default.
   if (typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("empty") === "1" || window.localStorage.getItem("ttt_empty") === "1")) filteredRecords = [];
 

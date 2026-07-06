@@ -11,8 +11,8 @@ export function RecordsMobileSort({ dateSort, setDateSort }: { dateSort: string;
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
-  const opts = [{ id: "newest", label: "Newest first" }, { id: "oldest", label: "Oldest first" }];
-  const current = dateSort === "oldest" ? "Oldest first" : "Newest first";
+  const opts = [{ id: "newest", label: "Newest first" }, { id: "oldest", label: "Oldest first" }, { id: "name-asc", label: "Name A-Z" }, { id: "name-desc", label: "Name Z-A" }];
+  const current = (opts.find((o) => o.id === dateSort) || opts[0]).label;
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(!open)} className={"flex items-center gap-[6px] h-[34px] pl-[12px] pr-[10px] rounded-full border border-border bg-card text-[13px] text-foreground active:bg-muted/60 transition-colors"}>
