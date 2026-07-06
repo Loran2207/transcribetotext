@@ -19,7 +19,7 @@ export function UpgradeBanner({ desktop = false, bare = false }: { desktop?: boo
         className="group relative flex w-full items-center gap-[12px] overflow-hidden rounded-[16px] px-[16px] py-[13px] text-left transition-transform active:scale-[0.99]"
         style={{
           background: "linear-gradient(135deg, var(--primary) 0%, color-mix(in oklch, var(--primary) 78%, var(--foreground)) 100%)",
-          boxShadow: "0 6px 22px color-mix(in oklch, var(--primary) 30%, transparent), 0 1px 3px rgba(0,0,0,0.08)",
+          boxShadow: "0 4px 12px color-mix(in oklch, var(--primary) 32%, transparent), 0 1px 3px rgba(0,0,0,0.08)",
         }}
       >
         <span className="shrink-0 hidden md:flex items-center justify-center size-[40px] rounded-full bg-primary-foreground/15">

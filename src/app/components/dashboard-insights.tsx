@@ -63,23 +63,23 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   );
 
   const renderSlide = (key: string, i: number) => {
-    if (key === "banner") return <div className="h-[84px] flex items-center"><UpgradeBanner bare /></div>;
-    if (key === "promo") return <div className="h-[84px] flex items-center"><PromoCard /></div>;
+    if (key === "banner") return <div className="h-[84px] flex items-center [&>*]:w-full"><UpgradeBanner bare /></div>;
+    if (key === "promo") return <div className="h-[84px] flex items-center [&>*]:w-full"><PromoCard /></div>;
     if (key === "analytics") return analyticsHeader(i);
     return eventsHeader(i);
   };
 
   const activeKey = slides[active] || slides[0];
   return (
-    <div className="lg:hidden mt-[16px]">
-      <div ref={trackRef} onScroll={onScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
+    <div className="lg:hidden mt-[2px]">
+      <div ref={trackRef} onScroll={onScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] py-[14px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
         {slides.map((key, i) => (
           <div key={key} className="snap-center shrink-0 w-full">{renderSlide(key, i)}</div>
         ))}
       </div>
 
       {expanded && expandable(activeKey) && (
-        <div className="mt-[10px] rounded-[16px] bg-card border border-border shadow-sm overflow-hidden">
+        <div className="mt-[4px] rounded-[16px] bg-card border border-border shadow-sm overflow-hidden">
           <div className="px-[16px] py-[16px]">
             {activeKey === "analytics" ? (
               <>
@@ -116,7 +116,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
       )}
 
       {slides.length > 1 && (
-        <div className="mt-[10px] flex items-center justify-center gap-[6px]">
+        <div className="mt-[4px] flex items-center justify-center gap-[6px]">
           {slides.map((key, i) => (
             <span key={key} className={i === active ? "h-[6px] w-[16px] rounded-full bg-primary transition-all" : "size-[6px] rounded-full bg-muted-foreground/30 transition-all"} />
           ))}

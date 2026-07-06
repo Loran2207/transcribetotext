@@ -1397,33 +1397,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             {scopedFolder && <svg className="size-[18px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={scopedFolder.color} /></svg>}
             <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-foreground">{scopedFolder?.name ?? t("nav.myRecords")}</span>
           </button>
-        ) : (
-          <div className="mt-[16px] mb-[14px]">
-            {userFolders.length > 0 && (
-              <div className="flex gap-[8px] overflow-x-auto scrollbar-hide -mx-[16px] px-[16px] md:-mx-[24px] md:px-[24px] pb-[2px]">
-                {userFolders.map((folder) => {
-                  const count = mobileFolderCounts.get(folder.id) ?? 0;
-                  return (
-                    <button
-                      key={folder.id}
-                      type="button"
-                      onClick={() => onOpenFolder?.(folder.id)}
-                      className="group shrink-0 flex items-center gap-[10px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left"
-                    >
-                      <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
-                        <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
-                      </span>
-                      <span className="min-w-0 flex flex-col gap-[1px]">
-                        <span className="truncate font-medium text-[14px] leading-[19px] text-foreground max-w-[150px]">{folder.name}</span>
-                        <span className="text-[11px] leading-[14px] text-muted-foreground">{t(count === 1 ? "folder.fileOne" : "folder.fileOther", count)}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+        ) : null}
       </div>
 
 
@@ -1489,6 +1463,26 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             <RecordsMobileSort dateSort={dateSort} setDateSort={setDateSort} />
           </div>
         )}
+        {activeTab === "Recent" && !scopedFolderId && !hasActiveFilters && inlineFolders.length > 0 && (
+          <div className="grid grid-cols-1 gap-[10px] mb-[10px]">
+            {inlineFolders.map((folder) => {
+              const fcount = mobileFolderCounts.get(folder.id) ?? 0;
+              return (
+                <button key={"mf-" + folder.id} type="button" onClick={() => onOpenFolder?.(folder.id)} className="group flex w-full items-center gap-[12px] px-[14px] py-[12px] rounded-[14px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left">
+                  <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
+                    <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
+                  </span>
+                  <span className="min-w-0 flex flex-1 flex-col gap-[1px]">
+                    <span className="truncate font-medium text-[14px] leading-[19px] text-foreground">{folder.name}</span>
+                    <span className="text-[11px] leading-[14px] text-muted-foreground">{t(fcount === 1 ? "folder.fileOne" : "folder.fileOther", fcount)}</span>
+                  </span>
+                  <Icon icon={ChevronRight} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={2} />
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {demoRecordsLoading ? (
           <div className="flex flex-col gap-[10px]">{Array.from({ length: 6 }).map((_, i) => (<div key={i} className="h-[74px] rounded-[14px] border border-border/60 bg-card animate-pulse" />))}</div>
         ) : filteredRecords.length === 0 ? (
