@@ -13,6 +13,8 @@ import { RecordsListMobile } from "./records-list-mobile";
 import { DashboardInsights } from "./dashboard-insights";
 import { ScrollFade } from "./scroll-fade";
 import { UpgradeBanner } from "./upgrade-banner";
+import { usePlan } from "./use-plan";
+import { PromoCard } from "./right-panel";
 
 /* ═══════════════════════════════════════════
    Card 1: Instant Speach
@@ -346,6 +348,7 @@ function useGreeting() {
 export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page: string) => void; onOpenFolder?: (folderId: string) => void } = {}) {
   const greeting = useGreeting();
   const { setOpenModal, openUploadWithFiles } = useTranscriptionModals();
+  const plan = usePlan();
   const [dragOver, setDragOver] = useState(false);
   const dragCounterRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -443,21 +446,14 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
               </div>
             ))}
           </motion.div>
-          {/* Desktop: full records table */}
-          <motion.div className="hidden lg:block" {...fadeUp(0.18, 70)}>
+          {plan === "pro" && <DashboardInsights onNavigate={onNavigate} />}
+          <UpgradeBanner />
+          {plan === "free" && <div className="lg:hidden mt-[12px]"><PromoCard /></div>}
+          {plan === "free" && <div className="hidden lg:block mt-[16px]"><UpgradeBanner desktop /></div>}
+          {/* Records: folder chips + tabs + cards on mobile, full table on desktop */}
+          <motion.div {...fadeUp(0.18, 70)}>
             <RecordsTable onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />
           </motion.div>
-
-          {/* Mobile + tablet: analytics banner (all plans), expands to the full card */}
-          <DashboardInsights onNavigate={onNavigate} />
-
-          {/* Mobile + tablet: upgrade banner (free users only) */}
-          <UpgradeBanner />
-
-          {/* Mobile + tablet: recent records as a flat list, rendered directly */}
-          <div className="mt-[16px] lg:hidden">
-            <RecordsListMobile onNavigateToRecords={() => onNavigate?.("records")} embedded />
-          </div>
 
           {/* Mobile + tablet: bottom scroll-fade hint */}
           <ScrollFade scrollRef={scrollRef} />

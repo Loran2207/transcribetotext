@@ -47,7 +47,7 @@ export function MobileTopBar({ onNavigate }: { onNavigate: (page: string) => voi
 
       <button
         onClick={() => setSearchOpen(true)}
-        className="relative flex items-center flex-1 md:max-w-[520px] h-[40px] rounded-full bg-foreground/[0.04]"
+        className="relative flex items-center flex-1 h-[40px] rounded-full bg-foreground/[0.04]"
         aria-label="Search recordings"
       >
         <Icon icon={Search} className="absolute left-[14px] size-[16px] text-muted-foreground" strokeWidth={1.7} />
