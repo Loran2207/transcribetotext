@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Menu01Icon, Search } from "@hugeicons/core-free-icons";
+import { Menu01Icon, Search, Zap } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { useSidebar } from "./ui/sidebar";
 import { SearchModal } from "./search-modal";
 import { ProfileDropdown } from "./top-bar";
 import { useInnerScreen } from "./inner-screen";
+import { usePlan } from "./use-plan";
 
 /* Compact top bar for mobile + tablet (hidden at lg, where the desktop TopBar
    takes over). Hamburger opens the existing Sheet sidebar (mobile) or toggles
@@ -14,6 +15,7 @@ export function MobileTopBar({ onNavigate }: { onNavigate: (page: string) => voi
   const [searchOpen, setSearchOpen] = useState(false);
   const { toggleSidebar } = useSidebar();
   const inner = useInnerScreen();
+  const plan = usePlan();
 
   return (
     <>
@@ -53,6 +55,17 @@ export function MobileTopBar({ onNavigate }: { onNavigate: (page: string) => voi
         <Icon icon={Search} className="absolute left-[14px] size-[16px] text-muted-foreground" strokeWidth={1.7} />
         <span className="absolute left-[40px] font-normal text-[13.5px] text-muted-foreground">Search recordings</span>
       </button>
+
+      {plan === "free" && (
+        <button onClick={() => onNavigate("settings")} className="hidden md:flex items-center gap-[5px] h-[36px] pl-[12px] pr-[14px] rounded-full bg-primary/10 text-primary shrink-0 active:bg-primary/15 transition-colors">
+          <Icon icon={Zap} className="size-[15px]" strokeWidth={2} fill="currentColor" />
+          <span className="text-[13px] font-semibold whitespace-nowrap">Start my trial now</span>
+        </button>
+      )}
+
+      <a href="mailto:support@transcribetotext.ai" aria-label="Support" className="flex size-[38px] shrink-0 items-center justify-center rounded-full text-muted-foreground active:bg-foreground/5 transition-colors">
+        <svg className="size-[20px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M9.6 9.2a2.4 2.4 0 114.2 1.6c-.7.8-1.8 1-1.8 2.2M12 16.8h.01" /></svg>
+      </a>
 
       <ProfileDropdown onNavigate={onNavigate} />
 
