@@ -243,7 +243,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
   const { starredRecords } = useStarred();
   const { folders: userFolders, addFolder } = useFolders();
   const { t } = useLanguage();
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, setOpenMobile } = useSidebar();
 
   const defaultFolders: { id: string; name: string; color: string }[] = [
     { id: "f1", name: "Client Meetings", color: "#3B82F6" },
@@ -271,7 +271,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
               <SidebarMenuItem key={id}>
                 <SidebarMenuButton
                   isActive={activePage === id}
-                  onClick={() => onNavigate(id)}
+                  onClick={() => { onNavigate(id); setOpenMobile(false); }}
                   tooltip={t(labelKey)}
                 >
                   <Icon icon={NavIcon} strokeWidth={1.3} />
@@ -336,7 +336,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
               {folders.map((folder) => (
                 <SidebarMenuSubItem key={folder.id} className="group/folder">
                   <SidebarMenuSubButton
-                    onClick={userFolders.length > 0 ? () => { onNavigate("records"); onOpenFolder?.(folder.id); } : undefined}
+                    onClick={userFolders.length > 0 ? () => { onNavigate("records"); onOpenFolder?.(folder.id); setOpenMobile(false); } : undefined}
                     className={`${userFolders.length > 0 ? "cursor-pointer" : ""} pr-8`}
                   >
                     <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16">
@@ -372,7 +372,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={activePage === "integrations"}
-              onClick={() => onNavigate("integrations")}
+              onClick={() => { onNavigate("integrations"); setOpenMobile(false); }}
               tooltip={t("nav.integrations")}
             >
               <Icon icon={Puzzle} strokeWidth={1.3} />
