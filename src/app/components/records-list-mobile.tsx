@@ -11,7 +11,7 @@ import { useTranscriptionModals } from "./transcription-modals";
 const PAGE_SIZE = 12;
 
 /* The dashboard recent-records list for mobile + tablet: a flat list of
-   records rendered as cards (1 column on phone, 2 on tablet), paginated with
+   records rendered as cards (single column), paginated with
    the shared arrow PaginationBar (compact variant) - the same prev/next paging
    the desktop table uses. Replaces the 122KB desktop table below lg. The header
    carries an "Add folder" control that opens the shared CreateFolderModal
@@ -57,7 +57,7 @@ export function RecordsListMobile({ onNavigateToRecords, embedded }: { onNavigat
         <EmptyTabState tab="Recent" onNew={() => setOpenModal("upload")} />
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
+          <div className="grid grid-cols-1 gap-[10px]">
             {visible.map((r) => (
               <RecordCard key={r.id} record={r} />
             ))}

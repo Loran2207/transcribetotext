@@ -79,7 +79,7 @@ export function AppLayout() {
               </>
             )}
           </main>
-          {!isSubRoute && <BottomNav activePage={activePage} onNavigate={handleNavigate} />}
+          {!isSubRoute && <BottomNav />}
           <InnerScreenBottomBar />
         </SidebarInset>
       </SidebarProvider>

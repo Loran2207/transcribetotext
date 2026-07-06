@@ -1072,7 +1072,7 @@ interface RecordsTableProps {
 export function RecordsTable({ hideTopHeader = false, showAddFolderButton = false, scopedFolderId = null, showInlineFolderRows = true, onNavigateToRecords, onOpenFolder }: RecordsTableProps = {}) {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { state: sidebarState } = useSidebar();
+  
   const { jobs, setOpenModal } = useTranscriptionModals();
   const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder, deleteFolder, renameFolder, changeFolderColor, moveFolder } = useFolders();
   const [deletingInlineFolderId, setDeletingInlineFolderId] = useState<string | null>(null);
@@ -1487,7 +1487,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
           hasActiveFilters ? <EmptyFilterState onClear={clearAllFilters} /> : <EmptyTabState tab={activeTab} onNew={() => setOpenModal("upload")} />
         ) : (
           <>
-            <div className={`grid grid-cols-1 gap-[10px] ${sidebarState === "collapsed" ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
+            <div className="grid grid-cols-1 gap-[10px]">
               {pagedRecords.map((record) => (
                 <RecordCardMobile key={record.id} record={record} isTrash={activeTab === "Trash"} />
               ))}

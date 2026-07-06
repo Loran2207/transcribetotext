@@ -165,7 +165,7 @@ export function MobileProcessing() {
         <button
           onClick={() => { setActiveTab(activeCount > 0 ? "uploaded" : errorBadge > 0 ? "failed" : "history"); setOpen(true); }}
           data-mobile-fab="history"
-          className={"md:hidden fixed z-[45] flex items-center justify-center rounded-full bg-card active:scale-95 transition-transform motion-reduce:transition-none motion-reduce:active:scale-100 border " + (badgeIsError ? "border-destructive/30" : "border-border")}
+          className={"lg:hidden fixed z-[45] flex items-center justify-center rounded-full bg-card active:scale-95 transition-transform motion-reduce:transition-none motion-reduce:active:scale-100 border " + (badgeIsError ? "border-destructive/30" : "border-border")}
           style={{ right: HISTORY_FAB_RIGHT, bottom: HISTORY_FAB_BOTTOM, width: HISTORY_FAB_SIZE, height: HISTORY_FAB_SIZE, boxShadow: "0 8px 20px -6px rgba(16,24,40,0.16), 0 2px 6px -2px rgba(16,24,40,0.08)" }}
           aria-label={showSpinner ? activityLabel : "Upload history"}
         >

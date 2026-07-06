@@ -507,7 +507,7 @@ function TranscriptSegment({
     <div
       ref={segmentRef}
       data-segment-id={segment.id}
-      className={`group/seg relative -mx-2 grid ${hideSpeaker ? "grid-cols-1" : "grid-cols-[minmax(160px,220px)_1fr] max-md:grid-cols-1"} gap-4 rounded-xl px-2 py-4 transition-colors duration-200 max-md:gap-2 ${
+      className={`group/seg relative -mx-2 grid ${hideSpeaker ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[minmax(160px,220px)_1fr]"} gap-4 rounded-xl px-2 py-4 transition-colors duration-200 max-lg:gap-2 ${
         highlighted
           ? "bg-primary/8"
           : isSegHighlighted
@@ -542,7 +542,7 @@ function TranscriptSegment({
         </div>
       )}
 
-      <div className="relative min-w-0 pl-5 pr-28 max-md:pr-16">
+      <div className="relative min-w-0 pl-5 pr-28 max-lg:pr-16">
         <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-full transition-colors ${lineTone}`} />
         {!hideTimecodes && (onSeekTimecode ? (
           <button

@@ -1,6 +1,10 @@
 import * as React from "react";
 
-const MOBILE_BREAKPOINT = 768;
+/* "Mobile" here means the compact / adaptive layout: phone AND tablet. The app
+   shell shows the overlay drawer nav (not the persistent rail), single-column
+   lists, and the floating "+" FAB below the desktop breakpoint. Desktop chrome
+   (persistent sidebar, right panel, table) starts at lg (1024). */
+const MOBILE_BREAKPOINT = 1024;
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(

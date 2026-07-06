@@ -37,7 +37,7 @@ export function ScrollFade({ scrollRef }: { scrollRef: RefObject<HTMLElement | n
   return (
     <div
       aria-hidden
-      className="md:hidden pointer-events-none fixed inset-x-0 bottom-0 z-30 h-[72px] transition-opacity duration-300"
+      className="lg:hidden pointer-events-none fixed inset-x-0 bottom-0 z-30 h-[72px] transition-opacity duration-300"
       style={{ opacity: atBottom ? 0 : 1, background: "linear-gradient(to top, #ffffff 0%, #ffffff 55%, rgba(255,255,255,0.02) 100%)" }}
     />
   );

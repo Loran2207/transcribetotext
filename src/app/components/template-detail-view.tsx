@@ -22,6 +22,7 @@ import { sectionIcon } from "./templates-page";
 import type { Template } from "@/lib/templates";
 import { templateEmoji, categorize, hueForCategory, type CategoryId } from "@/lib/template-meta";
 import { getTemplateSample } from "@/lib/template-samples";
+import { TranscriptRow } from "./transcript-row";
 
 /* View-only template detail page (first iteration: no editing).
    Header: title + compact actions top-right (Edit with a Soon badge, star,
@@ -259,21 +260,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                   return sample.source.segments.map((seg, i) => {
                     const color = speakerColor.get(seg.speaker);
                     return (
-                      <div key={i} className="flex gap-3.5">
-                        <div
-                          className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white mt-0.5"
-                          style={{ backgroundColor: color }}
-                        >
-                          {seg.speaker.charAt(0)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-[13px] font-semibold text-foreground/85">{seg.speaker}</span>
-                            <span className="text-[11px] text-muted-foreground/60 tabular-nums">{seg.time}</span>
-                          </div>
-                          <p className="text-[14px] text-muted-foreground leading-[1.75] mt-0.5">{seg.text}</p>
-                        </div>
-                      </div>
+                      <TranscriptRow key={i} name={seg.speaker} initial={seg.speaker.charAt(0)} color={color} time={seg.time} text={seg.text} />
                     );
                   });
                 })()}
