@@ -11,11 +11,11 @@ import { meetings, MeetingItem, TODAY_STR } from "./todays-events";
 const TODAYS_EVENTS = "Today's events";
 
 /* Home mobile/tablet insight stack.
-   Free: a 2-slide promo carousel (Unlock Pro + gift) that swipes, with a
-   todays-events block ALWAYS visible just below it. Pro: analytics and events
-   are NEVER shown at once - they swipe in a 2-slide carousel. Tapping the
-   visible card expands its detail below (bounded height + internal scroll, both
-   open to the same size). Desktop (lg and up) uses the right panel. */
+   Free: a 2-slide promo carousel (Unlock Pro + gift) below a todays-events card.
+   Pro: analytics and events are a 2-slide swipe carousel (never both at once).
+   Each card is ONE solid card - the header plus (when open) its detail live in a
+   single rounded border; the detail is bounded + scrolls. The 2 dots sit under
+   the carousel and drop as the open card grows. Desktop uses the right panel. */
 export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const { t } = useLanguage();
   const plan = usePlan();
@@ -30,7 +30,9 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   const onPromoScroll = () => { const el = promoRef.current; if (!el) return; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== promoActive) setPromoActive(i); };
   const onInfoScroll = () => { const el = infoRef.current; if (!el) return; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== infoActive) { setInfoActive(i); setExpanded(null); } };
   const toggle = (key: string) => setExpanded((v) => (v === key ? null : key));
-  const headCls = "flex h-[84px] w-full items-center justify-between gap-[12px] rounded-[16px] bg-card border border-border shadow-sm px-[16px] text-left active:bg-muted/40 transition-colors";
+  const headCls = "flex h-[84px] w-full items-center justify-between gap-[12px] px-[16px] text-left active:bg-muted/40 transition-colors";
+  const cardCls = "rounded-[16px] bg-card border border-border shadow-sm overflow-hidden";
+  const detailCls = "max-h-[150px] overflow-y-auto border-t border-border px-[16px] py-[14px]";
   const dotOn = "h-[6px] w-[16px] rounded-full bg-primary transition-all";
   const dotOff = "size-[6px] rounded-full bg-muted-foreground/30 transition-all";
 
@@ -69,42 +71,52 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
     </button>
   );
 
-  const analyticsDetail = (
-    <div className="mt-[10px] rounded-[16px] bg-card border border-border shadow-sm overflow-hidden">
-      <div className="max-h-[260px] overflow-y-auto px-[16px] py-[16px]">
-        <p className="text-muted-foreground mb-[10px]" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>By source</p>
-        <div className="flex flex-col gap-[10px]">
-          {ANALYTICS_SOURCES.map((src) => (
-            <div key={src.label} className="flex items-center gap-[10px]">
-              <span className="w-[92px] shrink-0 text-[12px] leading-[16px] text-muted-foreground">{src.label}</span>
-              <span className="relative flex-1 h-[4px] rounded-full bg-muted overflow-hidden">
-                <span className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: Math.round((src.value / ANALYTICS_SOURCES[0].value) * 100) + "%" }} />
-              </span>
-              <span className="w-[32px] shrink-0 text-right tabular-nums text-[12px] leading-[16px] text-foreground">{src.value}</span>
-            </div>
-          ))}
-        </div>
+  const analyticsInner = (
+    <div className={detailCls}>
+      <p className="text-muted-foreground mb-[10px]" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>By source</p>
+      <div className="flex flex-col gap-[10px]">
+        {ANALYTICS_SOURCES.map((src) => (
+          <div key={src.label} className="flex items-center gap-[10px]">
+            <span className="w-[92px] shrink-0 text-[12px] leading-[16px] text-muted-foreground">{src.label}</span>
+            <span className="relative flex-1 h-[4px] rounded-full bg-muted overflow-hidden">
+              <span className="absolute inset-y-0 left-0 rounded-full bg-primary" style={{ width: Math.round((src.value / ANALYTICS_SOURCES[0].value) * 100) + "%" }} />
+            </span>
+            <span className="w-[32px] shrink-0 text-right tabular-nums text-[12px] leading-[16px] text-foreground">{src.value}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 
-  const eventsDetail = (
-    <div className="mt-[10px] rounded-[16px] bg-card border border-border shadow-sm overflow-hidden">
-      <div className="max-h-[260px] overflow-y-auto px-[16px] py-[16px]">
-        {todays.length ? (
-          <>
-            <div className="flex flex-col">
-              {todays.map((m) => (<MeetingItem key={m.id} meeting={m} />))}
-            </div>
-            <button type="button" onClick={() => onNavigate?.("calendar")} className="mt-[8px] flex w-full items-center justify-center gap-[6px] rounded-[10px] border border-border py-[10px] text-[13px] font-medium text-foreground active:bg-muted/50 transition-colors">
-              View all meetings
-              <Icon icon={ChevronRight} className="size-[15px] text-muted-foreground" strokeWidth={2} />
-            </button>
-          </>
-        ) : (
-          <p className="py-[8px] text-[13px] leading-[18px] text-muted-foreground">Nothing scheduled for today.</p>
-        )}
-      </div>
+  const eventsInner = (
+    <div className={detailCls}>
+      {todays.length ? (
+        <>
+          <div className="flex flex-col">
+            {todays.map((m) => (<MeetingItem key={m.id} meeting={m} />))}
+          </div>
+          <button type="button" onClick={() => onNavigate?.("calendar")} className="mt-[8px] flex w-full items-center justify-center gap-[6px] rounded-[10px] border border-border py-[10px] text-[13px] font-medium text-foreground active:bg-muted/50 transition-colors">
+            View all meetings
+            <Icon icon={ChevronRight} className="size-[15px] text-muted-foreground" strokeWidth={2} />
+          </button>
+        </>
+      ) : (
+        <p className="py-[8px] text-[13px] leading-[18px] text-muted-foreground">Nothing scheduled for today.</p>
+      )}
+    </div>
+  );
+
+  const analyticsCard = (
+    <div className={cardCls}>
+      {analyticsHeader}
+      {expanded === "analytics" && analyticsInner}
+    </div>
+  );
+
+  const eventsCard = (
+    <div className={cardCls}>
+      {eventsHeader}
+      {expanded === "events" && eventsInner}
     </div>
   );
 
@@ -123,17 +135,15 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
     </div>
   );
 
-  const activeKey = infoSlides[infoActive] || infoSlides[0];
   const infoCarousel = (
     <div>
       <div ref={infoRef} onScroll={onInfoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] py-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
         {infoSlides.map((key) => (
-          <div key={key} className="snap-center shrink-0 w-full">
-            {key === "analytics" ? analyticsHeader : eventsHeader}
+          <div key={key} className="snap-center shrink-0 w-full self-start">
+            {key === "analytics" ? analyticsCard : eventsCard}
           </div>
         ))}
       </div>
-      {expanded === activeKey && (activeKey === "analytics" ? analyticsDetail : eventsDetail)}
       <div className="mt-[8px] flex items-center justify-center gap-[6px]">
         {infoSlides.map((key, i) => (<span key={key} className={i === infoActive ? dotOn : dotOff} />))}
       </div>
@@ -144,10 +154,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
     <div className="lg:hidden mt-[4px] flex flex-col gap-[8px]">
       {plan === "free" ? (
         <>
-          <div>
-            {eventsHeader}
-            {expanded === "events" && eventsDetail}
-          </div>
+          {eventsCard}
           {promoCarousel}
         </>
       ) : (
