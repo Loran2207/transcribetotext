@@ -1738,9 +1738,6 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
               <div className="flex-1 min-w-0">
-                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
-              </div>
-              <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
@@ -1964,9 +1961,6 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
               <div className="flex-1 min-w-0">
-                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
-              </div>
-              <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
@@ -2170,9 +2164,6 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
               <div className="flex-1 min-w-0">
-                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
-              </div>
-              <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
@@ -2341,9 +2332,6 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
 
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
-              <div className="flex-1 min-w-0">
-                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
-              </div>
               <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
@@ -2653,9 +2641,6 @@ function RecordingReviewModal() {
 
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
-              <div className="flex-1 min-w-0">
-                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
-              </div>
               <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
