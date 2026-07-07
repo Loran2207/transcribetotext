@@ -30,6 +30,7 @@ import { useStarred } from "./starred-context";
 import { SourceIcon, type SourceType } from "./source-icons";
 import { records, type RecordRow } from "./records-table";
 import { TemplatePicker } from "./template-picker";
+import { TemplateSheet, LanguageSheet } from "./result-picker-sheets";
 import { templateEmoji } from "@/lib/template-meta";
 import { Icon } from "./ui/icon";
 import { LottieStage } from "./checkout-loader/lottie-stage";
@@ -1448,7 +1449,7 @@ function PageHeader({
             </DropdownMenuContent>
           </DropdownMenu>
           {!hasSummary && (
-            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
+            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onSetTemplate}>
               <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
               <span className="font-medium text-[13px] text-foreground">Apply template</span>
             </Button>
@@ -1680,6 +1681,16 @@ export function TranscriptionDetailPage() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryStage, setSummaryStage] = useState("");
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [langSheetOpen, setLangSheetOpen] = useState(false);
+  const [belowLg, setBelowLg] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const sync = () => setBelowLg(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const { templates } = useTemplates();
 
   // PRO "Apply template" deep-link: a record opened with a template to apply.
@@ -2615,7 +2626,7 @@ export function TranscriptionDetailPage() {
               <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
             )}
           </div>
-          <div className="inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
+          <div className="max-lg:hidden inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
             <Select
               value={selectedTranslationLang || undefined}
               onValueChange={setSelectedTranslationLang}
@@ -2686,44 +2697,21 @@ export function TranscriptionDetailPage() {
           translationDisabled={isTranslationLoading || isJobTranscribing}
         />
         {!isJobTranscribing && (
-          <div className="md:hidden flex items-center gap-2 px-4 pt-3">
-            <TemplatePicker
-              value={activeTemplateId}
-              onSelect={handleTemplateSelect}
-              onManageTemplates={() => navigate("/")}
-              align="start"
-              trigger={
-                <Button variant="pill-outline" className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0">
-                  <span className="flex items-center gap-1.5 min-w-0">
-                    <Icon icon={Zap} className="size-[14px] text-muted-foreground shrink-0" strokeWidth={1.6} />
-                    <span className="truncate">{barActiveTemplate ? barActiveTemplate.name : "Template"}</span>
-                  </span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
-                </Button>
-              }
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="pill-outline" className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0" disabled={isTranslationLoading || isJobTranscribing}>
-                  <span className="flex items-center gap-1.5 min-w-0">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-[14px] text-muted-foreground shrink-0"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
-                    <span className="truncate">{activeTranslationMeta ? activeTranslationMeta.flag + " " + activeTranslationMeta.short : "Translate"}</span>
-                  </span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" sideOffset={6} className="z-[120] w-[220px]">
-                {TRANSLATION_LANGUAGES.map((language) => (
-                  <DropdownMenuItem key={language.code} className="gap-2" onClick={() => { void handleTranslate(language.code); }}>
-                    <span>{language.flag}</span>
-                    <span className="flex-1">{language.label}</span>
-                    {activeTranslationLang === language.code ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-auto size-3.5 text-primary"><path d="M20 6L9 17l-5-5" /></svg>
-                    ) : null}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+          <div className="lg:hidden flex items-center gap-2 px-4 pt-3">
+            <Button variant="pill-outline" onClick={() => setTemplatePickerOpen(true)} className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0">
+              <span className="flex items-center gap-1.5 min-w-0">
+                <Icon icon={Zap} className="size-[14px] text-muted-foreground shrink-0" strokeWidth={1.6} />
+                <span className="truncate">{barActiveTemplate ? barActiveTemplate.name : "Template"}</span>
+              </span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
+            </Button>
+            <Button variant="pill-outline" onClick={() => setLangSheetOpen(true)} disabled={isTranslationLoading || isJobTranscribing} className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0">
+              <span className="flex items-center gap-1.5 min-w-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-[14px] text-muted-foreground shrink-0"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
+                <span className="truncate">{activeTranslationMeta ? activeTranslationMeta.flag + " " + activeTranslationMeta.short : "Translate"}</span>
+              </span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
+            </Button>
           </div>
         )}
         <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
@@ -2964,6 +2952,8 @@ export function TranscriptionDetailPage() {
             </div>
           </DrawerContent>
         </Drawer>
+        <TemplateSheet open={templatePickerOpen && belowLg} onOpenChange={setTemplatePickerOpen} value={activeTemplateId} onSelect={handleTemplateSelect} />
+        <LanguageSheet open={langSheetOpen && belowLg} onOpenChange={setLangSheetOpen} languages={TRANSLATION_LANGUAGES} activeLang={activeTranslationLang} disabled={isTranslationLoading || isJobTranscribing} onPick={(code) => { void handleTranslate(code); }} />
         <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={1} onMove={(id) => moveToFolder(id)} onCreateFolder={() => { setMoveDialogOpen(false); createFolderAndMove(); }} folders={folders} />
 
         {isJobTranscribing ? null : (
