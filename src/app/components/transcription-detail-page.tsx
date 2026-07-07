@@ -570,7 +570,7 @@ function TranscriptSegment({
             {renderText(segmentText)}
           </p>
         )}
-        {!hideTimecodes && <span className="mt-2 block text-xs text-muted-foreground tabular-nums">{segmentEndTimestamp}</span>}
+        {!hideTimecodes && <span className="mt-2 block text-xs text-muted-foreground tabular-nums max-lg:hidden">{segmentEndTimestamp}</span>}
 
         {/* Inline comment input */}
         {inlineComment && (
