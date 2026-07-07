@@ -10,6 +10,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { useFolders, type FolderItem as CtxFolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
+import { setFabHidden } from "./fab-visibility";
 import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit, X } from "@hugeicons/core-free-icons";
 import { ShareDialog } from "./share-dialog";
 import { Icon } from "./ui/icon";
@@ -336,7 +337,7 @@ function MSActionBtn({ icon, label, onClick, destructive = false }: { icon: Reac
 
 function MobileMultiSelectBar({ count, onCancel, onCopySummary, onShare, onMoveFolder, onTrash }: { count: number; onCancel: () => void; onCopySummary: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void }) {
   return (
-    <div className="lg:hidden fixed left-[12px] z-40" style={{ right: 84, bottom: "calc(16px + env(safe-area-inset-bottom))" }}>
+    <div className="lg:hidden fixed left-[12px] z-40" style={{ right: 12, bottom: "calc(16px + env(safe-area-inset-bottom))" }}>
       <div className="rounded-[18px] bg-card border border-border px-[8px] py-[7px] flex items-center gap-[2px]" style={{ boxShadow: "0 10px 30px -6px rgba(16,24,40,0.22), 0 2px 8px -2px rgba(16,24,40,0.12)" }}>
         <button type="button" onClick={onCancel} aria-label="Cancel selection" className="size-[38px] rounded-full flex items-center justify-center text-muted-foreground active:bg-muted transition-colors">
           <Icon icon={X} className="size-[18px]" strokeWidth={1.8} />
@@ -1318,6 +1319,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   }
 
   const hasSelection = selectedRows.size > 0 && activeTab !== "Trash";
+  useEffect(() => { setFabHidden(hasSelection, "select"); return () => setFabHidden(false, "select"); }, [hasSelection]);
 
   const sharedCount = scopedActiveRecords.filter((r) => sharedIds.has(r.id) || false).length;
 

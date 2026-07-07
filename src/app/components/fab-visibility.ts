@@ -1,23 +1,34 @@
 import { useEffect, useState } from "react";
 
-/* Tiny shared signal: lets a scrolling page hide the floating add "+" FAB while
-   its bottom controls (e.g. the pagination bar) are in view, so the FAB never
-   overlaps them. Module-level pub/sub; the page sets it, bottom-nav reads it. */
-let hidden = false;
+/* Shared signal to hide the floating add "+" FAB. Multiple independent reasons
+   can request hiding (page scroll near the bottom controls, an active
+   multi-select). The FAB is hidden while ANY reason is active, so the sources
+   never fight over a single boolean. */
+const reasons = new Set<string>();
 const subs = new Set<(v: boolean) => void>();
 
-export function setFabHidden(v: boolean) {
-  if (v === hidden) return;
-  hidden = v;
+function emit() {
+  const v = reasons.size > 0;
   subs.forEach((f) => f(v));
 }
 
+export function setFabHidden(v: boolean, reason = "scroll") {
+  const had = reasons.has(reason);
+  if (v && !had) {
+    reasons.add(reason);
+    emit();
+  } else if (!v && had) {
+    reasons.delete(reason);
+    emit();
+  }
+}
+
 export function useFabHidden(): boolean {
-  const [v, setV] = useState(hidden);
+  const [v, setV] = useState(reasons.size > 0);
   useEffect(() => {
     const f = (x: boolean) => setV(x);
     subs.add(f);
-    setV(hidden);
+    setV(reasons.size > 0);
     return () => { subs.delete(f); };
   }, []);
   return v;
