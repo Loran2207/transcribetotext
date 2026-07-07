@@ -21,6 +21,7 @@ import { Slider } from "./ui/slider";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
+import { MoveToFolderDialog } from "./records-table";
 import { ScrollArea } from "./ui/scroll-area";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./ui/collapsible";
 import { useUserProfile } from "./user-profile-context";
@@ -2246,6 +2247,7 @@ export function TranscriptionDetailPage() {
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("export") === "1");
   const [copySheetOpen, setCopySheetOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   function exportTranscript() {
     setExportDialogOpen(true);
   }
@@ -2871,7 +2873,7 @@ export function TranscriptionDetailPage() {
         </Tabs>
 
         <Drawer open={copySheetOpen} onOpenChange={setCopySheetOpen}>
-          <DrawerContent className="md:hidden">
+          <DrawerContent className="md:hidden [&>div:first-child]:hidden">
             <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Copy</DrawerTitle><button type="button" onClick={() => setCopySheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
             <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
               <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(); setCopySheetOpen(false); }}>
@@ -2884,7 +2886,7 @@ export function TranscriptionDetailPage() {
           </DrawerContent>
         </Drawer>
         <Drawer open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
-          <DrawerContent className="lg:hidden">
+          <DrawerContent className="lg:hidden [&>div:first-child]:hidden">
             <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Actions</DrawerTitle><button type="button" onClick={() => setMoreSheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
             <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
               <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
@@ -2896,19 +2898,9 @@ export function TranscriptionDetailPage() {
               <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); regenerateSummary(); }}>
                 <Icon icon={Zap} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Regenerate summary
               </button>
-              {folders.length > 0 ? (
-                <>
-                  <div className="mt-2 mb-1 px-3 text-[12px] font-medium text-muted-foreground">Move to folder</div>
-                  <div className="max-h-[220px] overflow-y-auto flex flex-col gap-0.5">
-                    {folders.map((folder) => (
-                      <button key={folder.id} type="button" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] active:bg-muted/60" onClick={() => { moveToFolder(folder.id); setMoreSheetOpen(false); }}>
-                        <svg className="size-[18px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z" fill={folder.color} /></svg>
-                        <span className="truncate">{folder.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              ) : null}
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); setMoveDialogOpen(true); }}>
+                <Icon icon={FolderOpen} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Move to folder
+              </button>
               <div className="h-px bg-border my-1.5" />
               <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] text-destructive active:bg-destructive/5" onClick={() => { setMoreSheetOpen(false); deleteTranscript(); }}>
                 <Icon icon={Trash} className="size-[18px]" strokeWidth={1.6} /> Delete
@@ -2916,6 +2908,7 @@ export function TranscriptionDetailPage() {
             </div>
           </DrawerContent>
         </Drawer>
+        <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={1} onMove={(id) => moveToFolder(id)} onCreateFolder={() => { setMoveDialogOpen(false); createFolderAndMove(); }} folders={folders} />
 
         {isJobTranscribing ? null : (
           <MediaPlayer
@@ -2942,16 +2935,16 @@ export function TranscriptionDetailPage() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold gap-1.5" onClick={() => setCopySheetOpen(true)}>
-                  <Icon icon={Copy} className="size-[16px]" strokeWidth={1.7} />
-                  {isTranscriptTab ? "Copy transcript" : "Copy summary"}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
+                  <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
                 </Button>
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
                   <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
                 </Button>
-                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
-                  <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
+                <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold gap-1.5" onClick={() => setCopySheetOpen(true)}>
+                  <Icon icon={Copy} className="size-[16px]" strokeWidth={1.7} />
+                  {isTranscriptTab ? "Copy transcript" : "Copy summary"}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
                 </Button>
               </div>
             )}
