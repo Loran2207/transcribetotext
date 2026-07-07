@@ -137,7 +137,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         </Breadcrumb>
 
         {/* Title + compact actions (aligned with the file detail page) */}
-        <div className="max-md:mt-1 mt-5 max-md:mb-5 mb-7 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+        <div className="max-md:mt-1 mt-5 max-md:mb-5 mb-7 flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-6">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <div
