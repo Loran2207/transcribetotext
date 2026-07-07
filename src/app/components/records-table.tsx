@@ -1275,7 +1275,8 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   else if (dateSort === "name-asc") filteredRecords = [...filteredRecords].sort((a, b) => a.name.localeCompare(b.name));
   else if (dateSort === "name-desc") filteredRecords = [...filteredRecords].sort((a, b) => b.name.localeCompare(a.name));
   // Demo: ?empty=1 (or localStorage ttt_empty) forces the empty-records state for design captures; off by default.
-  if (typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("empty") === "1" || window.localStorage.getItem("ttt_empty") === "1")) filteredRecords = [];
+  const forceEmpty = typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("empty") === "1" || window.localStorage.getItem("ttt_empty") === "1");
+  if (forceEmpty) filteredRecords = [];
 
   // Demo: ?exportall=1 opens the export dialog with all visible records (design captures; off by default)
   useEffect(() => {
@@ -1489,7 +1490,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
       {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
       <div className="lg:hidden mt-[12px] pb-[40px]">
-        {activeTab === "Recent" && !scopedFolderId && !hasActiveFilters && inlineFolders.length > 0 && (
+        {activeTab === "Recent" && !scopedFolderId && !hasActiveFilters && !forceEmpty && inlineFolders.length > 0 && (
           <div className="grid grid-cols-1 gap-[10px] mb-[10px]">
             {inlineFolders.map((folder) => {
               const fcount = mobileFolderCounts.get(folder.id) ?? 0;
