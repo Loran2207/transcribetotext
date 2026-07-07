@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router";
 import { SourceIcon } from "./source-icons";
 import { useLanguage } from "./language-context";
 import { Smartphone, Zap, ChevronRight, Check, Mic, Globe, X } from "@hugeicons/core-free-icons";
@@ -31,8 +32,9 @@ const platformSourceMap = { meet: "google-meet", zoom: "zoom", teams: "teams" } 
    ══════════════════════════════════════════════ */
 
 export function PromoCard() {
+  const navigate = useNavigate();
   return (
-    <div className="relative w-full overflow-hidden rounded-[12px] shrink-0" style={{ height: 63, minHeight: 63 }}>
+    <div role="button" tabIndex={0} onClick={() => navigate("/checkout")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate("/checkout"); } }} className="relative w-full overflow-hidden rounded-[12px] shrink-0 cursor-pointer text-left" style={{ height: 63, minHeight: 63 }}>
       {/* Ticket-shaped background */}
       <svg className="absolute inset-0 w-full h-full" fill="none" viewBox="0 0 324 63" preserveAspectRatio="none">
         <path d={promoSvgPaths.p19ebcd71} fill="#FEF2EB" />

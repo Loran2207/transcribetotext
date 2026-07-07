@@ -2542,7 +2542,7 @@ function RecordingCard({ elapsed, audioUrl, onContinue }: {
       <div className="flex items-center justify-between px-[18px] pt-[14px] pb-[8px]">
         <div className="flex items-center gap-[7px]">
           <span className="size-[7px] rounded-full shrink-0 bg-destructive" />
-          <span className="font-semibold text-[11px] text-muted-foreground tracking-wide uppercase">Recording complete</span>
+          <span className="font-semibold text-[11px] text-muted-foreground tracking-wide">Recording complete</span>
         </div>
         <div className="flex items-center gap-[7px]">
           <span className="font-bold text-[18px] text-foreground tabular-nums">{fmtDuration(elapsed)}</span>
@@ -2990,19 +2990,19 @@ export function FloatingProgressWidget() {
       <>
         <div className="flex items-center px-[14px] h-[32px] shrink-0" style={{ borderBottom: rowBorder }}>
           <div className="flex-1 min-w-0">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">File</span>
+            <span className="font-medium text-[11px] text-muted-foreground tracking-wide">File</span>
           </div>
           <div className="w-[44px] shrink-0 text-center">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Lang</span>
+            <span className="font-medium text-[11px] text-muted-foreground tracking-wide">Lang</span>
           </div>
           <div className="w-[52px] shrink-0 text-center">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Transl.</span>
+            <span className="font-medium text-[11px] text-muted-foreground tracking-wide">Transl.</span>
           </div>
           <div className="w-[52px] shrink-0 text-right">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Dur.</span>
+            <span className="font-medium text-[11px] text-muted-foreground tracking-wide">Dur.</span>
           </div>
           <div className="w-[160px] shrink-0 text-right">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Status</span>
+            <span className="font-medium text-[11px] text-muted-foreground tracking-wide">Status</span>
           </div>
         </div>
 

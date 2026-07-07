@@ -1254,6 +1254,7 @@ export function TemplatesPage() {
           <TabsList variant="line" className="gap-5 whitespace-nowrap w-max border-0">
             <TabsTrigger value="all" variant="line" className="max-lg:text-[13px]">All <span className="opacity-50 font-[inherit] ml-1">{allCount}</span></TabsTrigger>
             <TabsTrigger value="starred" variant="line" className="max-lg:text-[13px]">Starred <span className="opacity-50 font-[inherit] ml-1">{starredCount}</span></TabsTrigger>
+            <TabsTrigger value="custom" variant="line" className="max-lg:text-[13px]">My templates <span className="opacity-50 font-[inherit] ml-1">{customCount}</span></TabsTrigger>
             {CATEGORY_TAB_IDS.map((catId) => {
               const meta = CATEGORY_META_BY_ID[catId];
               return (
