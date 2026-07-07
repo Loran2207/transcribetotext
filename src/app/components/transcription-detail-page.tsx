@@ -1401,9 +1401,14 @@ function PageHeader({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
-            <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
-            <span className="font-medium text-[13px] text-foreground">Apply template</span>
+          {!hasSummary && (
+            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
+              <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
+              <span className="font-medium text-[13px] text-foreground">Apply template</span>
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" onClick={onExport} aria-label="Export">
+            <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} />
           </Button>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -1496,11 +1501,6 @@ function PageHeader({
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuItem className="gap-2" onSelect={() => onExport()}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-4 text-muted-foreground"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                Export…
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem className="gap-2" onClick={onRegenerateSummary}>
                 <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                 Regenerate summary
@@ -2870,6 +2870,66 @@ export function TranscriptionDetailPage() {
           ) : null}
         </Tabs>
 
+        <Drawer open={copySheetOpen} onOpenChange={setCopySheetOpen}>
+          <DrawerContent className="md:hidden">
+            <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Copy</DrawerTitle><button type="button" onClick={() => setCopySheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
+            <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(); setCopySheetOpen(false); }}>
+                <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy summary
+              </button>
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscript(); setCopySheetOpen(false); }}>
+                <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy transcript
+              </button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+        <Drawer open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
+          <DrawerContent className="lg:hidden">
+            <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Actions</DrawerTitle><button type="button" onClick={() => setMoreSheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
+            <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
+                <Icon icon={Edit} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Edit transcript
+              </button>
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscriptLink(); setMoreSheetOpen(false); }}>
+                <Icon icon={Link} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy link
+              </button>
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); regenerateSummary(); }}>
+                <Icon icon={Zap} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Regenerate summary
+              </button>
+              {folders.length > 0 ? (
+                <>
+                  <div className="mt-2 mb-1 px-3 text-[12px] font-medium text-muted-foreground">Move to folder</div>
+                  <div className="max-h-[220px] overflow-y-auto flex flex-col gap-0.5">
+                    {folders.map((folder) => (
+                      <button key={folder.id} type="button" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] active:bg-muted/60" onClick={() => { moveToFolder(folder.id); setMoreSheetOpen(false); }}>
+                        <svg className="size-[18px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z" fill={folder.color} /></svg>
+                        <span className="truncate">{folder.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+              <div className="h-px bg-border my-1.5" />
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] text-destructive active:bg-destructive/5" onClick={() => { setMoreSheetOpen(false); deleteTranscript(); }}>
+                <Icon icon={Trash} className="size-[18px]" strokeWidth={1.6} /> Delete
+              </button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+
+        {isJobTranscribing ? null : (
+          <MediaPlayer
+            duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
+            progress={playerProgress}
+            onProgressChange={handlePlayerProgressChange}
+            isPlaying={isPlayerPlaying}
+            onPlayPause={handlePlayerPlayPause}
+            speed={hasVideo ? videoPlaybackRate : 1}
+            onSpeedChange={handlePlaybackRateChange}
+            currentTimeSeconds={effectiveCurrentSeconds}
+            durationSeconds={effectiveDurationSeconds}
+          />
+        )}
         {/* Mobile bottom action bar: Copy + Export + More (md:hidden) */}
         {!isJobTranscribing && (
           <div className="md:hidden shrink-0 border-t border-border bg-background px-4 pt-[10px] pb-[calc(10px+env(safe-area-inset-bottom))]">
@@ -2896,64 +2956,6 @@ export function TranscriptionDetailPage() {
               </div>
             )}
           </div>
-        )}
-        <Drawer open={copySheetOpen} onOpenChange={setCopySheetOpen}>
-          <DrawerContent className="md:hidden">
-            <DrawerHeader className="text-left pb-1"><DrawerTitle>Copy</DrawerTitle></DrawerHeader>
-            <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(); setCopySheetOpen(false); }}>
-                <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy summary
-              </button>
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscript(); setCopySheetOpen(false); }}>
-                <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy transcript
-              </button>
-            </div>
-          </DrawerContent>
-        </Drawer>
-        <Drawer open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
-          <DrawerContent className="lg:hidden">
-            <DrawerHeader className="text-left pb-1"><DrawerTitle>Actions</DrawerTitle></DrawerHeader>
-            <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
-                <Icon icon={Edit} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Edit transcript
-              </button>
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscriptLink(); setMoreSheetOpen(false); }}>
-                <Icon icon={Link} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy link
-              </button>
-              <button type="button" className="max-md:hidden flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); exportTranscript(); }}>
-                <Icon icon={Upload} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Export…
-              </button>
-              {folders.length > 0 ? (
-                <>
-                  <div className="mt-2 mb-1 px-3 text-[12px] font-medium text-muted-foreground">Move to folder</div>
-                  {folders.map((folder) => (
-                    <button key={folder.id} type="button" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] active:bg-muted/60" onClick={() => { moveToFolder(folder.id); setMoreSheetOpen(false); }}>
-                      <span className="size-[14px] rounded-[4px] shrink-0" style={{ backgroundColor: folder.color }} />
-                      <span className="truncate">{folder.name}</span>
-                    </button>
-                  ))}
-                </>
-              ) : null}
-              <div className="h-px bg-border my-1.5" />
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] text-destructive active:bg-destructive/5" onClick={() => { setMoreSheetOpen(false); deleteTranscript(); }}>
-                <Icon icon={Trash} className="size-[18px]" strokeWidth={1.6} /> Delete
-              </button>
-            </div>
-          </DrawerContent>
-        </Drawer>
-
-        {isJobTranscribing ? null : (
-          <MediaPlayer
-            duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
-            progress={playerProgress}
-            onProgressChange={handlePlayerProgressChange}
-            isPlaying={isPlayerPlaying}
-            onPlayPause={handlePlayerPlayPause}
-            speed={hasVideo ? videoPlaybackRate : 1}
-            onSpeedChange={handlePlaybackRateChange}
-            currentTimeSeconds={effectiveCurrentSeconds}
-            durationSeconds={effectiveDurationSeconds}
-          />
         )}
       </div>
 
