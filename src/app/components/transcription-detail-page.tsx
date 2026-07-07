@@ -1325,6 +1325,7 @@ interface PageHeaderProps {
   onDelete: () => void;
   onCopyTranscript: () => void;
   isTranscriptTab: boolean;
+  onOpenMore: () => void;
   onTranslateTo: (code: string) => void;
   activeTranslationLang: string | null;
   translationDisabled: boolean;
@@ -1351,6 +1352,7 @@ function PageHeader({
   onDelete,
   onCopyTranscript,
   isTranscriptTab,
+  onOpenMore,
   onTranslateTo,
   activeTranslationLang,
   translationDisabled,
@@ -1411,12 +1413,20 @@ function PageHeader({
             </TooltipTrigger>
             <TooltipContent>Copy link</TooltipContent>
           </Tooltip>
+          <button
+            type="button"
+            aria-label="More actions"
+            className="max-md:hidden lg:hidden inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            onClick={onOpenMore}
+          >
+            <Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} />
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 aria-label="More actions"
-                className="max-md:hidden inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="max-lg:hidden inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 <Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} />
               </button>
@@ -2603,6 +2613,7 @@ export function TranscriptionDetailPage() {
           onCopySummary={copySummary}
           onCopyTranscript={copyTranscript}
           isTranscriptTab={activeTab === "transcript" || activeTab === "transcript-translated"}
+          onOpenMore={() => setMoreSheetOpen(true)}
           hasSummary={activeTemplateId !== null}
           onSetTemplate={() => { setActiveTab("summary"); setTemplatePickerOpen(true); }}
           onMoveToFolder={moveToFolder}
@@ -2900,7 +2911,7 @@ export function TranscriptionDetailPage() {
           </DrawerContent>
         </Drawer>
         <Drawer open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
-          <DrawerContent className="md:hidden">
+          <DrawerContent className="lg:hidden">
             <DrawerHeader className="text-left pb-1"><DrawerTitle>Actions</DrawerTitle></DrawerHeader>
             <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
               <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
@@ -2908,6 +2919,9 @@ export function TranscriptionDetailPage() {
               </button>
               <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscriptLink(); setMoreSheetOpen(false); }}>
                 <Icon icon={Link} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy link
+              </button>
+              <button type="button" className="max-md:hidden flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); exportTranscript(); }}>
+                <Icon icon={Upload} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Export…
               </button>
               {folders.length > 0 ? (
                 <>
