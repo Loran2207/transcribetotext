@@ -2528,6 +2528,28 @@ export function TranscriptionDetailPage() {
     );
   }
 
+  const handleTemplateSelect = (id: string | null) => {
+    if (id === null) {
+      if (activeTemplateId !== null) toast("Template removed");
+      setActiveTemplateId(null);
+      return;
+    }
+    setActiveTemplateId(id);
+    const selected = templates.find((t) => t.id === id);
+    if (selected) {
+      setActiveTab("summary");
+      setIsSummaryLoading(true);
+      setSummaryStage("Analyzing the transcript");
+      setTimeout(() => setSummaryStage("Generating sections"), 1300);
+      setTimeout(() => setSummaryStage("Polishing the summary"), 2600);
+      setTimeout(() => {
+        setIsSummaryLoading(false);
+        toast.success(`Template "${selected.name}" applied`);
+      }, 3600);
+    }
+  };
+  const barActiveTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
+
   return (
     <div ref={pageRef} className="flex flex-1 overflow-hidden">
       {/* Left column */}
@@ -2672,7 +2694,7 @@ export function TranscriptionDetailPage() {
             </TabsList>
 
             {/* Right side of tab row: context-dependent */}
-            <div className="flex items-center gap-2 max-lg:shrink-0">
+            <div className="flex items-center gap-2 max-lg:hidden">
               {isJobTranscribing ? null : activeTab === "transcript" ? (
                 editMode ? (
                   <>
@@ -2693,26 +2715,7 @@ export function TranscriptionDetailPage() {
                   templates={templates}
                   open={templatePickerOpen}
                   onOpenChange={setTemplatePickerOpen}
-                  onSelect={(id) => {
-                    if (id === null) {
-                      if (activeTemplateId !== null) toast("Template removed");
-                      setActiveTemplateId(null);
-                      return;
-                    }
-                    setActiveTemplateId(id);
-                    const selected = templates.find((t) => t.id === id);
-                    if (selected) {
-                      setActiveTab("summary");
-                      setIsSummaryLoading(true);
-                      setSummaryStage("Analyzing the transcript");
-                      setTimeout(() => setSummaryStage("Generating sections"), 1300);
-                      setTimeout(() => setSummaryStage("Polishing the summary"), 2600);
-                      setTimeout(() => {
-                        setIsSummaryLoading(false);
-                        toast.success(`Template "${selected.name}" applied`);
-                      }, 3600);
-                    }
-                  }}
+                  onSelect={handleTemplateSelect}
                   onNavigateToTemplates={() => navigate("/")}
                 />
               )}
@@ -2856,6 +2859,45 @@ export function TranscriptionDetailPage() {
             </TabsContent>
           ) : null}
         </Tabs>
+
+        {/* Mobile persistent action bar: edit transcript + template picker, always available (lg:hidden) */}
+        {!isJobTranscribing && (
+          <div className="lg:hidden shrink-0 border-t border-border bg-background px-4 pt-[10px] pb-[calc(10px+env(safe-area-inset-bottom))]">
+            {editMode ? (
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="size-[44px] rounded-full shrink-0" disabled={!canUndo} onClick={undo} aria-label="Undo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button>
+                <Button variant="ghost" size="icon" className="size-[44px] rounded-full shrink-0" disabled={!canRedo} onClick={redo} aria-label="Redo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button>
+                <Button variant="pill-outline" className="flex-1 h-[46px]" onClick={handleCancel}>Cancel</Button>
+                <Button className="flex-1 h-[46px] font-semibold" onClick={handleSave}>Save</Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="pill-outline" className="h-[46px] px-[16px] gap-1.5 text-[13px] font-medium shrink-0" onClick={() => { if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
+                  <Icon icon={Edit} className="size-[15px]" strokeWidth={1.7} />
+                  Edit
+                </Button>
+                <TemplatePicker
+                  value={activeTemplateId}
+                  onSelect={handleTemplateSelect}
+                  onManageTemplates={() => navigate("/")}
+                  align="center"
+                  trigger={
+                    <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold gap-1.5">
+                      {barActiveTemplate ? (
+                        <>
+                          <span className="text-[15px] leading-none">{templateEmoji(barActiveTemplate.name)}</span>
+                          <span className="truncate">{barActiveTemplate.name}</span>
+                        </>
+                      ) : (
+                        "Apply template"
+                      )}
+                    </Button>
+                  }
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {isJobTranscribing ? null : (
           <MediaPlayer

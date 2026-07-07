@@ -161,9 +161,9 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
                     <AlertDialogTitle>Delete record forever?</AlertDialogTitle>
                     <AlertDialogDescription>"{displayName}" and its transcript will be permanently deleted. This action cannot be undone.</AlertDialogDescription>
                   </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => { toast.success("Record deleted forever"); setConfirmForever(false); }} className="bg-destructive text-white hover:bg-destructive/90">Delete forever</AlertDialogAction>
+                  <AlertDialogFooter className="flex-row justify-end gap-[8px]">
+                    <AlertDialogCancel className="px-[18px] text-[13px]">{t("common.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => { toast.success("Record deleted forever"); setConfirmForever(false); }} className="px-[18px] text-[13px] font-semibold bg-destructive text-white hover:bg-destructive/90">Delete forever</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>

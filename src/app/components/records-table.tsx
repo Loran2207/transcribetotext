@@ -1362,9 +1362,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                 : "This record and its transcript will be permanently deleted. This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={hardDeleteConfirmed} className="bg-destructive text-white hover:bg-destructive/90">Delete forever</AlertDialogAction>
+          <AlertDialogFooter className="flex-row justify-end gap-[8px]">
+            <AlertDialogCancel className="px-[18px] text-[13px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={hardDeleteConfirmed} className="px-[18px] text-[13px] font-semibold bg-destructive text-white hover:bg-destructive/90">Delete forever</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
