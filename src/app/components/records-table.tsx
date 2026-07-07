@@ -826,9 +826,9 @@ export function MoveToFolderDialog({ open, onClose, count, onMove, onCreateFolde
   const allFolders = ctxFolders && ctxFolders.length > 0 ? ctxFolders.map(f => ({ ...f, children: undefined })) : defaultFolders;
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center md:items-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[420px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="relative overflow-hidden bg-popover w-full rounded-t-[24px] rounded-b-none md:w-[420px] md:max-w-[calc(100vw-32px)] md:rounded-t-[20px] md:rounded-b-[20px]" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[6px]">
           <h2 className="font-bold text-[17px] text-foreground">{t("folder.moveTitle", count, count !== 1 ? "s" : "")}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center transition-colors"><svg className="size-[16px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></Button>
@@ -843,7 +843,7 @@ export function MoveToFolderDialog({ open, onClose, count, onMove, onCreateFolde
             <span className="font-medium text-[13px] text-muted-foreground">{t("folder.createNewFolder")}</span>
           </Button>
         </div>
-        <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
+        <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px] max-md:pb-[calc(18px+env(safe-area-inset-bottom))]">
           <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors"><span className="font-medium text-[13px] text-foreground">{t("common.cancel")}</span></Button>
           <Button onClick={() => { if (selectedId) { onMove(selectedId); onClose(); } }} disabled={!selectedId} className="h-[36px] px-[18px] rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-white"><span className="font-medium text-[13px]">{t("folder.moveHere")}</span></Button>
         </div>
