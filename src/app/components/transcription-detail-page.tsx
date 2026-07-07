@@ -1379,10 +1379,6 @@ function PageHeader({
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>
-          <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onSetTemplate}>
-            <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
-            <span className="font-medium text-[13px] text-foreground">Apply template</span>
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button className="flex items-center gap-[6px] h-9 px-[14px] max-lg:hidden">
@@ -1402,6 +1398,10 @@ function PageHeader({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onSetTemplate}>
+            <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
+            <span className="font-medium text-[13px] text-foreground">Apply template</span>
+          </Button>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" onClick={onCopyLink} aria-label="Copy link">
@@ -1486,20 +1486,13 @@ function PageHeader({
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
               <DropdownMenuItem className="gap-2" onSelect={() => onExport()}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-4 text-muted-foreground"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                 Export…
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2" onClick={onRematchSpeakers}>
-                <Icon icon={User} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                Rematch speakers
-              </DropdownMenuItem>
               <DropdownMenuItem className="gap-2" onClick={onRegenerateSummary}>
                 <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                 Regenerate summary
-              </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2" onClick={onSyncTextToAudio}>
-                <Icon icon={Mic} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                Sync text to audio
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem variant="destructive" className="gap-2" onClick={onDelete}>
