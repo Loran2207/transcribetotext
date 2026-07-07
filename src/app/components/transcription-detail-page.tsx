@@ -1322,6 +1322,8 @@ interface PageHeaderProps {
   onRegenerateSummary: () => void;
   onSyncTextToAudio: () => void;
   onDelete: () => void;
+  onCopyTranscript: () => void;
+  isTranscriptTab: boolean;
   onTranslateTo: (code: string) => void;
   activeTranslationLang: string | null;
   translationDisabled: boolean;
@@ -1346,6 +1348,8 @@ function PageHeader({
   onRegenerateSummary,
   onSyncTextToAudio,
   onDelete,
+  onCopyTranscript,
+  isTranscriptTab,
   onTranslateTo,
   activeTranslationLang,
   translationDisabled,
@@ -1375,21 +1379,29 @@ function PageHeader({
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>
-          <Button size="sm" className="h-8 rounded-full gap-2 px-4 text-sm max-md:hidden" onClick={onShare}>
-            <Icon icon={Share} className="size-4" strokeWidth={1.7} />
-            Share
+          <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onSetTemplate}>
+            <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
+            <span className="font-medium text-[13px] text-foreground">Apply template</span>
           </Button>
-          {hasSummary ? (
-            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onCopySummary}>
-              <Icon icon={Copy} className="size-[14px] text-foreground" strokeWidth={1.5} />
-              <span className="font-medium text-[13px] text-foreground">Copy summary</span>
-            </Button>
-          ) : (
-            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onSetTemplate}>
-              <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
-              <span className="font-medium text-[13px] text-foreground">Apply template</span>
-            </Button>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="flex items-center gap-[6px] h-9 px-[14px] max-lg:hidden">
+                <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
+                <span className="font-medium text-[13px]">{isTranscriptTab ? "Copy transcript" : "Copy summary"}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[190px]">
+              <DropdownMenuItem className="gap-2" onClick={onCopySummary}>
+                <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                Copy summary
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-2" onClick={onCopyTranscript}>
+                <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                Copy transcript
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" onClick={onCopyLink} aria-label="Copy link">
@@ -2279,6 +2291,12 @@ export function TranscriptionDetailPage() {
     toast.success("Summary copied");
   }
 
+  function copyTranscript() {
+    const text = contentSegments.map((seg) => texts[seg.id] ?? seg.text).join(String.fromCharCode(10, 10));
+    navigator.clipboard.writeText(text);
+    toast.success("Transcript copied");
+  }
+
   const [exportDialogOpen, setExportDialogOpen] = useState(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("export") === "1");
   function exportTranscript() {
@@ -2645,6 +2663,8 @@ export function TranscriptionDetailPage() {
           onShare={() => setShareDialogOpen(true)}
           onCopyLink={copyTranscriptLink}
           onCopySummary={copySummary}
+          onCopyTranscript={copyTranscript}
+          isTranscriptTab={activeTab === "transcript" || activeTab === "transcript-translated"}
           hasSummary={activeTemplateId !== null}
           onSetTemplate={() => { setActiveTab("summary"); setTemplatePickerOpen(true); }}
           onMoveToFolder={moveToFolder}
