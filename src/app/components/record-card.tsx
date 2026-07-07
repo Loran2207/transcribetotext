@@ -157,7 +157,7 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
             {confirmForever && (
               <AlertDialog open onOpenChange={(o) => { if (!o) setConfirmForever(false); }}>
                 <AlertDialogContent>
-                  <AlertDialogHeader>
+                  <AlertDialogHeader className="text-left">
                     <AlertDialogTitle>Delete record forever?</AlertDialogTitle>
                     <AlertDialogDescription>"{displayName}" and its transcript will be permanently deleted. This action cannot be undone.</AlertDialogDescription>
                   </AlertDialogHeader>

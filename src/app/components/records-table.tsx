@@ -1354,7 +1354,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       {/* Hard-delete confirmation (permanent, bypasses Trash) */}
       <AlertDialog open={!!confirmDeleteIds} onOpenChange={(open) => { if (!open) setConfirmDeleteIds(null); }}>
         <AlertDialogContent>
-          <AlertDialogHeader>
+          <AlertDialogHeader className="text-left">
             <AlertDialogTitle>{confirmDeleteIds && confirmDeleteIds.length > 1 ? `Delete ${confirmDeleteIds.length} records forever?` : "Delete record forever?"}</AlertDialogTitle>
             <AlertDialogDescription>
               {confirmDeleteIds && confirmDeleteIds.length > 1
