@@ -52,14 +52,13 @@ function StarGlyph({ filled }: { filled: boolean }) {
 
 /* Library card: the Templates-page card plus a hover layer with Preview / Use. */
 function LibraryCard({
-  template, isStarred, onToggleStar, onPreview, onUse, isFree, forceActions = false,
+  template, isStarred, onToggleStar, onPreview, onUse, isFree, forceActions = false, narrow = false,
 }: {
   template: Template; isStarred: boolean; onToggleStar: () => void;
-  onPreview: () => void; onUse: () => void; isFree: boolean; forceActions?: boolean;
+  onPreview: () => void; onUse: () => void; isFree: boolean; forceActions?: boolean; narrow?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const show = hovered || forceActions;
-  const narrow = useMemo(() => (typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(max-width: 1023px)").matches : false), []);
   const emoji = templateEmoji(template.name);
   const hue = hueForCategory(categorize(template));
   const sample = getTemplateSample(template);
@@ -199,7 +198,7 @@ function PreviewPanel({ template, onBack, onUse, isFree }: {
           </div>
         </div>
 
-        <div className="flex gap-9 mt-8 items-start max-md:flex-col max-md:gap-6 max-md:mt-6 md:gap-7 lg:gap-9">
+        <div className="flex gap-9 mt-8 max-md:flex-col max-md:gap-6 max-md:mt-6 md:items-start md:gap-7 lg:gap-9">
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-medium text-muted-foreground mb-3">What this template captures</p>
             <div className="flex flex-col gap-2.5">
@@ -285,6 +284,15 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
   const [query, setQuery] = useState("");
   const [previewing, setPreviewing] = useState<Template | null>(null);
   const [activeNav, setActiveNav] = useState<string>("");
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const on = () => setNarrow(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -418,6 +426,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
                             onUse={() => handleUse(t)}
                             isFree={isFree}
                             forceActions={forceHover && t.id === firstCardId}
+              narrow={narrow}
                           />
                         ))}
                       </div>
