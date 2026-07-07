@@ -10,23 +10,29 @@ import { meetings, MeetingItem, TODAY_STR } from "./todays-events";
 
 const TODAYS_EVENTS = "Today's events";
 
-/* Home mobile/tablet insight stack. Free: a 2-slide promo carousel (Unlock Pro
-   + gift discount) that swipes, with a todays-events block ALWAYS visible below.
-   Pro: an Analytics block + a todays-events block, both always visible. Meetings
-   always show. Each block has a fixed-height header and its detail expands right
-   beneath it, so nothing jumps. Desktop (lg and up) uses the right panel. */
+/* Home mobile/tablet insight stack.
+   Free: a 2-slide promo carousel (Unlock Pro + gift) that swipes, with a
+   todays-events block ALWAYS visible just below it. Pro: analytics and events
+   are NEVER shown at once - they swipe in a 2-slide carousel. Tapping the
+   visible card expands its detail below (bounded height + internal scroll, both
+   open to the same size). Desktop (lg and up) uses the right panel. */
 export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) => void }) {
   const { t } = useLanguage();
   const plan = usePlan();
   const promoRef = useRef<HTMLDivElement>(null);
+  const infoRef = useRef<HTMLDivElement>(null);
   const [promoActive, setPromoActive] = useState(0);
+  const [infoActive, setInfoActive] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
   const todays = meetings.filter((m) => m.day === TODAY_STR);
   const nextMeeting = todays[0];
-  const promoSlides = ["banner", "promo"];
+  const infoSlides = ["analytics", "events"];
   const onPromoScroll = () => { const el = promoRef.current; if (!el) return; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== promoActive) setPromoActive(i); };
+  const onInfoScroll = () => { const el = infoRef.current; if (!el) return; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== infoActive) { setInfoActive(i); setExpanded(null); } };
   const toggle = (key: string) => setExpanded((v) => (v === key ? null : key));
   const headCls = "flex h-[84px] w-full items-center justify-between gap-[12px] rounded-[16px] bg-card border border-border shadow-sm px-[16px] text-left active:bg-muted/40 transition-colors";
+  const dotOn = "h-[6px] w-[16px] rounded-full bg-primary transition-all";
+  const dotOff = "size-[6px] rounded-full bg-muted-foreground/30 transition-all";
 
   const analyticsHeader = (
     <button type="button" onClick={() => toggle("analytics")} aria-expanded={expanded === "analytics"} className={headCls}>
@@ -65,7 +71,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
 
   const analyticsDetail = (
     <div className="mt-[10px] rounded-[16px] bg-card border border-border shadow-sm overflow-hidden">
-      <div className="px-[16px] py-[16px]">
+      <div className="max-h-[260px] overflow-y-auto px-[16px] py-[16px]">
         <p className="text-muted-foreground mb-[10px]" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>By source</p>
         <div className="flex flex-col gap-[10px]">
           {ANALYTICS_SOURCES.map((src) => (
@@ -84,7 +90,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
 
   const eventsDetail = (
     <div className="mt-[10px] rounded-[16px] bg-card border border-border shadow-sm overflow-hidden">
-      <div className="px-[16px] py-[16px]">
+      <div className="max-h-[260px] overflow-y-auto px-[16px] py-[16px]">
         {todays.length ? (
           <>
             <div className="flex flex-col">
@@ -102,36 +108,51 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
     </div>
   );
 
-  return (
-    <div className="lg:hidden mt-[2px] flex flex-col gap-[12px]">
-      {plan === "free" && (
-        <div>
-          <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] py-[14px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
-            {promoSlides.map((key) => (
-              <div key={key} className="snap-center shrink-0 w-full h-[84px] flex items-center [&>*]:w-full">
-                {key === "banner" ? <UpgradeBanner bare /> : <PromoCard />}
-              </div>
-            ))}
+  const promoCarousel = (
+    <div>
+      <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] py-[14px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
+        {["banner", "promo"].map((key) => (
+          <div key={key} className="snap-center shrink-0 w-full h-[84px] flex items-center [&>*]:w-full">
+            {key === "banner" ? <UpgradeBanner bare /> : <PromoCard />}
           </div>
-          <div className="-mt-[4px] flex items-center justify-center gap-[6px]">
-            {promoSlides.map((key, i) => (
-              <span key={key} className={i === promoActive ? "h-[6px] w-[16px] rounded-full bg-primary transition-all" : "size-[6px] rounded-full bg-muted-foreground/30 transition-all"} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {plan === "pro" && (
-        <div>
-          {analyticsHeader}
-          {expanded === "analytics" && analyticsDetail}
-        </div>
-      )}
-
-      <div>
-        {eventsHeader}
-        {expanded === "events" && eventsDetail}
+        ))}
       </div>
+      <div className="-mt-[4px] flex items-center justify-center gap-[6px]">
+        {["banner", "promo"].map((key, i) => (<span key={key} className={i === promoActive ? dotOn : dotOff} />))}
+      </div>
+    </div>
+  );
+
+  const activeKey = infoSlides[infoActive] || infoSlides[0];
+  const infoCarousel = (
+    <div>
+      <div ref={infoRef} onScroll={onInfoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] py-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
+        {infoSlides.map((key) => (
+          <div key={key} className="snap-center shrink-0 w-full">
+            {key === "analytics" ? analyticsHeader : eventsHeader}
+          </div>
+        ))}
+      </div>
+      <div className="mt-[4px] flex items-center justify-center gap-[6px]">
+        {infoSlides.map((key, i) => (<span key={key} className={i === infoActive ? dotOn : dotOff} />))}
+      </div>
+      {expanded === activeKey && (activeKey === "analytics" ? analyticsDetail : eventsDetail)}
+    </div>
+  );
+
+  return (
+    <div className="lg:hidden mt-[4px] flex flex-col gap-[8px]">
+      {plan === "free" ? (
+        <>
+          {promoCarousel}
+          <div>
+            {eventsHeader}
+            {expanded === "events" && eventsDetail}
+          </div>
+        </>
+      ) : (
+        infoCarousel
+      )}
     </div>
   );
 }

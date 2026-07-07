@@ -68,11 +68,11 @@ export function RecordsMobileSort({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-[7px] h-[34px] pl-[13px] pr-[12px] rounded-full border border-border bg-card text-[13px] font-medium text-foreground active:bg-muted/50 transition-colors"
+        className="relative flex items-center justify-center gap-[7px] size-9 md:w-auto md:px-[14px] rounded-full border border-border bg-card text-[13px] font-medium text-foreground active:bg-muted/50 transition-colors"
       >
         <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M2 4.5h12M4.5 8h7M6.5 11.5h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
-        <span>Sort &amp; filter</span>
-        {filterCount > 0 && <span className="ml-[1px] flex items-center justify-center min-w-[18px] h-[18px] px-[5px] rounded-full bg-primary text-primary-foreground text-[11px] font-semibold tabular-nums">{filterCount}</span>}
+        <span className="hidden md:inline">Sort &amp; filter</span>
+        {filterCount > 0 && (<><span className="md:hidden absolute -top-[2px] -right-[2px] size-[9px] rounded-full bg-primary border-2 border-background" /><span className="hidden md:flex items-center justify-center min-w-[18px] h-[18px] px-[5px] rounded-full bg-primary text-primary-foreground text-[11px] font-semibold tabular-nums">{filterCount}</span></>)}
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>

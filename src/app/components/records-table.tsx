@@ -1309,6 +1309,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             <Icon icon={ChevronRight} className="size-[16px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
           </button>
           <div className="flex-1" />
+          <div className="lg:hidden"><RecordsMobileSort dateSort={dateSort} setDateSort={setDateSort} typeFilter={typeFilter} setTypeFilter={setTypeFilter} typeOptions={typeFilterOptions} templateFilter={templateFilter} setTemplateFilter={setTemplateFilter} templateOptions={templateFilterOptions} langFilter={langFilter} setLangFilter={setLangFilter} langOptions={langFilterOptions} onClearAll={clearAllFilters} /></div>
           <Button variant="pill-outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer">
             <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
             <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
@@ -1458,11 +1459,6 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
       {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
       <div className="lg:hidden mt-[12px] pb-[40px]">
-        {!demoRecordsLoading && (filteredRecords.length > 0 || hasActiveFilters) && (
-          <div className="flex items-center justify-end mb-[10px]">
-            <RecordsMobileSort dateSort={dateSort} setDateSort={setDateSort} typeFilter={typeFilter} setTypeFilter={setTypeFilter} typeOptions={typeFilterOptions} templateFilter={templateFilter} setTemplateFilter={setTemplateFilter} templateOptions={templateFilterOptions} langFilter={langFilter} setLangFilter={setLangFilter} langOptions={langFilterOptions} onClearAll={clearAllFilters} />
-          </div>
-        )}
         {activeTab === "Recent" && !scopedFolderId && !hasActiveFilters && inlineFolders.length > 0 && (
           <div className="grid grid-cols-1 gap-[10px] mb-[10px]">
             {inlineFolders.map((folder) => {
