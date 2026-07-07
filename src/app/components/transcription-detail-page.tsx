@@ -20,6 +20,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { Slider } from "./ui/slider";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
 import { ScrollArea } from "./ui/scroll-area";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./ui/collapsible";
 import { useUserProfile } from "./user-profile-context";
@@ -1381,7 +1382,7 @@ function PageHeader({
           <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="flex items-center gap-[6px] h-9 px-[14px] max-lg:hidden">
+              <Button className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden">
                 <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
                 <span className="font-medium text-[13px]">{isTranscriptTab ? "Copy transcript" : "Copy summary"}</span>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
@@ -1398,7 +1399,7 @@ function PageHeader({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onSetTemplate}>
+          <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
             <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
             <span className="font-medium text-[13px] text-foreground">Apply template</span>
           </Button>
@@ -1523,65 +1524,6 @@ function PageHeader({
         <span>{meta.durationLabel}</span>
         <span className="text-border max-lg:hidden">{"\u2022"}</span>
         <span className="max-lg:hidden">{meta.screenshotsCount} {meta.screenshotsCount === 1 ? "screenshot" : "screenshots"}</span>
-      </div>
-      {/* Phone action tiles: Share / Translate / Copy-or-Template / Copy link */}
-      <div className="md:hidden mt-3 grid grid-cols-4 gap-2">
-        <button type="button" onClick={onShare} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
-          <Icon icon={Share} className="size-[18px] text-foreground" strokeWidth={1.7} />
-          <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Share</span>
-        </button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" disabled={translationDisabled} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-[18px] text-foreground"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
-              <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Translate</span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="center" sideOffset={6} className="z-[120] w-[200px]">
-            {TRANSLATION_LANGUAGES.map((language) => (
-              <DropdownMenuItem key={language.code} className="gap-2" disabled={translationDisabled} onClick={() => onTranslateTo(language.code)}>
-                <span>{language.flag}</span>
-                <span className="flex-1">{language.label}</span>
-                {activeTranslationLang === language.code ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-auto size-3.5 text-primary"><path d="M20 6L9 17l-5-5" /></svg>
-                ) : null}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <button type="button" onClick={onCopySummary} className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors disabled:opacity-50">
-          <Icon icon={Copy} className="size-[18px] text-foreground" strokeWidth={1.7} />
-          <span className="text-[11.5px] leading-none font-medium text-muted-foreground">Copy</span>
-        </button>
-        {/* More: secondary actions. Applying a template lives on the Summary tab, so it is a
-            secondary action here (also reachable from the Summary tab picker), not a top tile. */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button type="button" className="flex flex-col items-center justify-center gap-[6px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors">
-              <Icon icon={MoreHorizontal} className="size-[18px] text-foreground" strokeWidth={2} />
-              <span className="text-[11.5px] leading-none font-medium text-muted-foreground">More</span>
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[210px]">
-            <DropdownMenuItem className="gap-2" onClick={onCopyLink}>
-              <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-              Copy link
-            </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2" onClick={onSetTemplate}>
-              <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-              Apply template
-            </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2" onSelect={() => onExport()}>
-              <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-              Export…
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem variant="destructive" className="gap-2" onClick={onDelete}>
-              <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
     </div>
   );
@@ -2292,6 +2234,8 @@ export function TranscriptionDetailPage() {
 
   const [exportDialogOpen, setExportDialogOpen] = useState(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("export") === "1");
+  const [copySheetOpen, setCopySheetOpen] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   function exportTranscript() {
     setExportDialogOpen(true);
   }
@@ -2560,6 +2504,7 @@ export function TranscriptionDetailPage() {
     }
   };
   const barActiveTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
+  const isTranscriptTab = activeTab === "transcript" || activeTab === "transcript-translated";
 
   return (
     <div ref={pageRef} className="flex flex-1 overflow-hidden">
@@ -2602,7 +2547,7 @@ export function TranscriptionDetailPage() {
               <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
             )}
           </div>
-          <div className="inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 max-lg:hidden">
+          <div className="inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
             <Select
               value={selectedTranslationLang || undefined}
               onValueChange={setSelectedTranslationLang}
@@ -2671,6 +2616,47 @@ export function TranscriptionDetailPage() {
           activeTranslationLang={activeTranslationLang}
           translationDisabled={isTranslationLoading || isJobTranscribing}
         />
+        {!isJobTranscribing && (
+          <div className="md:hidden flex items-center gap-2 px-4 pt-3">
+            <TemplatePicker
+              value={activeTemplateId}
+              onSelect={handleTemplateSelect}
+              onManageTemplates={() => navigate("/")}
+              align="start"
+              trigger={
+                <Button variant="pill-outline" className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0">
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <Icon icon={Zap} className="size-[14px] text-muted-foreground shrink-0" strokeWidth={1.6} />
+                    <span className="truncate">{barActiveTemplate ? barActiveTemplate.name : "Template"}</span>
+                  </span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
+                </Button>
+              }
+            />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="pill-outline" className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0" disabled={isTranslationLoading || isJobTranscribing}>
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-[14px] text-muted-foreground shrink-0"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
+                    <span className="truncate">{activeTranslationMeta ? activeTranslationMeta.flag + " " + activeTranslationMeta.short : "Translate"}</span>
+                  </span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" sideOffset={6} className="z-[120] w-[220px]">
+                {TRANSLATION_LANGUAGES.map((language) => (
+                  <DropdownMenuItem key={language.code} className="gap-2" onClick={() => { void handleTranslate(language.code); }}>
+                    <span>{language.flag}</span>
+                    <span className="flex-1">{language.label}</span>
+                    {activeTranslationLang === language.code ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-auto size-3.5 text-primary"><path d="M20 6L9 17l-5-5" /></svg>
+                    ) : null}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
         <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
 
         <ShareDialog
@@ -2873,9 +2859,9 @@ export function TranscriptionDetailPage() {
           ) : null}
         </Tabs>
 
-        {/* Mobile persistent action bar: edit transcript + template picker, always available (lg:hidden) */}
+        {/* Mobile bottom action bar: Copy + Export + More (md:hidden) */}
         {!isJobTranscribing && (
-          <div className="lg:hidden shrink-0 border-t border-border bg-background px-4 pt-[10px] pb-[calc(10px+env(safe-area-inset-bottom))]">
+          <div className="md:hidden shrink-0 border-t border-border bg-background px-4 pt-[10px] pb-[calc(10px+env(safe-area-inset-bottom))]">
             {editMode ? (
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="size-[44px] rounded-full shrink-0" disabled={!canUndo} onClick={undo} aria-label="Undo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button>
@@ -2885,32 +2871,62 @@ export function TranscriptionDetailPage() {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Button variant="pill-outline" className="h-[46px] px-[16px] gap-1.5 text-[13px] font-medium shrink-0" onClick={() => { if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
-                  <Icon icon={Edit} className="size-[15px]" strokeWidth={1.7} />
-                  Edit
+                <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold gap-1.5" onClick={() => setCopySheetOpen(true)}>
+                  <Icon icon={Copy} className="size-[16px]" strokeWidth={1.7} />
+                  {isTranscriptTab ? "Copy transcript" : "Copy summary"}
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
                 </Button>
-                <TemplatePicker
-                  value={activeTemplateId}
-                  onSelect={handleTemplateSelect}
-                  onManageTemplates={() => navigate("/")}
-                  align="center"
-                  trigger={
-                    <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold gap-1.5">
-                      {barActiveTemplate ? (
-                        <>
-                          <span className="text-[15px] leading-none">{templateEmoji(barActiveTemplate.name)}</span>
-                          <span className="truncate">{barActiveTemplate.name}</span>
-                        </>
-                      ) : (
-                        "Apply template"
-                      )}
-                    </Button>
-                  }
-                />
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
+                  <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
+                </Button>
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
+                  <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
+                </Button>
               </div>
             )}
           </div>
         )}
+        <Drawer open={copySheetOpen} onOpenChange={setCopySheetOpen}>
+          <DrawerContent className="md:hidden">
+            <DrawerHeader className="text-left pb-1"><DrawerTitle>Copy</DrawerTitle></DrawerHeader>
+            <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(); setCopySheetOpen(false); }}>
+                <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy summary
+              </button>
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscript(); setCopySheetOpen(false); }}>
+                <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy transcript
+              </button>
+            </div>
+          </DrawerContent>
+        </Drawer>
+        <Drawer open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
+          <DrawerContent className="md:hidden">
+            <DrawerHeader className="text-left pb-1"><DrawerTitle>Actions</DrawerTitle></DrawerHeader>
+            <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
+                <Icon icon={Edit} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Edit transcript
+              </button>
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscriptLink(); setMoreSheetOpen(false); }}>
+                <Icon icon={Link} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy link
+              </button>
+              {folders.length > 0 ? (
+                <>
+                  <div className="mt-2 mb-1 px-3 text-[12px] font-medium text-muted-foreground">Move to folder</div>
+                  {folders.map((folder) => (
+                    <button key={folder.id} type="button" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[15px] active:bg-muted/60" onClick={() => { moveToFolder(folder.id); setMoreSheetOpen(false); }}>
+                      <span className="size-[14px] rounded-[4px] shrink-0" style={{ backgroundColor: folder.color }} />
+                      <span className="truncate">{folder.name}</span>
+                    </button>
+                  ))}
+                </>
+              ) : null}
+              <div className="h-px bg-border my-1.5" />
+              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] text-destructive active:bg-destructive/5" onClick={() => { setMoreSheetOpen(false); deleteTranscript(); }}>
+                <Icon icon={Trash} className="size-[18px]" strokeWidth={1.6} /> Delete
+              </button>
+            </div>
+          </DrawerContent>
+        </Drawer>
 
         {isJobTranscribing ? null : (
           <MediaPlayer
