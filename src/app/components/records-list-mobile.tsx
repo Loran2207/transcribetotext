@@ -48,7 +48,7 @@ export function RecordsListMobile({ onNavigateToRecords, embedded }: { onNavigat
           onClick={() => setCreateOpen(true)}
           className="h-[32px] shrink-0 pl-[10px] pr-[13px] gap-[6px]"
         >
-          <Icon icon={FolderPlus} className="size-[15px] text-foreground" strokeWidth={1.7} />
+          <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
           <span className="text-[13px] font-medium text-foreground">{t("folder.addFolder")}</span>
         </Button>
       </div>

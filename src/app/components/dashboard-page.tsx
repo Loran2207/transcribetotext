@@ -448,7 +448,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             ))}
           </motion.div>
           
-          <DashboardInsights onNavigate={onNavigate} />
+          <div className="max-md:mt-[22px]"><DashboardInsights onNavigate={onNavigate} /></div>
           {/* Records: folder chips + tabs + cards on mobile, full table on desktop */}
           <motion.div {...fadeUp(0.18, 70)}>
             <RecordsTable onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />

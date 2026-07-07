@@ -373,7 +373,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
                       onClick={() => goTo(g.id)}
                       className={`flex items-center gap-2 rounded-full transition-colors shrink-0 whitespace-nowrap px-3.5 py-[7px] text-[12.5px] font-medium lg:px-3 lg:h-9 lg:py-0 lg:text-[13px] ${active ? "bg-primary text-primary-foreground lg:bg-primary/[0.06] lg:text-primary lg:font-medium" : "bg-muted text-muted-foreground hover:text-foreground lg:bg-transparent lg:text-foreground/80 lg:hover:bg-sidebar-accent lg:font-normal"}`}
                     >
-                      {g.id === "favorites" && <span className="shrink-0 -ml-0.5"><StarGlyph filled={false} /></span>}
+                      
                       <span className="lg:flex-1 lg:text-left lg:truncate">{g.label}</span>
                       <span className="shrink-0 opacity-50 text-[12px]">{g.items.length}</span>
                     </button>
