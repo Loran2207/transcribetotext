@@ -36,7 +36,7 @@ export function MobileTopBar({ onNavigate }: { onNavigate: (page: string) => voi
           {inner.menu}
         </div>
       )}
-    <div className={`${inner ? "hidden md:flex" : "flex"} lg:hidden items-center h-[56px] px-[12px] gap-[10px] bg-sidebar shrink-0`}>
+    <div className={`${inner ? "hidden md:flex" : "flex"} lg:hidden items-center h-[56px] px-[12px] gap-[8px] bg-sidebar shrink-0`}>
       <Button
         variant="ghost"
         size="icon"
@@ -57,9 +57,9 @@ export function MobileTopBar({ onNavigate }: { onNavigate: (page: string) => voi
       </button>
 
       {plan === "free" && (
-        <button onClick={() => onNavigate("settings")} className="hidden md:flex items-center gap-[5px] h-[36px] pl-[12px] pr-[14px] rounded-full bg-primary/10 text-primary shrink-0 active:bg-primary/15 transition-colors">
-          <Icon icon={Zap} className="size-[15px]" strokeWidth={2} fill="currentColor" />
-          <span className="text-[13px] font-semibold whitespace-nowrap">Start my trial now</span>
+        <button onClick={() => onNavigate("settings")} aria-label="Start my trial now" className="flex items-center justify-center gap-[5px] size-[38px] md:w-auto md:h-[36px] md:pl-[12px] md:pr-[14px] rounded-full bg-primary/10 text-primary shrink-0 active:bg-primary/15 transition-colors">
+          <Icon icon={Zap} className="size-[16px] md:size-[15px]" strokeWidth={2} fill="currentColor" />
+          <span className="hidden md:inline text-[13px] font-semibold whitespace-nowrap">Start my trial now</span>
         </button>
       )}
 

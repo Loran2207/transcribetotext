@@ -133,10 +133,10 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
           </div>
         ))}
       </div>
-      <div className="mt-[4px] flex items-center justify-center gap-[6px]">
+      {expanded === activeKey && (activeKey === "analytics" ? analyticsDetail : eventsDetail)}
+      <div className="mt-[8px] flex items-center justify-center gap-[6px]">
         {infoSlides.map((key, i) => (<span key={key} className={i === infoActive ? dotOn : dotOff} />))}
       </div>
-      {expanded === activeKey && (activeKey === "analytics" ? analyticsDetail : eventsDetail)}
     </div>
   );
 
@@ -144,11 +144,11 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
     <div className="lg:hidden mt-[4px] flex flex-col gap-[8px]">
       {plan === "free" ? (
         <>
-          {promoCarousel}
           <div>
             {eventsHeader}
             {expanded === "events" && eventsDetail}
           </div>
+          {promoCarousel}
         </>
       ) : (
         infoCarousel

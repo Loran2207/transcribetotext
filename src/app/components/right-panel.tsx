@@ -47,7 +47,7 @@ export function PromoCard() {
       </p>
 
       {/* Gift box image - clipped by overflow-hidden */}
-      <div className="absolute flex items-center justify-center" style={{ left: 211, top: -20, width: 113, height: 113 }}>
+      <div className="absolute flex items-center justify-center" style={{ right: 0, top: -20, width: 113, height: 113 }}>
         <div className="shrink-0 rotate-[-4.31deg]">
           <div className="relative" style={{ width: 105.378, height: 105.378 }}>
             <img src={imgGiftBox} alt="" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
@@ -56,21 +56,21 @@ export function PromoCard() {
       </div>
 
       {/* Decorative sparkle stars - left cluster (near left edge of gift) */}
-      <div className="absolute flex items-center justify-center" style={{ left: 229.51, top: 20.19, width: 3.471, height: 3.95, animation: "sparkle 2.4s ease-in-out infinite 0.3s" }}>
+      <div className="absolute flex items-center justify-center" style={{ right: 91.02, top: 20.19, width: 3.471, height: 3.95, animation: "sparkle 2.4s ease-in-out infinite 0.3s" }}>
         <div className="shrink-0 rotate-[-5.01deg]">
           <svg className="block" style={{ width: 2.634, height: 3.074 }} fill="none" viewBox="0 0 2.63446 3.07354">
             <path clipRule="evenodd" d={promoSvgPaths.p2854d8c0} fill="var(--destructive)" fillRule="evenodd" />
           </svg>
         </div>
       </div>
-      <div className="absolute flex items-center justify-center" style={{ left: 231.68, top: 14.57, width: 5.092, height: 4.613, animation: "sparkle 2.8s ease-in-out infinite 0s" }}>
+      <div className="absolute flex items-center justify-center" style={{ right: 87.23, top: 14.57, width: 5.092, height: 4.613, animation: "sparkle 2.8s ease-in-out infinite 0s" }}>
         <div className="shrink-0 rotate-[-5.01deg]">
           <svg className="block" style={{ width: 3.952, height: 3.513 }} fill="none" viewBox="0 0 3.95169 3.51261">
             <path clipRule="evenodd" d={promoSvgPaths.p2720d600} fill="var(--destructive)" fillRule="evenodd" />
           </svg>
         </div>
       </div>
-      <div className="absolute flex items-center justify-center" style={{ left: 223.89, top: 16.31, width: 5.092, height: 4.613, animation: "sparkle 3.2s ease-in-out infinite 0.8s" }}>
+      <div className="absolute flex items-center justify-center" style={{ right: 95.02, top: 16.31, width: 5.092, height: 4.613, animation: "sparkle 3.2s ease-in-out infinite 0.8s" }}>
         <div className="shrink-0 rotate-[-5.01deg]">
           <svg className="block" style={{ width: 3.952, height: 3.513 }} fill="none" viewBox="0 0 3.95169 3.51261">
             <path clipRule="evenodd" d={promoSvgPaths.p2720d600} fill="var(--destructive)" fillRule="evenodd" />
@@ -79,28 +79,28 @@ export function PromoCard() {
       </div>
 
       {/* Decorative sparkle stars - right cluster (right of gift) */}
-      <div className="absolute flex items-center justify-center" style={{ left: 297.94, top: 19.32, width: 4.224, height: 4.541, animation: "sparkle 2.6s ease-in-out infinite 1.2s" }}>
+      <div className="absolute flex items-center justify-center" style={{ right: 21.84, top: 19.32, width: 4.224, height: 4.541, animation: "sparkle 2.6s ease-in-out infinite 1.2s" }}>
         <div className="shrink-0 rotate-[19.8deg]">
           <svg className="block" style={{ width: 2.634, height: 3.074 }} fill="none" viewBox="0 0 2.63446 3.07354">
             <path clipRule="evenodd" d={promoSvgPaths.p2854d8c0} fill="var(--destructive)" fillRule="evenodd" />
           </svg>
         </div>
       </div>
-      <div className="absolute flex items-center justify-center" style={{ left: 301.52, top: 16.26, width: 5.889, height: 5.572, animation: "sparkle 3s ease-in-out infinite 0.5s" }}>
+      <div className="absolute flex items-center justify-center" style={{ right: 16.59, top: 16.26, width: 5.889, height: 5.572, animation: "sparkle 3s ease-in-out infinite 0.5s" }}>
         <div className="shrink-0 rotate-[19.8deg]">
           <svg className="block" style={{ width: 3.952, height: 3.513 }} fill="none" viewBox="0 0 3.95169 3.51261">
             <path clipRule="evenodd" d={promoSvgPaths.p2720d600} fill="var(--destructive)" fillRule="evenodd" />
           </svg>
         </div>
       </div>
-      <div className="absolute flex items-center justify-center" style={{ left: 293.72, top: 14.58, width: 5.889, height: 5.572, animation: "sparkle 2.5s ease-in-out infinite 1.6s" }}>
+      <div className="absolute flex items-center justify-center" style={{ right: 24.39, top: 14.58, width: 5.889, height: 5.572, animation: "sparkle 2.5s ease-in-out infinite 1.6s" }}>
         <div className="shrink-0 rotate-[19.8deg]">
           <svg className="block" style={{ width: 3.952, height: 3.513 }} fill="none" viewBox="0 0 3.95169 3.51261">
             <path clipRule="evenodd" d={promoSvgPaths.p2720d600} fill="var(--destructive)" fillRule="evenodd" />
           </svg>
         </div>
       </div>
-      <div className="absolute flex items-center justify-center" style={{ left: 299.52, top: 13, width: 3.97, height: 3.757, animation: "sparkle 2.2s ease-in-out infinite 0.9s" }}>
+      <div className="absolute flex items-center justify-center" style={{ right: 20.51, top: 13, width: 3.97, height: 3.757, animation: "sparkle 2.2s ease-in-out infinite 0.9s" }}>
         <div className="shrink-0 rotate-[19.8deg]">
           <svg className="block" style={{ width: 2.664, height: 2.368 }} fill="none" viewBox="0 0 2.66416 2.36814">
             <path clipRule="evenodd" d={promoSvgPaths.pc72f600} fill="var(--destructive)" fillRule="evenodd" />
