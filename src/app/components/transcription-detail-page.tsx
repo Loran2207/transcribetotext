@@ -2651,6 +2651,8 @@ export function TranscriptionDetailPage() {
             <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px]">Summary</TabsTrigger>
+              <TabsTrigger value="outline" variant="line" className="lg:hidden max-lg:text-[13px]">Outline</TabsTrigger>
+              <TabsTrigger value="comments" variant="line" className="lg:hidden max-lg:text-[13px]">Comments</TabsTrigger>
               {activeTranslationMeta && !isJobTranscribing ? (
                 <>
                   <TabsTrigger value="transcript-translated" variant="line" className="max-lg:text-[13px]">
@@ -2722,6 +2724,22 @@ export function TranscriptionDetailPage() {
             </div>
           ) : null}
 
+                    <TabsContent value="outline" className="lg:hidden flex-1 overflow-auto flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="text-primary"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+            </div>
+            <h3 className="text-[15px] font-semibold text-foreground">Outline</h3>
+            <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
+            <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-muted-foreground">Auto-generated chapters and a jump-to-section outline are on the way.</p>
+          </TabsContent>
+          <TabsContent value="comments" className="lg:hidden flex-1 overflow-auto flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
+              <MessageSquarePlus className="size-6 text-primary" strokeWidth={1.6} />
+            </div>
+            <h3 className="text-[15px] font-semibold text-foreground">Comments</h3>
+            <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
+            <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-muted-foreground">Time-stamped comments and team discussion will live here soon.</p>
+          </TabsContent>
           <TabsContent value="transcript" className="flex-1 overflow-auto relative">
             {isJobTranscribing ? (
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
