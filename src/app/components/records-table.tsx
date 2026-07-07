@@ -10,7 +10,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { useFolders, type FolderItem as CtxFolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
-import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit } from "@hugeicons/core-free-icons";
+import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit, X } from "@hugeicons/core-free-icons";
 import { ShareDialog } from "./share-dialog";
 import { Icon } from "./ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
@@ -87,7 +87,7 @@ function flattenFoldersInTable(folders: CtxFolderItem[], excludeId?: string): Ct
    Figma-exact Checkbox
    ══════════════════════════════════════════════ */
 
-function FigmaCheckbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+export function FigmaCheckbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
     <Button type="button" variant="ghost" size="icon" onClick={onChange} className="relative size-[16px] shrink-0">
       <div
@@ -322,6 +322,33 @@ function MultiSelectTextBtn({ icon, label, onClick, variant = "primary" }: { ico
       {icon}
       <span className="font-medium text-[13px]">{label}</span>
     </button>
+  );
+}
+
+function MSActionBtn({ icon, label, onClick, destructive = false }: { icon: React.ComponentProps<typeof Icon>["icon"]; label: string; onClick: () => void; destructive?: boolean }) {
+  return (
+    <button type="button" onClick={onClick} className="flex flex-col items-center justify-center gap-[3px] min-w-[46px] h-[46px] rounded-[12px] active:bg-muted transition-colors">
+      <Icon icon={icon} className={"size-[18px] " + (destructive ? "text-destructive" : "text-foreground")} strokeWidth={1.6} />
+      <span className={"text-[10px] leading-none font-medium " + (destructive ? "text-destructive" : "text-muted-foreground")}>{label}</span>
+    </button>
+  );
+}
+
+function MobileMultiSelectBar({ count, onCancel, onCopySummary, onShare, onMoveFolder, onTrash }: { count: number; onCancel: () => void; onCopySummary: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void }) {
+  return (
+    <div className="lg:hidden fixed left-[12px] z-40" style={{ right: 84, bottom: "calc(16px + env(safe-area-inset-bottom))" }}>
+      <div className="rounded-[18px] bg-card border border-border px-[8px] py-[7px] flex items-center gap-[2px]" style={{ boxShadow: "0 10px 30px -6px rgba(16,24,40,0.22), 0 2px 8px -2px rgba(16,24,40,0.12)" }}>
+        <button type="button" onClick={onCancel} aria-label="Cancel selection" className="size-[38px] rounded-full flex items-center justify-center text-muted-foreground active:bg-muted transition-colors">
+          <Icon icon={X} className="size-[18px]" strokeWidth={1.8} />
+        </button>
+        <span className="mr-[2px] min-w-[18px] text-center text-[14px] font-bold text-foreground tabular-nums">{count}</span>
+        <div className="flex-1" />
+        <MSActionBtn icon={Copy} label="Summary" onClick={onCopySummary} />
+        <MSActionBtn icon={Share} label="Share" onClick={onShare} />
+        <MSActionBtn icon={FolderOpen} label="Folder" onClick={onMoveFolder} />
+        <MSActionBtn icon={Trash} label="Trash" onClick={onTrash} destructive />
+      </div>
+    </div>
   );
 }
 
@@ -1320,6 +1347,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       <CreateFolderModal open={folderModalOpen} onClose={() => setFolderModalOpen(false)} onCreate={(name, color) => { addFolderToContext(name, color); }} />
       <ExportDialog open={!!exportDialogIds} onClose={() => setExportDialogIds(null)} records={(exportDialogIds ?? []).map((id) => displayRecords.find((r) => r.id === id)).filter((r): r is typeof displayRecords[number] => !!r).map(recordToExportable)} availableRecords={displayRecords.map(recordToExportable)} />
       <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={selectedRows.size} onMove={(folderId) => { assignToFolder(Array.from(selectedRows), folderId); clearSelection(); }} onCreateFolder={() => { setMoveDialogOpen(false); setFolderModalOpen(true); }} folders={userFolders} />
+      {hasSelection && (<MobileMultiSelectBar count={selectedRows.size} onCancel={clearSelection} onCopySummary={() => { const sep = String.fromCharCode(10, 10); const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => r.name + ": " + r.summary).join(sep); navigator.clipboard.writeText(texts); }} onShare={() => { const ids = Array.from(selectedRows); if (ids.length) setShareDialogRecord(ids[0]); }} onMoveFolder={() => setMoveDialogOpen(true)} onTrash={trashSelected} />)}
 
       {/* Hard-delete confirmation (permanent, bypasses Trash) */}
       <AlertDialog open={!!confirmDeleteIds} onOpenChange={(open) => { if (!open) setConfirmDeleteIds(null); }}>
@@ -1487,7 +1515,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
           <>
             <div className="grid grid-cols-1 gap-[10px]">
               {pagedRecords.map((record) => (
-                <RecordCardMobile key={record.id} record={record} isTrash={activeTab === "Trash"} />
+                <RecordCardMobile key={record.id} record={record} isTrash={activeTab === "Trash"} selected={selectedRows.has(record.id)} selectionMode={hasSelection} onToggleSelect={() => toggleRow(record.id)} />
               ))}
             </div>
             <PaginationBar compact total={filteredRecords.length} page={safePage} pageSize={pageSize} onPage={setPage} onPageSize={(n) => { setPageSize(n); setPage(1); }} />

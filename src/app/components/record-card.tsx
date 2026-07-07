@@ -37,7 +37,7 @@ import { useFolders } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { ShareDialog } from "./share-dialog";
 import { ExportDialog } from "./export-dialog";
-import { LanguageBadge, MoveToFolderDialog, recordRowToExportable, type RecordRow } from "./records-table";
+import { LanguageBadge, MoveToFolderDialog, recordRowToExportable, type RecordRow, FigmaCheckbox } from "./records-table";
 
 /* A single recording rendered as a card (mobile + tablet replacement for the
    desktop records table). The whole card opens the transcript; the kebab
@@ -71,7 +71,7 @@ function RenameForm({ initial, onSave, onCancel }: { initial: string; onSave: (n
   );
 }
 
-export function RecordCard({ record, isTrash = false }: { record: RecordRow; isTrash?: boolean }) {
+export function RecordCard({ record, isTrash = false, selected = false, selectionMode = false, onToggleSelect }: { record: RecordRow; isTrash?: boolean; selected?: boolean; selectionMode?: boolean; onToggleSelect?: () => void }) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { t } = useLanguage();
@@ -89,6 +89,8 @@ export function RecordCard({ record, isTrash = false }: { record: RecordRow; isT
   const isStarred = starred.has(record.id);
   const displayName = getName(record.id, record.name);
   const open = () => navigate(`/transcriptions/${record.id}`);
+  const selectEnabled = !!onToggleSelect && !isTrash;
+  const toggle = onToggleSelect ?? (() => {});
 
   const doStar = () =>
     toggleStar(record.id, {
@@ -113,9 +115,14 @@ export function RecordCard({ record, isTrash = false }: { record: RecordRow; isT
 
   return (
     <div
-      onClick={open}
-      className="group flex items-start gap-[10px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors cursor-pointer"
+      onClick={() => { if (selectEnabled && selectionMode) toggle(); else open(); }}
+      className={"group flex items-start gap-[10px] px-[14px] py-[12px] rounded-[16px] border transition-colors cursor-pointer " + (selected ? "bg-primary/[0.05] border-primary/40" : "bg-card border-border/60 active:bg-muted/60")}
     >
+      {selectEnabled && (
+        <div className="shrink-0 self-center" onClick={(e) => e.stopPropagation()}>
+          <FigmaCheckbox checked={selected} onChange={toggle} />
+        </div>
+      )}
       <div className="shrink-0 mt-[1px] flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
         <SourceIcon source={record.source} />
       </div>
