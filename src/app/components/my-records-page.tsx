@@ -37,7 +37,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Icon } from "./ui/icon";
-import { FolderOpen, Edit, Trash, MoreHorizontal, Upload, ChevronDown, ChevronUp, Microphone, Link, Video, CloudUpload } from "@hugeicons/core-free-icons";
+import { FolderOpen, Edit, Trash, MoreHorizontal, Upload, ChevronDown, ChevronUp, Microphone, Link, Video, CloudUpload, FolderPlus } from "@hugeicons/core-free-icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -265,15 +265,7 @@ function MoveFolderDialog({ open, onClose, movingFolder, allFolders, onMove }: {
   );
 }
 
-/* ── FolderPlus icon ── */
-function FolderPlusIcon() {
-  return (
-    <svg className="size-[15px]" fill="none" viewBox="0 0 16 16">
-      <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 7v4M6 9h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}
+
 
 /* ── MyRecordsPage ── */
 
@@ -548,7 +540,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
               onClick={() => setCreateOpen(true)}
               className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
             >
-              <FolderPlusIcon />
+              <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
               <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
             </Button>
             {isInsideFolder && activeFolder && (

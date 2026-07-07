@@ -1439,7 +1439,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
           {/* Add Folder button (inline with tabs) */}
           {showAddFolderButton && (
             <Button variant="pill-outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-[28px] px-[12px] ml-[8px] mb-[4px] shrink-0 transition-colors cursor-pointer">
-              <Icon icon={FolderPlus} className="size-[13px] text-foreground" strokeWidth={1.5} />
+              <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
               <span className="font-medium text-[12px] text-foreground">{t("folder.addFolder")}</span>
             </Button>
           )}
