@@ -1431,9 +1431,9 @@ function PageHeader({
           <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden">
+              <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden">
                 <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
-                <span className="font-medium text-[13px]">{isTranscriptTab ? "Copy transcript" : "Copy summary"}</span>
+                <span className="font-medium text-[13px]">Copy</span>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
               </Button>
             </DropdownMenuTrigger>
@@ -1449,9 +1449,9 @@ function PageHeader({
             </DropdownMenuContent>
           </DropdownMenu>
           {!hasSummary && (
-            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onSetTemplate}>
-              <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
-              <span className="font-medium text-[13px] text-foreground">Apply template</span>
+            <Button className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onSetTemplate}>
+              <Icon icon={Zap} className="size-[14px]" strokeWidth={1.5} />
+              <span className="font-medium text-[13px]">Apply template</span>
             </Button>
           )}
           <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" onClick={onExport} aria-label="Export">
@@ -2584,6 +2584,20 @@ export function TranscriptionDetailPage() {
   };
   const barActiveTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
   const isTranscriptTab = activeTab === "transcript" || activeTab === "transcript-translated";
+  const templateCta = barActiveTemplate ? (
+    <Button variant="pill-outline" onClick={() => setTemplatePickerOpen(true)} className="w-full h-[46px] gap-1.5 px-3 justify-between text-[14px] font-medium min-w-0">
+      <span className="flex items-center gap-1.5 min-w-0">
+        <Icon icon={Zap} className="size-[16px] text-muted-foreground shrink-0" strokeWidth={1.6} />
+        <span className="truncate">{barActiveTemplate.name}</span>
+      </span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
+    </Button>
+  ) : (
+    <Button onClick={() => setTemplatePickerOpen(true)} className="w-full h-[46px] gap-1.5 text-[14px] font-semibold">
+      <Icon icon={Zap} className="size-[16px]" strokeWidth={1.7} />
+      Apply template
+    </Button>
+  );
 
   return (
     <div ref={pageRef} className="flex flex-1 overflow-hidden">
@@ -2698,13 +2712,6 @@ export function TranscriptionDetailPage() {
         />
         {!isJobTranscribing && (
           <div className="lg:hidden flex items-center gap-2 px-4 pt-3">
-            <Button variant="pill-outline" onClick={() => setTemplatePickerOpen(true)} className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0">
-              <span className="flex items-center gap-1.5 min-w-0">
-                <Icon icon={Zap} className="size-[14px] text-muted-foreground shrink-0" strokeWidth={1.6} />
-                <span className="truncate">{barActiveTemplate ? barActiveTemplate.name : "Template"}</span>
-              </span>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
-            </Button>
             <Button variant="pill-outline" onClick={() => setLangSheetOpen(true)} disabled={isTranslationLoading || isJobTranscribing} className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0">
               <span className="flex items-center gap-1.5 min-w-0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-[14px] text-muted-foreground shrink-0"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
@@ -2956,6 +2963,11 @@ export function TranscriptionDetailPage() {
         <LanguageSheet open={langSheetOpen && belowLg} onOpenChange={setLangSheetOpen} languages={TRANSLATION_LANGUAGES} activeLang={activeTranslationLang} disabled={isTranslationLoading || isJobTranscribing} onPick={(code) => { void handleTranslate(code); }} />
         <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={1} onMove={(id) => moveToFolder(id)} onCreateFolder={() => { setMoveDialogOpen(false); createFolderAndMove(); }} folders={folders} />
 
+        {!isJobTranscribing && (
+          <div className="max-md:hidden lg:hidden shrink-0 border-t border-border bg-background px-4 py-[10px]">
+            {templateCta}
+          </div>
+        )}
         {isJobTranscribing ? null : (
           <MediaPlayer
             duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
@@ -2980,18 +2992,21 @@ export function TranscriptionDetailPage() {
                 <Button className="flex-1 h-[46px] font-semibold" onClick={handleSave}>Save</Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
-                  <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
-                </Button>
-                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
-                  <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
-                </Button>
-                <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold gap-1.5" onClick={() => setCopySheetOpen(true)}>
-                  <Icon icon={Copy} className="size-[16px]" strokeWidth={1.7} />
-                  {isTranscriptTab ? "Copy transcript" : "Copy summary"}
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
-                </Button>
+              <div className="flex flex-col gap-2">
+                {templateCta}
+                <div className="flex items-center gap-2">
+                  <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
+                    <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
+                  </Button>
+                  <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
+                    <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
+                  </Button>
+                  <Button variant="pill-outline" className="flex-1 h-[46px] rounded-full text-[14px] font-semibold gap-1.5" onClick={() => setCopySheetOpen(true)}>
+                    <Icon icon={Copy} className="size-[16px]" strokeWidth={1.7} />
+                    Copy
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
+                  </Button>
+                </div>
               </div>
             )}
           </div>

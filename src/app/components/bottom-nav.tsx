@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router";
 import { Plus, File01Icon, Mic, Video01Icon, Link01Icon, X } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import {
@@ -13,11 +14,11 @@ import { FAB_RIGHT, ADD_FAB_SIZE, ADD_FAB_BOTTOM } from "./mobile-fab-layout";
 import { useInnerScreen } from "./inner-screen";
 import { useFabHidden } from "./fab-visibility";
 
-/* Floating "+" create button for the compact layout (phone + tablet, hidden at
-   lg where the desktop chrome takes over). There is no bottom tab bar: every
-   destination lives in the hamburger drawer (full nav + folders), exactly like
-   the phone. This button opens the create sheet with the four transcription
-   paths, matching the dashboard tiles. */
+/* Global floating "+" create button. Shows on every in-shell screen at all
+   breakpoints (phone, tablet, desktop). Hidden on detail views: the result page
+   (/transcriptions/:id) and any inner screen that sets hideNav (template detail,
+   folder drill-in). Sits at z-[45] so any open dialog/drawer scrim (z-50) covers
+   it. Opens the create sheet with the four transcription paths, like the tiles. */
 const CREATE_ACTIONS = [
   { key: "upload", modal: "upload" as const, icon: File01Icon, labelKey: "dash.card.audioVideoFiles", tint: "#ECEAFE", fg: "#7C3AED" },
   { key: "record", modal: "record" as const, icon: Mic, labelKey: "dash.card.instantSpeech", tint: "#E3F0FE", fg: "#2563EB" },
@@ -32,7 +33,10 @@ export function BottomNav() {
   const inner = useInnerScreen();
   const fabHidden = useFabHidden();
 
-  if (inner?.hideNav) return null;
+  const { pathname } = useLocation();
+  const onDetailPage = pathname.startsWith("/transcriptions/");
+
+  if (inner?.hideNav || onDetailPage) return null;
 
   return (
     <Drawer open={createOpen} onOpenChange={setCreateOpen}>
@@ -40,7 +44,7 @@ export function BottomNav() {
         <button
           aria-label="New transcription"
           data-mobile-fab="add"
-          className={`md:hidden fixed z-[45] flex items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition-all motion-reduce:transition-none motion-reduce:active:scale-100 ${fabHidden ? "opacity-0 translate-y-3 pointer-events-none" : "opacity-100"}`}
+          className={`fixed z-[45] flex items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition-all motion-reduce:transition-none motion-reduce:active:scale-100 ${fabHidden ? "opacity-0 translate-y-3 pointer-events-none" : "opacity-100"}`}
           style={{ right: FAB_RIGHT, bottom: ADD_FAB_BOTTOM, width: ADD_FAB_SIZE, height: ADD_FAB_SIZE, boxShadow: "0 10px 24px -6px rgba(37,99,235,0.5), 0 3px 8px -3px rgba(37,99,235,0.4)" }}
         >
           <Icon icon={Plus} className="size-[26px]" strokeWidth={2} />

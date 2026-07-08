@@ -417,7 +417,6 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             {greeting}
           </motion.p>
 
-          {plan === "free" && <div className="hidden lg:block mt-[20px]"><UpgradeBanner desktop /></div>}
           {/* Tablet: the four illustrated cards in a 2x2 grid (no kbd) */}
           <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[16px]">
             {cards.map(({ card, key, modal }) => (

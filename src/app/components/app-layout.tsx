@@ -79,7 +79,7 @@ export function AppLayout() {
               </>
             )}
           </main>
-          {!isSubRoute && <BottomNav />}
+          <BottomNav />
           <InnerScreenBottomBar />
         </SidebarInset>
       </SidebarProvider>
