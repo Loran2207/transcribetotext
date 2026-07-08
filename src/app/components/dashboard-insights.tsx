@@ -122,14 +122,14 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
 
   const promoCarousel = (
     <div>
-      <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] py-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
+      <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
         {["banner", "promo"].map((key) => (
           <div key={key} className="snap-center shrink-0 w-full h-[84px] flex items-center [&>*]:w-full">
             {key === "banner" ? <UpgradeBanner bare /> : <PromoCard />}
           </div>
         ))}
       </div>
-      <div className="-mt-[4px] flex items-center justify-center gap-[6px]">
+      <div className="flex items-center justify-center gap-[6px]">
         {["banner", "promo"].map((key, i) => (<span key={key} className={i === promoActive ? dotOn : dotOff} />))}
       </div>
     </div>
@@ -137,21 +137,21 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
 
   const infoCarousel = (
     <div>
-      <div ref={infoRef} onScroll={onInfoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] py-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
+      <div ref={infoRef} onScroll={onInfoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
         {infoSlides.map((key) => (
           <div key={key} className="snap-center shrink-0 w-full self-start">
             {key === "analytics" ? analyticsCard : eventsCard}
           </div>
         ))}
       </div>
-      <div className="mt-[8px] flex items-center justify-center gap-[6px]">
+      <div className="flex items-center justify-center gap-[6px]">
         {infoSlides.map((key, i) => (<span key={key} className={i === infoActive ? dotOn : dotOff} />))}
       </div>
     </div>
   );
 
   return (
-    <div className="lg:hidden flex flex-col gap-[18px]">
+    <div className="lg:hidden flex flex-col gap-[16px]">
       {plan === "free" ? (
         <>
           {eventsCard}
