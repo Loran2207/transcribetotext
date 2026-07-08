@@ -1449,7 +1449,7 @@ function PageHeader({
             </DropdownMenuContent>
           </DropdownMenu>
           {!hasSummary && (
-            <Button className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-lg:hidden" onClick={onSetTemplate}>
+            <Button className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
               <Icon icon={Zap} className="size-[14px]" strokeWidth={1.5} />
               <span className="font-medium text-[13px]">Apply template</span>
             </Button>
@@ -1683,10 +1683,19 @@ export function TranscriptionDetailPage() {
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [langSheetOpen, setLangSheetOpen] = useState(false);
   const [belowLg, setBelowLg] = useState(false);
+  const [belowMd, setBelowMd] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(max-width: 1023px)");
     const sync = () => setBelowLg(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setBelowMd(mq.matches);
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
@@ -2585,7 +2594,7 @@ export function TranscriptionDetailPage() {
   const barActiveTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
   const isTranscriptTab = activeTab === "transcript" || activeTab === "transcript-translated";
   const templateCta = barActiveTemplate ? (
-    <Button variant="pill-outline" onClick={() => setTemplatePickerOpen(true)} className="w-full h-[46px] gap-1.5 px-3 justify-between text-[14px] font-medium min-w-0">
+    <Button variant="pill-outline" onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] gap-1.5 px-3 justify-between text-[14px] font-medium">
       <span className="flex items-center gap-1.5 min-w-0">
         <Icon icon={Zap} className="size-[16px] text-muted-foreground shrink-0" strokeWidth={1.6} />
         <span className="truncate">{barActiveTemplate.name}</span>
@@ -2593,7 +2602,7 @@ export function TranscriptionDetailPage() {
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
     </Button>
   ) : (
-    <Button onClick={() => setTemplatePickerOpen(true)} className="w-full h-[46px] gap-1.5 text-[14px] font-semibold">
+    <Button onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] gap-1.5 text-[14px] font-semibold">
       <Icon icon={Zap} className="size-[16px]" strokeWidth={1.7} />
       Apply template
     </Button>
@@ -2711,7 +2720,7 @@ export function TranscriptionDetailPage() {
           translationDisabled={isTranslationLoading || isJobTranscribing}
         />
         {!isJobTranscribing && (
-          <div className="lg:hidden flex items-center gap-2 px-4 pt-3">
+          <div className="md:hidden flex items-center gap-2 px-4 pt-3">
             <Button variant="pill-outline" onClick={() => setLangSheetOpen(true)} disabled={isTranslationLoading || isJobTranscribing} className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0">
               <span className="flex items-center gap-1.5 min-w-0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-[14px] text-muted-foreground shrink-0"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
@@ -2757,7 +2766,26 @@ export function TranscriptionDetailPage() {
             </TabsList>
 
             {/* Right side of tab row: context-dependent */}
-            <div className="flex items-center gap-2 max-lg:hidden">
+            <div className="flex items-center gap-2 max-md:hidden">
+              <div className="lg:hidden inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
+                <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing}>
+                  <SelectTrigger size="sm" className="h-8 w-[168px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
+                    <SelectValue placeholder="Translate to..." />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {TRANSLATION_LANGUAGES.map((language) => (
+                      <SelectItem key={language.code} value={language.code}>
+                        <span className="inline-flex items-center gap-2"><span>{language.flag}</span><span>{language.label}</span></span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className={"overflow-hidden transition-all duration-200 ease-out " + (showTranslateAction ? "ml-1 max-w-[120px] opacity-100" : "ml-0 max-w-0 opacity-0 pointer-events-none")}>
+                  <Button variant="ghost" size="sm" disabled={!canApplyTranslation} onClick={() => { void handleTranslate(); }} className={"h-8 rounded-full px-3 text-sm " + (canApplyTranslation ? "font-medium text-primary" : "text-muted-foreground")}>
+                    {isTranslationLoading ? "Translating..." : isTranslationApplied ? "Translated" : "Translate"}
+                  </Button>
+                </div>
+              </div>
               {isJobTranscribing ? null : activeTab === "transcript" ? (
                 editMode ? (
                   <>
@@ -2959,15 +2987,10 @@ export function TranscriptionDetailPage() {
             </div>
           </DrawerContent>
         </Drawer>
-        <TemplateSheet open={templatePickerOpen && belowLg} onOpenChange={setTemplatePickerOpen} value={activeTemplateId} onSelect={handleTemplateSelect} />
+        <TemplateSheet open={templatePickerOpen && belowMd} onOpenChange={setTemplatePickerOpen} value={activeTemplateId} onSelect={handleTemplateSelect} />
         <LanguageSheet open={langSheetOpen && belowLg} onOpenChange={setLangSheetOpen} languages={TRANSLATION_LANGUAGES} activeLang={activeTranslationLang} disabled={isTranslationLoading || isJobTranscribing} onPick={(code) => { void handleTranslate(code); }} />
         <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={1} onMove={(id) => moveToFolder(id)} onCreateFolder={() => { setMoveDialogOpen(false); createFolderAndMove(); }} folders={folders} />
 
-        {!isJobTranscribing && (
-          <div className="max-md:hidden lg:hidden shrink-0 border-t border-border bg-background px-4 py-[10px]">
-            {templateCta}
-          </div>
-        )}
         {isJobTranscribing ? null : (
           <MediaPlayer
             duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
@@ -2992,21 +3015,17 @@ export function TranscriptionDetailPage() {
                 <Button className="flex-1 h-[46px] font-semibold" onClick={handleSave}>Save</Button>
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
                 {templateCta}
-                <div className="flex items-center gap-2">
-                  <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
-                    <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
-                  </Button>
-                  <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
-                    <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
-                  </Button>
-                  <Button variant="pill-outline" className="flex-1 h-[46px] rounded-full text-[14px] font-semibold gap-1.5" onClick={() => setCopySheetOpen(true)}>
-                    <Icon icon={Copy} className="size-[16px]" strokeWidth={1.7} />
-                    Copy
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
-                  </Button>
-                </div>
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setCopySheetOpen(true)} aria-label="Copy">
+                  <Icon icon={Copy} className="size-[18px]" strokeWidth={1.7} />
+                </Button>
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
+                  <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
+                </Button>
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
+                  <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
+                </Button>
               </div>
             )}
           </div>
