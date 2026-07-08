@@ -151,7 +151,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   );
 
   return (
-    <div className="lg:hidden flex flex-col gap-[10px]">
+    <div className="lg:hidden flex flex-col gap-[18px]">
       {plan === "free" ? (
         <>
           {eventsCard}

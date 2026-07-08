@@ -1429,6 +1429,12 @@ function PageHeader({
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>
+          {!hasSummary && (
+            <Button className="order-first flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
+              <Icon icon={Zap} className="size-[14px]" strokeWidth={1.5} />
+              <span className="font-medium text-[13px]">Apply template</span>
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden">
@@ -1448,13 +1454,7 @@ function PageHeader({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          {!hasSummary && (
-            <Button className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
-              <Icon icon={Zap} className="size-[14px]" strokeWidth={1.5} />
-              <span className="font-medium text-[13px]">Apply template</span>
-            </Button>
-          )}
-          <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden max-lg:order-first" onClick={onExport} aria-label="Export">
+          <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" onClick={onExport} aria-label="Export">
             <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} />
           </Button>
           <Tooltip>
