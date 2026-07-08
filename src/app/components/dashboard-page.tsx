@@ -418,7 +418,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           </motion.p>
 
           {/* Tablet: the four illustrated cards in a 2x2 grid (no kbd) */}
-          <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[16px]">
+          <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[20px]">
             {cards.map(({ card, key, modal }) => (
               <div key={key} className="relative cursor-pointer" onClick={() => setOpenModal(modal)}>
                 {card}
@@ -447,7 +447,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             ))}
           </motion.div>
           
-          <div className="max-md:mt-[22px]"><DashboardInsights onNavigate={onNavigate} /></div>
+          <div className="max-lg:mt-[20px]"><DashboardInsights onNavigate={onNavigate} /></div>
           {/* Records: folder chips + tabs + cards on mobile, full table on desktop */}
           <motion.div {...fadeUp(0.18, 70)}>
             <RecordsTable onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />

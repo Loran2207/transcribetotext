@@ -1454,7 +1454,7 @@ function PageHeader({
               <span className="font-medium text-[13px]">Apply template</span>
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" onClick={onExport} aria-label="Export">
+          <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden max-lg:order-first" onClick={onExport} aria-label="Export">
             <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} />
           </Button>
           <Tooltip>

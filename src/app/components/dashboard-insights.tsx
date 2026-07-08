@@ -122,7 +122,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
 
   const promoCarousel = (
     <div>
-      <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] py-[14px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
+      <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] py-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
         {["banner", "promo"].map((key) => (
           <div key={key} className="snap-center shrink-0 w-full h-[84px] flex items-center [&>*]:w-full">
             {key === "banner" ? <UpgradeBanner bare /> : <PromoCard />}
@@ -151,7 +151,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   );
 
   return (
-    <div className="lg:hidden mt-[4px] flex flex-col gap-[8px]">
+    <div className="lg:hidden flex flex-col gap-[10px]">
       {plan === "free" ? (
         <>
           {eventsCard}
