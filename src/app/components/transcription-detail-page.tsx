@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -44,6 +44,7 @@ import { SharedUsersAvatars } from "./shared-users-avatars";
 import { useShares } from "@/hooks/use-shares";
 import type { Share as ShareRecord } from "@/lib/shares";
 import { ExportDialog } from "./export-dialog";
+import { UpgradeGateModal } from "./upgrade-gate-modal";
 import { records as demoRecords, recordRowToExportable } from "./records-table";
 import {
   exportRecords,
@@ -1792,6 +1793,42 @@ export function TranscriptionDetailPage() {
   }, []);
   const displaySegments = (forceSingleSpeaker || forcePlainMono) ? MONO_SEGMENTS : contentSegments;
   const isSingleSpeaker = forceSingleSpeaker || forcePlainMono || new Set(displaySegments.map((seg) => seg.speaker.id)).size <= 1;
+
+  // Demo: ttt_demo_limited=1|modal renders the limited-access transcript state.
+  const [limitedFlag] = useState<"1" | "modal" | null>(() => {
+    try {
+      const value = window.localStorage.getItem("ttt_demo_limited");
+      return value === "1" || value === "modal" ? value : null;
+    } catch {
+      return null;
+    }
+  });
+  const [limitedModalOpen, setLimitedModalOpen] = useState(false);
+  const limitedModalShownRef = useRef(false);
+  const limitedActive = limitedFlag !== null && displaySegments.length > 1;
+  const limitedCutoffIndex = useMemo(() => {
+    if (!limitedActive) return null;
+    const byTime = displaySegments.findIndex((seg) => timestampToSeconds(seg.timestamp) >= 600);
+    if (byTime >= 0) return byTime;
+    return Math.ceil(displaySegments.length * 0.6);
+  }, [limitedActive, displaySegments]);
+
+  useEffect(() => {
+    if (limitedFlag !== "modal" || limitedModalShownRef.current) return;
+    const timer = window.setTimeout(() => {
+      limitedModalShownRef.current = true;
+      setLimitedModalOpen(true);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [limitedFlag]);
+
+  function limitedLockClass(index: number): string | null {
+    if (limitedCutoffIndex === null || index < limitedCutoffIndex) return null;
+    const depth = index - limitedCutoffIndex;
+    const fade =
+      depth === 0 ? "opacity-70" : depth === 1 ? "opacity-50" : depth === 2 ? "opacity-30" : "opacity-15";
+    return `${fade} blur-[2px] select-none pointer-events-none`;
+  }
   const activeTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
 
   const contentSummary = useMemo(() => {
@@ -2740,6 +2777,8 @@ export function TranscriptionDetailPage() {
           resourceName={title}
         />
 
+        <UpgradeGateModal open={limitedModalOpen} onOpenChange={setLimitedModalOpen} variant="done" />
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
           <div className="flex items-center justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
             <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
@@ -2839,7 +2878,9 @@ export function TranscriptionDetailPage() {
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (
               <div className="animate-in fade-in duration-300 px-4 pb-4 lg:px-8">
-                {displaySegments.map((seg, index) => (
+                {displaySegments.map((seg, index) => {
+                  const lockClass = limitedLockClass(index);
+                  const segmentNode = (
                   <TranscriptSegment
                     key={seg.id}
                     segment={seg}
@@ -2865,7 +2906,31 @@ export function TranscriptionDetailPage() {
                     commentValue={commentText}
                     textHighlights={textHighlights[seg.id] ?? []}
                   />
-                ))}
+                  );
+                  return lockClass ? (
+                    <div key={`limited-${seg.id}`} className={lockClass}>
+                      {segmentNode}
+                    </div>
+                  ) : (
+                    segmentNode
+                  );
+                })}
+                {limitedActive ? (
+                  <div className="pointer-events-none sticky bottom-4 z-30 mt-6 flex justify-center">
+                    <div className="pointer-events-auto flex w-full max-w-[560px] items-center gap-3 rounded-2xl border border-border bg-background px-5 py-3.5 shadow-lg">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                        <Icon icon={SquareLock01Icon} size={18} strokeWidth={1.8} className="text-primary" />
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="text-sm font-semibold text-foreground">Limited access: first 10 minutes available</span>
+                        <span className="text-[13px] text-muted-foreground">Want the full transcript? Unlock full access now.</span>
+                      </span>
+                      <Button size="sm" className="h-9 shrink-0 px-5" onClick={() => navigate("/checkout")}>
+                        Unlock
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </TabsContent>

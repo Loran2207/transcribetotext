@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { useAuth } from "./auth-context";
 import { toast } from "sonner";
+import {
+  CancelSubscriptionFlow,
+  type CancelFlowInitialStep,
+} from "./cancel-subscription-flow";
 
 export type PlanState = "never" | "active" | "expired";
 
@@ -410,6 +414,20 @@ function ManageSubscriptionCard({
 
 // ── Page ─────────────────────────────────────────────────────
 
+const CANCEL_DEMO_STEPS: Record<string, CancelFlowInitialStep> = {
+  confirm: "confirm",
+  pause: "pause",
+  pausedone: "pauseDone",
+  before: "before",
+  files: "files",
+  survey: "survey",
+  survey_other: "survey_other",
+  discount: "discount",
+  loading: "loading",
+  kept: "kept",
+  gone: "gone",
+};
+
 interface PlanManagementPageProps {
   state: PlanState;
 }
@@ -417,6 +435,21 @@ interface PlanManagementPageProps {
 export function PlanManagementPage({ state }: PlanManagementPageProps) {
   const { user } = useAuth();
   const billingEmail = user?.email || "you@example.com";
+  const [cancelFlowOpen, setCancelFlowOpen] = useState(false);
+  const [cancelFlowStep, setCancelFlowStep] = useState<CancelFlowInitialStep>("confirm");
+
+  // Demo/capture flag: ttt_demo_cancel=<step> auto-opens the cancel flow at that step.
+  useEffect(() => {
+    try {
+      const flag = localStorage.getItem("ttt_demo_cancel");
+      if (flag && Object.prototype.hasOwnProperty.call(CANCEL_DEMO_STEPS, flag)) {
+        setCancelFlowStep(CANCEL_DEMO_STEPS[flag]);
+        setCancelFlowOpen(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   function handleUpgrade() {
     toast("Upgrading is not enabled in this preview.");
@@ -431,11 +464,17 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
     toast("Billing email change is not enabled in this preview.");
   }
   function handleCancel() {
-    toast("Cancellation is not enabled in this preview.");
+    setCancelFlowStep("confirm");
+    setCancelFlowOpen(true);
   }
 
   return (
     <div className="flex flex-col">
+      <CancelSubscriptionFlow
+        open={cancelFlowOpen}
+        onOpenChange={setCancelFlowOpen}
+        initialStep={cancelFlowStep}
+      />
       {state === "never" && (
         <>
           <HeroFree onUpgrade={handleUpgrade} />

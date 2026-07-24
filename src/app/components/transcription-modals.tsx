@@ -30,6 +30,8 @@ import { router } from "../routes";
 import { motion } from "motion/react";
 import { useIsMobile } from "./ui/use-mobile";
 import { MobileProcessing } from "./processing-mobile";
+import { UpgradeGateModal } from "./upgrade-gate-modal";
+import { usePlan } from "./use-plan";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -156,6 +158,7 @@ interface CtxValue {
   consumePreloadedFiles: () => File[];
   setDefaultFolderId: (folderId: string | null) => void;
   consumeDefaultFolderId: () => string | null;
+  guardFreeLimit: () => boolean;
 }
 
 const Ctx = createContext<CtxValue | null>(null);
@@ -179,6 +182,22 @@ export function TranscriptionModalsProvider({
   const jobsRef = useRef<TranscriptionJob[]>([]);
   const currentUploadBatchIdRef = useRef<string | null>(null);
   const meetingCounterRef = useRef(1);
+
+  // Free-plan gate on the primary Transcribe actions (demo flag ttt_demo_freegate).
+  const gatePlan = usePlan();
+  const [freeGateOpen, setFreeGateOpen] = useState(false);
+
+  function guardFreeLimit() {
+    let flagOn = false;
+    try {
+      flagOn = window.localStorage.getItem("ttt_demo_freegate") === "1";
+    } catch {
+      flagOn = false;
+    }
+    if (!flagOn || gatePlan !== "free") return false;
+    setFreeGateOpen(true);
+    return true;
+  }
 
   // ── Default folder for modals opened from folder context ──
   const defaultFolderIdRef = useRef<string | null>(null);
@@ -743,9 +762,10 @@ export function TranscriptionModalsProvider({
   }
 
   return (
-    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, reconnectBot, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId }}>
+    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, reconnectBot, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId, guardFreeLimit }}>
       {children}
       <AllModals />
+      <UpgradeGateModal open={freeGateOpen} onOpenChange={setFreeGateOpen} variant="limit" />
       <DemoLeaveAlert />
       <RecordingPill />
       <ProgressWidgetResponsive />
@@ -1684,7 +1704,7 @@ async function detectVideoHasAudioTrack(file: File): Promise<boolean | null> {
 }
 
 function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { startInstantRecording, userPlan, consumeDefaultFolderId } = useTranscriptionModals();
+  const { startInstantRecording, userPlan, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -1700,6 +1720,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
 
   async function handleStart() {
     if (isStarting) return;
+    if (guardFreeLimit()) return;
     setIsStarting(true);
     const started = await startInstantRecording({
       lang: settings.mode === "mono" ? settings.langPrimary : undefined,
@@ -1764,7 +1785,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
 }
 
 function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan, consumePreloadedFiles, consumeDefaultFolderId } = useTranscriptionModals();
+  const { addJob, userPlan, consumePreloadedFiles, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
 
   const [files, setFiles] = useState<File[]>([]);
   const [preparing, setPreparing] = useState<Set<string>>(new Set());
@@ -1821,6 +1842,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
 
   async function handleSubmit() {
     if (!files.length) return;
+    if (guardFreeLimit()) return;
     const prepared = await Promise.all(files.map(async (file) => {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
       const isAudio = AUDIO_EXTS.includes(ext);
@@ -2086,7 +2108,7 @@ function LinkInputIcons() {
 }
 
 function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan, consumeDefaultFolderId } = useTranscriptionModals();
+  const { addJob, userPlan, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
 
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
@@ -2114,6 +2136,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 
   function handleSubmit() {
     if (!isValidUrl(url)) { validateUrl(url); return; }
+    if (guardFreeLimit()) return;
     addJob(url.split("/").pop() || "Link transcription", "video", {
       lang: settings.mode === "mono" ? settings.langPrimary : undefined,
       langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
@@ -2190,7 +2213,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 // ════════════════════════════════════════════════════════════
 
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, meetingCounterRef, consumeDefaultFolderId } = useTranscriptionModals();
+  const { addJob, meetingCounterRef, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
 
   const [meetingUrl, setMeetingUrl] = useState("");
   const [meetingUrlError, setMeetingUrlError] = useState("");
@@ -2234,6 +2257,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   }
   function handleSubmit() {
     if (!isValidUrl(meetingUrl)) { validateMeetingUrl(meetingUrl); return; }
+    if (guardFreeLimit()) return;
     addJob(meetingName || "Meeting", "video", {
       lang: mode === "mono" ? langId : undefined,
       langBilingual: mode === "bi" ? (langBilingual.length ? langBilingual : ["auto"]) : undefined,
