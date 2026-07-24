@@ -3,7 +3,6 @@ import {
   AiBrain01Icon,
   CheckmarkCircle02Icon,
   Download01Icon,
-  GiftIcon,
   UserGroupIcon,
   UserIcon,
 } from "@hugeicons/core-free-icons";
@@ -77,17 +76,22 @@ const SURVEY_REASONS = [
 
 const REASONS_WITH_DETAILS = new Set(["I'm missing features I need", "Other"]);
 
-function StepTitle({ children }: { children: ReactNode }) {
+function StepTitle({ children, centered = false }: { children: ReactNode; centered?: boolean }) {
   return (
-    <DialogTitle className="text-center text-[19px] font-semibold tracking-tight">
+    <DialogTitle className={`text-[19px] font-semibold tracking-tight ${centered ? "text-center" : "text-left"}`}>
       {children}
     </DialogTitle>
   );
 }
 
+function StepFooter({ children }: { children: ReactNode }) {
+  // System dialog pattern: actions right-aligned, secondary to the left of primary.
+  return <div className="flex items-center justify-end gap-2.5 pt-1">{children}</div>;
+}
+
 function InfoBanner({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 text-center text-[13.5px] leading-[1.6]">
+    <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 text-left text-[13.5px] leading-[1.6]">
       {children}
     </div>
   );
@@ -159,18 +163,18 @@ function ConfirmStep({ onCancel, onPause }: { onCancel: () => void; onPause: () 
         <span className="font-semibold text-primary">{ACTIVE_UNTIL}</span>. If you cancel,
         your account will be deactivated on that day.
       </InfoBanner>
-      <p className="text-center text-[13px] leading-[1.6] text-muted-foreground">
+      <p className="text-[13px] leading-[1.6] text-muted-foreground">
         To keep access to your transcripts, tools and progress, consider pausing instead:
         you can return after a break and pick up right where you left off.
       </p>
-      <div className="flex items-center gap-2.5 pt-1">
-        <Button variant="pill-outline" onClick={onCancel} className="h-10 flex-1 text-[13.5px] font-medium">
+      <StepFooter>
+        <Button variant="pill-outline" onClick={onCancel} className="h-10 px-5 text-[13.5px] font-medium">
           Cancel subscription
         </Button>
-        <Button onClick={onPause} className="h-10 flex-1 text-[13.5px] font-semibold">
+        <Button onClick={onPause} className="h-10 px-5 text-[13.5px] font-semibold">
           Pause subscription
         </Button>
-      </div>
+      </StepFooter>
     </div>
   );
 }
@@ -198,9 +202,11 @@ function PauseStep({ onPause }: { onPause: () => void }) {
           ))}
         </div>
       </div>
-      <Button onClick={onPause} className="h-10 w-full text-[13.5px] font-semibold">
-        Pause subscription for 1 month
-      </Button>
+      <StepFooter>
+        <Button onClick={onPause} className="h-10 px-5 text-[13.5px] font-semibold">
+          Pause subscription for 1 month
+        </Button>
+      </StepFooter>
     </div>
   );
 }
@@ -210,14 +216,16 @@ function PauseDoneStep({ onDone }: { onDone: () => void }) {
     <div className="flex flex-col gap-5">
       <StatusCircle tone="emerald" icon={CheckmarkCircle02Icon} />
       <div className="flex flex-col gap-2 text-center">
-        <StepTitle>Subscription paused</StepTitle>
+        <StepTitle centered>Subscription paused</StepTitle>
         <p className="text-[13px] leading-[1.6] text-muted-foreground">
           You're paused until {PAUSED_UNTIL}. Your transcripts stay available the whole time.
         </p>
       </div>
-      <Button onClick={onDone} className="h-10 w-full text-[13.5px] font-semibold">
-        Back to dashboard
-      </Button>
+      <StepFooter>
+        <Button onClick={onDone} className="h-10 px-5 text-[13.5px] font-semibold">
+          Back to dashboard
+        </Button>
+      </StepFooter>
     </div>
   );
 }
@@ -225,7 +233,7 @@ function PauseDoneStep({ onDone }: { onDone: () => void }) {
 function BeforeStep({ onTry, onContinue }: { onTry: () => void; onContinue: () => void }) {
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-1.5 text-center">
+      <div className="flex flex-col gap-1.5">
         <StepTitle>Before you cancel</StepTitle>
         <p className="text-[13px] text-muted-foreground">
           You haven't tried the biggest time-savers yet
@@ -244,14 +252,14 @@ function BeforeStep({ onTry, onContinue }: { onTry: () => void; onContinue: () =
           </div>
         ))}
       </div>
-      <div className="flex items-center gap-2.5 pt-1">
-        <Button onClick={onTry} className="h-10 flex-1 text-[13.5px] font-semibold">
-          Try these features
-        </Button>
-        <Button variant="pill-outline" onClick={onContinue} className="h-10 flex-1 text-[13.5px] font-medium">
+      <StepFooter>
+        <Button variant="pill-outline" onClick={onContinue} className="h-10 px-5 text-[13.5px] font-medium">
           Continue cancelling
         </Button>
-      </div>
+        <Button onClick={onTry} className="h-10 px-5 text-[13.5px] font-semibold">
+          Try these features
+        </Button>
+      </StepFooter>
     </div>
   );
 }
@@ -260,7 +268,7 @@ function FilesStep({ onDelete, onKeep }: { onDelete: () => void; onKeep: () => v
   return (
     <div className="flex flex-col gap-5">
       <StepTitle>Delete all your files?</StepTitle>
-      <div className="rounded-2xl border border-destructive/15 bg-destructive/5 p-4 text-center text-[13.5px] leading-[1.6]">
+      <div className="rounded-2xl border border-destructive/15 bg-destructive/5 p-4 text-left text-[13.5px] leading-[1.6]">
         Cancelling deletes your uploaded files and transcripts after {ACTIVE_UNTIL}.
       </div>
       <div className="divide-y divide-border rounded-2xl border border-border">
@@ -277,18 +285,18 @@ function FilesStep({ onDelete, onKeep }: { onDelete: () => void; onKeep: () => v
         ))}
         <div className="px-4 py-3 text-[12.5px] text-muted-foreground">+ 9 more files</div>
       </div>
-      <div className="flex items-center gap-2.5 pt-1">
+      <StepFooter>
         <Button
           variant="destructive-outline"
           onClick={onDelete}
-          className="h-10 flex-1 text-[13.5px] font-medium"
+          className="h-10 px-5 text-[13.5px] font-medium"
         >
           Delete and cancel
         </Button>
-        <Button onClick={onKeep} className="h-10 flex-1 text-[13.5px] font-semibold">
+        <Button onClick={onKeep} className="h-10 px-5 text-[13.5px] font-semibold">
           Keep my files
         </Button>
-      </div>
+      </StepFooter>
     </div>
   );
 }
@@ -345,13 +353,15 @@ function SurveyStep({
           className="min-h-24 rounded-2xl text-[13px]"
         />
       )}
-      <Button
-        onClick={onContinue}
-        disabled={reason === null}
-        className="h-10 w-full text-[13.5px] font-semibold"
-      >
-        Continue
-      </Button>
+      <StepFooter>
+        <Button
+          onClick={onContinue}
+          disabled={reason === null}
+          className="h-10 px-5 text-[13.5px] font-semibold"
+        >
+          Continue
+        </Button>
+      </StepFooter>
     </div>
   );
 }
@@ -360,24 +370,28 @@ function DiscountStep({ onAccept, onDecline }: { onAccept: () => void; onDecline
   return (
     <div className="flex flex-col gap-5">
       <StepTitle>A personal discount, before you go</StepTitle>
-      <StatusCircle tone="primary" icon={GiftIcon} />
+      <img
+        src="/images/gift-discount.png"
+        alt="Gift box with a blue ribbon"
+        className="mx-auto h-32 w-32 object-contain"
+      />
       <div className="flex items-baseline justify-center gap-2">
         <span className="text-[15px]">Only</span>
         <span className="text-[15px] text-muted-foreground line-through">$149.99</span>
         <span className="text-2xl font-bold text-primary">$39.99/year</span>
       </div>
-      <div className="rounded-2xl bg-primary/5 p-4 text-center">
+      <div className="rounded-2xl bg-primary/5 p-4">
         <p className="text-[13.5px] font-semibold">We hope this discount encourages you to stay</p>
         <p className="mt-1 text-[13px] text-muted-foreground">
           We keep investing in new AI tools that save you hours every week.
         </p>
       </div>
-      <div className="flex flex-col items-center gap-1.5">
-        <Button onClick={onAccept} className="h-10 w-full text-[13.5px] font-semibold">
-          Get 95% off now
-        </Button>
-        <Button variant="link" onClick={onDecline} className="h-9 text-[13px] font-medium text-primary">
+      <div className="flex items-center justify-between gap-2.5 pt-1">
+        <Button variant="link" onClick={onDecline} className="h-9 px-0 text-[13px] font-medium text-muted-foreground">
           I still want to cancel
+        </Button>
+        <Button onClick={onAccept} className="h-10 px-5 text-[13.5px] font-semibold">
+          Get 95% off now
         </Button>
       </div>
     </div>
@@ -389,7 +403,7 @@ function LoadingStep({ frozen }: { frozen: boolean }) {
     <div className="flex flex-col items-center gap-5 py-6">
       <DotLoader frozen={frozen} />
       <div className="flex flex-col gap-1.5 text-center">
-        <StepTitle>Just a moment</StepTitle>
+        <StepTitle centered>Just a moment</StepTitle>
         <p className="text-[13px] text-muted-foreground">Please don't close this page</p>
       </div>
       <LoadingBar frozen={frozen} />
@@ -402,14 +416,16 @@ function KeptStep({ onDone }: { onDone: () => void }) {
     <div className="flex flex-col gap-5">
       <StatusCircle tone="emerald" icon={CheckmarkCircle02Icon} />
       <div className="flex flex-col gap-2 text-center">
-        <StepTitle>Great decision!</StepTitle>
+        <StepTitle centered>Great decision!</StepTitle>
         <p className="text-[13px] leading-[1.6] text-muted-foreground">
           Your 95% discount is applied. Your plan stays active at $39.99/year.
         </p>
       </div>
-      <Button onClick={onDone} className="h-10 w-full text-[13.5px] font-semibold">
-        Continue to dashboard
-      </Button>
+      <StepFooter>
+        <Button onClick={onDone} className="h-10 px-5 text-[13.5px] font-semibold">
+          Continue to dashboard
+        </Button>
+      </StepFooter>
     </div>
   );
 }
@@ -418,16 +434,18 @@ function GoneStep({ onDone }: { onDone: () => void }) {
   return (
     <div className="flex flex-col gap-5">
       <StatusCircle tone="muted" icon={UserIcon} />
-      <StepTitle>Sorry to see you go</StepTitle>
+      <StepTitle centered>Sorry to see you go</StepTitle>
       <div className="rounded-2xl bg-primary/5 p-4 text-center">
         <p className="text-[13.5px] font-semibold">Your subscription has been cancelled</p>
         <p className="mt-1 text-[13px] text-muted-foreground">
           You keep access until {ACTIVE_UNTIL}. We hope to see you again.
         </p>
       </div>
-      <Button onClick={onDone} className="h-10 w-full text-[13.5px] font-semibold">
-        Done
-      </Button>
+      <StepFooter>
+        <Button onClick={onDone} className="h-10 px-5 text-[13.5px] font-semibold">
+          Done
+        </Button>
+      </StepFooter>
     </div>
   );
 }

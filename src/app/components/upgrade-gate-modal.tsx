@@ -53,11 +53,11 @@ export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateMod
         className="z-[240] rounded-2xl p-6 sm:max-w-[440px]"
         aria-describedby={undefined}
       >
-        <div className="flex flex-col gap-4 text-center">
-          <DialogTitle className="text-center text-[19px] font-semibold tracking-tight">
+        <div className="flex flex-col gap-4">
+          <DialogTitle className="text-left text-[19px] font-semibold tracking-tight">
             {title}
           </DialogTitle>
-          <div className="rounded-2xl bg-primary/5 p-3.5 text-center text-[13.5px] font-medium">
+          <div className="rounded-2xl bg-primary/5 p-3.5 text-left text-[13.5px] font-medium">
             Want full transcripts and powerful AI features?
           </div>
           <div className="flex flex-col items-center gap-2 pt-1">
@@ -77,12 +77,14 @@ export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateMod
               </div>
             ))}
           </div>
-          <p className="text-[13.5px] font-semibold text-primary">
+          <p className="text-left text-[13.5px] font-semibold text-primary">
             Upgrade now and keep transcribing!
           </p>
-          <Button onClick={handleUpgrade} className="h-10 w-full text-[13.5px] font-semibold">
-            See plans & upgrade
-          </Button>
+          <div className="flex justify-end pt-1">
+            <Button onClick={handleUpgrade} className="h-10 px-5 text-[13.5px] font-semibold">
+              See plans & upgrade
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
