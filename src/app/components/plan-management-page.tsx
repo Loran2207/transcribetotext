@@ -6,6 +6,7 @@ import {
   CancelSubscriptionFlow,
   type CancelFlowInitialStep,
 } from "./cancel-subscription-flow";
+import { ACTIVE_UNTIL } from "./billing-dates";
 
 export type PlanState = "never" | "active" | "expired";
 
@@ -421,7 +422,8 @@ const CANCEL_DEMO_STEPS: Record<string, CancelFlowInitialStep> = {
   before: "before",
   files: "files",
   survey: "survey",
-  survey_other: "survey_other",
+  survey_other: "surveyDetails",
+  survey_details: "surveyDetails",
   discount: "discount",
   loading: "loading",
   kept: "kept",
@@ -496,12 +498,12 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
         <>
           <HeroActive
             memberSince="Jan 12, 2026"
-            nextRenewal="May 12, 2026"
+            nextRenewal={ACTIVE_UNTIL}
             paymentMethod="Visa · 4242"
           />
           <ManageSubscriptionCard
             billingEmail={billingEmail}
-            endDate="May 12, 2026"
+            endDate={ACTIVE_UNTIL}
             onUpdatePayment={handleUpdatePayment}
             onChangeEmail={handleChangeBillingEmail}
             onCancel={handleCancel}

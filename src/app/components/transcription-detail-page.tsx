@@ -217,6 +217,9 @@ const MONO_SEGMENTS: Segment[] = [
   { id: 106, speaker: MONO_SPEAKER, timestamp: "2:09", text: "That's it for this week. If you have feedback, drop it in the product channel and I'll fold it into the planning notes. Thanks for listening." },
 ];
 
+// Limited-access demo: how many speaker turns stay readable before the paywall.
+const LIMITED_FREE_TURNS = 3;
+
 const MOCK_OUTLINE: OutlineSection[] = [
   { id: "o1", title: "Opening & Agenda", timestamp: "0:01", segmentId: 1, bullets: [{ text: "Three topics: roadmap update, Q2 planning, design handoff", segmentId: 1 }, { text: "Design team completed onboarding flow mockups", segmentId: 2 }] },
   { id: "o2", title: "Design Handoff & Sprint Planning", timestamp: "0:58", segmentId: 3, bullets: [{ text: "Engineering waiting on mockups for sprint planning", segmentId: 3 }, { text: "Design review session planned for Wednesday", segmentId: 4 }, { text: "Feedback integration before Thursday sprint start", segmentId: 5 }] },
@@ -1806,12 +1809,9 @@ export function TranscriptionDetailPage() {
   const [limitedModalOpen, setLimitedModalOpen] = useState(false);
   const limitedModalShownRef = useRef(false);
   const limitedActive = limitedFlag !== null && displaySegments.length > 1;
-  const limitedCutoffIndex = useMemo(() => {
-    if (!limitedActive) return null;
-    const byTime = displaySegments.findIndex((seg) => timestampToSeconds(seg.timestamp) >= 600);
-    if (byTime >= 0) return byTime;
-    return Math.ceil(displaySegments.length * 0.6);
-  }, [limitedActive, displaySegments]);
+  // The free portion stops after the first few turns, so the cut, the fade and the
+  // unlock card all land inside the first screen instead of far below the fold.
+  const limitedFreeSegments = limitedActive ? displaySegments.slice(0, LIMITED_FREE_TURNS) : displaySegments;
 
   useEffect(() => {
     if (limitedFlag !== "modal" || limitedModalShownRef.current) return;
@@ -1822,13 +1822,6 @@ export function TranscriptionDetailPage() {
     return () => window.clearTimeout(timer);
   }, [limitedFlag]);
 
-  function limitedLockClass(index: number): string | null {
-    if (limitedCutoffIndex === null || index < limitedCutoffIndex) return null;
-    const depth = index - limitedCutoffIndex;
-    const fade =
-      depth === 0 ? "opacity-70" : depth === 1 ? "opacity-50" : depth === 2 ? "opacity-30" : "opacity-15";
-    return `${fade} blur-[2px] select-none pointer-events-none`;
-  }
   const activeTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
 
   const contentSummary = useMemo(() => {
@@ -2878,8 +2871,11 @@ export function TranscriptionDetailPage() {
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (
               <div className="animate-in fade-in duration-300 px-4 pb-4 lg:px-8">
-                {displaySegments.map((seg, index) => {
-                  const lockClass = limitedLockClass(index);
+                <div className="relative">
+                {limitedFreeSegments.map((seg, index) => {
+                  // The last free turn is the one dissolving under the fade. At that
+                  // point it is decoration, so it takes no hover, clicks or selection.
+                  const isFadingOut = limitedActive && index === limitedFreeSegments.length - 1;
                   const segmentNode = (
                   <TranscriptSegment
                     key={seg.id}
@@ -2907,8 +2903,8 @@ export function TranscriptionDetailPage() {
                     textHighlights={textHighlights[seg.id] ?? []}
                   />
                   );
-                  return lockClass ? (
-                    <div key={`limited-${seg.id}`} className={lockClass}>
+                  return isFadingOut ? (
+                    <div key={`fading-${seg.id}`} className="pointer-events-none select-none">
                       {segmentNode}
                     </div>
                   ) : (
@@ -2916,18 +2912,25 @@ export function TranscriptionDetailPage() {
                   );
                 })}
                 {limitedActive ? (
-                  <div className="pointer-events-none sticky bottom-4 z-30 mt-6 flex justify-center">
-                    <div className="pointer-events-auto flex w-full max-w-[560px] items-center gap-3 rounded-2xl border border-border bg-background px-5 py-3.5 shadow-lg">
-                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                        <Icon icon={SquareLock01Icon} size={18} strokeWidth={1.8} className="text-primary" />
-                      </span>
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="text-sm font-semibold text-foreground">Limited access: first 10 minutes available</span>
-                        <span className="text-[13px] text-muted-foreground">Want the full transcript? Unlock full access now.</span>
-                      </span>
-                      <Button size="sm" className="h-9 shrink-0 px-5" onClick={() => navigate("/checkout")}>
-                        Unlock
-                      </Button>
+                  <div className="pointer-events-none absolute -inset-x-2 bottom-0 h-[248px] bg-[linear-gradient(to_bottom,transparent,var(--background)_47%,var(--background))]" />
+                ) : null}
+                </div>
+                {limitedActive ? (
+                  <div className="relative z-10 -mt-[117px]">
+                    <div className="flex justify-center">
+                      <div className="w-full max-w-[460px] rounded-2xl border border-border bg-card px-8 py-5 text-center shadow-md">
+                        <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-primary/10">
+                          <Icon icon={SquareLock01Icon} size={18} strokeWidth={1.8} className="text-primary" />
+                        </span>
+                        <h3 className="mt-3.5 text-[16px] font-semibold text-foreground">The rest of this transcript is locked</h3>
+                        <p className="mx-auto mt-1.5 max-w-[400px] text-[13px] leading-relaxed text-muted-foreground">
+                          You are hearing the first 10 minutes. Unlock the full 43 minute transcript, the AI summary and every export format.
+                        </p>
+                        <Button className="mt-4 h-10 px-6" onClick={() => navigate("/checkout")}>
+                          Unlock full access
+                        </Button>
+                        <p className="mt-2.5 text-[12px] text-muted-foreground">Free plan includes the first 10 minutes of every file.</p>
+                      </div>
                     </div>
                   </div>
                 ) : null}

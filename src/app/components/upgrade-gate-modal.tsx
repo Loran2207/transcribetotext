@@ -6,13 +6,14 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
+import { DialogHero } from "./dialog-hero";
 import { Icon, type IconSvgElement } from "./ui/icon";
 import { router } from "../routes";
 
 // Shared free-plan upgrade gate. "limit" blocks the primary Transcribe action
 // for free users; "done" celebrates a finished job that hit the free limit.
-// Same dialog shell and spacing rhythm as the cancel-subscription flow: aligned
-// close button, left-aligned title, one clear full-width call to action.
+// Same shell and rhythm as the cancel-subscription flow: this is a screen that
+// shows an offer, so it leads with the hero and centres the title under it.
 
 export type UpgradeGateVariant = "limit" | "done";
 
@@ -26,9 +27,9 @@ interface BenefitChip {
 
 const BENEFIT_CHIPS: BenefitChip[] = [
   { icon: Infinity01Icon, label: "No limits, ever" },
-  { icon: FlashIcon, label: "Blazing-fast processing" },
-  { icon: AiBrain01Icon, label: "Smart summaries & action points" },
-  { icon: TranslateIcon, label: "Speaker recognition & translation" },
+  { icon: FlashIcon, label: "Priority processing" },
+  { icon: AiBrain01Icon, label: "Smart summaries" },
+  { icon: TranslateIcon, label: "Speaker recognition" },
 ];
 
 interface UpgradeGateModalProps {
@@ -52,17 +53,10 @@ export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateMod
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={SHELL} aria-describedby={undefined}>
-        <div className="flex flex-col gap-4">
-          <div className="relative flex size-16 items-center justify-center">
-            <div className="absolute inset-2 rounded-full bg-primary/10 blur-xl" />
-            <img
-              src="/images/gate-crown.png"
-              alt="Premium crown"
-              className="relative size-full object-contain"
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <DialogTitle className="pr-8 text-left text-[18px] font-semibold tracking-tight">
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <DialogHero src="/images/gate-crown.png" alt="Premium crown" />
+            <DialogTitle className="px-8 text-center text-[18px] font-semibold tracking-tight">
               {title}
             </DialogTitle>
             <p className="text-[13px] leading-[1.6] text-muted-foreground">
@@ -82,10 +76,7 @@ export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateMod
               </div>
             ))}
           </div>
-          <Button
-            onClick={handleUpgrade}
-            className="h-11 w-full text-[13.5px] font-semibold"
-          >
+          <Button onClick={handleUpgrade} className="h-11 w-full text-[13.5px] font-semibold">
             See plans & upgrade
           </Button>
         </div>
