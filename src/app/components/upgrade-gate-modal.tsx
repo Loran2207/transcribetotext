@@ -1,6 +1,5 @@
 import {
   AiBrain01Icon,
-  CrownIcon,
   FlashIcon,
   Infinity01Icon,
   TranslateIcon,
@@ -12,8 +11,13 @@ import { router } from "../routes";
 
 // Shared free-plan upgrade gate. "limit" blocks the primary Transcribe action
 // for free users; "done" celebrates a finished job that hit the free limit.
+// Same dialog shell and spacing rhythm as the cancel-subscription flow: aligned
+// close button, left-aligned title, one clear full-width call to action.
 
 export type UpgradeGateVariant = "limit" | "done";
+
+const SHELL =
+  "rounded-2xl p-6 sm:max-w-[440px] [&>button]:right-5 [&>button]:top-5 [&>button]:opacity-60";
 
 interface BenefitChip {
   icon: IconSvgElement;
@@ -35,9 +39,7 @@ interface UpgradeGateModalProps {
 
 export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateModalProps) {
   const title =
-    variant === "done"
-      ? "Done! But you've reached the free limit"
-      : "You've reached the free limit";
+    variant === "done" ? "Done! You've hit the free limit" : "You've reached the free limit";
 
   function handleUpgrade() {
     onOpenChange(false);
@@ -49,20 +51,23 @@ export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateMod
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="z-[240] rounded-2xl p-6 sm:max-w-[440px]"
-        aria-describedby={undefined}
-      >
+      <DialogContent className={SHELL} aria-describedby={undefined}>
         <div className="flex flex-col gap-4">
-          <DialogTitle className="text-left text-[19px] font-semibold tracking-tight">
-            {title}
-          </DialogTitle>
-          <div className="rounded-2xl bg-primary/5 p-3.5 text-left text-[13.5px] font-medium">
-            Want full transcripts and powerful AI features?
+          <div className="relative flex size-16 items-center justify-center">
+            <div className="absolute inset-2 rounded-full bg-primary/10 blur-xl" />
+            <img
+              src="/images/gate-crown.png"
+              alt="Premium crown"
+              className="relative size-full object-contain"
+            />
           </div>
-          <div className="flex flex-col items-center gap-2 pt-1">
-            <Icon icon={CrownIcon} size={44} strokeWidth={1.6} className="text-primary" />
-            <p className="text-[18px] font-semibold">Unlock full access</p>
+          <div className="flex flex-col gap-1.5">
+            <DialogTitle className="pr-8 text-left text-[18px] font-semibold tracking-tight">
+              {title}
+            </DialogTitle>
+            <p className="text-[13px] leading-[1.6] text-muted-foreground">
+              Upgrade to unlock full transcripts, summaries and every AI feature.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-2.5">
             {BENEFIT_CHIPS.map((chip) => (
@@ -77,14 +82,12 @@ export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateMod
               </div>
             ))}
           </div>
-          <p className="text-left text-[13.5px] font-semibold text-primary">
-            Upgrade now and keep transcribing!
-          </p>
-          <div className="flex justify-end pt-1">
-            <Button onClick={handleUpgrade} className="h-10 px-5 text-[13.5px] font-semibold">
-              See plans & upgrade
-            </Button>
-          </div>
+          <Button
+            onClick={handleUpgrade}
+            className="h-11 w-full text-[13.5px] font-semibold"
+          >
+            See plans & upgrade
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
