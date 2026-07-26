@@ -13,6 +13,8 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
 import { Icon, type IconSvgElement } from "./ui/icon";
 import { LottieStage } from "./checkout-loader/lottie-stage";
@@ -68,15 +70,16 @@ const DISCOUNT_BENEFITS = [
   "Cancel anytime during the 3 months",
 ];
 
-// One record shown as the thing at stake, mirroring the reference dialog.
+// One record shown as the thing at stake, mirroring the reference dialog: its
+// settings stay live here, so the chevrons and the toggle are real controls
+// rather than decoration.
 const RECORD_PREVIEW = {
   time: "06:00 PM - 07:00 PM",
   name: "Client Meeting Notes",
-  meta: [
-    { icon: TranslateIcon, label: "Transcription language", value: "Russian" },
-    { icon: UserMultiple02Icon, label: "Speaker identification", value: "4" },
-  ],
 };
+
+const RECORD_LANGUAGES = ["Russian", "English", "Spanish", "German", "French", "Japanese"];
+const RECORD_SPEAKERS = ["2", "3", "4", "5", "6"];
 
 interface BeforeFeature {
   icon: IconSvgElement;
@@ -326,6 +329,81 @@ function BeforeStep({
   );
 }
 
+// A meta row that keeps the reference's chevron and actually opens: the value is
+// a real select, so the affordance is not a promise the screen cannot keep.
+function RecordMetaRow({
+  icon,
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  icon: IconSvgElement;
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (next: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon icon={icon} size={14} strokeWidth={1.8} className="shrink-0 text-muted-foreground" />
+      <span className="text-[12.5px] text-muted-foreground">{label}:</span>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger
+          aria-label={label}
+          className="h-auto w-auto gap-1 border-0 bg-transparent p-0 text-[12.5px] font-medium text-foreground/85 shadow-none focus-visible:ring-0 [&>svg]:size-3.5 [&>svg]:opacity-70"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option} value={option} className="text-[13px]">
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function RecordPreview() {
+  const [language, setLanguage] = useState(RECORD_LANGUAGES[0]);
+  const [speakers, setSpeakers] = useState(RECORD_SPEAKERS[2]);
+  const [managed, setManaged] = useState(false);
+  return (
+    <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 text-left">
+      <div className="flex items-center gap-2.5">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-card">
+          <Icon icon={Calendar03Icon} size={15} strokeWidth={1.8} className="text-primary" />
+        </span>
+        <span className="text-[12.5px] text-muted-foreground">{RECORD_PREVIEW.time}</span>
+      </div>
+      <p className="mt-2.5 text-[14px] font-semibold">{RECORD_PREVIEW.name}</p>
+      <div className="mt-2.5 flex flex-col gap-1.5">
+        <RecordMetaRow
+          icon={TranslateIcon}
+          label="Transcription language"
+          value={language}
+          options={RECORD_LANGUAGES}
+          onChange={setLanguage}
+        />
+        <RecordMetaRow
+          icon={UserMultiple02Icon}
+          label="Speaker identification"
+          value={speakers}
+          options={RECORD_SPEAKERS}
+          onChange={setSpeakers}
+        />
+      </div>
+      <div className="mt-3 flex items-center justify-between border-t border-primary/10 pt-3">
+        <span className="text-[12.5px] font-semibold text-primary">Manage record</span>
+        <Switch checked={managed} onCheckedChange={setManaged} aria-label="Manage record" />
+      </div>
+    </div>
+  );
+}
+
 function FilesStep({
   onBack,
   onDelete,
@@ -360,25 +438,7 @@ function FilesStep({
           </div>
         ))}
       </div>
-      <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 text-left">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-card">
-            <Icon icon={Calendar03Icon} size={15} strokeWidth={1.8} className="text-primary" />
-          </span>
-          <span className="text-[12.5px] text-muted-foreground">{RECORD_PREVIEW.time}</span>
-        </div>
-        <p className="mt-2.5 text-[14px] font-semibold">{RECORD_PREVIEW.name}</p>
-        <div className="mt-2 flex flex-col gap-1.5">
-          {RECORD_PREVIEW.meta.map((row) => (
-            <div key={row.label} className="flex items-center gap-2">
-              <Icon icon={row.icon} size={14} strokeWidth={1.8} className="shrink-0 text-muted-foreground" />
-              <span className="text-[12.5px] text-muted-foreground">
-                {row.label}: <span className="font-medium text-foreground/85">{row.value}</span>
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <RecordPreview />
       <div className="flex items-center justify-center gap-2">
         <Icon icon={Alert02Icon} size={15} strokeWidth={1.9} className="shrink-0 text-destructive" />
         <span className="text-[12.5px] text-muted-foreground">
