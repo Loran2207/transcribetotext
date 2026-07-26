@@ -2912,7 +2912,7 @@ export function TranscriptionDetailPage() {
                   );
                 })}
                 {limitedActive ? (
-                  <div className="pointer-events-none absolute -inset-x-2 bottom-0 h-[248px] bg-[linear-gradient(to_bottom,transparent,var(--background)_47%,var(--background))]" />
+                  <div className="pointer-events-none absolute -inset-x-2 bottom-0 h-[248px] bg-[linear-gradient(to_bottom,color-mix(in_oklab,var(--background),transparent_100%),var(--background)_47%,var(--background))]" />
                 ) : null}
                 </div>
                 {limitedActive ? (

@@ -3,10 +3,13 @@ import {
   AiBrain01Icon,
   Alert02Icon,
   ArrowLeft01Icon,
+  Calendar03Icon,
   CheckmarkCircle02Icon,
   Download01Icon,
   File01Icon,
+  TranslateIcon,
   UserGroupIcon,
+  UserMultiple02Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
@@ -44,9 +47,12 @@ export type CancelFlowStep =
 // "survey_other" opens the reason follow-up straight away (demo captures).
 export type CancelFlowInitialStep = CancelFlowStep | "survey_other";
 
-const FULL_PRICE = "$149.99";
-const DEAL_PRICE = "$39.99";
-const DEAL_PER_DAY = "$0.11";
+// The retention offer, same terms as the approved reference: three months for
+// the price of a fortnight, against the regular quarterly price.
+const DEAL_TERM = "3-month access";
+const DEAL_TOTAL = "$14.99";
+const DEAL_REGULAR = "$54.99";
+const DEAL_PER_DAY = "$0.16";
 const DEAL_SAVING = "Save 73%";
 
 const PAUSE_BENEFITS = [
@@ -57,10 +63,20 @@ const PAUSE_BENEFITS = [
 ];
 
 const DISCOUNT_BENEFITS = [
-  "Keep every transcript and summary you have made",
-  "All AI tools stay unlocked, no limits",
-  "Cancel anytime, no lock-in",
+  "Full access to all features",
+  "No limits on exports",
+  "Cancel anytime during the 3 months",
 ];
+
+// One record shown as the thing at stake, mirroring the reference dialog.
+const RECORD_PREVIEW = {
+  time: "06:00 PM - 07:00 PM",
+  name: "Client Meeting Notes",
+  meta: [
+    { icon: TranslateIcon, label: "Transcription language", value: "Russian" },
+    { icon: UserMultiple02Icon, label: "Speaker identification", value: "4" },
+  ],
+};
 
 interface BeforeFeature {
   icon: IconSvgElement;
@@ -96,7 +112,10 @@ const SURVEY_REASONS = [
   "Other",
 ];
 
-const REASONS_WITH_DETAILS = new Set(["I'm missing features I need", "Other"]);
+// "Other" opens a field in place, the way the reference does it. A missing
+// feature deserves a screen of its own, so that one gets a follow-up step.
+const REASONS_WITH_INLINE_DETAILS = new Set(["Other"]);
+const REASONS_WITH_FOLLOW_UP = new Set(["I'm missing features I need"]);
 const DEFAULT_DETAIL_REASON = "I'm missing features I need";
 
 // ---------------------------------------------------------------------------
@@ -122,20 +141,21 @@ function StepTitle({ children, centered = false }: { children: ReactNode; center
   );
 }
 
-// Back and Skip live on one row above the content, so they never collide with
-// the close button and never shift the title.
+// Back and Skip sit on the same optical line as the close button: the row is
+// exactly as tall as the 16px close icon and is pulled up so all three share a
+// baseline, the arrow mirrors the X inset, and Skip stops short of it.
 function StepChrome({ onBack, onSkip }: { onBack?: () => void; onSkip?: () => void }) {
   if (!onBack && !onSkip) return null;
   return (
-    <div className="-mb-1 -mt-1 flex h-8 items-center justify-between">
+    <div className="-mb-1 -mt-1 flex h-4 items-center justify-between">
       {onBack ? (
         <button
           type="button"
           onClick={onBack}
           aria-label="Go back"
-          className="flex size-8 items-center justify-center rounded-full bg-primary/5 text-primary transition-colors hover:bg-primary/10"
+          className="-ml-1 flex size-4 items-center justify-center text-muted-foreground opacity-70 transition-opacity hover:opacity-100"
         >
-          <Icon icon={ArrowLeft01Icon} size={18} strokeWidth={1.9} />
+          <Icon icon={ArrowLeft01Icon} size={16} strokeWidth={2} />
         </button>
       ) : (
         <span />
@@ -144,7 +164,7 @@ function StepChrome({ onBack, onSkip }: { onBack?: () => void; onSkip?: () => vo
         <button
           type="button"
           onClick={onSkip}
-          className="mr-11 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          className="mr-6 text-[13px] font-medium leading-4 text-muted-foreground opacity-70 transition-opacity hover:opacity-100"
         >
           Skip
         </button>
@@ -340,6 +360,25 @@ function FilesStep({
           </div>
         ))}
       </div>
+      <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 text-left">
+        <div className="flex items-center gap-2.5">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-card">
+            <Icon icon={Calendar03Icon} size={15} strokeWidth={1.8} className="text-primary" />
+          </span>
+          <span className="text-[12.5px] text-muted-foreground">{RECORD_PREVIEW.time}</span>
+        </div>
+        <p className="mt-2.5 text-[14px] font-semibold">{RECORD_PREVIEW.name}</p>
+        <div className="mt-2 flex flex-col gap-1.5">
+          {RECORD_PREVIEW.meta.map((row) => (
+            <div key={row.label} className="flex items-center gap-2">
+              <Icon icon={row.icon} size={14} strokeWidth={1.8} className="shrink-0 text-muted-foreground" />
+              <span className="text-[12.5px] text-muted-foreground">
+                {row.label}: <span className="font-medium text-foreground/85">{row.value}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
       <div className="flex items-center justify-center gap-2">
         <Icon icon={Alert02Icon} size={15} strokeWidth={1.9} className="shrink-0 text-destructive" />
         <span className="text-[12.5px] text-muted-foreground">
@@ -364,17 +403,22 @@ function FilesStep({
 
 function SurveyStep({
   reason,
+  details,
   onBack,
   onSkip,
   onReasonChange,
+  onDetailsChange,
   onContinue,
 }: {
   reason: string | null;
+  details: string;
   onBack: () => void;
   onSkip: () => void;
   onReasonChange: (reason: string) => void;
+  onDetailsChange: (value: string) => void;
   onContinue: () => void;
 }) {
+  const showField = reason !== null && REASONS_WITH_INLINE_DETAILS.has(reason);
   return (
     <div className="flex flex-col gap-5">
       <StepChrome onBack={onBack} onSkip={onSkip} />
@@ -408,6 +452,14 @@ function SurveyStep({
           );
         })}
       </div>
+      {showField && (
+        <Textarea
+          value={details}
+          onChange={(e) => onDetailsChange(e.target.value)}
+          placeholder="Tell us what made you leave and we will pass it to the team"
+          className="min-h-24 rounded-2xl text-[13px]"
+        />
+      )}
       <Button
         onClick={onContinue}
         disabled={reason === null}
@@ -475,10 +527,11 @@ function DiscountStep({
         <StepTitle centered>Best price before you go</StepTitle>
       </div>
       <div className="flex flex-col items-center gap-2.5">
+        <span className="text-[13.5px] font-semibold text-muted-foreground">{DEAL_TERM}</span>
         <div className="flex items-baseline justify-center gap-2.5">
-          <span className="text-[15px] text-muted-foreground line-through">{FULL_PRICE}</span>
-          <span className="text-[40px] font-bold leading-none tracking-tight">{DEAL_PRICE}</span>
-          <span className="text-[14px] text-muted-foreground">/year</span>
+          <span className="text-[15px] text-muted-foreground line-through">{DEAL_REGULAR}</span>
+          <span className="text-[40px] font-bold leading-none tracking-tight">{DEAL_TOTAL}</span>
+          <span className="text-[14px] text-muted-foreground">total</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="rounded-full bg-destructive px-3 py-1 text-[12px] font-semibold text-destructive-foreground">
@@ -501,18 +554,14 @@ function DiscountStep({
           </div>
         ))}
       </div>
-      <div className="flex flex-col items-center gap-1">
-        <Button onClick={onAccept} className="h-11 w-full text-[13.5px] font-semibold">
-          Claim my discount
+      <StepFooter>
+        <Button variant="pill-outline" onClick={onDecline} className="h-10 px-5 text-[13.5px] font-medium">
+          Continue to cancel
         </Button>
-        <Button
-          variant="ghost"
-          onClick={onDecline}
-          className="h-9 text-[13px] font-medium text-muted-foreground hover:text-foreground"
-        >
-          I still want to cancel
+        <Button onClick={onAccept} className="h-10 px-5 text-[13.5px] font-semibold">
+          Get 3 months for {DEAL_TOTAL}
         </Button>
-      </div>
+      </StepFooter>
     </div>
   );
 }
@@ -537,7 +586,7 @@ function KeptStep({ onDone }: { onDone: () => void }) {
         <DialogHero src="/images/kept-badge.png" alt="Celebration badge" />
         <StepTitle centered>Great decision!</StepTitle>
         <p className="text-[13px] leading-[1.6] text-muted-foreground">
-          Your discount is applied. Your plan stays active at {DEAL_PRICE}/year.
+          Your discount is applied. You have three months of full access for {DEAL_TOTAL}.
         </p>
       </div>
       <Button onClick={onDone} className="h-11 w-full text-[13.5px] font-semibold">
@@ -590,9 +639,11 @@ export function CancelSubscriptionFlow({
 
   useEffect(() => {
     if (!open) return;
+    // Demo captures open the survey on its answered state, the way the
+    // reference shows it, and the follow-up on the reason that has one.
     const startsAtDetails = initialStep === "survey_other" || initialStep === "surveyDetails";
     setStep(startsAtDetails ? "surveyDetails" : initialStep);
-    setReason(startsAtDetails ? DEFAULT_DETAIL_REASON : null);
+    setReason(startsAtDetails ? DEFAULT_DETAIL_REASON : initialStep === "survey" ? "Other" : null);
     setReasonDetails("");
     setDeleteFiles(false);
     setOutcome("kept");
@@ -615,9 +666,10 @@ export function CancelSubscriptionFlow({
     setStep("loading");
   }
 
-  // Reasons worth a follow-up get one; the rest go straight to the offer.
+  // A missing feature earns a screen of its own; everything else, including a
+  // filled-in "Other", goes straight to the offer.
   function leaveSurvey() {
-    setStep(reason !== null && REASONS_WITH_DETAILS.has(reason) ? "surveyDetails" : "discount");
+    setStep(reason !== null && REASONS_WITH_FOLLOW_UP.has(reason) ? "surveyDetails" : "discount");
   }
 
   return (
@@ -653,9 +705,11 @@ export function CancelSubscriptionFlow({
         {step === "survey" && (
           <SurveyStep
             reason={reason}
+            details={reasonDetails}
             onBack={() => setStep("files")}
             onSkip={() => setStep("discount")}
             onReasonChange={setReason}
+            onDetailsChange={setReasonDetails}
             onContinue={leaveSurvey}
           />
         )}
