@@ -6,7 +6,6 @@ import {
   CheckmarkCircle02Icon,
   Download01Icon,
   File01Icon,
-  PauseIcon,
   TranslateIcon,
   UserGroupIcon,
   UserMultiple02Icon,
@@ -64,25 +63,6 @@ const DEAL_TOTAL = "$14.99";
 const DEAL_REGULAR = "$54.99";
 const DEAL_PER_DAY = "$0.16";
 const DEAL_SAVING = "Save 73%";
-
-// The choice this step exists for, spelled out on both sides so the decision is
-// made here rather than guessed.
-const CONFIRM_CHOICES = [
-  {
-    key: "pause",
-    icon: PauseIcon,
-    label: "Pause instead",
-    lines: ["Everything stays put", "Come back any time"],
-    accented: true,
-  },
-  {
-    key: "cancel",
-    icon: Alert02Icon,
-    label: "Cancel",
-    lines: ["Access ends that day", "Files are deleted"],
-    accented: false,
-  },
-];
 
 const PAUSE_BENEFITS = [
   "Access every transcript processed during your active subscription",
@@ -218,49 +198,20 @@ function ConfirmStep({ onCancel, onPause }: { onCancel: () => void; onPause: () 
       <StepBody>
         <StepTitle>Are you sure?</StepTitle>
         <InfoBanner>
-          Your subscription stays active until{" "}
-          <span className="font-semibold text-primary">{ACTIVE_UNTIL}</span>. If you cancel, your
-          account will be deactivated on that day.
+          Your subscription stays active until the end of the current billing period. If you cancel,
+          your account will be deactivated on that day.
         </InfoBanner>
-        <div className="grid grid-cols-2 gap-2.5">
-          {CONFIRM_CHOICES.map((choice) => (
-            <div
-              key={choice.key}
-              className={`flex flex-col gap-2.5 rounded-2xl border p-4 text-left ${
-                choice.accented ? "border-primary/30 bg-primary/5" : "border-border"
-              }`}
-            >
-              <span
-                className={`flex size-8 items-center justify-center rounded-[10px] ${
-                  choice.accented ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                }`}
-              >
-                <Icon icon={choice.icon} size={17} strokeWidth={1.8} />
-              </span>
-              <span
-                className={`text-[13.5px] font-semibold ${
-                  choice.accented ? "text-primary" : "text-foreground"
-                }`}
-              >
-                {choice.label}
-              </span>
-              <span className="flex flex-col gap-1">
-                {choice.lines.map((line) => (
-                  <span key={line} className="text-[12px] leading-[1.4] text-muted-foreground">
-                    {line}
-                  </span>
-                ))}
-              </span>
-            </div>
-          ))}
-        </div>
+        <StepLead>
+          To retain access to your transcripts, tools and progress, consider pausing instead: you can
+          return after a break and pick up right where you left off.
+        </StepLead>
       </StepBody>
       <StepActions>
-        <Button onClick={onPause} className={STEP_BUTTON}>
-          Pause subscription
-        </Button>
         <Button variant="pill-outline" onClick={onCancel} className={STEP_BUTTON}>
           Cancel subscription
+        </Button>
+        <Button onClick={onPause} className={STEP_BUTTON}>
+          Pause subscription
         </Button>
       </StepActions>
     </>
@@ -272,7 +223,7 @@ function PauseStep({ onBack, onPause }: { onBack: () => void; onPause: () => voi
     <>
       <StepChrome onBack={onBack} />
       <StepBody>
-        <DialogHero src="/images/paused-symbol.png" alt="Paused" size="sm" />
+        <DialogHero src="/images/paused-symbol.png" alt="Paused" />
         <StepTitle>Pause subscription</StepTitle>
         <StepLead>
           Take the time you need. Pause your subscription and come back whenever you're ready.
@@ -330,7 +281,7 @@ function BeforeStep({
     <>
       <StepChrome onBack={onBack} onSkip={onContinue} />
       <StepBody>
-        <DialogHero src="/images/gate-crown.png" alt="Premium crown" size="sm" />
+        <DialogHero src="/images/gate-crown.png" alt="Premium crown" />
         <StepTitle>Before you cancel</StepTitle>
         <StepLead>You haven't tried the biggest time-savers yet</StepLead>
         <div className="flex flex-col gap-3">
@@ -348,11 +299,11 @@ function BeforeStep({
         </div>
       </StepBody>
       <StepActions>
-        <Button onClick={onTry} className={STEP_BUTTON}>
-          Try these features
-        </Button>
         <Button variant="pill-outline" onClick={onContinue} className={STEP_BUTTON}>
           Continue cancelling
+        </Button>
+        <Button onClick={onTry} className={STEP_BUTTON}>
+          Try these features
         </Button>
       </StepActions>
     </>
@@ -447,7 +398,7 @@ function FilesStep({
     <>
       <StepChrome onBack={onBack} onSkip={onKeep} />
       <StepBody>
-        <DialogHero src="/images/files-folder.png" alt="Folder with documents" size="sm" tone="danger" />
+        <DialogHero src="/images/files-folder.png" alt="Folder with documents" tone="danger" />
         <StepTitle>Delete all your files?</StepTitle>
         <div className="grid grid-cols-2 gap-2.5">
           {DELETE_STATS.map((stat) => (
@@ -473,11 +424,11 @@ function FilesStep({
         </div>
       </StepBody>
       <StepActions>
-        <Button onClick={onKeep} className={STEP_BUTTON}>
-          Exit without deleting
-        </Button>
         <Button variant="destructive-outline" onClick={onDelete} className={STEP_BUTTON}>
           Delete everything
+        </Button>
+        <Button onClick={onKeep} className={STEP_BUTTON}>
+          Exit without deleting
         </Button>
       </StepActions>
     </>
@@ -610,19 +561,17 @@ function DiscountStep({
       <StepBody centered>
         <DialogHero src="/images/discount-gift.png" alt="Gift box" />
         <StepTitle>Best price before you go</StepTitle>
-        <div className="flex flex-col items-center gap-2.5">
-          <span className="text-[13.5px] font-semibold text-muted-foreground">{DEAL_TERM}</span>
-          <div className="flex items-baseline justify-center gap-2.5">
-            <span className="text-[15px] text-muted-foreground line-through">{DEAL_REGULAR}</span>
-            <span className="text-[40px] font-bold leading-none tracking-tight">{DEAL_TOTAL}</span>
-            <span className="text-[14px] text-muted-foreground">total</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-destructive px-3 py-1 text-[12px] font-semibold text-destructive-foreground">
-              {DEAL_SAVING}
-            </span>
-            <span className="text-[12.5px] text-muted-foreground">just {DEAL_PER_DAY} a day</span>
-          </div>
+        <div className="flex flex-col items-center gap-1.5 text-center">
+          <span className="text-[13px] text-muted-foreground">
+            {DEAL_TERM}, was <span className="line-through">{DEAL_REGULAR}</span>
+          </span>
+          <span className="text-[44px] font-bold leading-none tracking-tight">{DEAL_TOTAL}</span>
+          <span className="text-[12.5px] text-muted-foreground">
+            total, just {DEAL_PER_DAY} a day
+          </span>
+          <span className="mt-1.5 rounded-full bg-destructive px-3 py-1 text-[12px] font-semibold text-destructive-foreground">
+            {DEAL_SAVING}
+          </span>
         </div>
         <div className="h-px bg-border" />
         <div className="flex flex-col gap-2">
@@ -632,11 +581,11 @@ function DiscountStep({
         </div>
       </StepBody>
       <StepActions>
-        <Button onClick={onAccept} className={STEP_BUTTON}>
-          Get 3 months for {DEAL_TOTAL}
-        </Button>
         <Button variant="pill-outline" onClick={onDecline} className={STEP_BUTTON}>
           Continue to cancel
+        </Button>
+        <Button onClick={onAccept} className={STEP_BUTTON}>
+          Get 3 months for {DEAL_TOTAL}
         </Button>
       </StepActions>
     </>
@@ -648,7 +597,9 @@ function LoadingStep({ frozen }: { frozen: boolean }) {
     <>
       <StepChrome />
       <StepBody centered>
-        <LottieStage src="/lottie/hourglass-blue.json" w={140} h={140} />
+        <div className="mx-auto">
+          <LottieStage src="/lottie/hourglass-blue.json" w={120} h={120} />
+        </div>
         <StepTitle>Just a moment</StepTitle>
         <StepLead>Please don't close this page</StepLead>
         <LoadingBar frozen={frozen} />

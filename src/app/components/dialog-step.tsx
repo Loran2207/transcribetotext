@@ -57,7 +57,7 @@ export function StepChrome({ onBack, onSkip }: { onBack?: () => void; onSkip?: (
 // close button.
 export function StepTitle({ children }: { children: ReactNode }) {
   return (
-    <DialogTitle className="px-8 text-center text-[22px] font-bold leading-[1.2] tracking-[-0.4px]">
+    <DialogTitle className="text-balance px-8 text-center text-[22px] font-bold leading-[1.2] tracking-[-0.4px]">
       {children}
     </DialogTitle>
   );
@@ -86,7 +86,11 @@ export function StepBody({ children, centered = false }: { children: ReactNode; 
 // Actions run the full width of the dialog and stack primary first, so the block
 // keeps its shape and position on every step.
 export function StepActions({ children }: { children: ReactNode }) {
-  return <div className="flex shrink-0 flex-col gap-2.5">{children}</div>;
+  return (
+    <div className="flex shrink-0 items-center gap-2.5 [&>button]:min-w-0 [&>button]:flex-1">
+      {children}
+    </div>
+  );
 }
 
 export const STEP_BUTTON = "h-11 w-full text-[13.5px] font-semibold";

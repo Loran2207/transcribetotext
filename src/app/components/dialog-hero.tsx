@@ -4,20 +4,14 @@
 export function DialogHero({
   src,
   alt,
-  size = "md",
   tone = "brand",
 }: {
   src: string;
   alt: string;
-  size?: "sm" | "md" | "lg";
   tone?: "brand" | "danger";
 }) {
   return (
-    <div
-      className={`relative mx-auto flex items-center justify-center ${
-        size === "lg" ? "size-[140px]" : size === "sm" ? "size-[88px]" : "size-[120px]"
-      }`}
-    >
+    <div className="relative mx-auto flex size-[120px] items-center justify-center">
       <div
         className={`absolute inset-4 rounded-full blur-2xl ${
           tone === "danger" ? "bg-destructive/10" : "bg-primary/10"
