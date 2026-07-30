@@ -10,6 +10,8 @@ import svgPaths from "../../imports/svg-i3wf63n6gj";
 import { ShareDialog } from "./share-dialog";
 const imgEllipse52 = "/images/avatar.png";
 import { useStarred } from "./starred-context";
+import { usePlan } from "./use-plan";
+import { useNavigate } from "react-router";
 import { SourceIcon } from "./source-icons";
 import { useFolders } from "./folder-context";
 import { useLanguage, LANGUAGES } from "./language-context";
@@ -233,6 +235,34 @@ const NAV_ITEMS = [
   { id: "templates", labelKey: "nav.templates", icon: Layers },
 ] as const;
 
+/* Free-plan quota, the way the old design carried it: the sidebar is the only
+   place a free user sees their usage on screens without a right panel. Pro users
+   get nothing here. */
+function SidebarPlanPlaque() {
+  const plan = usePlan();
+  const navigate = useNavigate();
+  if (plan !== "free") return null;
+  const used = 3;
+  const total = 10;
+  const pct = Math.round((used / total) * 100);
+  return (
+    <div className="mx-2 mb-1 rounded-2xl border border-border bg-primary/5 p-3 group-data-[collapsible=icon]:hidden">
+      <p className="text-[12px] font-medium text-sidebar-foreground">
+        {used} of {total} files used
+      </p>
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-primary/15">
+        <div className="h-full rounded-full bg-primary" style={{ width: pct + "%" }} />
+      </div>
+      <Button
+        onClick={() => navigate("/checkout")}
+        className="mt-3 h-8 w-full text-[12.5px] font-semibold"
+      >
+        Get Premium
+      </Button>
+    </div>
+  );
+}
+
 export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarProps) {
   
   const [starredOpen, setStarredOpen] = useState(true);
@@ -367,6 +397,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
 
       {/* ═══════════ Footer ═══════════ */}
       <SidebarFooter>
+        <SidebarPlanPlaque />
         <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>
