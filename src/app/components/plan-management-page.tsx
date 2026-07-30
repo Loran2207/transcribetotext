@@ -6,7 +6,6 @@ import {
   CancelSubscriptionFlow,
   type CancelFlowInitialStep,
 } from "./cancel-subscription-flow";
-import { ACTIVE_UNTIL } from "./billing-dates";
 
 export type PlanState = "never" | "active" | "expired";
 
@@ -247,7 +246,7 @@ function HeroFree({ onUpgrade }: { onUpgrade: () => void }) {
   );
 }
 
-function HeroActive({
+export function HeroActive({
   billingEmail,
   duration,
   price,
@@ -327,61 +326,134 @@ function HeroExpired({ onRenew }: { onRenew: () => void }) {
 
 function PauseCard({ onPause }: { onPause: () => void }) {
   return (
-    <section className="mb-9">
-      <h3 className="mb-3.5 text-[15px] font-semibold -tracking-[0.1px]">Need a break?</h3>
-      <div className="flex flex-col items-start gap-4 rounded-[18px] border border-border bg-card px-6 py-5 md:flex-row md:items-center md:justify-between">
-        <p className="max-w-[560px] text-[13.5px] leading-[1.55] text-muted-foreground">
-          Take the time you need. Pause your subscription and come back whenever you are ready.
-        </p>
-        <Button
-          variant="pill-outline"
-          size="sm"
-          className="h-9 shrink-0 px-4 text-[13px]"
-          onClick={onPause}
-        >
-          Pause subscription
-        </Button>
-      </div>
-    </section>
+    <div className="mb-6 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
+      <CardTitle>Need a break?</CardTitle>
+      <p className="mt-2 text-[13.5px] leading-[1.55] text-muted-foreground">
+        Take the time you need. Pause your subscription and come back whenever you're ready
+      </p>
+      <Button onClick={onPause} className="mt-5 h-12 w-full text-[14px] font-semibold">
+        Pause Subscription
+      </Button>
+    </div>
   );
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="mb-3.5 text-[15px] font-semibold -tracking-[0.1px]">{children}</h3>;
+  return <h3 className="mb-3.5 text-[20px] font-bold -tracking-[0.3px]">{children}</h3>;
+}
+
+function CardTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-balance text-[18px] font-bold leading-[1.3] -tracking-[0.2px]">
+      {children}
+    </h3>
+  );
+}
+
+// ── Plan card ────────────────────────────────────────────────
+// Badge plus the three facts the product states: who is billed, how often,
+// how much.
+type PlanStatus = "active" | "paused" | "cancelled" | "expired";
+
+const PLAN_BADGE: Record<PlanStatus, { label: string; cls: string }> = {
+  active:    { label: "Active",    cls: "bg-emerald-500/15 text-emerald-700" },
+  paused:    { label: "Paused",    cls: "bg-amber-500/15 text-amber-700" },
+  cancelled: { label: "Cancelled", cls: "bg-destructive/10 text-destructive" },
+  expired:   { label: "Expired",   cls: "bg-muted text-muted-foreground" },
+};
+
+function PlanCard({
+  status,
+  rows,
+}: {
+  status: PlanStatus;
+  rows: { label: string; value: string }[];
+}) {
+  const badge = PLAN_BADGE[status];
+  return (
+    <div className="mb-9 max-w-[600px] rounded-[18px] bg-primary/[0.06] px-6 py-5">
+      <span
+        className={`inline-flex items-center rounded-full px-3 py-1 text-[12.5px] font-semibold ${badge.cls}`}
+      >
+        {badge.label}
+      </span>
+      <div className="mt-4 flex flex-col gap-2.5">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-baseline justify-between gap-4">
+            <span className="shrink-0 text-[13.5px] text-muted-foreground">{r.label}</span>
+            <span className="min-w-0 break-words text-right text-[13.5px] font-semibold">
+              {r.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Premium benefits, the product's own list ─────────────────
+const PREMIUM_BENEFITS = [
+  {
+    title: "Unlimited audio & video transcriptions",
+    desc: "Unlock unlimited transcriptions with up to 4 hours per conversation. Easily import audio and video files, no limits, no stress",
+  },
+  {
+    title: "AI Meeting Agent",
+    desc: "Let AI join your Zoom, Google Meet, or MS Teams calls to take notes, record audio, and instantly share everything, so you never miss a thing",
+  },
+  {
+    title: "Transcribe from Links",
+    desc: "Turn YouTube videos, Google Drive, and Dropbox files into clear, accurate transcripts in seconds",
+  },
+];
+
+function PremiumBenefitsCard() {
+  return (
+    <div className="mb-6 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
+      <CardTitle>Transcribetotext.ai Premium membership gives you</CardTitle>
+      <div className="mt-5 flex flex-col gap-4">
+        {PREMIUM_BENEFITS.map((b) => (
+          <div key={b.title} className="flex items-start gap-3">
+            <CheckBadge />
+            <div className="min-w-0 text-[13.5px] leading-[1.55]">
+              <strong className="block font-semibold">{b.title}</strong>
+              <span className="mt-0.5 block text-[13px] text-muted-foreground">{b.desc}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ── Cancelling block, worded the way the product words it
 function CancellingCard({ onCancel }: { onCancel: () => void }) {
   return (
-    <section className="mb-9">
-      <SectionTitle>Cancelling Subscription?</SectionTitle>
-      <div className="rounded-[18px] border border-border bg-card px-6 py-5">
-        <p className="max-w-[720px] text-[13.5px] leading-[1.55] text-muted-foreground">
-          Canceling your subscription will stop your access to all premium transcription features
-          and stored transcripts. If you have purchased or generated any files, please make sure to
-          download them before canceling.
-        </p>
-        <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
-          <Button
-            variant="pill-outline"
-            size="sm"
-            className="h-9 px-4 text-[13px]"
-            onClick={onCancel}
-          >
-            Cancel Subscription
-          </Button>
-          <Button
-            size="sm"
-            className="h-9 px-4 text-[13px]"
-            onClick={() => {
-              window.location.href = "mailto:support@transcribetotext.ai";
-            }}
-          >
-            Contact Support
-          </Button>
-        </div>
+    <div className="mb-6 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
+      <CardTitle>Cancelling Subscription?</CardTitle>
+      <p className="mt-2 text-[13.5px] leading-[1.55] text-muted-foreground">
+        Canceling your subscription will stop your access to all premium transcription features and
+        stored transcripts. If you have purchased or generated any files, please make sure to
+        download them before canceling
+      </p>
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Button
+          variant="pill-outline"
+          onClick={onCancel}
+          className="h-12 w-full text-[14px] font-semibold"
+        >
+          Cancel Subscription
+        </Button>
+        <Button
+          onClick={() => {
+            window.location.href = "mailto:support@transcribetotext.ai";
+          }}
+          className="h-12 w-full text-[14px] font-semibold"
+        >
+          Contact Support
+        </Button>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -407,7 +479,7 @@ function ManageRow({
   );
 }
 
-function ManageSubscriptionCard({
+export function ManageSubscriptionCard({
   billingEmail,
   endDate,
   onUpdatePayment,
@@ -506,12 +578,6 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
   function handleRenew() {
     toast("Renewal is not enabled in this preview.");
   }
-  function handleUpdatePayment() {
-    toast("Payment management is not enabled in this preview.");
-  }
-  function handleChangeBillingEmail() {
-    toast("Billing email change is not enabled in this preview.");
-  }
   function handleCancel() {
     setCancelFlowStep("confirm");
     setCancelFlowOpen(true);
@@ -548,17 +614,17 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
       {state === "active" && (
         <>
           <SectionTitle>My plans</SectionTitle>
-          <HeroActive billingEmail={billingEmail} duration="week" price="$19.99/month" />
-          <BenefitsCard title="Transcribetotext.ai Premium membership gives you" />
+          <PlanCard
+            status="active"
+            rows={[
+              { label: "email", value: billingEmail },
+              { label: "duration", value: "week" },
+              { label: "price", value: "$19.99" },
+            ]}
+          />
+          <PremiumBenefitsCard />
           <PauseCard onPause={handlePause} />
           <CancellingCard onCancel={handleCancel} />
-          <ManageSubscriptionCard
-            billingEmail={billingEmail}
-            endDate={ACTIVE_UNTIL}
-            onUpdatePayment={handleUpdatePayment}
-            onChangeEmail={handleChangeBillingEmail}
-            onCancel={handleCancel}
-          />
         </>
       )}
 

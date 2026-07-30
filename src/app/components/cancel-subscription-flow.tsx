@@ -597,7 +597,7 @@ function LoadingStep({ frozen }: { frozen: boolean }) {
   return (
     <>
       <StepChrome />
-      <StepBody>
+      <StepBody centered>
         <div className="mx-auto">
           <LottieStage src="/lottie/hourglass-blue.json" w={120} h={120} />
         </div>

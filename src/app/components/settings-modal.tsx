@@ -14,6 +14,11 @@ import {
   Shield01Icon,
   LegalDocument01Icon,
   ArrowRight01Icon,
+  ArrowRight02Icon,
+  ArrowLeft02Icon,
+  CustomerSupportIcon,
+  Layers01Icon,
+  SquareLockPasswordIcon,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import {
@@ -39,15 +44,9 @@ import {
 } from "./ui/alert-dialog";
 import { useUserProfile } from "./user-profile-context";
 import { setInnerScreen } from "./inner-screen";
-import { ChevronRight } from "@hugeicons/core-free-icons";
 import { useAuth } from "./auth-context";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "./ui/sidebar";
 
 // ── Password requirements ─────────────────────────────────────
 const PW_RULES = [
@@ -492,7 +491,7 @@ const HELP_ROWS = [
   { label: "Privacy Policy", desc: "What we store and why", icon: Shield01Icon, section: "privacy" as const },
 ];
 
-function AccountPage({ onOpenSection }: { onOpenSection: (id: "terms" | "privacy") => void }) {
+export function AccountSettingsDetailed({ onOpenSection }: { onOpenSection: (id: "terms" | "privacy") => void }) {
   const { displayName: localName, avatarSrc, setDisplayName: setLocalName, setAvatarSrc } = useUserProfile();
   const { user, signOut } = useAuth();
 
@@ -741,33 +740,169 @@ function InvoicesComingSoon() {
   );
 }
 
-// ── Settings Page (inline, full content area) ─────────────────
+// ── Account ───────────────────────────────────────────────────
+// The screen the product already ships, drawn with our tokens: the same rows,
+// the same words, the same order, so nothing has to be rebuilt to adopt it.
+// Every row below the form opens an inner page. There is no tab strip.
+const ACCOUNT_ROWS: {
+  label: string;
+  icon: typeof Mail;
+  section?: SectionId;
+  mail?: string;
+}[] = [
+  { label: "Contact Support", icon: CustomerSupportIcon, mail: "support@transcribetotext.ai" },
+  { label: "Privacy Policy",  icon: Shield01Icon,        section: "privacy" },
+  { label: "Terms of Use",    icon: LegalDocument01Icon, section: "terms" },
+  { label: "Plan Management", icon: Layers01Icon,        section: "plan" },
+  { label: "Invoices",        icon: Invoice01Icon,       section: "invoices" },
+];
+
+function FormLabel({ children }: { children: React.ReactNode }) {
+  return <span className="mb-1.5 block text-[12.5px] text-muted-foreground">{children}</span>;
+}
+
+function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void }) {
+  const { displayName: localName, setDisplayName: setLocalName } = useUserProfile();
+  const { user } = useAuth();
+
+  const authName = user?.user_metadata?.full_name as string | undefined;
+  const name = authName || localName;
+  const email = user?.email || "";
+
+  const [draftName, setDraftName] = useState(name);
+  const [savingName, setSavingName] = useState(false);
+  const [showSetPw, setShowSetPw] = useState(false);
+  const [showDeleteAcc, setShowDeleteAcc] = useState(false);
+
+  useEffect(() => { setDraftName(name); }, [name]);
+
+  const dirty = draftName.trim() !== "" && draftName.trim() !== name;
+
+  async function saveName() {
+    if (!dirty) return;
+    setSavingName(true);
+    const { error } = await supabase.auth.updateUser({ data: { full_name: draftName.trim() } });
+    setSavingName(false);
+    if (error) { toast.error(error.message); return; }
+    setLocalName(draftName.trim());
+    toast.success("Profile updated");
+  }
+
+  return (
+    <>
+      {showSetPw && <ChangePasswordDialog email={email} onClose={() => setShowSetPw(false)} />}
+      {showDeleteAcc && <ConfirmDialog
+        title="Are you sure you want to delete your account?"
+        description="This action is permanent and cannot be undone. All your data will be deleted."
+        confirmLabel="Delete Account"
+        onConfirm={() => { setShowDeleteAcc(false); toast("Account deletion coming soon."); }}
+        onClose={() => setShowDeleteAcc(false)}
+      />}
+
+      <div className="flex flex-col">
+        {/* Name and email sit side by side on anything wider than a phone,
+            exactly as the product lays them out. */}
+        <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+          <div>
+            <FormLabel>User name</FormLabel>
+            <div className="flex h-12 items-center gap-2 rounded-[14px] border border-border bg-card pl-4 pr-2 focus-within:border-primary">
+              <Input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") saveName(); }}
+                maxLength={255}
+                className="h-auto min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 text-[14px] shadow-none focus-visible:ring-0"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={saveName}
+                disabled={!dirty || savingName}
+                className={`h-8 shrink-0 px-3 text-[13px] font-semibold ${dirty ? "text-primary" : "text-primary/40"}`}
+              >
+                {savingName ? "Saving" : "Save"}
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <FormLabel>Email</FormLabel>
+            <div className="flex h-12 items-center rounded-[14px] bg-muted px-4">
+              <span className="truncate text-[14px] text-muted-foreground">{email}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Set password keeps the product's half width on desktop. */}
+        <button
+          type="button"
+          onClick={() => setShowSetPw(true)}
+          className="mt-5 flex w-full items-center gap-4 rounded-[16px] bg-primary/5 px-5 py-4 text-left transition-colors hover:bg-primary/[0.08] sm:w-[calc(50%-12px)]"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold text-foreground">Set password</span>
+            <span className="mt-0.5 block text-[13px] text-muted-foreground">
+              Set a password for your T2T.Ai account
+            </span>
+          </span>
+          <Icon icon={SquareLockPasswordIcon} className="size-5 shrink-0 text-primary" strokeWidth={1.8} />
+        </button>
+
+        {/* The five inner pages. */}
+        <div className="mt-8 flex flex-col gap-3">
+          {ACCOUNT_ROWS.map((row) => (
+            <button
+              key={row.label}
+              type="button"
+              onClick={() => {
+                if (row.section) onOpenSection(row.section);
+                else if (row.mail) window.location.href = `mailto:${row.mail}`;
+              }}
+              className="flex w-full items-center gap-4 rounded-[16px] border border-border bg-card px-5 py-4 text-left shadow-[var(--elevation-sm)] transition-colors hover:bg-accent"
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <Icon icon={row.icon} className="size-5 text-primary" strokeWidth={1.8} />
+              </span>
+              <span className="min-w-0 flex-1 text-[15px] font-semibold text-foreground">{row.label}</span>
+              <Icon icon={ArrowRight02Icon} className="size-5 shrink-0 text-primary" strokeWidth={2} />
+            </button>
+          ))}
+        </div>
+
+        <Button
+          variant="destructive-outline"
+          onClick={() => setShowDeleteAcc(true)}
+          className="mt-8 h-12 w-full border border-destructive/40 bg-transparent text-[14px] font-semibold hover:bg-destructive/5 sm:w-[calc(50%-12px)]"
+        >
+          Delete Account
+        </Button>
+      </div>
+    </>
+  );
+}
+
+// ── Settings, as internal pages ───────────────────────────────
+// Account is the root. Everything else opens under it with a back arrow,
+// which is how the product navigates. On phones the drill-in chrome in the
+// top bar carries the back control, so the inline header hides there.
 interface SettingsPageProps {
   onClose: () => void;
 }
 
 type SectionId = "account" | "plan" | "meetings" | "invoices" | "privacy" | "terms";
 
-interface NavItem {
-  id: SectionId;
-  label: string;
-  icon: typeof User;
-  disabled?: boolean;
-  badge?: string;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { id: "account",  label: "Account",         icon: User },
-  { id: "plan",     label: "Plan management", icon: CreditCardIcon },
-  { id: "meetings", label: "Meetings",        icon: Calendar },
-  { id: "invoices", label: "Invoices",        icon: Invoice01Icon, disabled: true, badge: "Soon" },
-  { id: "privacy",  label: "Privacy policy",  icon: Shield01Icon },
-  { id: "terms",    label: "Terms of use",    icon: LegalDocument01Icon },
-];
+const SECTION_TITLE: Record<SectionId, string> = {
+  account:  "Account",
+  plan:     "Plan Management",
+  meetings: "Meetings",
+  invoices: "Invoices",
+  privacy:  "Privacy Policy",
+  terms:    "Terms of Use",
+};
 
 const MAX_WIDTH: Record<SectionId, string> = {
-  account:  "max-w-[560px]",
-  plan:     "max-w-[880px]",
+  account:  "max-w-[800px]",
+  plan:     "max-w-[788px]",
   meetings: "max-w-[720px]",
   invoices: "max-w-[560px]",
   privacy:  "max-w-[1080px]",
@@ -775,90 +910,58 @@ const MAX_WIDTH: Record<SectionId, string> = {
 };
 
 export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
-  const [activeSection, setActiveSection] = useState<SectionId>(() => {
+  const [section, setSection] = useState<SectionId>(() => {
     try {
       const f = localStorage.getItem("ttt_demo_settings_section");
-      if (f === "account" || f === "plan" || f === "meetings" || f === "invoices" || f === "privacy" || f === "terms") {
-        return f as SectionId;
-      }
+      if (f && Object.prototype.hasOwnProperty.call(SECTION_TITLE, f)) return f as SectionId;
     } catch { /* ignore */ }
     return "account";
   });
   const [planState] = usePlanStatePreview();
-  const [mobileDetail, setMobileDetail] = useState(false);
 
-  const sectionLabel =
-    NAV_ITEMS.find((n) => n.id === activeSection)?.label ?? "Settings";
+  const isRoot = section === "account";
+  const title = SECTION_TITLE[section];
 
+  // Only the phone bars read this store, so it registers at every width and
+  // survives a resize. Gating it on a one-shot media query missed the phone
+  // whenever the app had loaded wide first.
   useEffect(() => {
-    const isPhone = typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
-    if (!mobileDetail || !isPhone) { setInnerScreen(null); return; }
-    setInnerScreen({ back: () => setMobileDetail(false), parent: "Settings", title: sectionLabel, hideNav: true });
+    if (isRoot) { setInnerScreen(null); return; }
+    setInnerScreen({ back: () => setSection("account"), parent: "Account", title, hideNav: true });
     return () => setInnerScreen(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mobileDetail, sectionLabel]);
+  }, [isRoot, title]);
 
   return (
-    <div className="flex flex-1 overflow-hidden h-full">
-
-      {/* ── Settings secondary nav ── */}
-      <div className={`flex-col shrink-0 h-full w-full md:w-[260px] bg-background md:border-r md:border-border overflow-y-auto ${mobileDetail ? "hidden md:flex" : "flex"}`}>
-        {/* "Settings" heading - aligned with dashboard greeting */}
-        <div className="px-[16px] pt-[16px] pb-4 lg:px-[32px] lg:pt-[28px] lg:pb-6">
-          <p className="whitespace-nowrap text-foreground text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px]" style={{ fontWeight: 700 }}>
-            Settings
-          </p>
-        </div>
-
-        {/* Nav items - reusing sidebar navigation components */}
-        <SidebarMenu className="px-[16px]">
-          {NAV_ITEMS.map(({ id, label, icon: NavIcon, disabled, badge }) => (
-            <SidebarMenuItem key={id}>
-              <SidebarMenuButton
-                isActive={!disabled && activeSection === id}
-                aria-disabled={disabled || undefined}
-                onClick={disabled ? undefined : () => { setActiveSection(id); setMobileDetail(true); }}
-                className={
-                  disabled
-                    ? "cursor-not-allowed text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-                    : ""
-                }
+    <div className="flex h-full flex-1 flex-col overflow-y-auto bg-background">
+      <div className={`${MAX_WIDTH[section]} w-full px-[16px] pb-16 pt-[16px] lg:px-[32px] lg:pt-[28px]`}>
+        <div className={isRoot ? "" : "max-md:hidden"}>
+          <div className="mb-6 flex items-center gap-2 lg:mb-8">
+            {!isRoot && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSection("account")}
+                aria-label="Back to account"
+                className="-ml-2 size-9 shrink-0 text-muted-foreground hover:text-foreground"
               >
-                <Icon icon={NavIcon} strokeWidth={1.3} />
-                <span>{label}</span>
-                {badge && (
-                  <span className="ml-auto text-[10px] font-semibold tracking-wide px-2 py-px rounded-full bg-muted text-muted-foreground">
-                    {badge}
-                  </span>
-                )}
-                {!disabled && !badge && <Icon icon={ChevronRight} className="ml-auto size-4 text-muted-foreground/60 md:hidden" strokeWidth={1.6} />}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </div>
-
-      {/* ── Content area ── */}
-      <div className={`flex-col flex-1 min-w-0 overflow-hidden bg-background ${mobileDetail ? "flex" : "hidden md:flex"}`}>
-
-        {/* Section header */}
-        <div className="max-md:hidden flex items-center justify-between gap-4 px-[32px] pt-[28px] pb-5 shrink-0 border-b border-border">
-          <h1 className="font-bold text-[22px] text-foreground tracking-tight">
-            {sectionLabel}
-          </h1>
-        </div>
-
-        {/* Scrollable form */}
-        <div className="flex-1 overflow-y-auto">
-          <div className={`${MAX_WIDTH[activeSection]} px-[16px] pt-4 pb-12 lg:px-[32px] lg:pt-6`}>
-            {activeSection === "account" && <AccountPage onOpenSection={setActiveSection} />}
-            {activeSection === "plan" && <PlanManagementPage state={planState} />}
-            {activeSection === "meetings" && <MeetingsSettingsPanel />}
-            {activeSection === "invoices" && <InvoicesComingSoon />}
-            {activeSection === "privacy" && <PrivacyPolicyPage />}
-            {activeSection === "terms" && <TermsOfUsePage />}
+                <Icon icon={ArrowLeft02Icon} className="size-5" strokeWidth={2} />
+              </Button>
+            )}
+            <h1
+              className="text-foreground text-[24px] leading-[30px] tracking-[-0.4px] lg:text-[32px] lg:leading-[38px] lg:tracking-[-0.6px]"
+              style={{ fontWeight: 700 }}
+            >
+              {title}
+            </h1>
           </div>
         </div>
+
+        {section === "account"  && <AccountPage onOpenSection={setSection} />}
+        {section === "plan"     && <PlanManagementPage state={planState} />}
+        {section === "meetings" && <MeetingsSettingsPanel />}
+        {section === "invoices" && <InvoicesComingSoon />}
+        {section === "privacy"  && <PrivacyPolicyPage />}
+        {section === "terms"    && <TermsOfUsePage />}
       </div>
     </div>
   );

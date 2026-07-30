@@ -71,11 +71,17 @@ export function StepLead({ children }: { children: ReactNode }) {
   );
 }
 
-// The only part of the dialog that can scroll. Steps that show something centre
-// their content, so the fixed frame reads as deliberate rather than empty.
-export function StepBody({ children }: { children: ReactNode }) {
+// The only part of the dialog that can scroll. Content starts at the same height
+// on every step, so the illustration never moves as the flow advances. The one
+// exception is the waiting step: it has nothing to decide and no neighbour to
+// line up with, so it sits in the middle of the frame.
+export function StepBody({ centered, children }: { centered?: boolean; children: ReactNode }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4 [&>*]:shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div
+      className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4 [&>*]:shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+        centered ? "justify-center" : ""
+      }`}
+    >
       {children}
     </div>
   );
