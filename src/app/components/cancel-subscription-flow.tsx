@@ -403,11 +403,11 @@ function RecordPreview() {
   const [managed, setManaged] = useState(false);
   return (
     <div className="rounded-2xl border border-primary/10 bg-primary/5 p-3.5 text-left">
-      <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-card">
           <Icon icon={Calendar03Icon} size={14} strokeWidth={1.8} className="text-primary" />
         </span>
-        <span className="min-w-0 flex-1 truncate text-[14px] font-semibold">{RECORD_PREVIEW.name}</span>
+        <span className="min-w-0 flex-1 text-[14px] font-semibold">{RECORD_PREVIEW.name}</span>
         <span className="shrink-0 text-[12px] text-muted-foreground">{RECORD_PREVIEW.time}</span>
       </div>
       <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1">
