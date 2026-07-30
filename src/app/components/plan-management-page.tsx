@@ -375,7 +375,7 @@ const PLAN_BADGE: Record<
   paused: {
     label: "Paused",
     heading: "Your plan is on pause",
-    cls: "bg-warning/12 text-warning",
+    cls: "bg-warning/15 text-amber-700",
     wash: "linear-gradient(135deg, rgba(240,177,0,0.45) 0%, rgba(240,177,0,0.16) 45%, rgba(240,177,0,0.06) 100%)",
     dot: "bg-warning",
   },

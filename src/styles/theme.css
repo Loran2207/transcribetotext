@@ -94,8 +94,8 @@
   --strength-strong: oklch(0.723 0.219 149.579);
   /* Golden accent, the same colour as --strength-medium above. Kept in rgb because
      the Figma capture pipeline drops oklch and the fill lands empty. */
-  --warning: rgb(176, 98, 0);
-  --warning-hover: rgb(150, 84, 0);
+  --warning: rgb(217, 119, 6);
+  --warning-hover: rgb(194, 106, 5);
   --warning-foreground: rgb(255, 255, 255);
   /* The bright gold the status tints still use. */
   --warning-tint: rgb(240, 177, 0);
