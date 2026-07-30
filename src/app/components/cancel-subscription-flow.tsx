@@ -3,7 +3,6 @@ import {
   AiBrain01Icon,
   Alert02Icon,
   Calendar03Icon,
-  Cancel01Icon,
   CheckmarkCircle02Icon,
   Download01Icon,
   File01Icon,
@@ -78,7 +77,7 @@ const CONFIRM_CHOICES = [
   },
   {
     key: "cancel",
-    icon: Cancel01Icon,
+    icon: Alert02Icon,
     label: "Cancel",
     lines: ["Access ends that day", "Files are deleted"],
     accented: false,
