@@ -9,7 +9,7 @@ import { Icon } from "./ui/icon";
 // standalone dialog has nothing to jump against, so it hugs its content.
 const DIALOG_BASE =
   "flex flex-col gap-0 overflow-hidden rounded-2xl p-6 max-h-[92dvh] sm:max-w-[480px] " +
-  "[&>button]:right-5 [&>button]:top-5 [&>button]:opacity-60";
+  "[&>button]:right-5 [&>button]:top-6 [&>button]:opacity-60";
 
 // The pinned height starts at the small breakpoint so every viewport wider than a
 // phone gets the same window; the max-height stays as a guard, so a short
@@ -40,7 +40,7 @@ export function StepChrome({ onBack, onSkip }: { onBack?: () => void; onSkip?: (
         <button
           type="button"
           onClick={onSkip}
-          className="mr-6 text-[13px] font-medium leading-4 text-muted-foreground opacity-70 transition-opacity hover:opacity-100"
+          className="mr-10 text-[13px] font-medium leading-4 text-muted-foreground opacity-70 transition-opacity hover:opacity-100"
         >
           Skip
         </button>
@@ -65,19 +65,17 @@ export function StepTitle({ children }: { children: ReactNode }) {
 
 export function StepLead({ children }: { children: ReactNode }) {
   return (
-    <p className="px-2 text-center text-[13.5px] leading-[1.6] text-muted-foreground">{children}</p>
+    <p className="text-balance px-2 text-center text-[13.5px] leading-[1.6] text-muted-foreground">
+      {children}
+    </p>
   );
 }
 
 // The only part of the dialog that can scroll. Steps that show something centre
 // their content, so the fixed frame reads as deliberate rather than empty.
-export function StepBody({ children, centered = false }: { children: ReactNode; centered?: boolean }) {
+export function StepBody({ children }: { children: ReactNode }) {
   return (
-    <div
-      className={`flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4 [&>*]:shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-        centered ? "justify-center" : ""
-      }`}
-    >
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4 [&>*]:shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {children}
     </div>
   );

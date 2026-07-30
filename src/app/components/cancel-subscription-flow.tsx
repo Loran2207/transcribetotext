@@ -198,8 +198,9 @@ function ConfirmStep({ onCancel, onPause }: { onCancel: () => void; onPause: () 
       <StepBody>
         <StepTitle>Are you sure?</StepTitle>
         <InfoBanner>
-          Your subscription stays active until the end of the current billing period. If you cancel,
-          your account will be deactivated on that day.
+          Your subscription stays active until{" "}
+          <span className="font-semibold text-primary">{ACTIVE_UNTIL}</span>. If you cancel, your
+          account will be deactivated on that day.
         </InfoBanner>
         <StepLead>
           To retain access to your transcripts, tools and progress, consider pausing instead: you can
@@ -247,7 +248,7 @@ function PauseDoneStep({ onDone }: { onDone: () => void }) {
   return (
     <>
       <StepChrome />
-      <StepBody centered>
+      <StepBody>
         <DialogHero src="/images/paused-symbol.png" alt="Paused" />
         <StepTitle>Subscription paused</StepTitle>
         <StepLead>Nothing is lost. Everything waits for you exactly as you left it.</StepLead>
@@ -558,7 +559,7 @@ function DiscountStep({
   return (
     <>
       <StepChrome onBack={onBack} />
-      <StepBody centered>
+      <StepBody>
         <DialogHero src="/images/discount-gift.png" alt="Gift box" />
         <StepTitle>Best price before you go</StepTitle>
         <div className="flex flex-col items-center gap-1.5 text-center">
@@ -596,7 +597,7 @@ function LoadingStep({ frozen }: { frozen: boolean }) {
   return (
     <>
       <StepChrome />
-      <StepBody centered>
+      <StepBody>
         <div className="mx-auto">
           <LottieStage src="/lottie/hourglass-blue.json" w={120} h={120} />
         </div>
@@ -617,7 +618,7 @@ function KeptStep({ onDone }: { onDone: () => void }) {
   return (
     <>
       <StepChrome />
-      <StepBody centered>
+      <StepBody>
         <DialogHero src="/images/kept-badge.png" alt="Celebration badge" />
         <StepTitle>Great decision!</StepTitle>
         <StepLead>Your discount is applied and every file stayed where it was.</StepLead>
@@ -642,7 +643,7 @@ function GoneStep({ onDone }: { onDone: () => void }) {
   return (
     <>
       <StepChrome />
-      <StepBody centered>
+      <StepBody>
         <DialogHero src="/images/gone-plane.png" alt="Paper plane" />
         <StepTitle>Sorry to see you go</StepTitle>
         <StepLead>Your subscription is cancelled and we hope to see you again.</StepLead>

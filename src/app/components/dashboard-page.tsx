@@ -205,6 +205,7 @@ function TranscribeFromLinkCard() {
           <div className="flex flex-col items-center justify-center p-[2px] rounded-full shrink-0 size-[15px] bg-white">
             <img src="/instagram-logo.webp" alt="" width={10} height={10} className="size-[10px] rounded-[2px] object-contain" draggable={false} />
           </div>
+          <p style={{ fontWeight: 500, fontSize: "8.5px", lineHeight: 1.2, color: "#7a1d4d", whiteSpace: "nowrap" }}>Instagram</p>
         </motion.div>
         </div>
 
@@ -224,8 +225,13 @@ function TranscribeFromLinkCard() {
         <motion.div className="flex flex-col h-[99px] items-start justify-between p-[7px] rounded-[6px] relative" style={{ backgroundColor: "#fff3d5", width: "70px" }} animate={hovered ? { y: -5, scale: 1.04 } : { y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 22, delay: 0.03 }}>
           <div className="absolute inset-[-2px] pointer-events-none rounded-[8px]" style={{ border: "2px solid white" }} />
           <div className="flex flex-col items-center justify-center p-[4px] rounded-full shrink-0 size-[26px] bg-white">
-            <svg className="size-[14px]" fill="none" viewBox="0 0 14 14">
-              <path d={svgCardPaths.p36aae932} fill="#0066DA" /><path d={svgCardPaths.p68d8080} fill="#00AC47" /><path d={svgCardPaths.p80f7a80} fill="#EA4335" /><path d={svgCardPaths.p185b5480} fill="#00832D" /><path d={svgCardPaths.p230cab00} fill="#2684FC" /><path d={svgCardPaths.p1e6a9c80} fill="#FFBA00" />
+            <svg className="size-[14px]" viewBox="0 0 87 78" aria-hidden="true">
+              <path d="M6.6 66.85 10.45 73.5c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066DA" />
+              <path d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5C.4 49.9 0 51.45 0 53h27.5z" fill="#00AC47" />
+              <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.55l5.85 11.5z" fill="#EA4335" />
+              <path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832D" />
+              <path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684FC" />
+              <path d="M73.4 26.5 60.7 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#FFBA00" />
             </svg>
           </div>
           <p style={{ fontWeight: 500, fontSize: "12px", lineHeight: 1.2, color: "#602706", width: "44px" }}>Google Drive</p>

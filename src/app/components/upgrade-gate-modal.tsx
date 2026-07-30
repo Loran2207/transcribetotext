@@ -61,7 +61,7 @@ export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateMod
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={SINGLE_DIALOG_SHELL} aria-describedby={undefined}>
         <StepChrome />
-        <StepBody centered>
+        <StepBody>
           <DialogHero src="/images/gate-crown.png" alt="Premium crown" />
           <StepTitle>{title}</StepTitle>
           <StepLead>Upgrade to unlock full transcripts, summaries and every AI feature.</StepLead>

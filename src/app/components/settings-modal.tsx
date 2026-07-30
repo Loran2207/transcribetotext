@@ -711,7 +711,7 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: "terms" | "privacy
               <p className="text-sm font-medium text-foreground">Delete account</p>
               <p className="text-xs mt-0.5 text-muted-foreground">Permanently delete your account and all data</p>
             </div>
-            <Button variant="destructive" size="sm"
+            <Button variant="destructive-outline" size="sm"
               onClick={() => setShowDeleteAcc(true)}
               className="rounded-full text-[13px]"
             >

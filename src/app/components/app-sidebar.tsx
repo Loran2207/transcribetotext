@@ -242,13 +242,13 @@ function SidebarPlanPlaque() {
   const plan = usePlan();
   const navigate = useNavigate();
   if (plan !== "free") return null;
-  const used = 3;
-  const total = 10;
+  const used = 0;
+  const total = 1;
   const pct = Math.round((used / total) * 100);
   return (
     <div className="mx-2 mb-1 rounded-2xl border border-border bg-primary/5 p-3 group-data-[collapsible=icon]:hidden">
       <p className="text-[12px] font-medium text-sidebar-foreground">
-        {used} of {total} files used
+        {used} of {total} daily transcriptions used
       </p>
       <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-primary/15">
         <div className="h-full rounded-full bg-primary" style={{ width: pct + "%" }} />
