@@ -5,20 +5,27 @@ import {
   TranslateIcon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent } from "./ui/dialog";
 import { DialogHero } from "./dialog-hero";
 import { Icon, type IconSvgElement } from "./ui/icon";
+import {
+  SINGLE_DIALOG_SHELL,
+  STEP_BUTTON,
+  StepActions,
+  StepBody,
+  StepChrome,
+  StepLead,
+  StepTitle,
+} from "./dialog-step";
 import { router } from "../routes";
 
 // Shared free-plan upgrade gate. "limit" blocks the primary Transcribe action
 // for free users; "done" celebrates a finished job that hit the free limit.
-// Same shell and rhythm as the cancel-subscription flow: this is a screen that
-// shows an offer, so it leads with the hero and centres the title under it.
+// Same shell, title weight and full-width action as the cancel flow, but the
+// height hugs the content: this dialog stands alone, so there is no next step
+// for it to jump against.
 
 export type UpgradeGateVariant = "limit" | "done";
-
-const SHELL =
-  "rounded-2xl p-6 sm:max-w-[440px] [&>button]:right-5 [&>button]:top-5 [&>button]:opacity-60";
 
 interface BenefitChip {
   icon: IconSvgElement;
@@ -52,17 +59,12 @@ export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateMod
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={SHELL} aria-describedby={undefined}>
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <DialogHero src="/images/gate-crown.png" alt="Premium crown" />
-            <DialogTitle className="px-8 text-center text-[18px] font-semibold tracking-tight">
-              {title}
-            </DialogTitle>
-            <p className="text-[13px] leading-[1.6] text-muted-foreground">
-              Upgrade to unlock full transcripts, summaries and every AI feature.
-            </p>
-          </div>
+      <DialogContent className={SINGLE_DIALOG_SHELL} aria-describedby={undefined}>
+        <StepChrome />
+        <StepBody centered>
+          <DialogHero src="/images/gate-crown.png" alt="Premium crown" />
+          <StepTitle>{title}</StepTitle>
+          <StepLead>Upgrade to unlock full transcripts, summaries and every AI feature.</StepLead>
           <div className="grid grid-cols-2 gap-2.5">
             {BENEFIT_CHIPS.map((chip) => (
               <div
@@ -76,10 +78,12 @@ export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateMod
               </div>
             ))}
           </div>
-          <Button onClick={handleUpgrade} className="h-11 w-full text-[13.5px] font-semibold">
+        </StepBody>
+        <StepActions>
+          <Button onClick={handleUpgrade} className={STEP_BUTTON}>
             See plans & upgrade
           </Button>
-        </div>
+        </StepActions>
       </DialogContent>
     </Dialog>
   );

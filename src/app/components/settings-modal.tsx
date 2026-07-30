@@ -13,6 +13,7 @@ import {
   Invoice01Icon,
   Shield01Icon,
   LegalDocument01Icon,
+  ArrowRight01Icon,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import {
@@ -479,7 +480,19 @@ function initialsOf(name: string): string {
 }
 
 // ── Account Tab ───────────────────────────────────────────────
-function AccountPage() {
+const HELP_ROWS = [
+  {
+    label: "Contact support",
+    desc: "support@transcribetotext.ai",
+    icon: Mail,
+    mail: "support@transcribetotext.ai",
+    section: null as null | "terms" | "privacy",
+  },
+  { label: "Terms of use", desc: "How the service works", icon: LegalDocument01Icon, section: "terms" as const },
+  { label: "Privacy policy", desc: "What we store and why", icon: Shield01Icon, section: "privacy" as const },
+];
+
+function AccountPage({ onOpenSection }: { onOpenSection: (id: "terms" | "privacy") => void }) {
   const { displayName: localName, avatarSrc, setDisplayName: setLocalName, setAvatarSrc } = useUserProfile();
   const { user, signOut } = useAuth();
 
@@ -642,6 +655,40 @@ function AccountPage() {
         </div>
 
         {/* ── Danger zone ─────────────────────────── */}
+        {/* Help and legal: the rows the account screen is expected to carry.
+            Support opens a mail draft; the two documents open in place. */}
+        <div className="mt-7">
+          <p className="text-[13px] font-semibold text-foreground">Help and legal</p>
+          <div className="mt-3 overflow-hidden rounded-2xl border border-border">
+            {HELP_ROWS.map((row, i) => (
+              <button
+                key={row.label}
+                type="button"
+                onClick={() => {
+                  if (row.section) onOpenSection(row.section);
+                  else window.location.href = `mailto:${row.mail}`;
+                }}
+                className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent ${
+                  i > 0 ? "border-t border-border" : ""
+                }`}
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
+                  <Icon icon={row.icon} className="size-4 text-primary" strokeWidth={1.8} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13.5px] font-medium text-foreground">{row.label}</span>
+                  <span className="block text-[12.5px] text-muted-foreground">{row.desc}</span>
+                </span>
+                <Icon
+                  icon={ArrowRight01Icon}
+                  className="size-4 shrink-0 text-muted-foreground"
+                  strokeWidth={1.8}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-col mt-4 gap-1">
 
           {/* Sign out */}
@@ -668,7 +715,7 @@ function AccountPage() {
               onClick={() => setShowDeleteAcc(true)}
               className="rounded-full text-[13px]"
             >
-              Delete Account
+              Delete account
             </Button>
           </div>
 
@@ -804,7 +851,7 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
         {/* Scrollable form */}
         <div className="flex-1 overflow-y-auto">
           <div className={`${MAX_WIDTH[activeSection]} px-[16px] pt-4 pb-12 lg:px-[32px] lg:pt-6`}>
-            {activeSection === "account" && <AccountPage />}
+            {activeSection === "account" && <AccountPage onOpenSection={setActiveSection} />}
             {activeSection === "plan" && <PlanManagementPage state={planState} />}
             {activeSection === "meetings" && <MeetingsSettingsPanel />}
             {activeSection === "invoices" && <InvoicesComingSoon />}

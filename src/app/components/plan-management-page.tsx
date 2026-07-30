@@ -46,7 +46,7 @@ const BENEFITS = [
   { title: "Unlimited transcriptions", desc: "No daily caps, no queue." },
   { title: "Up to 4 hours per file", desc: "Long meetings, long lectures - no limits." },
   { title: "AI meeting agent", desc: "Joins Zoom, Meet & Teams to take notes for you." },
-  { title: "Transcribe from links", desc: "Paste any URL - YouTube, Drive, Dropbox." },
+  { title: "Transcribe from links", desc: "Paste any URL - YouTube, Instagram, Drive, Dropbox." },
   { title: "Priority processing", desc: "Files are processed first, even at peak times." },
   { title: "Premium support", desc: "Direct line to our team, faster responses." },
 ];
@@ -398,14 +398,26 @@ function ManageSubscriptionCard({
           title="Cancel subscription"
           desc={`You'll keep Premium until ${endDate}, then move to Free.`}
           action={
-            <Button
-              variant="link"
-              size="sm"
-              className="h-9 px-1 text-[13.5px] text-primary"
-              onClick={onCancel}
-            >
-              Cancel
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="pill-outline"
+                size="sm"
+                className="h-9 px-4 text-[13px]"
+                onClick={() => {
+                  window.location.href = "mailto:support@transcribetotext.ai";
+                }}
+              >
+                Contact support
+              </Button>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-9 px-1 text-[13.5px] text-primary"
+                onClick={onCancel}
+              >
+                Cancel
+              </Button>
+            </div>
           }
         />
       </div>

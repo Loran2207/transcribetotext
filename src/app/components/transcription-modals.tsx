@@ -2072,6 +2072,7 @@ function detectLinkSource(url: string): SourceType {
     const host = new URL(url).hostname.toLowerCase();
     if (host.includes("youtube.com") || host.includes("youtu.be")) return "youtube";
     if (host.includes("dropbox.com")) return "dropbox";
+    if (host.includes("instagram.com")) return "instagram";
     if (host.includes("drive.google.com")) return "google-sheets";
   } catch {
     // ignore invalid URL, fallback below
@@ -2095,6 +2096,7 @@ function LinkInputIcons() {
   return (
     <div className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 flex items-center gap-[8px]">
       <SourceIcon source="youtube" />
+      <SourceIcon source="instagram" />
       <SourceIcon source="dropbox" />
       <span className="inline-flex items-center justify-center size-[18px]">
         <svg viewBox="0 0 24 24" fill="none" className="size-[16px]">
@@ -2152,7 +2154,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 
   return (
     <>
-      <ModalShell title="Transcribe from link" subtitle="YouTube, Dropbox, Google Drive and more" onClose={handleClose} onBackdropClick={handleClose}>
+      <ModalShell title="Transcribe from link" subtitle="YouTube, Instagram, Dropbox, Google Drive and more" onClose={handleClose} onBackdropClick={handleClose}>
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
           <div>
             <SectionLabel>Paste a link</SectionLabel>

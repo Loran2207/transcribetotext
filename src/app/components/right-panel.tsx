@@ -42,7 +42,7 @@ export function PromoCard() {
 
       {/* Text content */}
       <p className="absolute left-[19px] top-[12px] whitespace-nowrap text-foreground" style={{ fontWeight: 600, fontSize: "13px", lineHeight: "19.5px" }}>
-        {"Your 10% off code: "}<span className="text-destructive" style={{ fontWeight: 700 }}>onbd21</span>
+        {"Your 50% off code: "}<span className="text-destructive" style={{ fontWeight: 700 }}>welcome50</span>
       </p>
       <p className="absolute left-[19px] top-[34px] whitespace-nowrap cursor-pointer flex items-center gap-[2px] text-destructive" style={{ fontWeight: 400, fontSize: "11px", lineHeight: "16.5px" }}>
         Buy now <Icon icon={ChevronRight} className="size-[11px]" strokeWidth={2} />

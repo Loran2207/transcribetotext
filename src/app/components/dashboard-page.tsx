@@ -198,8 +198,18 @@ function TranscribeFromLinkCard() {
       onMouseLeave={() => setHovered(false)}
     >
       <div className="flex-1 w-full relative overflow-hidden">
+        {/* Instagram card (behind, far left) */}
+        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% - 52px), calc(-50% + 3px))", width: "48px" }}>
+        <motion.div className="flex flex-col h-[70px] items-start justify-between p-[5px] rounded-[4px] opacity-45 relative" style={{ backgroundColor: "#fdeef6", width: "48px" }} animate={hovered ? { x: -17, y: -3, rotate: -7 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
+          <div className="absolute inset-[-1.4px] pointer-events-none rounded-[5.4px]" style={{ border: "1.4px solid white" }} />
+          <div className="flex flex-col items-center justify-center p-[2px] rounded-full shrink-0 size-[15px] bg-white">
+            <img src="/instagram-logo.webp" alt="" width={10} height={10} className="size-[10px] rounded-[2px] object-contain" draggable={false} />
+          </div>
+        </motion.div>
+        </div>
+
         {/* Dropbox card (behind, left) */}
-        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% - 33.86px), calc(-50% + 2px))", width: "57.273px" }}>
+        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% - 24px), calc(-50% + 2px))", width: "57.273px" }}>
         <motion.div className="flex flex-col h-[81px] items-start justify-between p-[6px] rounded-[4.909px] opacity-60 relative" style={{ backgroundColor: "#e3f0fe", width: "57.273px" }} animate={hovered ? { x: -10.14, y: -4, rotate: -4 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
           <div className="absolute inset-[-1.636px] pointer-events-none rounded-[6.545px]" style={{ border: "1.636px solid white" }} />
           <div className="flex flex-col items-center justify-center p-[2px] rounded-full shrink-0 size-[17px] bg-white">
@@ -210,7 +220,7 @@ function TranscribeFromLinkCard() {
         </div>
 
         {/* Google Drive card (middle) */}
-        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% - 10.36px), calc(-50% + 2px))", width: "70px" }}>
+        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% + 1px), calc(-50% + 2px))", width: "70px" }}>
         <motion.div className="flex flex-col h-[99px] items-start justify-between p-[7px] rounded-[6px] relative" style={{ backgroundColor: "#fff3d5", width: "70px" }} animate={hovered ? { y: -5, scale: 1.04 } : { y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 22, delay: 0.03 }}>
           <div className="absolute inset-[-2px] pointer-events-none rounded-[8px]" style={{ border: "2px solid white" }} />
           <div className="flex flex-col items-center justify-center p-[4px] rounded-full shrink-0 size-[26px] bg-white">
@@ -223,7 +233,7 @@ function TranscribeFromLinkCard() {
         </div>
 
         {/* YouTube card (front, right) */}
-        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% + 22.75px), calc(-50% + 0.5px))", width: "82px" }}>
+        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% + 34px), calc(-50% + 0.5px))", width: "82px" }}>
         <motion.div className="flex flex-col h-[110px] items-start justify-between p-[8px] rounded-[6px] relative" style={{ backgroundColor: "#feeceb", width: "82px" }} animate={hovered ? { x: 10.25, y: -3.5, rotate: 3 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22, delay: 0.05 }}>
           <div className="absolute inset-[-2px] pointer-events-none rounded-[8px]" style={{ border: "2px solid white" }} />
           <div className="flex flex-col items-center justify-center p-[6px] rounded-full shrink-0 size-[30px] bg-white">

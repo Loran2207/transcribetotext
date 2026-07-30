@@ -2,17 +2,18 @@ import { useEffect, useState, type ReactNode } from "react";
 import {
   AiBrain01Icon,
   Alert02Icon,
-  ArrowLeft01Icon,
   Calendar03Icon,
+  Cancel01Icon,
   CheckmarkCircle02Icon,
   Download01Icon,
   File01Icon,
+  PauseIcon,
   TranslateIcon,
   UserGroupIcon,
   UserMultiple02Icon,
 } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent } from "./ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
@@ -20,18 +21,26 @@ import { Icon, type IconSvgElement } from "./ui/icon";
 import { LottieStage } from "./checkout-loader/lottie-stage";
 import { ACTIVE_UNTIL, PAUSED_UNTIL } from "./billing-dates";
 import { DialogHero } from "./dialog-hero";
+import {
+  STEP_BUTTON,
+  STEP_DIALOG_SHELL,
+  StepActions,
+  StepBody,
+  StepChrome,
+  StepLead,
+  StepTitle,
+} from "./dialog-step";
 
 // Cancel-subscription flow, opened from Settings > Plan management:
 // confirm -> (pause -> pauseDone) or
 // (before -> files -> survey -> [surveyDetails] -> discount -> loading -> kept | gone).
 //
-// Two step families, one shell:
-//   * Ask steps (confirm, pause, before, survey, surveyDetails) put the title on
-//     the left and stack the question below it.
-//   * Show steps (files, discount, loading, pauseDone, kept, gone) lead with a
-//     centred hero image and centre the title under it.
-// Every step is a `flex flex-col gap-5` inside the same padded shell, so the
-// spacing rhythm and the close button never move between steps.
+// Every step is built from the same three rows (chrome, body, actions) inside a
+// dialog of one fixed size, so nothing about the window changes as the flow
+// advances: the title sits in the same place and the actions never move. Holding
+// one size only works if no step is nearly empty, so the thin steps carry the
+// facts a user actually wants there (what each choice costs, what happens next)
+// instead of padding.
 
 export type CancelFlowStep =
   | "confirm"
@@ -56,6 +65,25 @@ const DEAL_TOTAL = "$14.99";
 const DEAL_REGULAR = "$54.99";
 const DEAL_PER_DAY = "$0.16";
 const DEAL_SAVING = "Save 73%";
+
+// The choice this step exists for, spelled out on both sides so the decision is
+// made here rather than guessed.
+const CONFIRM_CHOICES = [
+  {
+    key: "pause",
+    icon: PauseIcon,
+    label: "Pause instead",
+    lines: ["Everything stays put", "Come back any time"],
+    accented: true,
+  },
+  {
+    key: "cancel",
+    icon: Cancel01Icon,
+    label: "Cancel",
+    lines: ["Access ends that day", "Files are deleted"],
+    accented: false,
+  },
+];
 
 const PAUSE_BENEFITS = [
   "Access every transcript processed during your active subscription",
@@ -93,17 +121,11 @@ const BEFORE_FEATURES: BeforeFeature[] = [
   { icon: Download01Icon, name: "Export anywhere", desc: "DOCX, PDF, SRT, TXT and more, ready to share" },
 ];
 
-interface DeleteItem {
-  icon: IconSvgElement;
-  label: string;
-  count: string;
-}
-
 // What cancelling actually destroys, counted. The numbers are the argument on
 // this step, so they get the weight instead of a list of file names.
-const DELETE_ITEMS: DeleteItem[] = [
-  { icon: File01Icon, label: "Transcribed files", count: "17" },
-  { icon: AiBrain01Icon, label: "AI-generated summaries", count: "4" },
+const DELETE_STATS: { icon: IconSvgElement; count: string; label: string }[] = [
+  { icon: File01Icon, count: "17", label: "transcribed files" },
+  { icon: AiBrain01Icon, count: "4", label: "AI-generated summaries" },
 ];
 
 const SURVEY_REASONS = [
@@ -125,72 +147,45 @@ const DEFAULT_DETAIL_REASON = "I'm missing features I need";
 // Shared primitives
 // ---------------------------------------------------------------------------
 
-// Aligns the built-in dialog close button with the p-6 content inset and softens
-// it, so the X no longer sits tighter to the corner than the title does.
-const SHELL =
-  "rounded-2xl p-6 sm:max-w-[480px] [&>button]:right-5 [&>button]:top-5 [&>button]:opacity-60";
-
-function StepTitle({ children, centered = false }: { children: ReactNode; centered?: boolean }) {
-  // Centred titles clear the close button on both sides, otherwise the padding
-  // pushes the text off the optical centre of the dialog.
+function InfoBanner({ children }: { children: ReactNode }) {
   return (
-    <DialogTitle
-      className={`text-[18px] font-semibold tracking-tight ${
-        centered ? "px-8 text-center" : "pr-8 text-left"
-      }`}
-    >
-      {children}
-    </DialogTitle>
-  );
-}
-
-// Back and Skip sit on the same optical line as the close button: the row is
-// exactly as tall as the 16px close icon and is pulled up so all three share a
-// baseline, the arrow mirrors the X inset, and Skip stops short of it.
-function StepChrome({ onBack, onSkip }: { onBack?: () => void; onSkip?: () => void }) {
-  if (!onBack && !onSkip) return null;
-  return (
-    <div className="-mb-1 -mt-1 flex h-4 items-center justify-between">
-      {onBack ? (
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Go back"
-          className="-ml-1 flex size-4 items-center justify-center text-muted-foreground opacity-70 transition-opacity hover:opacity-100"
-        >
-          <Icon icon={ArrowLeft01Icon} size={16} strokeWidth={2} />
-        </button>
-      ) : (
-        <span />
-      )}
-      {onSkip ? (
-        <button
-          type="button"
-          onClick={onSkip}
-          className="mr-6 text-[13px] font-medium leading-4 text-muted-foreground opacity-70 transition-opacity hover:opacity-100"
-        >
-          Skip
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-function InfoBanner({ children, centered = false }: { children: ReactNode; centered?: boolean }) {
-  return (
-    <div
-      className={`rounded-2xl border border-primary/10 bg-primary/5 p-4 text-[13px] leading-[1.6] ${
-        centered ? "text-center" : "text-left"
-      }`}
-    >
+    <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 text-center text-[13px] leading-[1.6]">
       {children}
     </div>
   );
 }
 
-function StepFooter({ children }: { children: ReactNode }) {
-  // Two balanced actions: right-aligned, secondary to the left of primary.
-  return <div className="flex items-center justify-end gap-2.5">{children}</div>;
+function BenefitRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <Icon
+        icon={CheckmarkCircle02Icon}
+        size={18}
+        strokeWidth={1.8}
+        className="mt-px shrink-0 text-emerald-600"
+      />
+      <span className="text-[13px] leading-[1.55] text-foreground/90">{children}</span>
+    </div>
+  );
+}
+
+// The receipt a terminal step owes the user: what is true now, in plain rows.
+function FactsCard({ rows }: { rows: { label: string; value: string }[] }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border text-left">
+      {rows.map((row, i) => (
+        <div
+          key={row.label}
+          className={`flex items-center justify-between gap-4 px-4 py-2.5 ${
+            i > 0 ? "border-t border-border" : ""
+          }`}
+        >
+          <span className="text-[12.5px] text-muted-foreground">{row.label}</span>
+          <span className="text-right text-[12.5px] font-semibold">{row.value}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function LoadingBar({ frozen }: { frozen: boolean }) {
@@ -204,7 +199,7 @@ function LoadingBar({ frozen }: { frozen: boolean }) {
     return () => window.clearTimeout(id);
   }, [frozen]);
   return (
-    <div className="h-[3px] w-full max-w-[220px] overflow-hidden rounded-full bg-primary/10">
+    <div className="mx-auto h-[3px] w-full max-w-[220px] overflow-hidden rounded-full bg-primary/10">
       <div
         className="h-full rounded-full bg-primary"
         style={{ width: `${width}%`, transition: frozen ? "none" : "width 1.7s ease-out" }}
@@ -219,72 +214,107 @@ function LoadingBar({ frozen }: { frozen: boolean }) {
 
 function ConfirmStep({ onCancel, onPause }: { onCancel: () => void; onPause: () => void }) {
   return (
-    <div className="flex flex-col gap-5">
-      <StepTitle>Are you sure?</StepTitle>
-      <InfoBanner>
-        Your subscription stays active until{" "}
-        <span className="font-semibold text-primary">{ACTIVE_UNTIL}</span>. If you cancel, your account
-        will be deactivated on that day.
-      </InfoBanner>
-      <p className="text-[13px] leading-[1.6] text-muted-foreground">
-        To keep access to your transcripts, tools and progress, consider pausing instead: you can return
-        after a break and pick up right where you left off.
-      </p>
-      <StepFooter>
-        <Button variant="pill-outline" onClick={onCancel} className="h-10 px-5 text-[13.5px] font-medium">
-          Cancel subscription
-        </Button>
-        <Button onClick={onPause} className="h-10 px-5 text-[13.5px] font-semibold">
+    <>
+      <StepChrome />
+      <StepBody>
+        <StepTitle>Are you sure?</StepTitle>
+        <InfoBanner>
+          Your subscription stays active until{" "}
+          <span className="font-semibold text-primary">{ACTIVE_UNTIL}</span>. If you cancel, your
+          account will be deactivated on that day.
+        </InfoBanner>
+        <div className="grid grid-cols-2 gap-2.5">
+          {CONFIRM_CHOICES.map((choice) => (
+            <div
+              key={choice.key}
+              className={`flex flex-col gap-2.5 rounded-2xl border p-4 text-left ${
+                choice.accented ? "border-primary/30 bg-primary/5" : "border-border"
+              }`}
+            >
+              <span
+                className={`flex size-8 items-center justify-center rounded-[10px] ${
+                  choice.accented ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                <Icon icon={choice.icon} size={17} strokeWidth={1.8} />
+              </span>
+              <span
+                className={`text-[13.5px] font-semibold ${
+                  choice.accented ? "text-primary" : "text-foreground"
+                }`}
+              >
+                {choice.label}
+              </span>
+              <span className="flex flex-col gap-1">
+                {choice.lines.map((line) => (
+                  <span key={line} className="text-[12px] leading-[1.4] text-muted-foreground">
+                    {line}
+                  </span>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      </StepBody>
+      <StepActions>
+        <Button onClick={onPause} className={STEP_BUTTON}>
           Pause subscription
         </Button>
-      </StepFooter>
-    </div>
+        <Button variant="pill-outline" onClick={onCancel} className={STEP_BUTTON}>
+          Cancel subscription
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
 function PauseStep({ onBack, onPause }: { onBack: () => void; onPause: () => void }) {
   return (
-    <div className="flex flex-col gap-5">
+    <>
       <StepChrome onBack={onBack} />
-      <StepTitle>Pause subscription</StepTitle>
-      <InfoBanner>
-        Take the time you need. Pause your subscription and come back whenever you're ready.
-      </InfoBanner>
-      <div className="flex flex-col gap-2.5">
-        <p className="text-[13.5px] font-semibold">While paused, you can still:</p>
-        {PAUSE_BENEFITS.map((benefit) => (
-          <div key={benefit} className="flex items-start gap-2.5">
-            <Icon
-              icon={CheckmarkCircle02Icon}
-              size={18}
-              strokeWidth={1.8}
-              className="mt-px shrink-0 text-emerald-600"
-            />
-            <span className="text-[13px] leading-[1.55] text-foreground/90">{benefit}</span>
-          </div>
-        ))}
-      </div>
-      <Button onClick={onPause} className="h-11 w-full text-[13.5px] font-semibold">
-        Pause subscription for 1 month
-      </Button>
-    </div>
+      <StepBody>
+        <DialogHero src="/images/paused-symbol.png" alt="Paused" size="sm" />
+        <StepTitle>Pause subscription</StepTitle>
+        <StepLead>
+          Take the time you need. Pause your subscription and come back whenever you're ready.
+        </StepLead>
+        <div className="flex flex-col gap-2.5">
+          {PAUSE_BENEFITS.map((benefit) => (
+            <BenefitRow key={benefit}>{benefit}</BenefitRow>
+          ))}
+        </div>
+      </StepBody>
+      <StepActions>
+        <Button onClick={onPause} className={STEP_BUTTON}>
+          Pause subscription
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
 function PauseDoneStep({ onDone }: { onDone: () => void }) {
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col items-center gap-3 text-center">
+    <>
+      <StepChrome />
+      <StepBody centered>
         <DialogHero src="/images/paused-symbol.png" alt="Paused" />
-        <StepTitle centered>Subscription paused</StepTitle>
-        <p className="text-[13px] leading-[1.6] text-muted-foreground">
-          You're paused until {PAUSED_UNTIL}. Your transcripts stay available the whole time.
-        </p>
-      </div>
-      <Button onClick={onDone} className="h-11 w-full text-[13.5px] font-semibold">
-        Back to dashboard
-      </Button>
-    </div>
+        <StepTitle>Subscription paused</StepTitle>
+        <StepLead>Nothing is lost. Everything waits for you exactly as you left it.</StepLead>
+        <FactsCard
+          rows={[
+            { label: "Paused until", value: PAUSED_UNTIL },
+            { label: "Your transcripts", value: "Stay available" },
+            { label: "Resume", value: "Any time from Plan management" },
+          ]}
+        />
+      </StepBody>
+      <StepActions>
+        <Button onClick={onDone} className={STEP_BUTTON}>
+          Back to dashboard
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
@@ -298,34 +328,35 @@ function BeforeStep({
   onContinue: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-5">
+    <>
       <StepChrome onBack={onBack} onSkip={onContinue} />
-      <div className="flex flex-col gap-1.5">
+      <StepBody>
+        <DialogHero src="/images/gate-crown.png" alt="Premium crown" size="sm" />
         <StepTitle>Before you cancel</StepTitle>
-        <p className="text-[13px] text-muted-foreground">You haven't tried the biggest time-savers yet</p>
-      </div>
-      <div className="flex flex-col gap-3">
-        {BEFORE_FEATURES.map((feature) => (
-          <div key={feature.name} className="flex items-center gap-3.5">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-              <Icon icon={feature.icon} size={20} strokeWidth={1.7} className="text-primary" />
+        <StepLead>You haven't tried the biggest time-savers yet</StepLead>
+        <div className="flex flex-col gap-3">
+          {BEFORE_FEATURES.map((feature) => (
+            <div key={feature.name} className="flex items-center gap-3.5">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                <Icon icon={feature.icon} size={20} strokeWidth={1.7} className="text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[13.5px] font-semibold">{feature.name}</p>
+                <p className="text-[12.5px] text-muted-foreground">{feature.desc}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-[13.5px] font-semibold">{feature.name}</p>
-              <p className="text-[12.5px] text-muted-foreground">{feature.desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-      <StepFooter>
-        <Button variant="pill-outline" onClick={onContinue} className="h-10 px-5 text-[13.5px] font-medium">
-          Continue cancelling
-        </Button>
-        <Button onClick={onTry} className="h-10 px-5 text-[13.5px] font-semibold">
+          ))}
+        </div>
+      </StepBody>
+      <StepActions>
+        <Button onClick={onTry} className={STEP_BUTTON}>
           Try these features
         </Button>
-      </StepFooter>
-    </div>
+        <Button variant="pill-outline" onClick={onContinue} className={STEP_BUTTON}>
+          Continue cancelling
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
@@ -372,31 +403,31 @@ function RecordPreview() {
   const [speakers, setSpeakers] = useState(RECORD_SPEAKERS[2]);
   const [managed, setManaged] = useState(false);
   return (
-    <div className="rounded-2xl border border-primary/10 bg-primary/5 p-4 text-left">
+    <div className="rounded-2xl border border-primary/10 bg-primary/5 p-3.5 text-left">
       <div className="flex items-center gap-2.5">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-card">
-          <Icon icon={Calendar03Icon} size={15} strokeWidth={1.8} className="text-primary" />
+        <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-card">
+          <Icon icon={Calendar03Icon} size={14} strokeWidth={1.8} className="text-primary" />
         </span>
-        <span className="text-[12.5px] text-muted-foreground">{RECORD_PREVIEW.time}</span>
+        <span className="min-w-0 flex-1 truncate text-[14px] font-semibold">{RECORD_PREVIEW.name}</span>
+        <span className="shrink-0 text-[12px] text-muted-foreground">{RECORD_PREVIEW.time}</span>
       </div>
-      <p className="mt-2.5 text-[14px] font-semibold">{RECORD_PREVIEW.name}</p>
-      <div className="mt-2.5 flex flex-col gap-1.5">
+      <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1">
         <RecordMetaRow
           icon={TranslateIcon}
-          label="Transcription language"
+          label="Language"
           value={language}
           options={RECORD_LANGUAGES}
           onChange={setLanguage}
         />
         <RecordMetaRow
           icon={UserMultiple02Icon}
-          label="Speaker identification"
+          label="Speakers"
           value={speakers}
           options={RECORD_SPEAKERS}
           onChange={setSpeakers}
         />
       </div>
-      <div className="mt-3 flex items-center justify-between border-t border-primary/10 pt-3">
+      <div className="mt-2.5 flex items-center justify-between border-t border-primary/10 pt-2.5">
         <span className="text-[12.5px] font-semibold text-primary">Manage record</span>
         <Switch checked={managed} onCheckedChange={setManaged} aria-label="Manage record" />
       </div>
@@ -414,50 +445,43 @@ function FilesStep({
   onKeep: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-5">
+    <>
       <StepChrome onBack={onBack} onSkip={onKeep} />
-      <div className="flex flex-col items-center gap-3 text-center">
-        <DialogHero src="/images/files-folder.png" alt="Folder with documents" tone="danger" />
-        <StepTitle centered>Delete all your files?</StepTitle>
-        <p className="text-[13px] leading-[1.6] text-muted-foreground">
-          If you cancel now, everything you have generated is deleted permanently after {ACTIVE_UNTIL},
-          including:
-        </p>
-      </div>
-      <div className="overflow-hidden rounded-2xl border border-border">
-        {DELETE_ITEMS.map((item, i) => (
-          <div
-            key={item.label}
-            className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-border" : ""}`}
-          >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
-              <Icon icon={item.icon} size={18} strokeWidth={1.8} className="text-primary" />
-            </span>
-            <span className="min-w-0 flex-1 text-[13px] font-medium">{item.label}</span>
-            <span className="shrink-0 text-[16px] font-semibold tabular-nums">{item.count}</span>
-          </div>
-        ))}
-      </div>
-      <RecordPreview />
-      <div className="flex items-center justify-center gap-2">
-        <Icon icon={Alert02Icon} size={15} strokeWidth={1.9} className="shrink-0 text-destructive" />
-        <span className="text-[12.5px] text-muted-foreground">
-          This action is final and cannot be undone.
-        </span>
-      </div>
-      <StepFooter>
-        <Button
-          variant="destructive-outline"
-          onClick={onDelete}
-          className="h-10 px-5 text-[13.5px] font-medium"
-        >
-          Delete everything
-        </Button>
-        <Button onClick={onKeep} className="h-10 px-5 text-[13.5px] font-semibold">
+      <StepBody>
+        <DialogHero src="/images/files-folder.png" alt="Folder with documents" size="sm" tone="danger" />
+        <StepTitle>Delete all your files?</StepTitle>
+        <div className="grid grid-cols-2 gap-2.5">
+          {DELETE_STATS.map((stat) => (
+            <div
+              key={stat.label}
+              className="flex items-center gap-2.5 rounded-2xl border border-border p-3 text-left"
+            >
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
+                <Icon icon={stat.icon} size={16} strokeWidth={1.8} className="text-primary" />
+              </span>
+              <span className="min-w-0 text-[12.5px] leading-[1.35]">
+                <span className="font-semibold">{stat.count}</span> {stat.label}
+              </span>
+            </div>
+          ))}
+        </div>
+        <RecordPreview />
+        <div className="flex items-center justify-center gap-2">
+          <Icon icon={Alert02Icon} size={15} strokeWidth={1.9} className="shrink-0 text-destructive" />
+          <span className="text-[12.5px] text-muted-foreground">
+            Deleted permanently. This cannot be undone.
+          </span>
+        </div>
+      </StepBody>
+      <StepActions>
+        <Button onClick={onKeep} className={STEP_BUTTON}>
           Exit without deleting
         </Button>
-      </StepFooter>
-    </div>
+        <Button variant="destructive-outline" onClick={onDelete} className={STEP_BUTTON}>
+          Delete everything
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
@@ -480,54 +504,54 @@ function SurveyStep({
 }) {
   const showField = reason !== null && REASONS_WITH_INLINE_DETAILS.has(reason);
   return (
-    <div className="flex flex-col gap-5">
+    <>
       <StepChrome onBack={onBack} onSkip={onSkip} />
-      <div className="flex flex-col gap-1.5">
+      <StepBody>
         <StepTitle>We're sorry to see you go</StepTitle>
-        <p className="text-[13px] text-muted-foreground">Why do you want to cancel?</p>
-      </div>
-      <div className="flex flex-col gap-2">
-        {SURVEY_REASONS.map((option) => {
-          const selected = reason === option;
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onReasonChange(option)}
-              className={`flex w-full items-center gap-3 rounded-2xl border p-3.5 text-left transition-colors ${
-                selected
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-muted-foreground/40"
-              }`}
-            >
-              <span
-                className={`flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 ${
-                  selected ? "border-primary" : "border-muted-foreground/40"
+        <StepLead>Why do you want to cancel?</StepLead>
+        <div className="flex flex-col gap-2">
+          {SURVEY_REASONS.map((option) => {
+            const selected = reason === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onReasonChange(option)}
+                className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 text-left transition-colors ${
+                  selected
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-muted-foreground/40"
                 }`}
               >
-                {selected && <span className="size-2 rounded-full bg-primary" />}
-              </span>
-              <span className={`text-[13.5px] ${selected ? "font-semibold" : "font-medium"}`}>{option}</span>
-            </button>
-          );
-        })}
-      </div>
-      {showField && (
-        <Textarea
-          value={details}
-          onChange={(e) => onDetailsChange(e.target.value)}
-          placeholder="Tell us what made you leave and we will pass it to the team"
-          className="min-h-24 rounded-2xl text-[13px]"
-        />
-      )}
-      <Button
-        onClick={onContinue}
-        disabled={reason === null}
-        className="h-11 w-full text-[13.5px] font-semibold"
-      >
-        Continue
-      </Button>
-    </div>
+                <span
+                  className={`flex size-[18px] shrink-0 items-center justify-center rounded-full border-2 ${
+                    selected ? "border-primary" : "border-muted-foreground/40"
+                  }`}
+                >
+                  {selected && <span className="size-2 rounded-full bg-primary" />}
+                </span>
+                <span className={`text-[13.5px] ${selected ? "font-semibold" : "font-medium"}`}>
+                  {option}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        {showField && (
+          <Textarea
+            value={details}
+            onChange={(e) => onDetailsChange(e.target.value)}
+            placeholder="Tell us what made you leave and we will pass it to the team"
+            className="min-h-20 rounded-2xl text-[13px]"
+          />
+        )}
+      </StepBody>
+      <StepActions>
+        <Button onClick={onContinue} disabled={reason === null} className={STEP_BUTTON}>
+          Continue
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
@@ -549,24 +573,26 @@ function SurveyDetailsStep({
   onContinue: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-5">
+    <>
       <StepChrome onBack={onBack} onSkip={onSkip} />
-      <div className="flex flex-col gap-1.5">
+      <StepBody>
         <StepTitle>{reason}</StepTitle>
-        <p className="text-[13px] leading-[1.6] text-muted-foreground">
+        <StepLead>
           Tell us what you expected from the app and we will pass it straight to the team.
-        </p>
-      </div>
-      <Textarea
-        value={details}
-        onChange={(e) => onDetailsChange(e.target.value)}
-        placeholder="Please enter your message here"
-        className="min-h-28 rounded-2xl text-[13px]"
-      />
-      <Button onClick={onContinue} className="h-11 w-full text-[13.5px] font-semibold">
-        Continue
-      </Button>
-    </div>
+        </StepLead>
+        <Textarea
+          value={details}
+          onChange={(e) => onDetailsChange(e.target.value)}
+          placeholder="Please enter your message here"
+          className="min-h-40 rounded-2xl text-[13px]"
+        />
+      </StepBody>
+      <StepActions>
+        <Button onClick={onContinue} className={STEP_BUTTON}>
+          Continue
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
@@ -580,97 +606,110 @@ function DiscountStep({
   onDecline: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-5">
+    <>
       <StepChrome onBack={onBack} />
-      <div className="flex flex-col items-center gap-3 text-center">
-        <DialogHero src="/images/discount-gift.png" alt="Gift box" size="lg" />
-        <StepTitle centered>Best price before you go</StepTitle>
-      </div>
-      <div className="flex flex-col items-center gap-2.5">
-        <span className="text-[13.5px] font-semibold text-muted-foreground">{DEAL_TERM}</span>
-        <div className="flex items-baseline justify-center gap-2.5">
-          <span className="text-[15px] text-muted-foreground line-through">{DEAL_REGULAR}</span>
-          <span className="text-[40px] font-bold leading-none tracking-tight">{DEAL_TOTAL}</span>
-          <span className="text-[14px] text-muted-foreground">total</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-destructive px-3 py-1 text-[12px] font-semibold text-destructive-foreground">
-            {DEAL_SAVING}
-          </span>
-          <span className="text-[12.5px] text-muted-foreground">just {DEAL_PER_DAY} a day</span>
-        </div>
-      </div>
-      <div className="h-px bg-border" />
-      <div className="flex flex-col gap-2">
-        {DISCOUNT_BENEFITS.map((benefit) => (
-          <div key={benefit} className="flex items-start gap-2.5">
-            <Icon
-              icon={CheckmarkCircle02Icon}
-              size={18}
-              strokeWidth={1.8}
-              className="mt-px shrink-0 text-emerald-600"
-            />
-            <span className="text-[13px] leading-[1.5] text-foreground/90">{benefit}</span>
+      <StepBody centered>
+        <DialogHero src="/images/discount-gift.png" alt="Gift box" />
+        <StepTitle>Best price before you go</StepTitle>
+        <div className="flex flex-col items-center gap-2.5">
+          <span className="text-[13.5px] font-semibold text-muted-foreground">{DEAL_TERM}</span>
+          <div className="flex items-baseline justify-center gap-2.5">
+            <span className="text-[15px] text-muted-foreground line-through">{DEAL_REGULAR}</span>
+            <span className="text-[40px] font-bold leading-none tracking-tight">{DEAL_TOTAL}</span>
+            <span className="text-[14px] text-muted-foreground">total</span>
           </div>
-        ))}
-      </div>
-      <StepFooter>
-        <Button variant="pill-outline" onClick={onDecline} className="h-10 px-5 text-[13.5px] font-medium">
-          Continue to cancel
-        </Button>
-        <Button onClick={onAccept} className="h-10 px-5 text-[13.5px] font-semibold">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-destructive px-3 py-1 text-[12px] font-semibold text-destructive-foreground">
+              {DEAL_SAVING}
+            </span>
+            <span className="text-[12.5px] text-muted-foreground">just {DEAL_PER_DAY} a day</span>
+          </div>
+        </div>
+        <div className="h-px bg-border" />
+        <div className="flex flex-col gap-2">
+          {DISCOUNT_BENEFITS.map((benefit) => (
+            <BenefitRow key={benefit}>{benefit}</BenefitRow>
+          ))}
+        </div>
+      </StepBody>
+      <StepActions>
+        <Button onClick={onAccept} className={STEP_BUTTON}>
           Get 3 months for {DEAL_TOTAL}
         </Button>
-      </StepFooter>
-    </div>
+        <Button variant="pill-outline" onClick={onDecline} className={STEP_BUTTON}>
+          Continue to cancel
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
 function LoadingStep({ frozen }: { frozen: boolean }) {
   return (
-    <div className="flex flex-col items-center gap-4 py-4">
-      <LottieStage src="/lottie/hourglass-blue.json" w={120} h={120} />
-      <div className="flex flex-col gap-1.5 text-center">
-        <StepTitle centered>Just a moment</StepTitle>
-        <p className="text-[13px] text-muted-foreground">Please don't close this page</p>
-      </div>
-      <LoadingBar frozen={frozen} />
-    </div>
+    <>
+      <StepChrome />
+      <StepBody centered>
+        <LottieStage src="/lottie/hourglass-blue.json" w={140} h={140} />
+        <StepTitle>Just a moment</StepTitle>
+        <StepLead>Please don't close this page</StepLead>
+        <LoadingBar frozen={frozen} />
+      </StepBody>
+      <StepActions>
+        <Button disabled className={STEP_BUTTON}>
+          Finishing up
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
 function KeptStep({ onDone }: { onDone: () => void }) {
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col items-center gap-3 text-center">
+    <>
+      <StepChrome />
+      <StepBody centered>
         <DialogHero src="/images/kept-badge.png" alt="Celebration badge" />
-        <StepTitle centered>Great decision!</StepTitle>
-        <p className="text-[13px] leading-[1.6] text-muted-foreground">
-          Your discount is applied. You have three months of full access for {DEAL_TOTAL}.
-        </p>
-      </div>
-      <Button onClick={onDone} className="h-11 w-full text-[13.5px] font-semibold">
-        Continue to dashboard
-      </Button>
-    </div>
+        <StepTitle>Great decision!</StepTitle>
+        <StepLead>Your discount is applied and every file stayed where it was.</StepLead>
+        <FactsCard
+          rows={[
+            { label: "Your plan", value: DEAL_TERM },
+            { label: "You pay", value: `${DEAL_TOTAL} total` },
+            { label: "Cancel", value: "Any time during the 3 months" },
+          ]}
+        />
+      </StepBody>
+      <StepActions>
+        <Button onClick={onDone} className={STEP_BUTTON}>
+          Continue to dashboard
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
 function GoneStep({ onDone }: { onDone: () => void }) {
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col items-center gap-3 text-center">
+    <>
+      <StepChrome />
+      <StepBody centered>
         <DialogHero src="/images/gone-plane.png" alt="Paper plane" />
-        <StepTitle centered>Sorry to see you go</StepTitle>
-        <p className="text-[13px] leading-[1.6] text-muted-foreground">
-          Your subscription is cancelled. You keep full access until {ACTIVE_UNTIL}, and we hope to see
-          you again.
-        </p>
-      </div>
-      <Button onClick={onDone} className="h-11 w-full text-[13.5px] font-semibold">
-        Done
-      </Button>
-    </div>
+        <StepTitle>Sorry to see you go</StepTitle>
+        <StepLead>Your subscription is cancelled and we hope to see you again.</StepLead>
+        <FactsCard
+          rows={[
+            { label: "Full access until", value: ACTIVE_UNTIL },
+            { label: "Your transcripts", value: "Downloadable until then" },
+            { label: "Come back", value: "Reactivate any time" },
+          ]}
+        />
+      </StepBody>
+      <StepActions>
+        <Button onClick={onDone} className={STEP_BUTTON}>
+          Done
+        </Button>
+      </StepActions>
+    </>
   );
 }
 
@@ -734,7 +773,7 @@ export function CancelSubscriptionFlow({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={SHELL} aria-describedby={undefined}>
+      <DialogContent className={STEP_DIALOG_SHELL} aria-describedby={undefined}>
         {step === "confirm" && (
           <ConfirmStep onCancel={() => setStep("before")} onPause={() => setStep("pause")} />
         )}

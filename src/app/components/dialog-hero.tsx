@@ -9,13 +9,13 @@ export function DialogHero({
 }: {
   src: string;
   alt: string;
-  size?: "md" | "lg";
+  size?: "sm" | "md" | "lg";
   tone?: "brand" | "danger";
 }) {
   return (
     <div
       className={`relative mx-auto flex items-center justify-center ${
-        size === "lg" ? "size-[140px]" : "size-[120px]"
+        size === "lg" ? "size-[140px]" : size === "sm" ? "size-[88px]" : "size-[120px]"
       }`}
     >
       <div
