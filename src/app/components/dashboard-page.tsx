@@ -200,23 +200,21 @@ function TranscribeFromLinkCard() {
       <div className="flex-1 w-full relative overflow-hidden">
         {/* Instagram card (behind, far left) */}
         <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% - 52px), calc(-50% + 3px))", width: "48px" }}>
-        <motion.div className="flex flex-col h-[70px] items-start justify-between p-[5px] rounded-[4px] opacity-45 relative" style={{ backgroundColor: "#fdeef6", width: "48px" }} animate={hovered ? { x: -17, y: -3, rotate: -7 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
+        <motion.div className="flex flex-col h-[70px] items-start justify-between p-[5px] rounded-[4px] relative" style={{ backgroundColor: "#fbf1f6", width: "48px" }} animate={hovered ? { x: -17, y: -3, rotate: -7 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
           <div className="absolute inset-[-1.4px] pointer-events-none rounded-[5.4px]" style={{ border: "1.4px solid white" }} />
           <div className="flex flex-col items-center justify-center p-[2px] rounded-full shrink-0 size-[15px] bg-white">
             <img src="/instagram-logo.webp" alt="" width={10} height={10} className="size-[10px] rounded-[2px] object-contain" draggable={false} />
           </div>
-          <p style={{ fontWeight: 500, fontSize: "8.5px", lineHeight: 1.2, color: "#7a1d4d", whiteSpace: "nowrap" }}>Instagram</p>
         </motion.div>
         </div>
 
         {/* Dropbox card (behind, left) */}
         <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% - 24px), calc(-50% + 2px))", width: "57.273px" }}>
-        <motion.div className="flex flex-col h-[81px] items-start justify-between p-[6px] rounded-[4.909px] opacity-60 relative" style={{ backgroundColor: "#e3f0fe", width: "57.273px" }} animate={hovered ? { x: -10.14, y: -4, rotate: -4 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
+        <motion.div className="flex flex-col h-[81px] items-start justify-between p-[6px] rounded-[4.909px] relative" style={{ backgroundColor: "#eef5fe", width: "57.273px" }} animate={hovered ? { x: -10.14, y: -4, rotate: -4 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
           <div className="absolute inset-[-1.636px] pointer-events-none rounded-[6.545px]" style={{ border: "1.636px solid white" }} />
           <div className="flex flex-col items-center justify-center p-[2px] rounded-full shrink-0 size-[17px] bg-white">
             <div className="relative shrink-0 size-[10px]"><svg className="block size-full" fill="none" viewBox="0 0 11 8.9375"><path d={svgCardPaths.pd852f80} fill="#0061FF" /></svg></div>
           </div>
-          <p style={{ fontWeight: 500, fontSize: "9.818px", lineHeight: 1.2, color: "#0a3380", whiteSpace: "nowrap" }}>Dropbox</p>
         </motion.div>
         </div>
 

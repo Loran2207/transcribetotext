@@ -248,13 +248,13 @@ function HeroFree({ onUpgrade }: { onUpgrade: () => void }) {
 }
 
 function HeroActive({
-  memberSince,
-  nextRenewal,
-  paymentMethod,
+  billingEmail,
+  duration,
+  price,
 }: {
-  memberSince: string;
-  nextRenewal: string;
-  paymentMethod: string;
+  billingEmail: string;
+  duration: string;
+  price: string;
 }) {
   return (
     <HeroShell tone="emerald">
@@ -276,9 +276,9 @@ function HeroActive({
 
       <HeroMeta
         cells={[
-          { label: "Member since", value: memberSince },
-          { label: "Next renewal", value: nextRenewal },
-          { label: "Payment method", value: paymentMethod },
+          { label: "email", value: billingEmail },
+          { label: "duration", value: duration },
+          { label: "price", value: price },
         ]}
       />
     </HeroShell>
@@ -341,6 +341,45 @@ function PauseCard({ onPause }: { onPause: () => void }) {
         >
           Pause subscription
         </Button>
+      </div>
+    </section>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="mb-3.5 text-[15px] font-semibold -tracking-[0.1px]">{children}</h3>;
+}
+
+// ── Cancelling block, worded the way the product words it
+function CancellingCard({ onCancel }: { onCancel: () => void }) {
+  return (
+    <section className="mb-9">
+      <SectionTitle>Cancelling Subscription?</SectionTitle>
+      <div className="rounded-[18px] border border-border bg-card px-6 py-5">
+        <p className="max-w-[720px] text-[13.5px] leading-[1.55] text-muted-foreground">
+          Canceling your subscription will stop your access to all premium transcription features
+          and stored transcripts. If you have purchased or generated any files, please make sure to
+          download them before canceling.
+        </p>
+        <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+          <Button
+            variant="pill-outline"
+            size="sm"
+            className="h-9 px-4 text-[13px]"
+            onClick={onCancel}
+          >
+            Cancel Subscription
+          </Button>
+          <Button
+            size="sm"
+            className="h-9 px-4 text-[13px]"
+            onClick={() => {
+              window.location.href = "mailto:support@transcribetotext.ai";
+            }}
+          >
+            Contact Support
+          </Button>
+        </div>
       </div>
     </section>
   );
@@ -415,32 +454,7 @@ function ManageSubscriptionCard({
             </Button>
           }
         />
-        <ManageRow
-          title="Cancel subscription"
-          desc={`You'll keep Premium until ${endDate}, then move to Free.`}
-          action={
-            <div className="flex items-center gap-2">
-              <Button
-                variant="pill-outline"
-                size="sm"
-                className="h-9 px-4 text-[13px]"
-                onClick={() => {
-                  window.location.href = "mailto:support@transcribetotext.ai";
-                }}
-              >
-                Contact support
-              </Button>
-              <Button
-                variant="link"
-                size="sm"
-                className="h-9 px-1 text-[13.5px] text-primary"
-                onClick={onCancel}
-              >
-                Cancel
-              </Button>
-            </div>
-          }
-        />
+
       </div>
     </section>
   );
@@ -533,12 +547,11 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
 
       {state === "active" && (
         <>
-          <HeroActive
-            memberSince="Jan 12, 2026"
-            nextRenewal={ACTIVE_UNTIL}
-            paymentMethod="Visa · 4242"
-          />
+          <SectionTitle>My plans</SectionTitle>
+          <HeroActive billingEmail={billingEmail} duration="week" price="$19.99/month" />
+          <BenefitsCard title="Transcribetotext.ai Premium membership gives you" />
           <PauseCard onPause={handlePause} />
+          <CancellingCard onCancel={handleCancel} />
           <ManageSubscriptionCard
             billingEmail={billingEmail}
             endDate={ACTIVE_UNTIL}
@@ -546,7 +559,6 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
             onChangeEmail={handleChangeBillingEmail}
             onCancel={handleCancel}
           />
-          <BenefitsCard title="What your plan includes" />
         </>
       )}
 

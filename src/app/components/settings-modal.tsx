@@ -482,14 +482,14 @@ function initialsOf(name: string): string {
 // ── Account Tab ───────────────────────────────────────────────
 const HELP_ROWS = [
   {
-    label: "Contact support",
+    label: "Contact Support",
     desc: "support@transcribetotext.ai",
     icon: Mail,
     mail: "support@transcribetotext.ai",
     section: null as null | "terms" | "privacy",
   },
-  { label: "Terms of use", desc: "How the service works", icon: LegalDocument01Icon, section: "terms" as const },
-  { label: "Privacy policy", desc: "What we store and why", icon: Shield01Icon, section: "privacy" as const },
+  { label: "Terms of Use", desc: "How the service works", icon: LegalDocument01Icon, section: "terms" as const },
+  { label: "Privacy Policy", desc: "What we store and why", icon: Shield01Icon, section: "privacy" as const },
 ];
 
 function AccountPage({ onOpenSection }: { onOpenSection: (id: "terms" | "privacy") => void }) {
@@ -658,7 +658,7 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: "terms" | "privacy
         {/* Help and legal: the rows the account screen is expected to carry.
             Support opens a mail draft; the two documents open in place. */}
         <div className="mt-7">
-          <p className="text-[13px] font-semibold text-foreground">Help and legal</p>
+          <p className="text-[13px] font-semibold text-foreground">Support and legal</p>
           <div className="mt-3 overflow-hidden rounded-2xl border border-border">
             {HELP_ROWS.map((row, i) => (
               <button
@@ -715,7 +715,7 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: "terms" | "privacy
               onClick={() => setShowDeleteAcc(true)}
               className="rounded-full text-[13px]"
             >
-              Delete account
+              Delete Account
             </Button>
           </div>
 
