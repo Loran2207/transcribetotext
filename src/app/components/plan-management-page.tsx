@@ -50,6 +50,10 @@ const BENEFITS = [
   { title: "Premium support", desc: "Direct line to our team, faster responses." },
 ];
 
+// A non-breaking space. Written by code point because the character itself is
+// invisible in an editor.
+const NBSP = String.fromCharCode(160);
+
 function CheckBadge() {
   return (
     <span className="size-[18px] rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-emerald-500/15 text-emerald-600">
@@ -326,15 +330,17 @@ function HeroExpired({ onRenew }: { onRenew: () => void }) {
 
 function PauseCard({ onPause }: { onPause: () => void }) {
   return (
-    <div className="mb-6 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
-      <CardTitle>Need a break?</CardTitle>
-      <p className="mt-2 text-balance text-[13.5px] leading-[1.55] text-muted-foreground">
-        Take the time you need. Pause your subscription and come back whenever you're ready
-      </p>
+    <div className="mb-6 flex flex-col gap-5 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
+      <div className="flex flex-col gap-2">
+        <CardTitle>Need a break?</CardTitle>
+        <p className="text-[13.5px] leading-[1.55] text-muted-foreground">
+          Pause your subscription and come back whenever you're{NBSP}ready
+        </p>
+      </div>
       <Button
         variant="warning"
         onClick={onPause}
-        className="mt-5 h-12 w-full text-[14px] font-semibold"
+        className="h-12 w-full text-[14px] font-semibold"
       >
         Pause Subscription
       </Button>
@@ -408,17 +414,19 @@ function PlanCard({
       className="mb-9 max-w-[600px] rounded-[22px] p-[6px] shadow-[0px_10px_28px_rgba(16,24,40,0.06)]"
       style={{ background: badge.wash }}
     >
-      <div className="rounded-[17px] bg-card px-7 py-6 shadow-[var(--elevation-sm)]">
-        <span
-          className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12.5px] font-semibold ${badge.cls}`}
-        >
-          <span className={`size-1.5 rounded-full ${badge.dot}`} />
-          {badge.label}
-        </span>
-        <h3 className="mt-3.5 text-[26px] font-bold leading-[1.15] -tracking-[0.6px]">
-          {badge.heading}
-        </h3>
-        <div className="mt-6 grid grid-cols-1 gap-y-4 border-t border-border pt-5 sm:grid-cols-[1.5fr_1fr_1fr] sm:gap-y-0">
+      <div className="flex flex-col gap-6 rounded-[17px] bg-card px-7 py-6 shadow-[var(--elevation-sm)]">
+        <div className="flex flex-col items-start gap-3.5">
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12.5px] font-semibold ${badge.cls}`}
+          >
+            <span className={`size-1.5 rounded-full ${badge.dot}`} />
+            {badge.label}
+          </span>
+          <h3 className="text-[26px] font-bold leading-[1.15] -tracking-[0.6px]">
+            {badge.heading}
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 gap-y-4 border-t border-border pt-5 sm:grid-cols-[1.5fr_1fr_1fr] sm:gap-y-0">
           {rows.map((r, i) => (
             <div
               key={r.label}
@@ -456,9 +464,9 @@ const PREMIUM_BENEFITS = [
 
 function PremiumBenefitsCard() {
   return (
-    <div className="mb-6 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
+    <div className="mb-6 flex flex-col gap-5 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
       <CardTitle>Transcribetotext.ai Premium membership gives you</CardTitle>
-      <div className="mt-5 flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         {PREMIUM_BENEFITS.map((b) => (
           <div key={b.title} className="flex items-start gap-3">
             <CheckBadge />
@@ -476,14 +484,16 @@ function PremiumBenefitsCard() {
 // ── Cancelling block, worded the way the product words it
 function CancellingCard({ onCancel }: { onCancel: () => void }) {
   return (
-    <div className="mb-6 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
-      <CardTitle>Cancelling Subscription?</CardTitle>
-      <p className="mt-2 text-[13.5px] leading-[1.55] text-muted-foreground">
-        Canceling your subscription will stop your access to all premium transcription features and
-        stored transcripts. If you have purchased or generated any files, please make sure to
-        download them before canceling
-      </p>
-      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="mb-6 flex flex-col gap-5 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
+      <div className="flex flex-col gap-2">
+        <CardTitle>Cancelling Subscription?</CardTitle>
+        <p className="text-[13.5px] leading-[1.55] text-muted-foreground">
+          Canceling your subscription will stop your access to all premium transcription features
+          and stored transcripts. If you have purchased or generated any files, please make sure
+          to download them before canceling
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Button
           variant="pill-outline"
           onClick={onCancel}
