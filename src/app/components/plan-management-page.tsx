@@ -158,7 +158,7 @@ function HeroPrice({
   note?: string;
 }) {
   return (
-    <div className="text-right shrink-0 pl-6 border-l border-border">
+    <div className="shrink-0 max-md:w-full max-md:border-t max-md:border-border max-md:pt-4 md:border-l md:border-border md:pl-6 md:text-right">
       <div className="text-[30px] font-bold leading-none -tracking-[0.5px]">
         {amount}
       </div>
@@ -176,13 +176,13 @@ function HeroMeta({
   cells: { label: string; value: string }[];
 }) {
   return (
-    <div className="grid grid-cols-3 mt-6 pt-5 border-t border-border">
+    <div className="mt-6 grid grid-cols-1 gap-y-3.5 border-t border-border pt-5 md:grid-cols-3 md:gap-y-0">
       {cells.map((c, i) => (
         <div
           key={c.label}
-          className={`flex flex-col gap-1 px-5 ${
-            i === 0 ? "pl-0 border-l-0" : "border-l border-border"
-          } ${i === cells.length - 1 ? "pr-0" : ""}`}
+          className={`flex flex-col gap-1 max-md:px-0 md:px-5 ${
+            i === 0 ? "md:border-l-0 md:pl-0" : "md:border-l md:border-border"
+          } ${i === cells.length - 1 ? "md:pr-0" : ""}`}
         >
           <div className="text-[12px] text-muted-foreground">{c.label}</div>
           <div className="text-[14.5px] font-semibold -tracking-[0.1px]">
@@ -221,7 +221,7 @@ function TrustLine({ children }: { children: React.ReactNode }) {
 function HeroFree({ onUpgrade }: { onUpgrade: () => void }) {
   return (
     <HeroShell tone="primary">
-      <div className="flex justify-between items-start gap-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
         <div className="flex-1 min-w-0">
           <HeroEyebrow tone="primary">Free plan</HeroEyebrow>
           <h3 className="text-[22px] font-bold -tracking-[0.3px] mb-1.5 leading-[1.25]">
@@ -258,7 +258,7 @@ function HeroActive({
 }) {
   return (
     <HeroShell tone="emerald">
-      <div className="flex justify-between items-start gap-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
         <div className="flex-1 min-w-0">
           <HeroEyebrow tone="emerald" pulse>
             Premium · active
@@ -288,7 +288,7 @@ function HeroActive({
 function HeroExpired({ onRenew }: { onRenew: () => void }) {
   return (
     <HeroShell tone="amber">
-      <div className="flex justify-between items-start gap-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
         <div className="flex-1 min-w-0">
           <HeroEyebrow tone="amber">Premium · expired</HeroEyebrow>
           <h3 className="text-[22px] font-bold -tracking-[0.3px] mb-1.5 leading-[1.25]">
@@ -337,7 +337,7 @@ function ManageRow({
   action: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-4 px-6 py-[18px] border-b border-border last:border-b-0">
+    <div className="flex flex-col items-start gap-3 border-b border-border px-5 py-4 last:border-b-0 md:flex-row md:items-center md:gap-4 md:px-6 md:py-[18px]">
       <div className="flex-1 min-w-0">
         <div className="text-[14px] font-semibold">{title}</div>
         <div className="text-[13px] text-muted-foreground mt-0.5">{desc}</div>

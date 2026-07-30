@@ -692,7 +692,7 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: "terms" | "privacy
         <div className="flex flex-col mt-4 gap-1">
 
           {/* Sign out */}
-          <div className="flex items-center justify-between py-3">
+          <div className="flex flex-col items-start gap-2.5 py-3 md:flex-row md:items-center md:justify-between md:gap-4">
             <div>
               <p className="text-sm font-medium text-foreground">Sign out</p>
               <p className="text-xs mt-0.5 text-muted-foreground">Sign out of your account on this device</p>
@@ -706,7 +706,7 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: "terms" | "privacy
           </div>
 
           {/* Delete account */}
-          <div className="flex items-center justify-between py-3">
+          <div className="flex flex-col items-start gap-2.5 py-3 md:flex-row md:items-center md:justify-between md:gap-4">
             <div>
               <p className="text-sm font-medium text-foreground">Delete account</p>
               <p className="text-xs mt-0.5 text-muted-foreground">Permanently delete your account and all data</p>
