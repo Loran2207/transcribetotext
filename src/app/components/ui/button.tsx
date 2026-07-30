@@ -19,6 +19,8 @@ const buttonVariants = cva(
           "bg-background text-foreground hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:hover:bg-input/50",
         "pill-outline":
           "border border-border bg-background text-foreground hover:bg-background hover:border-muted-foreground/40",
+        warning:
+          "bg-warning text-warning-foreground hover:bg-warning-hover focus-visible:ring-warning/40",
         "pill-dark":
           "bg-oauth text-oauth-foreground border border-transparent shadow-[0_1px_0_rgba(255,255,255,0.06)_inset,0_1px_2px_rgba(0,0,0,0.25)] hover:bg-oauth-hover active:bg-oauth focus-visible:ring-oauth/40",
         secondary:

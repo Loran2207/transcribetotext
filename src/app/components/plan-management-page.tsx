@@ -328,10 +328,14 @@ function PauseCard({ onPause }: { onPause: () => void }) {
   return (
     <div className="mb-6 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
       <CardTitle>Need a break?</CardTitle>
-      <p className="mt-2 text-[13.5px] leading-[1.55] text-muted-foreground">
+      <p className="mt-2 text-balance text-[13.5px] leading-[1.55] text-muted-foreground">
         Take the time you need. Pause your subscription and come back whenever you're ready
       </p>
-      <Button onClick={onPause} className="mt-5 h-12 w-full text-[14px] font-semibold">
+      <Button
+        variant="warning"
+        onClick={onPause}
+        className="mt-5 h-12 w-full text-[14px] font-semibold"
+      >
         Pause Subscription
       </Button>
     </div>
@@ -355,11 +359,33 @@ function CardTitle({ children }: { children: React.ReactNode }) {
 // how much.
 type PlanStatus = "active" | "paused" | "cancelled" | "expired";
 
-const PLAN_BADGE: Record<PlanStatus, { label: string; cls: string }> = {
-  active:    { label: "Active",    cls: "bg-emerald-500/15 text-emerald-700" },
-  paused:    { label: "Paused",    cls: "bg-amber-500/15 text-amber-700" },
-  cancelled: { label: "Cancelled", cls: "bg-destructive/10 text-destructive" },
-  expired:   { label: "Expired",   cls: "bg-muted text-muted-foreground" },
+// The tinted edge is written in rgba on purpose: the Figma capture pipeline
+// drops oklch and color-mix, and a Tailwind gradient here comes back grey.
+const PLAN_BADGE: Record<PlanStatus, { label: string; cls: string; wash: string; dot: string }> = {
+  active: {
+    label: "Active",
+    cls: "bg-emerald-500/15 text-emerald-700",
+    wash: "linear-gradient(135deg, rgba(16,185,129,0.42) 0%, rgba(16,185,129,0.16) 45%, rgba(16,185,129,0.06) 100%)",
+    dot: "bg-emerald-500",
+  },
+  paused: {
+    label: "Paused",
+    cls: "bg-warning/20 text-warning-foreground",
+    wash: "linear-gradient(135deg, rgba(240,177,0,0.45) 0%, rgba(240,177,0,0.16) 45%, rgba(240,177,0,0.06) 100%)",
+    dot: "bg-warning",
+  },
+  cancelled: {
+    label: "Cancelled",
+    cls: "bg-destructive/10 text-destructive",
+    wash: "linear-gradient(135deg, rgba(238,26,26,0.30) 0%, rgba(238,26,26,0.10) 45%, rgba(238,26,26,0.04) 100%)",
+    dot: "bg-destructive",
+  },
+  expired: {
+    label: "Expired",
+    cls: "bg-muted text-muted-foreground",
+    wash: "linear-gradient(135deg, rgba(113,113,122,0.30) 0%, rgba(113,113,122,0.10) 45%, rgba(113,113,122,0.04) 100%)",
+    dot: "bg-muted-foreground",
+  },
 };
 
 function PlanCard({
@@ -371,21 +397,32 @@ function PlanCard({
 }) {
   const badge = PLAN_BADGE[status];
   return (
-    <div className="mb-9 max-w-[600px] rounded-[18px] bg-primary/[0.06] px-6 py-5">
-      <span
-        className={`inline-flex items-center rounded-full px-3 py-1 text-[12.5px] font-semibold ${badge.cls}`}
-      >
-        {badge.label}
-      </span>
-      <div className="mt-4 flex flex-col gap-2.5">
-        {rows.map((r) => (
-          <div key={r.label} className="flex items-baseline justify-between gap-4">
-            <span className="shrink-0 text-[13.5px] text-muted-foreground">{r.label}</span>
-            <span className="min-w-0 break-words text-right text-[13.5px] font-semibold">
-              {r.value}
-            </span>
-          </div>
-        ))}
+    <div
+      className="mb-9 max-w-[600px] rounded-[22px] p-[6px] shadow-[0px_10px_28px_rgba(16,24,40,0.06)]"
+      style={{ background: badge.wash }}
+    >
+      <div className="rounded-[17px] bg-card px-6 py-5 shadow-[var(--elevation-sm)]">
+        <span
+          className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12.5px] font-semibold ${badge.cls}`}
+        >
+          <span className={`size-1.5 rounded-full ${badge.dot}`} />
+          {badge.label}
+        </span>
+        <div className="mt-4 flex flex-col">
+          {rows.map((r, i) => (
+            <div
+              key={r.label}
+              className={`flex items-baseline justify-between gap-4 py-3 ${
+                i > 0 ? "border-t border-border" : ""
+              }`}
+            >
+              <span className="shrink-0 text-[13px] text-muted-foreground">{r.label}</span>
+              <span className="min-w-0 break-words text-right text-[15px] font-semibold -tracking-[0.2px]">
+                {r.value}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
