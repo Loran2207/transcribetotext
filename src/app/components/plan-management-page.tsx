@@ -361,27 +361,34 @@ type PlanStatus = "active" | "paused" | "cancelled" | "expired";
 
 // The tinted edge is written in rgba on purpose: the Figma capture pipeline
 // drops oklch and color-mix, and a Tailwind gradient here comes back grey.
-const PLAN_BADGE: Record<PlanStatus, { label: string; cls: string; wash: string; dot: string }> = {
+const PLAN_BADGE: Record<
+  PlanStatus,
+  { label: string; heading: string; cls: string; wash: string; dot: string }
+> = {
   active: {
     label: "Active",
+    heading: "You're on Premium",
     cls: "bg-emerald-500/15 text-emerald-700",
     wash: "linear-gradient(135deg, rgba(16,185,129,0.42) 0%, rgba(16,185,129,0.16) 45%, rgba(16,185,129,0.06) 100%)",
     dot: "bg-emerald-500",
   },
   paused: {
     label: "Paused",
-    cls: "bg-warning/20 text-warning-foreground",
+    heading: "Your plan is on pause",
+    cls: "bg-warning/12 text-warning",
     wash: "linear-gradient(135deg, rgba(240,177,0,0.45) 0%, rgba(240,177,0,0.16) 45%, rgba(240,177,0,0.06) 100%)",
     dot: "bg-warning",
   },
   cancelled: {
     label: "Cancelled",
+    heading: "Your plan is cancelled",
     cls: "bg-destructive/10 text-destructive",
     wash: "linear-gradient(135deg, rgba(238,26,26,0.30) 0%, rgba(238,26,26,0.10) 45%, rgba(238,26,26,0.04) 100%)",
     dot: "bg-destructive",
   },
   expired: {
     label: "Expired",
+    heading: "Your Premium has expired",
     cls: "bg-muted text-muted-foreground",
     wash: "linear-gradient(135deg, rgba(113,113,122,0.30) 0%, rgba(113,113,122,0.10) 45%, rgba(113,113,122,0.04) 100%)",
     dot: "bg-muted-foreground",
@@ -401,23 +408,26 @@ function PlanCard({
       className="mb-9 max-w-[600px] rounded-[22px] p-[6px] shadow-[0px_10px_28px_rgba(16,24,40,0.06)]"
       style={{ background: badge.wash }}
     >
-      <div className="rounded-[17px] bg-card px-6 py-5 shadow-[var(--elevation-sm)]">
+      <div className="rounded-[17px] bg-card px-7 py-6 shadow-[var(--elevation-sm)]">
         <span
           className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12.5px] font-semibold ${badge.cls}`}
         >
           <span className={`size-1.5 rounded-full ${badge.dot}`} />
           {badge.label}
         </span>
-        <div className="mt-4 flex flex-col">
+        <h3 className="mt-3.5 text-[26px] font-bold leading-[1.15] -tracking-[0.6px]">
+          {badge.heading}
+        </h3>
+        <div className="mt-6 grid grid-cols-1 gap-y-4 border-t border-border pt-5 sm:grid-cols-[1.5fr_1fr_1fr] sm:gap-y-0">
           {rows.map((r, i) => (
             <div
               key={r.label}
-              className={`flex items-baseline justify-between gap-4 py-3 ${
-                i > 0 ? "border-t border-border" : ""
-              }`}
+              className={`flex min-w-0 flex-col gap-1 sm:px-5 ${
+                i === 0 ? "sm:pl-0" : "sm:border-l sm:border-border"
+              } ${i === rows.length - 1 ? "sm:pr-0" : ""}`}
             >
-              <span className="shrink-0 text-[13px] text-muted-foreground">{r.label}</span>
-              <span className="min-w-0 break-words text-right text-[15px] font-semibold -tracking-[0.2px]">
+              <span className="text-[12px] text-muted-foreground">{r.label}</span>
+              <span className="truncate text-[14.5px] font-semibold -tracking-[0.1px]">
                 {r.value}
               </span>
             </div>

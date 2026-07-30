@@ -94,9 +94,11 @@
   --strength-strong: oklch(0.723 0.219 149.579);
   /* Golden accent, the same colour as --strength-medium above. Kept in rgb because
      the Figma capture pipeline drops oklch and the fill lands empty. */
-  --warning: rgb(240, 177, 0);
-  --warning-hover: rgb(221, 162, 0);
-  --warning-foreground: rgb(41, 28, 0);
+  --warning: rgb(176, 98, 0);
+  --warning-hover: rgb(150, 84, 0);
+  --warning-foreground: rgb(255, 255, 255);
+  /* The bright gold the status tints still use. */
+  --warning-tint: rgb(240, 177, 0);
   /* Dark neutral used for OAuth / "on-brand" dark buttons. Slate-tinted so it harmonizes with --primary. */
   --oauth: oklch(0.208 0.042 265.755);
   --oauth-hover: oklch(0.279 0.041 260.031);
@@ -125,6 +127,7 @@
   --color-warning: var(--warning);
   --color-warning-hover: var(--warning-hover);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-tint: var(--warning-tint);
   --color-oauth: var(--oauth);
   --color-oauth-hover: var(--oauth-hover);
   --color-oauth-foreground: var(--oauth-foreground);
