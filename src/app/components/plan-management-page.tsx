@@ -233,7 +233,7 @@ function HeroFree({ onUpgrade }: { onUpgrade: () => void }) {
             agent join your meetings for you.
           </p>
         </div>
-        <HeroPrice amount="$29.99" per="per month" note="Cancel anytime" />
+        <HeroPrice amount="$19.99" per="per month" note="Cancel anytime" />
       </div>
 
       <div className="flex gap-2.5 mt-6 items-center flex-wrap">
@@ -271,7 +271,7 @@ function HeroActive({
             automatically - manage payment and billing below.
           </p>
         </div>
-        <HeroPrice amount="$29.99" per="per month" />
+        <HeroPrice amount="$19.99" per="per month" />
       </div>
 
       <HeroMeta
@@ -300,7 +300,7 @@ function HeroExpired({ onRenew }: { onRenew: () => void }) {
             transcriptions.
           </p>
         </div>
-        <HeroPrice amount="$29.99" per="per month" note="Same price as before" />
+        <HeroPrice amount="$19.99" per="per month" note="Same price as before" />
       </div>
 
       <HeroMeta
@@ -322,6 +322,27 @@ function HeroExpired({ onRenew }: { onRenew: () => void }) {
         the moment you renew.
       </TrustLine>
     </HeroShell>
+  );
+}
+
+function PauseCard({ onPause }: { onPause: () => void }) {
+  return (
+    <section className="mb-9">
+      <h3 className="mb-3.5 text-[15px] font-semibold -tracking-[0.1px]">Need a break?</h3>
+      <div className="flex flex-col items-start gap-4 rounded-[18px] border border-border bg-card px-6 py-5 md:flex-row md:items-center md:justify-between">
+        <p className="max-w-[560px] text-[13.5px] leading-[1.55] text-muted-foreground">
+          Take the time you need. Pause your subscription and come back whenever you are ready.
+        </p>
+        <Button
+          variant="pill-outline"
+          size="sm"
+          className="h-9 shrink-0 px-4 text-[13px]"
+          onClick={onPause}
+        >
+          Pause subscription
+        </Button>
+      </div>
+    </section>
   );
 }
 
@@ -481,6 +502,10 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
     setCancelFlowStep("confirm");
     setCancelFlowOpen(true);
   }
+  function handlePause() {
+    setCancelFlowStep("pause");
+    setCancelFlowOpen(true);
+  }
 
   return (
     <div className="flex flex-col">
@@ -513,6 +538,7 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
             nextRenewal={ACTIVE_UNTIL}
             paymentMethod="Visa · 4242"
           />
+          <PauseCard onPause={handlePause} />
           <ManageSubscriptionCard
             billingEmail={billingEmail}
             endDate={ACTIVE_UNTIL}
