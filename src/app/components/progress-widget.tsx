@@ -307,7 +307,7 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
   if (!expanded) {
     return createPortal(
       <>
-        <div className="fixed bottom-[24px] right-[24px] z-[150]">
+        <div className="fixed bottom-[92px] right-[24px] z-[150]">
           <div className="relative">
             <Button
               onClick={() => { setIconOnly(false); setExpanded(true); }}
@@ -360,7 +360,7 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
   return createPortal(
     <>
       <div
-        className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col overflow-hidden rounded-[16px] border border-border bg-popover"
+        className="fixed bottom-[92px] right-[24px] z-[150] flex flex-col overflow-hidden rounded-[16px] border border-border bg-popover"
         style={{ width: "620px", maxWidth: "calc(100vw - 32px)", boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
       >
         <div className="flex shrink-0 items-end justify-between border-b border-border px-4 pt-2">

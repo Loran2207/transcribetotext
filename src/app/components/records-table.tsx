@@ -1292,6 +1292,18 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Demo: ttt_exportone=1 opens the same dialog on a single record, where the
+  // archive switch has nothing to pack (design captures; off by default).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem("ttt_exportone") !== "1") return;
+    const first = filteredRecords[0];
+    if (!first) return;
+    const t = setTimeout(() => setExportDialogIds([first.id]), 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Pagination over the fully filtered/sorted set
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
   const safePage = Math.min(page, totalPages);
