@@ -49,7 +49,7 @@ export interface TranscriptionJob {
   progress: number;
   uploadProgress?: number;
   transcriptionProgress?: number;
-  status: "uploading" | "connecting" | "recording" | "processing" | "done" | "error";
+  status: "uploading" | "connecting" | "recording" | "processing" | "transcribing" | "done" | "error";
   fileType: "audio" | "video";
   errorType?: "no_audio" | "corrupt" | "too_long" | "network" | "bot_failed";
   noAudioDetected?: boolean;
@@ -61,6 +61,49 @@ export interface TranscriptionJob {
   kind?: "meeting";
   mediaUrl?: string;
   livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
+}
+
+/* ttt_demo_jobs seeds the widget so its states can be captured:
+   mixed | progress | failed | failed_many. Off by default, and the seeded
+   jobs carry no timers, so a capture never drifts. */
+function demoSeedJobs(): TranscriptionJob[] {
+  let flag = "";
+  try { flag = window.localStorage.getItem("ttt_demo_jobs") || ""; } catch { /* ignore */ }
+  if (!flag) return [];
+  const now = Date.now();
+  const ago = (min: number) => new Date(now - min * 60000).toISOString();
+  const inProgress: TranscriptionJob[] = [
+    { id: "d1", name: "Acme Logistics - onboarding call.mp4", createdAt: ago(2), progress: 45, uploadProgress: 45, status: "uploading", fileType: "video", lang: "English", duration: "43 min" },
+    { id: "d2", name: "Weekly sync - product team.mp3", createdAt: ago(9), progress: 72, transcriptionProgress: 72, status: "transcribing", fileType: "audio", lang: "English", duration: "1 h 12 min" },
+    { id: "d3", name: "Northwind Labs - youtube walkthrough", createdAt: ago(14), progress: 97, transcriptionProgress: 97, status: "processing", fileType: "video", source: "youtube", lang: "English", duration: "2 h 04 min" },
+    { id: "d4", name: "Design review - Wednesday", createdAt: ago(1), progress: 0, status: "connecting", fileType: "video", kind: "meeting", source: "google-meet", lang: "English" },
+    { id: "d5", name: "Sales standup", createdAt: ago(26), progress: 0, status: "recording", fileType: "video", kind: "meeting", source: "zoom", lang: "English" },
+  ];
+  const failed: TranscriptionJob[] = [
+    { id: "f1", name: "Client call - March.m4a", createdAt: ago(48), progress: 0, status: "error", errorType: "no_audio", fileType: "audio", lang: "English" },
+    { id: "f2", name: "Quarterly review.mov", createdAt: ago(190), progress: 0, status: "error", errorType: "too_long", fileType: "video", lang: "English" },
+    { id: "f3", name: "Partner sync", createdAt: ago(320), progress: 0, status: "error", errorType: "bot_failed", fileType: "video", kind: "meeting", source: "teams", lang: "English" },
+  ];
+  if (flag === "progress") return inProgress;
+  if (flag === "failed") return failed;
+  if (flag === "failed_many") {
+    const many: TranscriptionJob[] = [];
+    const kinds: Array<TranscriptionJob["errorType"]> = ["no_audio", "corrupt", "too_long", "network"];
+    for (let i = 0; i < 24; i++) {
+      many.push({
+        id: "fm" + i,
+        name: "Recording " + (i + 1) + (i % 2 ? ".mp3" : ".mp4"),
+        createdAt: ago(60 + i * 37),
+        progress: 0,
+        status: "error",
+        errorType: kinds[i % kinds.length],
+        fileType: i % 2 ? "audio" : "video",
+        lang: "English",
+      });
+    }
+    return many;
+  }
+  return [...inProgress, ...failed];
 }
 
 export const ERROR_LABELS: Record<string, string> = {
@@ -178,7 +221,7 @@ export function TranscriptionModalsProvider({
 }: { children: React.ReactNode; userPlan?: UserPlan }) {
   const { assignToFolder } = useFolders();
   const [openModal, setOpenModal] = useState<ModalType>(null);
-  const [jobs, setJobs] = useState<TranscriptionJob[]>([]);
+  const [jobs, setJobs] = useState<TranscriptionJob[]>(demoSeedJobs);
   const jobsRef = useRef<TranscriptionJob[]>([]);
   const currentUploadBatchIdRef = useRef<string | null>(null);
   const meetingCounterRef = useRef(1);

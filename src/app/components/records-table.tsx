@@ -1231,7 +1231,12 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     return totals;
   }, [userFolders, folderAssignments]);
 
-  const jobRecords = useMemo(() => jobs.map(mapJobToRecord), [jobs]);
+  // Only finished transcriptions belong in the table. Everything in progress
+  // and everything failed lives in the widget.
+  const jobRecords = useMemo(
+    () => jobs.filter((job) => job.status === "done").map(mapJobToRecord),
+    [jobs],
+  );
   // Demo: ttt_starred_seed pads the list to 30 records and stars them all (design captures only; off by default).
   const demoStarAll = typeof window !== "undefined" && window.localStorage.getItem("ttt_starred_seed") === "1";
   // Demo: ttt_demo_records = "loading" (skeleton list) | "many" (pad list so pagination shows). Off by default.
