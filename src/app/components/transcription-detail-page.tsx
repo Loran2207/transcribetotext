@@ -109,7 +109,10 @@ function demoPlayheadProgress(): number[] {
   try {
     const flag = window.localStorage.getItem("ttt_demo_playback");
     if (flag === "1") return [6.6];
-    // The cases set parks the playhead inside the long paragraph.
+    /* The cases set parks the playhead inside a replica of a given length: a
+       question, a single word, then the long paragraph. */
+    if (flag === "cases_short") return [0.28];
+    if (flag === "cases_word") return [0.7];
     if (flag === "cases") return [1.87];
   } catch { /* ignore */ }
   return [0];
@@ -137,18 +140,44 @@ function splitSentences(text: string): string[] {
   return out.length ? out : [text];
 }
 
-/* Three ways to mark the sentence being spoken, so the treatment can be
-   compared side by side. ttt_demo_highlight = inline | color | underline. */
+/* Words, keeping the spaces, so a rebuilt sentence still reads as one line. */
+function splitWords(text: string): string[] {
+  const out: string[] = [];
+  let buf = "";
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === " ") {
+      if (buf.length) { out.push(buf); buf = ""; }
+      out.push(" ");
+    } else {
+      buf += ch;
+    }
+  }
+  if (buf.length) out.push(buf);
+  return out;
+}
+
+/* Four ways to mark the line being spoken, so they can be compared side by
+   side. ttt_demo_highlight = color | tint | underline | word.
+
+   None of them change the font weight: the paragraph would re-wrap every time
+   the playhead crossed a sentence, and the whole column would twitch. */
 const HIGHLIGHT_TONE: Record<string, string> = {
-  inline: "rounded-[5px] bg-primary/15 px-1 text-foreground [box-decoration-break:clone]",
-  color: "bg-transparent font-semibold text-primary",
-  underline: "bg-transparent border-b-[2px] border-primary text-foreground",
+  color: "bg-transparent text-primary",
+  tint: "rounded-[5px] bg-primary/12 px-1 text-foreground [box-decoration-break:clone]",
+  underline:
+    "bg-transparent text-foreground underline decoration-primary decoration-2 underline-offset-[5px]",
+  word: "bg-transparent text-foreground",
 };
 
+function highlightFlag(): string {
+  let flag = "color";
+  try { flag = window.localStorage.getItem("ttt_demo_highlight") || "color"; } catch { /* ignore */ }
+  return HIGHLIGHT_TONE[flag] ? flag : "color";
+}
+
 function highlightTone(): string {
-  let flag = "inline";
-  try { flag = window.localStorage.getItem("ttt_demo_highlight") || "inline"; } catch { /* ignore */ }
-  return HIGHLIGHT_TONE[flag] ?? HIGHLIGHT_TONE.inline;
+  return HIGHLIGHT_TONE[highlightFlag()];
 }
 
 function timestampToSeconds(timestamp: string) {
@@ -552,6 +581,7 @@ function TranscriptSegment({
   isPlaybackActive,
   isPlayed,
   activeSentence,
+  activeWord,
   segmentRef,
   isSegHighlighted,
   onToggleHighlight,
@@ -578,6 +608,7 @@ function TranscriptSegment({
   isPlaybackActive: boolean;
   isPlayed?: boolean;
   activeSentence?: number | null;
+  activeWord?: number | null;
   segmentRef: (el: HTMLDivElement | null) => void;
   isSegHighlighted: boolean;
   onToggleHighlight: (id: number) => void;
@@ -701,6 +732,7 @@ function TranscriptSegment({
           />
         ) : (
           <p
+            data-transcript-line=""
             className={`mt-1 cursor-text text-sm leading-relaxed transition-colors ${
               isPlaybackActive
                 ? "text-foreground"
@@ -710,17 +742,41 @@ function TranscriptSegment({
             }`}
           >
             {isPlaybackActive && activeSentence !== null && activeSentence !== undefined ? (
-              splitSentences(segmentText).map((part, i) =>
-                i === activeSentence ? (
+              splitSentences(segmentText).map((part, i) => {
+                // Already said: dimmed, so the eye lands on the live line.
+                if (i < activeSentence) {
+                  return <span key={i} className="text-foreground/45">{part}</span>;
+                }
+                // Still to come: plain.
+                if (i > activeSentence) return <span key={i}>{part}</span>;
+                // Word by word, the sentence stays plain and one word carries it.
+                if (highlightFlag() === "word" && activeWord !== null && activeWord !== undefined) {
+                  let seen = -1;
+                  return (
+                    <span key={i} className="text-primary">
+                      {splitWords(part).map((w, j) => {
+                        if (w === " ") return <span key={j}> </span>;
+                        seen += 1;
+                        return seen === activeWord ? (
+                          <mark
+                            key={j}
+                            className="rounded-[4px] bg-primary px-[3px] text-primary-foreground [box-decoration-break:clone]"
+                          >
+                            {w}
+                          </mark>
+                        ) : (
+                          <span key={j}>{w}</span>
+                        );
+                      })}
+                    </span>
+                  );
+                }
+                return (
                   <mark key={i} className={highlightTone()}>
                     {part}
                   </mark>
-                ) : (
-                  <span key={i} className="text-foreground/70">
-                    {part}
-                  </span>
-                ),
-              )
+                );
+              })
             ) : (
               renderText(segmentText)
             )}
@@ -2163,6 +2219,33 @@ export function TranscriptionDetailPage() {
     return parts.length - 1;
   }, [activePlaybackSegmentId, segmentTimings, contentSegments, effectiveCurrentSeconds]);
 
+  /* And one step finer for the word-by-word treatment: the same share-by-length
+     trick, applied inside the sentence that is currently lit. */
+  const activeWordIndex = useMemo<number | null>(() => {
+    if (activePlaybackSegmentId === null || activeSentenceIndex === null) return null;
+    const timing = segmentTimings.find((t) => t.id === activePlaybackSegmentId);
+    const segment = contentSegments.find((seg) => seg.id === activePlaybackSegmentId);
+    if (!timing || !segment) return null;
+    const parts = splitSentences(segment.text);
+    const sentence = parts[activeSentenceIndex] ?? "";
+    if (!sentence) return null;
+    const before = parts.slice(0, activeSentenceIndex).reduce((n, part) => n + part.length, 0);
+    const total = segment.text.length || 1;
+    const span = Math.max(1, timing.end - timing.start);
+    const elapsed = Math.max(0, Math.min(1, (effectiveCurrentSeconds - timing.start) / span));
+    const inside = (elapsed * total - before) / Math.max(1, sentence.length);
+    const words = splitWords(sentence).filter((w) => w !== " ");
+    if (words.length === 0) return null;
+    const ratio = Math.max(0, Math.min(0.999, inside));
+    return Math.min(words.length - 1, Math.floor(ratio * words.length));
+  }, [
+    activePlaybackSegmentId,
+    activeSentenceIndex,
+    segmentTimings,
+    contentSegments,
+    effectiveCurrentSeconds,
+  ]);
+
   const handleVideoElementReady = useCallback((node: HTMLVideoElement | null) => {
     videoElementRef.current = node;
     if (!node) return;
@@ -3037,6 +3120,7 @@ export function TranscriptionDetailPage() {
                     isPlaybackActive={activePlaybackSegmentId === seg.id}
                     isPlayed={playedSegmentIds.has(seg.id)}
                     activeSentence={activePlaybackSegmentId === seg.id ? activeSentenceIndex : null}
+                    activeWord={activePlaybackSegmentId === seg.id ? activeWordIndex : null}
                     segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
                     isSegHighlighted={segHighlights.has(seg.id)}
                     onToggleHighlight={toggleHighlight}
@@ -3135,6 +3219,7 @@ export function TranscriptionDetailPage() {
                     isPlaybackActive={activePlaybackSegmentId === seg.id}
                     isPlayed={playedSegmentIds.has(seg.id)}
                     activeSentence={activePlaybackSegmentId === seg.id ? activeSentenceIndex : null}
+                    activeWord={activePlaybackSegmentId === seg.id ? activeWordIndex : null}
                     segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
                     isSegHighlighted={false}
                     onToggleHighlight={() => {}}

@@ -13,7 +13,7 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/app/components/ui/command";
 import { Icon } from "@/app/components/ui/icon";
-import { toast } from "sonner";
+import { toastExported } from "./app-toast";
 import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { usePlan } from "./use-plan";
 import { LANGUAGES } from "./language-context";
@@ -261,7 +261,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
       }
       const m = await runExportPlan(plans, zipFileName, { zip: multi && zipEnabled });
       // Single-file export: no confirmation screen - download and close.
-      if (m.files.length === 1) { toast.success(m.downloadName + " downloaded"); onClose(); return; }
+      if (m.files.length === 1) { toastExported(m.downloadName, "Downloaded to your device"); onClose(); return; }
       setManifest(m);
       setPhase("success");
     } catch {
@@ -526,7 +526,18 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                 {manifest.zipped && <FormatIcon format="zip" size={22} />}
                 <p className="truncate text-[12.5px] text-muted-foreground">{manifest.downloadName}</p>
               </div>
-              <Button onClick={onClose} className="h-[36px] px-[18px]">
+              <Button
+                onClick={() => {
+                  toastExported(
+                    manifest.downloadName,
+                    manifest.zipped
+                      ? "Archive downloaded"
+                      : manifest.files.length + " files downloaded"
+                  );
+                  onClose();
+                }}
+                className="h-[36px] px-[18px]"
+              >
                 <span className="font-semibold text-[13px]">Done</span>
               </Button>
             </>

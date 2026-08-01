@@ -99,6 +99,12 @@
   --warning-foreground: rgb(255, 255, 255);
   /* The bright gold the status tints still use. */
   --warning-tint: rgb(240, 177, 0);
+  /* A finished job. In rgb like the warm accent above, and with its own solid
+     wash: an opacity modifier on a token compiles to color-mix(), which the
+     Figma capture can drop and leave the chip empty. */
+  --success: rgb(4, 146, 100);
+  --success-wash: rgb(226, 246, 239);
+  --destructive-wash: rgb(253, 234, 234);
   /* Dark neutral used for OAuth / "on-brand" dark buttons. Slate-tinted so it harmonizes with --primary. */
   --oauth: oklch(0.208 0.042 265.755);
   --oauth-hover: oklch(0.279 0.041 260.031);
@@ -128,6 +134,9 @@
   --color-warning-hover: var(--warning-hover);
   --color-warning-foreground: var(--warning-foreground);
   --color-warning-tint: var(--warning-tint);
+  --color-success: var(--success);
+  --color-success-wash: var(--success-wash);
+  --color-destructive-wash: var(--destructive-wash);
   --color-oauth: var(--oauth);
   --color-oauth-hover: var(--oauth-hover);
   --color-oauth-foreground: var(--oauth-foreground);

@@ -22,6 +22,12 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { SourceIcon } from "./source-icons";
+import {
+  FAB_RIGHT,
+  HISTORY_FAB_RIGHT,
+  HISTORY_FAB_SIZE,
+  HISTORY_FAB_BOTTOM,
+} from "./mobile-fab-layout";
 import { router } from "../routes";
 // Live bindings: only read while rendering, so the cycle with the provider
 // module resolves before anything here runs.
@@ -54,6 +60,14 @@ const FAILED_PAGE = 20;
 
 // The queue belongs to a signed-in session, so it stays off the doors.
 const CLOSED_TO_WIDGET = ["/login", "/signup", "/check-email", "/auth", "/forgot-password", "/reset-password", "/share", "/checkout"];
+
+/* The failure toast sits outside this component and needs to open it, so the
+   opener is a module-level signal rather than a prop threaded through the
+   provider. */
+let requestOpen: (() => void) | null = null;
+export function openQueue() {
+  if (requestOpen) requestOpen();
+}
 
 function isInProgress(job: TranscriptionJob) {
   return IN_PROGRESS.includes(job.status);
@@ -137,7 +151,16 @@ function JobRow({
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13.5px] font-medium text-foreground">{job.name}</p>
-          <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+          {/* Narrow, the status joins the meta line: a phone has no room for a
+              name, a status and a percentage on one row, and the name is the
+              part that identifies the record. */}
+          <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground sm:hidden">
+            {failed
+              ? errorLabel
+              : [(STATUS_LABEL[job.status] ?? job.status) + (pct !== null ? " " + pct + "%" : ""), ...meta]
+                  .join("  ·  ")}
+          </p>
+          <p className="mt-0.5 hidden truncate text-[11.5px] text-muted-foreground sm:block">
             {failed ? errorLabel : meta.join("  ·  ")}
           </p>
         </div>
@@ -160,7 +183,7 @@ function JobRow({
             )}
           </div>
         ) : (
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 max-sm:hidden">
             <span className="text-[12.5px] font-medium text-foreground">
               {STATUS_LABEL[job.status] ?? job.status}
             </span>
@@ -178,7 +201,7 @@ function JobRow({
           onClick={() => onRemove(job)}
           aria-label={"Delete " + job.name}
           title="Delete"
-          className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover/row:opacity-100"
+          className="size-7 shrink-0 text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover/row:text-muted-foreground"
         >
           <Icon icon={X} className="size-[13px]" strokeWidth={2} />
         </Button>
@@ -202,7 +225,6 @@ export interface ProgressWidgetProps {
 
 export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: ProgressWidgetProps) {
   const [expanded, setExpanded] = useState(false);
-  const [iconOnly, setIconOnly] = useState(false);
   const [tab, setTab] = useState<"progress" | "failed">("progress");
   const [failedShown, setFailedShown] = useState(FAILED_PAGE);
   const [confirm, setConfirm] = useState<{ kind: "one"; job: TranscriptionJob } | { kind: "all" } | null>(null);
@@ -228,23 +250,27 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
     }
   }, []);
 
-  // A new arrival brings the pill back, so the queue never runs out of sight.
-  const newestId = widgetJobs[0]?.id ?? null;
-  useEffect(() => {
-    if (!newestId) return;
-    setIconOnly(false);
-  }, [newestId]);
-
   useEffect(() => {
     if (tab === "failed" && failedJobs.length === 0 && progressJobs.length > 0) setTab("progress");
   }, [tab, failedJobs.length, progressJobs.length]);
 
+  useEffect(() => {
+    requestOpen = () => {
+      setExpanded(true);
+      setTab(failedJobs.length > 0 ? "failed" : "progress");
+    };
+    return () => {
+      requestOpen = null;
+    };
+  }, [failedJobs.length]);
+
   if (widgetJobs.length === 0) return null;
   if (CLOSED_TO_WIDGET.some((prefix) => path.startsWith(prefix))) return null;
 
-  /* The collapsed pill has to describe a queue that is rarely uniform: one file
-     can still be uploading while the next is already transcribing. It names the
-     status most of the queue sits at, and counts how many that is. */
+  /* Collapsed, the queue is one button in the corner: no pill that stretches
+     with the longest status, no wording that changes width every few seconds.
+     The counts sit in a badge - blue for what is running, red for what broke -
+     and the full sentence is left for the tooltip and the open panel. */
   const counts = new Map<string, number>();
   progressJobs.forEach((job) => counts.set(job.status, (counts.get(job.status) ?? 0) + 1));
   let dominant: string = progressJobs[0]?.status ?? "processing";
@@ -259,7 +285,16 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
       ? (STATUS_LABEL[dominant] ?? "Processing") + (progressJobs.length > 1 ? " " + progressJobs.length + " files" : "")
       : (STATUS_LABEL[dominant] ?? "Processing") + " " + dominantCount + " of " + progressJobs.length;
 
-  const onlyFailures = progressJobs.length === 0 && failedJobs.length > 0;
+  /* The ring carries the aggregate of everything with a real percentage. A
+     five-hour file in a long queue can sit at the same status for an hour, so
+     seeing the arc move is the difference between waiting and worrying. */
+  const measured = progressJobs
+    .map(progressOf)
+    .filter((n): n is number => n !== null);
+  const ringPct = measured.length
+    ? Math.round(measured.reduce((a, b) => a + b, 0) / measured.length)
+    : null;
+  const RING = 163; // circumference at r=26
 
   function requestRemove(job: TranscriptionJob) {
     setConfirm({ kind: "one", job });
@@ -309,46 +344,66 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
   if (!expanded) {
     return createPortal(
       <>
-        <div className={"fixed bottom-[92px] right-[24px] " + layer}>
-          <div className="relative">
-            <Button
-              onClick={() => { setIconOnly(false); setExpanded(true); }}
-              className={
-                iconOnly
-                  ? "size-[42px] border border-border bg-card text-muted-foreground shadow-[0_6px_18px_rgba(15,23,42,0.14)] hover:bg-accent"
-                  : onlyFailures
-                    ? "flex h-[40px] items-center gap-2 border border-border bg-card px-4 text-foreground shadow-[0_6px_18px_rgba(15,23,42,0.14)] hover:bg-accent"
-                    : "flex h-[40px] items-center gap-2 px-4 text-primary-foreground shadow-[0_4px_20px_rgba(37,99,235,0.35)]"
-              }
-              title={iconOnly ? "Open the queue" : undefined}
-            >
-              {iconOnly ? (
-                <Icon icon={Loading03Icon} className="size-[17px]" strokeWidth={1.9} />
+        <div
+          className={"fixed " + layer}
+          style={{ right: HISTORY_FAB_RIGHT, bottom: HISTORY_FAB_BOTTOM }}
+        >
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            title={pillLabel}
+            aria-label={pillLabel}
+            className="relative flex items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-accent"
+            style={{
+              width: HISTORY_FAB_SIZE,
+              height: HISTORY_FAB_SIZE,
+              boxShadow: "0 8px 20px -6px rgba(16,24,40,0.16), 0 2px 6px -2px rgba(16,24,40,0.08)",
+            }}
+          >
+            {progressJobs.length > 0 &&
+              (ringPct === null ? (
+                <svg className="absolute animate-spin" style={{ inset: -4 }} viewBox="0 0 56 56" fill="none">
+                  <circle cx="28" cy="28" r="26" stroke="var(--primary)" strokeOpacity="0.16" strokeWidth="2" />
+                  <path d="M28 2a26 26 0 0126 26" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" />
+                </svg>
               ) : (
-                <>
-                  {onlyFailures ? (
-                    <Icon icon={AlertCircle} className="size-[15px] text-destructive" strokeWidth={2} />
-                  ) : (
-                    <Icon icon={Loading03Icon} className="size-[15px] animate-spin" strokeWidth={2.2} />
-                  )}
-                  <span className="text-[13px] font-semibold">{pillLabel}</span>
-                  {!onlyFailures && failedJobs.length > 0 && (
-                    <span className="ml-0.5 rounded-full bg-destructive px-1.5 text-[11px] font-semibold leading-[17px] text-destructive-foreground">
-                      {failedJobs.length}
-                    </span>
-                  )}
-                  <svg className="size-[13px]" fill="none" viewBox="0 0 16 16">
-                    <path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </>
-              )}
-            </Button>
-            {iconOnly && (
-              <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-destructive px-1 text-center text-[10px] font-semibold leading-[18px] text-destructive-foreground">
-                {progressJobs.length || failedJobs.length}
+                <svg className="absolute" style={{ inset: -4 }} viewBox="0 0 56 56" fill="none">
+                  <circle cx="28" cy="28" r="26" stroke="var(--primary)" strokeOpacity="0.16" strokeWidth="2" />
+                  <circle
+                    cx="28"
+                    cy="28"
+                    r="26"
+                    stroke="var(--primary)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeDasharray={(RING * ringPct) / 100 + " " + RING}
+                    transform="rotate(-90 28 28)"
+                  />
+                </svg>
+              ))}
+
+            <svg className="size-[20px] text-foreground" viewBox="0 0 24 24" fill="none">
+              <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+
+            {/* Running and broken read as two halves of one badge, so a mixed
+                queue does not need a sentence to be understood. */}
+            {(progressJobs.length > 0 || failedJobs.length > 0) && (
+              <span className="absolute -right-[9px] -top-[9px] flex items-center overflow-hidden rounded-full border-2 border-background">
+                {progressJobs.length > 0 && (
+                  <span className="min-w-[18px] bg-primary px-[5px] text-center text-[10.5px] font-semibold leading-[18px] text-primary-foreground">
+                    {progressJobs.length}
+                  </span>
+                )}
+                {failedJobs.length > 0 && (
+                  <span className="min-w-[18px] bg-destructive px-[5px] text-center text-[10.5px] font-semibold leading-[18px] text-destructive-foreground">
+                    {failedJobs.length}
+                  </span>
+                )}
               </span>
             )}
-          </div>
+          </button>
         </div>
         {confirmDialog}
       </>,
@@ -362,8 +417,14 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
   return createPortal(
     <>
       <div
-        className={"fixed bottom-[92px] right-[24px] flex flex-col overflow-hidden rounded-[16px] border border-border bg-popover " + layer}
-        style={{ width: "620px", maxWidth: "calc(100vw - 32px)", boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
+        className={"fixed flex flex-col overflow-hidden rounded-[16px] border border-border bg-popover " + layer}
+        style={{
+          right: FAB_RIGHT,
+          bottom: HISTORY_FAB_BOTTOM,
+          width: "620px",
+          maxWidth: "calc(100vw - 24px)",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)",
+        }}
       >
         <div className="flex shrink-0 items-end justify-between border-b border-border px-4 pt-2">
           <Tabs value={tab} onValueChange={(v) => setTab(v === "failed" ? "failed" : "progress")} className="min-w-0 flex-1 gap-0">
@@ -392,22 +453,13 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => { setIconOnly(false); setExpanded(false); }}
+              onClick={() => setExpanded(false)}
               title="Collapse"
               className="size-7 text-muted-foreground hover:bg-accent"
             >
               <svg className="size-[11px]" fill="none" viewBox="0 0 16 16">
                 <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => { setIconOnly(true); setExpanded(false); }}
-              title="Minimise"
-              className="size-7 text-muted-foreground hover:bg-accent"
-            >
-              <Icon icon={X} className="size-[11px]" strokeWidth={2} />
             </Button>
           </div>
         </div>

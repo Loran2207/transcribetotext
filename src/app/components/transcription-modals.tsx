@@ -3,7 +3,7 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
+import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon, Download01Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -29,7 +29,8 @@ import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
 import { motion } from "motion/react";
 import { useIsMobile } from "./ui/use-mobile";
-import { MobileProcessing } from "./processing-mobile";
+import { ToastCard, toastReady, toastManyReady, toastFailed } from "./app-toast";
+import { openQueue } from "./progress-widget";
 import { ProgressWidget } from "./progress-widget";
 import { UpgradeGateModal } from "./upgrade-gate-modal";
 import { usePlan } from "./use-plan";
@@ -233,24 +234,66 @@ export function TranscriptionModalsProvider({
   const [jobs, setJobs] = useState<TranscriptionJob[]>(demoSeedJobs);
   const jobsRef = useRef<TranscriptionJob[]>([]);
   const announcedRef = useRef<Set<string>>(new Set());
+  const failedAnnouncedRef = useRef<Set<string>>(new Set());
   const currentUploadBatchIdRef = useRef<string | null>(null);
   const meetingCounterRef = useRef(1);
 
-  /* A finished transcription is no longer in the widget and the user may be
-     anywhere in the app, so it says so itself. Same toast component as
-     everywhere else, with a way straight into the record. */
+  /* A finished transcription leaves the widget for the table, and the user may
+     be anywhere in the app, so it says so itself.
+
+     Ten files can land within a second of each other, which is ten toasts and a
+     buried screen. Completions are collected for a beat first: one of them gets
+     its own toast, several share one line. */
+  const readyBufferRef = useRef<{ id: string; name: string }[]>([]);
+  const flushRef = useRef<number | null>(null);
+  const seededRef = useRef(false);
   useEffect(() => {
-    jobs.forEach((job) => {
-      if (job.status !== "done" || announcedRef.current.has(job.id)) return;
-      announcedRef.current.add(job.id);
-      toast.success(job.name, {
-        description: "Transcription is ready",
-        action: { label: "Open", onClick: () => { void router.navigate("/transcriptions/" + job.id); } },
+    // First pass: everything already in a terminal state is history, not news.
+    if (!seededRef.current) {
+      seededRef.current = true;
+      jobs.forEach((job) => {
+        if (job.status === "done") announcedRef.current.add(job.id);
+        if (job.status === "error") failedAnnouncedRef.current.add(job.id);
       });
+      return;
+    }
+    const fresh = jobs.filter((job) => job.status === "done" && !announcedRef.current.has(job.id));
+    if (fresh.length === 0) return;
+    fresh.forEach((job) => announcedRef.current.add(job.id));
+    readyBufferRef.current = readyBufferRef.current.concat(
+      fresh.map((job) => ({ id: job.id, name: job.name }))
+    );
+    if (flushRef.current !== null) window.clearTimeout(flushRef.current);
+    flushRef.current = window.setTimeout(() => {
+      const batch = readyBufferRef.current;
+      readyBufferRef.current = [];
+      flushRef.current = null;
+      if (batch.length === 1) {
+        toastReady(batch[0].name, () => {
+          void router.navigate("/transcriptions/" + batch[0].id);
+        });
+      } else if (batch.length > 1) {
+        toastManyReady(batch.map((entry) => entry.name), () => {
+          void router.navigate("/", { state: { page: "records" } });
+        });
+      }
+    }, 700);
+  }, [jobs]);
+
+  /* A failure is already waiting in the queue, so the toast only points at it.
+     Only for something that broke while the app was open: see the seeding pass
+     above, which marks whatever was already broken at mount. */
+  useEffect(() => {
+    if (!seededRef.current) return;
+    jobs.forEach((job) => {
+      if (job.status !== "error" || failedAnnouncedRef.current.has(job.id)) return;
+      failedAnnouncedRef.current.add(job.id);
+      toastFailed(job.name, openQueue);
     });
   }, [jobs]);
 
-  /* ttt_demo_toast = one | many parks ready-toasts on screen for captures. */
+  /* ttt_demo_toast parks toasts on screen for captures. The helpers above are
+     the real thing, so the frames use the same card with the timer removed. */
   useEffect(() => {
     let flag = "";
     try { flag = window.localStorage.getItem("ttt_demo_toast") || ""; } catch { /* ignore */ }
@@ -260,13 +303,51 @@ export function TranscriptionModalsProvider({
       "Weekly sync - product team.mp3",
       "Northwind Labs - youtube walkthrough",
     ];
-    const howMany = flag === "many" ? 3 : 1;
-    for (let i = 0; i < howMany; i++) {
-      toast.success(names[i], {
-        description: "Transcription is ready",
-        duration: 600000,
-        action: { label: "Open", onClick: () => {} },
+    const park = { duration: 600000 };
+    const open = { label: "Open", onClick: () => {} };
+    if (flag === "many") {
+      names.forEach((name) => {
+        toast.custom(
+          () => <ToastCard title={name} meta="Transcription is ready" action={open} />,
+          park
+        );
       });
+    } else if (flag === "grouped") {
+      toast.custom(
+        () => (
+          <ToastCard
+            title="7 transcriptions are ready"
+            meta="Acme Logistics, Weekly sync and 5 more"
+            action={{ label: "View all", onClick: () => {} }}
+          />
+        ),
+        park
+      );
+    } else if (flag === "export") {
+      toast.custom(
+        () => (
+          <ToastCard
+            glyph={Download01Icon}
+            title="transcripts-3-files.zip"
+            meta="Archive downloaded"
+          />
+        ),
+        park
+      );
+    } else if (flag === "failed") {
+      toast.custom(
+        () => (
+          <ToastCard
+            tone="error"
+            title={names[2]}
+            meta="Transcription failed"
+            action={{ label: "Details", onClick: () => {} }}
+          />
+        ),
+        park
+      );
+    } else {
+      toast.custom(() => <ToastCard title={names[0]} meta="Transcription is ready" action={open} />, park);
     }
   }, []);
 
@@ -2871,10 +2952,12 @@ function AllModals() {
 // Floating Progress Widget
 // ════════════════════════════════════════════════════════════
 
+/* One queue, every width. The phone used to get its own component with a
+   third "History" tab, which is exactly the list that was cut - and its button
+   sat on top of the add button at tablet width. processing-mobile.tsx is left
+   in the tree, out of the way, in case any of it is wanted back. */
 function ProgressWidgetResponsive() {
-  const isMobile = useIsMobile();
   const { jobs, retryJob, reconnectBot, removeJob } = useTranscriptionModals();
-  if (isMobile) return <MobileProcessing />;
   return (
     <ProgressWidget
       jobs={jobs}
