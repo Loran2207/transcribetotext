@@ -1292,6 +1292,18 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* Demo: ttt_exportsome=1 opens the dialog on a few records, so the archive
+     switch is meaningful and there are still files left to add. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem("ttt_exportsome") !== "1") return;
+    const few = filteredRecords.slice(0, 3).map((r) => r.id);
+    if (few.length === 0) return;
+    const t = setTimeout(() => setExportDialogIds(few), 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Demo: ttt_exportone=1 opens the same dialog on a single record, where the
   // archive switch has nothing to pack (design captures; off by default).
   useEffect(() => {

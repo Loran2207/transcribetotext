@@ -450,9 +450,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           ) : (
             <div className="flex h-full max-lg:flex-col max-lg:overflow-y-auto">
               {showNav && (
-                <nav className={"export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px] max-lg:w-full max-lg:shrink-0 max-lg:border-r-0 max-lg:border-b max-lg:flex-row max-lg:items-stretch max-lg:py-[8px] " + (multi ? "" : "max-lg:hidden")}>
-                  <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground max-lg:pb-0 max-lg:pl-[12px] max-lg:pr-[4px] max-lg:self-center max-lg:whitespace-nowrap">{items.length === 1 ? "1 file" : `${items.length} files`}</p>
-                  <div className="flex-1 min-h-0 overflow-y-auto px-[8px] flex flex-col gap-[2px] max-lg:flex-row max-lg:overflow-x-auto max-lg:overflow-y-hidden max-lg:items-center">
+                <nav className={"export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px] max-lg:w-full max-lg:shrink-0 max-lg:border-r-0 max-lg:border-b max-lg:flex-row max-lg:flex-wrap max-lg:items-center max-lg:px-[16px] max-lg:py-[10px] " + (multi || addable.length > 0 ? "" : "max-lg:hidden")}>
+                  <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground max-lg:px-0 max-lg:pb-0 max-lg:whitespace-nowrap">{items.length === 1 ? "1 file in this export" : `${items.length} files in this export`}</p>
+                  <div className="flex-1 min-h-0 overflow-y-auto px-[8px] flex flex-col gap-[2px] max-lg:order-last max-lg:mt-[6px] max-lg:w-full max-lg:max-h-[152px] max-lg:flex-none max-lg:overflow-x-hidden max-lg:px-0">
                     {items.map((r) => {
                       const isActive = activeId === r.id;
                       return (
@@ -471,7 +471,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                               type="button"
                               aria-label="Remove from export"
                               onClick={(e) => { e.stopPropagation(); removeItem(r.id); }}
-                              className="shrink-0 size-[20px] rounded-full inline-flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-foreground/[0.06] hover:text-foreground transition-opacity"
+                              className="shrink-0 size-[20px] rounded-full inline-flex items-center justify-center text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground group-hover:text-muted-foreground"
                             >
                               <Icon icon={Cancel01Icon} size={11} strokeWidth={2} />
                             </button>
@@ -481,15 +481,16 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                     })}
                   </div>
                   {addable.length > 0 && (
-                    <div className="px-[8px] pt-[8px] mt-[8px] border-t border-border max-lg:mt-0 max-lg:pt-0 max-lg:border-t-0 max-lg:border-l max-lg:pl-[8px] max-lg:self-center max-lg:shrink-0">
+                    <div className="px-[8px] pt-[8px] mt-[8px] border-t border-border max-lg:ml-auto max-lg:mt-0 max-lg:shrink-0 max-lg:border-t-0 max-lg:px-0">
                       <Popover open={addOpen} onOpenChange={setAddOpen}>
                         <PopoverTrigger asChild>
-                          <button type="button" className="flex w-full items-center gap-[8px] h-[34px] px-[14px] rounded-full text-[12.5px] font-medium text-primary hover:bg-primary/5 transition-colors">
+                          <button type="button" className="flex w-full items-center gap-[8px] h-[34px] px-[14px] rounded-full text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/5 max-lg:h-[30px] max-lg:border max-lg:border-primary/25 max-lg:px-[12px]">
                             <Icon icon={Add01Icon} size={13} strokeWidth={2} />
-                            Add files to export
+                            <span className="max-lg:hidden">Add files to export</span>
+                            <span className="lg:hidden">Add files</span>
                           </button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[248px] p-0" align="start" side="top" sideOffset={6}>
+                        <PopoverContent className="w-[248px] max-w-[calc(100vw-32px)] p-0 max-lg:w-[300px]" align="end" side="bottom" sideOffset={6}>
                           <Command>
                             <CommandInput placeholder="Search records…" />
                             <CommandList>

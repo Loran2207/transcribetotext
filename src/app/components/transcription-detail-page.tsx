@@ -157,23 +157,26 @@ function splitWords(text: string): string[] {
   return out;
 }
 
-/* Four ways to mark the line being spoken, so they can be compared side by
-   side. ttt_demo_highlight = color | tint | underline | word.
+/* Three ways to mark the line being spoken. The accent colour is the same in
+   all of them - what changes is how much of it lands on the line:
+
+     color  the sentence turns blue, nothing else
+     tint   the sentence turns blue on a wash of the same blue
+     word   the sentence turns blue and the word being said carries the wash
 
    None of them change the font weight: the paragraph would re-wrap every time
-   the playhead crossed a sentence, and the whole column would twitch. */
+   the playhead crossed a sentence, and the whole column would twitch.
+   ttt_demo_highlight = color | tint | word. */
 const HIGHLIGHT_TONE: Record<string, string> = {
   color: "bg-transparent text-primary",
-  tint: "rounded-[5px] bg-primary/12 px-1 text-foreground [box-decoration-break:clone]",
-  underline:
-    "bg-transparent text-foreground underline decoration-primary decoration-2 underline-offset-[5px]",
-  word: "bg-transparent text-foreground",
+  tint: "rounded-[5px] bg-primary/10 px-1 text-primary [box-decoration-break:clone]",
+  word: "bg-transparent text-primary",
 };
 
 function highlightFlag(): string {
-  let flag = "color";
-  try { flag = window.localStorage.getItem("ttt_demo_highlight") || "color"; } catch { /* ignore */ }
-  return HIGHLIGHT_TONE[flag] ? flag : "color";
+  let flag = "word";
+  try { flag = window.localStorage.getItem("ttt_demo_highlight") || "word"; } catch { /* ignore */ }
+  return HIGHLIGHT_TONE[flag] ? flag : "word";
 }
 
 function highlightTone(): string {
@@ -760,7 +763,7 @@ function TranscriptSegment({
                         return seen === activeWord ? (
                           <mark
                             key={j}
-                            className="rounded-[4px] bg-primary px-[3px] text-primary-foreground [box-decoration-break:clone]"
+                            className="-mx-[3px] rounded-[4px] bg-primary/18 px-[3px] text-primary [box-decoration-break:clone]"
                           >
                             {w}
                           </mark>

@@ -42,9 +42,12 @@ export function ToastCard({
     <div
       /* The width belongs to the card, not to the list around it: a toast with a
          short line is still a toast, and one that sizes itself to its content
-         makes a stack of them look ragged. */
+         makes a stack of them look ragged.
+
+         No shadow here. A stack of three cards each casting its own shadow
+         turns into a grey smear along the edges - the elevation belongs to the
+         top card only, and the Toaster puts it there. */
       className="flex w-[356px] max-w-[calc(100vw-24px)] items-center gap-[12px] rounded-[14px] border border-border bg-popover px-[14px] py-[12px]"
-      style={{ boxShadow: "0 12px 32px -8px rgba(16,24,40,0.18), 0 3px 10px -4px rgba(16,24,40,0.10)" }}
     >
       <span className={"flex size-[28px] shrink-0 items-center justify-center rounded-full " + t.chip}>
         <Icon

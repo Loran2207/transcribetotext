@@ -23,6 +23,13 @@ export default function App() {
                 gap={10}
                 offset={{ top: "72px", right: "20px" }}
                 mobileOffset={{ top: "68px", right: "12px", left: "12px" }}
+                toastOptions={{
+                  classNames: {
+                    // One elevation for the whole stack, cast by the card on top.
+                    toast:
+                      "rounded-[14px] shadow-[0_12px_32px_-8px_rgba(16,24,40,0.18),0_3px_10px_-4px_rgba(16,24,40,0.10)] data-[front=false]:shadow-none",
+                  },
+                }}
               />
             </TranscriptionModalsProvider>
           </FolderProvider>

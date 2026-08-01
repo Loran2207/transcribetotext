@@ -285,16 +285,15 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
       ? (STATUS_LABEL[dominant] ?? "Processing") + (progressJobs.length > 1 ? " " + progressJobs.length + " files" : "")
       : (STATUS_LABEL[dominant] ?? "Processing") + " " + dominantCount + " of " + progressJobs.length;
 
-  /* The ring carries the aggregate of everything with a real percentage. A
-     five-hour file in a long queue can sit at the same status for an hour, so
-     seeing the arc move is the difference between waiting and worrying. */
-  const measured = progressJobs
-    .map(progressOf)
-    .filter((n): n is number => n !== null);
-  const ringPct = measured.length
-    ? Math.round(measured.reduce((a, b) => a + b, 0) / measured.length)
-    : null;
-  const RING = 163; // circumference at r=26
+  /* No ring around the button. A dashed arc is the one thing the Figma capture
+     redraws as literal dashes, and the state is carried better by the counters
+     anyway: the border takes the tint of whatever is happening. */
+  const rim =
+    progressJobs.length > 0
+      ? "border-primary/35"
+      : failedJobs.length > 0
+        ? "border-destructive/35"
+        : "border-border";
 
   function requestRemove(job: TranscriptionJob) {
     setConfirm({ kind: "one", job });
@@ -353,51 +352,29 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
             onClick={() => setExpanded(true)}
             title={pillLabel}
             aria-label={pillLabel}
-            className="relative flex items-center justify-center rounded-full border border-border bg-card text-foreground transition-colors hover:bg-accent"
+            className={"relative flex items-center justify-center rounded-full border bg-card text-foreground transition-colors hover:bg-accent " + rim}
             style={{
               width: HISTORY_FAB_SIZE,
               height: HISTORY_FAB_SIZE,
               boxShadow: "0 8px 20px -6px rgba(16,24,40,0.16), 0 2px 6px -2px rgba(16,24,40,0.08)",
             }}
           >
-            {progressJobs.length > 0 &&
-              (ringPct === null ? (
-                <svg className="absolute animate-spin" style={{ inset: -4 }} viewBox="0 0 56 56" fill="none">
-                  <circle cx="28" cy="28" r="26" stroke="var(--primary)" strokeOpacity="0.16" strokeWidth="2" />
-                  <path d="M28 2a26 26 0 0126 26" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              ) : (
-                <svg className="absolute" style={{ inset: -4 }} viewBox="0 0 56 56" fill="none">
-                  <circle cx="28" cy="28" r="26" stroke="var(--primary)" strokeOpacity="0.16" strokeWidth="2" />
-                  <circle
-                    cx="28"
-                    cy="28"
-                    r="26"
-                    stroke="var(--primary)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeDasharray={(RING * ringPct) / 100 + " " + RING}
-                    transform="rotate(-90 28 28)"
-                  />
-                </svg>
-              ))}
-
             <svg className="size-[20px] text-foreground" viewBox="0 0 24 24" fill="none">
               <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
 
-            {/* Running and broken read as two halves of one badge, so a mixed
-                queue does not need a sentence to be understood. */}
+            {/* Two counters, the way notifications count: blue for what is
+                running, red for what broke. Either can stand alone. */}
             {(progressJobs.length > 0 || failedJobs.length > 0) && (
-              <span className="absolute -right-[9px] -top-[9px] flex items-center overflow-hidden rounded-full border-2 border-background">
+              <span className="absolute -right-[7px] -top-[7px] flex items-center gap-[3px]">
                 {progressJobs.length > 0 && (
-                  <span className="min-w-[18px] bg-primary px-[5px] text-center text-[10.5px] font-semibold leading-[18px] text-primary-foreground">
+                  <span className="flex h-[20px] min-w-[20px] items-center justify-center rounded-full border-2 border-background bg-primary px-[4px] text-[10.5px] font-semibold text-primary-foreground">
                     {progressJobs.length}
                   </span>
                 )}
                 {failedJobs.length > 0 && (
-                  <span className="min-w-[18px] bg-destructive px-[5px] text-center text-[10.5px] font-semibold leading-[18px] text-destructive-foreground">
+                  <span className="flex h-[20px] min-w-[20px] items-center justify-center rounded-full border-2 border-background bg-destructive px-[4px] text-[10.5px] font-semibold text-destructive-foreground">
                     {failedJobs.length}
                   </span>
                 )}
