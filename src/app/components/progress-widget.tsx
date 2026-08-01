@@ -207,6 +207,8 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
   const [failedShown, setFailedShown] = useState(FAILED_PAGE);
   const [confirm, setConfirm] = useState<{ kind: "one"; job: TranscriptionJob } | { kind: "all" } | null>(null);
   const [path, setPath] = useState(() => router.state.location.pathname);
+  // The confirmation is modal, so the queue drops behind its scrim.
+  const layer = confirm ? "z-[40]" : "z-[150]";
 
   // The provider sits outside the router, so the path comes from the router
   // itself rather than from a hook.
@@ -307,7 +309,7 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
   if (!expanded) {
     return createPortal(
       <>
-        <div className="fixed bottom-[92px] right-[24px] z-[150]">
+        <div className={"fixed bottom-[92px] right-[24px] " + layer}>
           <div className="relative">
             <Button
               onClick={() => { setIconOnly(false); setExpanded(true); }}
@@ -360,7 +362,7 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
   return createPortal(
     <>
       <div
-        className="fixed bottom-[92px] right-[24px] z-[150] flex flex-col overflow-hidden rounded-[16px] border border-border bg-popover"
+        className={"fixed bottom-[92px] right-[24px] flex flex-col overflow-hidden rounded-[16px] border border-border bg-popover " + layer}
         style={{ width: "620px", maxWidth: "calc(100vw - 32px)", boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
       >
         <div className="flex shrink-0 items-end justify-between border-b border-border px-4 pt-2">
