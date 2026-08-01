@@ -103,11 +103,24 @@ interface VideoPreviewData {
   poster?: string;
 }
 
+// ttt_demo_playback=1 parks the playhead a minute in, so the active line and
+// the lines already spoken can be captured without the position drifting.
+function demoPlayheadProgress(): number[] {
+  try {
+    if (window.localStorage.getItem("ttt_demo_playback") === "1") return [6.6];
+  } catch { /* ignore */ }
+  return [0];
+}
+
 function timestampToSeconds(timestamp: string) {
   const parts = timestamp.split(":").map((part) => Number(part));
   if (parts.some((part) => Number.isNaN(part))) return 0;
   if (parts.length === 1) return parts[0];
-  return parts.slice(0, -1).reduce((acc, value) => acc * 60 + value, 0) + parts[parts.length - 1];
+  // Everything left of the seconds is minutes (and hours), so it has to be
+  // carried up by 60. Without that "4:30" came back as 34 seconds, which threw
+  // off both the timecode jump and the active line.
+  const head = parts.slice(0, -1).reduce((acc, value) => acc * 60 + value, 0);
+  return head * 60 + parts[parts.length - 1];
 }
 
 function pad2(n: number) {
@@ -488,6 +501,7 @@ function TranscriptSegment({
   onEditChange,
   highlighted,
   isPlaybackActive,
+  isPlayed,
   segmentRef,
   isSegHighlighted,
   onToggleHighlight,
@@ -512,6 +526,7 @@ function TranscriptSegment({
   onEditChange?: (text: string) => void;
   highlighted: boolean;
   isPlaybackActive: boolean;
+  isPlayed?: boolean;
   segmentRef: (el: HTMLDivElement | null) => void;
   isSegHighlighted: boolean;
   onToggleHighlight: (id: number) => void;
@@ -536,8 +551,10 @@ function TranscriptSegment({
     : isSegHighlighted
       ? "bg-amber-300/80"
       : isPlaybackActive
-        ? "bg-primary/65"
-        : "bg-border/80";
+        ? "bg-primary"
+        : isPlayed
+          ? "bg-border/50"
+          : "bg-border/80";
 
   // Render text with inline highlights
   function renderText(text: string) {
@@ -565,7 +582,7 @@ function TranscriptSegment({
           : isSegHighlighted
             ? "bg-amber-50"
             : isPlaybackActive
-              ? "bg-primary/6 ring-1 ring-primary/20"
+              ? "bg-primary/[0.055]"
               : "hover:bg-muted/45"
       }`}
     >
@@ -600,14 +617,30 @@ function TranscriptSegment({
           <button
             type="button"
             onClick={() => onSeekTimecode(segment.timestamp)}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground tabular-nums transition-colors hover:text-primary"
+            className={`inline-flex items-center gap-1 text-xs tabular-nums transition-colors hover:text-primary ${
+              isPlaybackActive
+                ? "font-semibold text-primary"
+                : isPlayed
+                  ? "text-muted-foreground/70"
+                  : "text-muted-foreground"
+            }`}
             title="Play from here"
           >
             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="opacity-0 transition-opacity group-hover/seg:opacity-100"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg>
             {segment.timestamp}
           </button>
         ) : (
-          <span className="text-xs text-muted-foreground tabular-nums">{segment.timestamp}</span>
+          <span
+            className={`text-xs tabular-nums ${
+              isPlaybackActive
+                ? "font-semibold text-primary"
+                : isPlayed
+                  ? "text-muted-foreground/70"
+                  : "text-muted-foreground"
+            }`}
+          >
+            {segment.timestamp}
+          </span>
         ))}
 
         {isEditing ? (
@@ -618,7 +651,15 @@ function TranscriptSegment({
             rows={Math.max(2, Math.ceil(segmentText.length / 90))}
           />
         ) : (
-          <p className={`mt-1 text-sm leading-relaxed cursor-text ${isPlaybackActive ? "text-foreground" : "text-foreground/85"}`}>
+          <p
+            className={`mt-1 cursor-text text-sm leading-relaxed transition-colors ${
+              isPlaybackActive
+                ? "font-medium text-foreground"
+                : isPlayed
+                  ? "text-foreground/55"
+                  : "text-foreground/85"
+            }`}
+          >
             {renderText(segmentText)}
           </p>
         )}
@@ -1674,7 +1715,7 @@ export function TranscriptionDetailPage() {
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("transcript");
   const [highlightedSegment, setHighlightedSegment] = useState<number | null>(null);
-  const [playerProgress, setPlayerProgress] = useState([0]);
+  const [playerProgress, setPlayerProgress] = useState(demoPlayheadProgress);
   const [isFallbackPlaying, setIsFallbackPlaying] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
@@ -2007,15 +2048,27 @@ export function TranscriptionDetailPage() {
   const isPlayerPlaying = hasVideo ? isVideoPlaying : isFallbackPlaying;
 
   const activePlaybackSegmentId = useMemo<number | null>(() => {
-    if (!hasVideo) return null;
-    const current = videoCurrentTime;
+    const current = effectiveCurrentSeconds;
+    if (current <= 0) return null;
     const currentSegment = segmentTimings.find((segment) => current >= segment.start && current < segment.end);
     if (currentSegment) return currentSegment.id;
     if (segmentTimings.length > 0 && current >= segmentTimings[segmentTimings.length - 1].start) {
       return segmentTimings[segmentTimings.length - 1].id;
     }
     return null;
-  }, [hasVideo, videoCurrentTime, segmentTimings]);
+  }, [effectiveCurrentSeconds, segmentTimings]);
+
+  // Everything above the active line has already been spoken. Marking it lets
+  // the eye find the live line on a transcript that runs for pages.
+  const playedSegmentIds = useMemo<Set<number>>(() => {
+    const ids = new Set<number>();
+    if (activePlaybackSegmentId === null) return ids;
+    for (const timing of segmentTimings) {
+      if (timing.id === activePlaybackSegmentId) break;
+      ids.add(timing.id);
+    }
+    return ids;
+  }, [activePlaybackSegmentId, segmentTimings]);
 
   const handleVideoElementReady = useCallback((node: HTMLVideoElement | null) => {
     videoElementRef.current = node;
@@ -2101,7 +2154,7 @@ export function TranscriptionDetailPage() {
     setVideoCurrentTime(0);
     setVideoDuration(0);
     setVideoPlaybackRate(1);
-    setPlayerProgress([0]);
+    setPlayerProgress(demoPlayheadProgress());
     lastAutoScrolledSegmentRef.current = null;
     setActiveTranslationLang(null);
     setSelectedTranslationLang("");
@@ -2889,6 +2942,7 @@ export function TranscriptionDetailPage() {
                     onEditChange={(t) => update(seg.id, t)}
                     highlighted={highlightedSegment === seg.id}
                     isPlaybackActive={activePlaybackSegmentId === seg.id}
+                    isPlayed={playedSegmentIds.has(seg.id)}
                     segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
                     isSegHighlighted={segHighlights.has(seg.id)}
                     onToggleHighlight={toggleHighlight}
@@ -2985,6 +3039,7 @@ export function TranscriptionDetailPage() {
                     editText={translatedSegments[seg.id] ?? (texts[seg.id] ?? seg.text)}
                     highlighted={highlightedSegment === seg.id}
                     isPlaybackActive={activePlaybackSegmentId === seg.id}
+                    isPlayed={playedSegmentIds.has(seg.id)}
                     segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
                     isSegHighlighted={false}
                     onToggleHighlight={() => {}}
