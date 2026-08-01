@@ -107,9 +107,48 @@ interface VideoPreviewData {
 // the lines already spoken can be captured without the position drifting.
 function demoPlayheadProgress(): number[] {
   try {
-    if (window.localStorage.getItem("ttt_demo_playback") === "1") return [6.6];
+    const flag = window.localStorage.getItem("ttt_demo_playback");
+    if (flag === "1") return [6.6];
+    // The cases set parks the playhead inside the long paragraph.
+    if (flag === "cases") return [1.87];
   } catch { /* ignore */ }
   return [0];
+}
+
+/* Subtitles highlight the words being spoken, not the paragraph around them.
+   A replica can be one word or a full paragraph, so the unit that lights up is
+   the sentence: short replicas light up whole, long ones move through. */
+function splitSentences(text: string): string[] {
+  const out: string[] = [];
+  let buf = "";
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    buf += ch;
+    if (ch === "." || ch === "!" || ch === "?") {
+      const next = text[i + 1];
+      if (next === undefined || next === " ") {
+        if (next === " ") { buf += " "; i++; }
+        out.push(buf);
+        buf = "";
+      }
+    }
+  }
+  if (buf.length) out.push(buf);
+  return out.length ? out : [text];
+}
+
+/* Three ways to mark the sentence being spoken, so the treatment can be
+   compared side by side. ttt_demo_highlight = inline | color | underline. */
+const HIGHLIGHT_TONE: Record<string, string> = {
+  inline: "rounded-[5px] bg-primary/15 px-1 text-foreground [box-decoration-break:clone]",
+  color: "bg-transparent font-semibold text-primary",
+  underline: "bg-transparent border-b-[2px] border-primary text-foreground",
+};
+
+function highlightTone(): string {
+  let flag = "inline";
+  try { flag = window.localStorage.getItem("ttt_demo_highlight") || "inline"; } catch { /* ignore */ }
+  return HIGHLIGHT_TONE[flag] ?? HIGHLIGHT_TONE.inline;
 }
 
 function timestampToSeconds(timestamp: string) {
@@ -232,6 +271,16 @@ const MONO_SEGMENTS: Segment[] = [
 
 // Limited-access demo: how many speaker turns stay readable before the paywall.
 const LIMITED_FREE_TURNS = 3;
+
+/* Replicas run from a single word to a full paragraph, and the highlight has
+   to survive both. */
+const CASE_SEGMENTS: Segment[] = [
+  { id: 201, speaker: SPEAKERS[0], timestamp: "0:00", text: "So where did we land on the export flow?" },
+  { id: 202, speaker: SPEAKERS[1], timestamp: "0:06", text: "Done." },
+  { id: 203, speaker: SPEAKERS[2], timestamp: "0:09", text: "Not quite. The dialog is in staging and QA looks good, but we still owe the archive switch. Right now every batch export packs a zip, and that makes the server pull each file out of storage before anything reaches the user. If we ship the switch off by default, most people never pay for the archive at all. I would rather land that this week than carry it into the next milestone." },
+  { id: 204, speaker: SPEAKERS[0], timestamp: "0:42", text: "Agreed. Let us get it in." },
+  { id: 205, speaker: SPEAKERS[1], timestamp: "0:48", text: "One more thing: the toast on completion should say the record name, not just that something finished." },
+];
 
 const MOCK_OUTLINE: OutlineSection[] = [
   { id: "o1", title: "Opening & Agenda", timestamp: "0:01", segmentId: 1, bullets: [{ text: "Three topics: roadmap update, Q2 planning, design handoff", segmentId: 1 }, { text: "Design team completed onboarding flow mockups", segmentId: 2 }] },
@@ -502,6 +551,7 @@ function TranscriptSegment({
   highlighted,
   isPlaybackActive,
   isPlayed,
+  activeSentence,
   segmentRef,
   isSegHighlighted,
   onToggleHighlight,
@@ -527,6 +577,7 @@ function TranscriptSegment({
   highlighted: boolean;
   isPlaybackActive: boolean;
   isPlayed?: boolean;
+  activeSentence?: number | null;
   segmentRef: (el: HTMLDivElement | null) => void;
   isSegHighlighted: boolean;
   onToggleHighlight: (id: number) => void;
@@ -581,9 +632,7 @@ function TranscriptSegment({
           ? "bg-primary/8"
           : isSegHighlighted
             ? "bg-amber-50"
-            : isPlaybackActive
-              ? "bg-primary/[0.055]"
-              : "hover:bg-muted/45"
+            : "hover:bg-muted/45"
       }`}
     >
       {showActions && !isEditing && (
@@ -654,13 +703,27 @@ function TranscriptSegment({
           <p
             className={`mt-1 cursor-text text-sm leading-relaxed transition-colors ${
               isPlaybackActive
-                ? "font-medium text-foreground"
+                ? "text-foreground"
                 : isPlayed
                   ? "text-foreground/55"
                   : "text-foreground/85"
             }`}
           >
-            {renderText(segmentText)}
+            {isPlaybackActive && activeSentence !== null && activeSentence !== undefined ? (
+              splitSentences(segmentText).map((part, i) =>
+                i === activeSentence ? (
+                  <mark key={i} className={highlightTone()}>
+                    {part}
+                  </mark>
+                ) : (
+                  <span key={i} className="text-foreground/70">
+                    {part}
+                  </span>
+                ),
+              )
+            ) : (
+              renderText(segmentText)
+            )}
           </p>
         )}
         {!hideTimecodes && <span className="mt-2 block text-xs text-muted-foreground tabular-nums max-lg:hidden">{segmentEndTimestamp}</span>}
@@ -1822,9 +1885,18 @@ export function TranscriptionDetailPage() {
     })),
     [previewSegments],
   );
+  /* ttt_demo_playback=cases swaps in replicas of very different lengths, so the
+     highlight can be judged on a one-word answer as well as a paragraph. */
+  const showCases = (() => {
+    try { return window.localStorage.getItem("ttt_demo_playback") === "cases"; } catch { return false; }
+  })();
   const contentSegments = useMemo<Segment[]>(
-    () => (selectedJob?.source === "microphone" && previewDetailSegments.length > 0 ? previewDetailSegments : MOCK_SEGMENTS),
-    [previewDetailSegments, selectedJob?.source],
+    () => (showCases
+      ? CASE_SEGMENTS
+      : selectedJob?.source === "microphone" && previewDetailSegments.length > 0
+        ? previewDetailSegments
+        : MOCK_SEGMENTS),
+    [previewDetailSegments, selectedJob?.source, showCases],
   );
   // Single-speaker / monologue mode: hide the speaker column when there's only one voice.
   // Demo flag forces it with dedicated monologue content for design captures.
@@ -2069,6 +2141,27 @@ export function TranscriptionDetailPage() {
     }
     return ids;
   }, [activePlaybackSegmentId, segmentTimings]);
+
+  /* Which sentence of the active replica is being spoken. There are no word
+     timings, so the replica time is shared out by sentence length: close
+     enough to read along with, and it moves the way subtitles move. */
+  const activeSentenceIndex = useMemo<number | null>(() => {
+    if (activePlaybackSegmentId === null) return null;
+    const timing = segmentTimings.find((t) => t.id === activePlaybackSegmentId);
+    const segment = contentSegments.find((seg) => seg.id === activePlaybackSegmentId);
+    if (!timing || !segment) return null;
+    const parts = splitSentences(segment.text);
+    if (parts.length <= 1) return 0;
+    const span = Math.max(1, timing.end - timing.start);
+    const ratio = Math.max(0, Math.min(0.999, (effectiveCurrentSeconds - timing.start) / span));
+    const total = segment.text.length || 1;
+    let seen = 0;
+    for (let i = 0; i < parts.length; i++) {
+      seen += parts[i].length;
+      if (ratio < seen / total) return i;
+    }
+    return parts.length - 1;
+  }, [activePlaybackSegmentId, segmentTimings, contentSegments, effectiveCurrentSeconds]);
 
   const handleVideoElementReady = useCallback((node: HTMLVideoElement | null) => {
     videoElementRef.current = node;
@@ -2943,6 +3036,7 @@ export function TranscriptionDetailPage() {
                     highlighted={highlightedSegment === seg.id}
                     isPlaybackActive={activePlaybackSegmentId === seg.id}
                     isPlayed={playedSegmentIds.has(seg.id)}
+                    activeSentence={activePlaybackSegmentId === seg.id ? activeSentenceIndex : null}
                     segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
                     isSegHighlighted={segHighlights.has(seg.id)}
                     onToggleHighlight={toggleHighlight}
@@ -3040,6 +3134,7 @@ export function TranscriptionDetailPage() {
                     highlighted={highlightedSegment === seg.id}
                     isPlaybackActive={activePlaybackSegmentId === seg.id}
                     isPlayed={playedSegmentIds.has(seg.id)}
+                    activeSentence={activePlaybackSegmentId === seg.id ? activeSentenceIndex : null}
                     segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
                     isSegHighlighted={false}
                     onToggleHighlight={() => {}}
