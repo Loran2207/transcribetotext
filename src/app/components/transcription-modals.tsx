@@ -30,6 +30,7 @@ import { router } from "../routes";
 import { motion } from "motion/react";
 import { useIsMobile } from "./ui/use-mobile";
 import { MobileProcessing } from "./processing-mobile";
+import { ProgressWidget } from "./progress-widget";
 import { UpgradeGateModal } from "./upgrade-gate-modal";
 import { usePlan } from "./use-plan";
 
@@ -85,6 +86,14 @@ function demoSeedJobs(): TranscriptionJob[] {
     { id: "f3", name: "Partner sync", createdAt: ago(320), progress: 0, status: "error", errorType: "bot_failed", fileType: "video", kind: "meeting", source: "teams", lang: "English" },
   ];
   if (flag === "progress") return inProgress;
+  if (flag === "uniform") {
+    return inProgress.slice(0, 3).map((job, i) => ({
+      ...job,
+      status: "transcribing" as const,
+      transcriptionProgress: [38, 61, 84][i],
+      progress: [38, 61, 84][i],
+    }));
+  }
   if (flag === "failed") return failed;
   if (flag === "failed_many") {
     const many: TranscriptionJob[] = [];
@@ -223,8 +232,43 @@ export function TranscriptionModalsProvider({
   const [openModal, setOpenModal] = useState<ModalType>(null);
   const [jobs, setJobs] = useState<TranscriptionJob[]>(demoSeedJobs);
   const jobsRef = useRef<TranscriptionJob[]>([]);
+  const announcedRef = useRef<Set<string>>(new Set());
   const currentUploadBatchIdRef = useRef<string | null>(null);
   const meetingCounterRef = useRef(1);
+
+  /* A finished transcription is no longer in the widget and the user may be
+     anywhere in the app, so it says so itself. Same toast component as
+     everywhere else, with a way straight into the record. */
+  useEffect(() => {
+    jobs.forEach((job) => {
+      if (job.status !== "done" || announcedRef.current.has(job.id)) return;
+      announcedRef.current.add(job.id);
+      toast.success(job.name, {
+        description: "Transcription is ready",
+        action: { label: "Open", onClick: () => { void router.navigate("/transcriptions/" + job.id); } },
+      });
+    });
+  }, [jobs]);
+
+  /* ttt_demo_toast = one | many parks ready-toasts on screen for captures. */
+  useEffect(() => {
+    let flag = "";
+    try { flag = window.localStorage.getItem("ttt_demo_toast") || ""; } catch { /* ignore */ }
+    if (!flag) return;
+    const names = [
+      "Acme Logistics - onboarding call.mp4",
+      "Weekly sync - product team.mp3",
+      "Northwind Labs - youtube walkthrough",
+    ];
+    const howMany = flag === "many" ? 3 : 1;
+    for (let i = 0; i < howMany; i++) {
+      toast.success(names[i], {
+        description: "Transcription is ready",
+        duration: 600000,
+        action: { label: "Open", onClick: () => {} },
+      });
+    }
+  }, []);
 
   // Free-plan gate on the primary Transcribe actions (demo flag ttt_demo_freegate).
   const gatePlan = usePlan();
@@ -2829,462 +2873,14 @@ function AllModals() {
 
 function ProgressWidgetResponsive() {
   const isMobile = useIsMobile();
-  return isMobile ? <MobileProcessing /> : <FloatingProgressWidget />;
-}
-
-export function FloatingProgressWidget() {
-  const { jobs, retryJob, reconnectBot, removeJob, clearFailedJobs } = useTranscriptionModals();
-  // Demo: ttt_demo_widget=empty_history forces the expanded widget open on an empty History tab.
-  const demoEmptyHistory = (() => { try { return import.meta.env.DEV && window.localStorage.getItem("ttt_demo_widget") === "empty_history"; } catch { return false; } })();
-  const [expanded, setExpanded] = useState(demoEmptyHistory); // false = collapsed pill, true = full widget
-  const [iconOnly, setIconOnly] = useState(false);
-  const [activeTab, setActiveTab] = useState<"uploaded" | "history" | "failed">(demoEmptyHistory ? "history" : "uploaded");
-  const widgetJobs = useMemo(
-    () => jobs.filter((job) => job.source !== "microphone"),
-    [jobs]
-  );
-
-  const hasJobs = widgetJobs.length > 0;
-  const newestJobId = widgetJobs[0]?.id ?? null;
-  const activeCount = widgetJobs.filter((j) => j.status === "uploading" || j.status === "processing" || j.status === "connecting" || j.status === "recording").length;
-
-  const activeBatchIds = useMemo(() => {
-    const ids = new Set<string>();
-    widgetJobs.forEach((job) => {
-      if ((job.status === "uploading" || job.status === "processing") && job.batchId) {
-        ids.add(job.batchId);
-      }
-    });
-    return ids;
-  }, [widgetJobs]);
-
-  const latestBatchId = widgetJobs[0]?.batchId ?? null;
-
-  const uploadedNowJobs = useMemo(() => {
-    if (widgetJobs.length === 0) return [];
-
-    if (activeBatchIds.size > 0) {
-      const activeBatchJobs = widgetJobs.filter((job) => {
-        if (job.batchId) return activeBatchIds.has(job.batchId);
-        return job.status === "uploading" || job.status === "processing";
-      });
-
-      if (activeBatchJobs.length > 0) {
-        return activeBatchJobs;
-      }
-    }
-
-    if (latestBatchId) {
-      const latestBatchJobs = widgetJobs.filter((job) => job.batchId === latestBatchId);
-      if (latestBatchJobs.length > 0) {
-        return latestBatchJobs;
-      }
-    }
-
-    return [widgetJobs[0]];
-  }, [widgetJobs, activeBatchIds, latestBatchId]);
-
-  const historyJobs = widgetJobs;
-  const failedJobs = useMemo(() => historyJobs.filter((job) => job.status === "error"), [historyJobs]);
-  const visibleJobs = activeTab === "history"
-    ? historyJobs
-    : activeTab === "failed"
-      ? failedJobs
-      : uploadedNowJobs;
-  const summaryJobs = uploadedNowJobs.length > 0 ? uploadedNowJobs : widgetJobs;
-  const allDone = summaryJobs.length > 0 && summaryJobs.every((j) => j.status === "done" || j.status === "error");
-  const uploadingCount = summaryJobs.filter((j) => j.status === "uploading").length;
-  const processingCount = summaryJobs.filter((j) => j.status === "processing").length;
-  const doneCount = summaryJobs.filter((j) => j.status === "done" || j.status === "error").length;
-  const errorCount = summaryJobs.filter((j) => j.status === "error").length;
-  const connectingCount = summaryJobs.filter((j) => j.status === "connecting").length;
-  const recordingCount = summaryJobs.filter((j) => j.status === "recording").length;
-
-  // Re-open the floating pill whenever a new upload job is added.
-  useEffect(() => {
-    if (!newestJobId) return;
-    setIconOnly(false);
-    setExpanded(false);
-    setActiveTab("uploaded");
-  }, [newestJobId]);
-
-  if (!hasJobs && !demoEmptyHistory) return null;
-
-  const rowBorder = "1px solid var(--border)";
-
-  // Collapsed pill
-  const pillLabel = allDone
-    ? errorCount > 0
-      ? `Completed with errors (${doneCount}/${summaryJobs.length})`
-      : `Upload complete! (${doneCount}/${summaryJobs.length})`
-    : processingCount > 0
-      ? uploadingCount > 0
-        ? `Uploading ${uploadingCount} | Transcribing ${processingCount}`
-        : `Transcribing... (${doneCount}/${summaryJobs.length})`
-      : `Uploading... (${doneCount}/${summaryJobs.length})`;
-
-  const isErrorPill = allDone && errorCount > 0;
-  const activityLabel = recordingCount > 0 ? `Recording… (${recordingCount})` : connectingCount > 0 ? (connectingCount > 1 ? `Connecting bots… (${connectingCount})` : "Connecting bot…") : pillLabel;
-
-  if (!expanded) {
-    return createPortal(
-      <div className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col items-end gap-[0px]">
-        <div className="relative">
-          <Button
-            onClick={() => {
-              setActiveTab(iconOnly ? "history" : "uploaded");
-              setExpanded(true);
-            }}
-            className={
-              iconOnly
-                ? "size-[42px] rounded-full shadow-md transition-all bg-white text-muted-foreground border border-border hover:bg-accent/40"
-                : isErrorPill
-                  ? "flex items-center gap-[8px] h-[40px] px-[16px] rounded-full transition-all bg-white text-foreground border border-border hover:bg-accent/40"
-                  : "flex items-center gap-[8px] h-[40px] px-[16px] rounded-full shadow-lg transition-all bg-primary text-primary-foreground hover:opacity-90"
-            }
-            style={iconOnly || isErrorPill
-              ? { boxShadow: "0 6px 18px rgba(15,23,42,0.14)" }
-              : { boxShadow: "0 4px 20px rgba(37,99,235,0.35)" }}
-            title={iconOnly ? "Open upload history" : undefined}
-          >
-            {iconOnly ? (
-              <svg className="size-[17px] shrink-0" viewBox="0 0 24 24" fill="none">
-                <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            ) : (
-              <>
-                {/* Status icon */}
-                {allDone ? (
-                  isErrorPill ? (
-                    <span className="inline-flex size-[16px] items-center justify-center rounded-full bg-destructive/15 text-destructive shrink-0">
-                      <Icon icon={AlertCircle} className="size-[11px]" strokeWidth={2} />
-                    </span>
-                  ) : (
-                  <svg className="size-[15px] shrink-0" fill="none" viewBox="0 0 24 24">
-                    <path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  )
-                ) : (
-                  <svg className="size-[14px] shrink-0 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" />
-                    <path d="M12 3a9 9 0 019 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-                  </svg>
-                )}
-                <span className="font-semibold text-[13px]">{activityLabel}</span>
-                {/* Chevron up */}
-                <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16">
-                  <path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </>
-            )}
-          </Button>
-          {iconOnly && activeCount > 0 && (
-            <span className="absolute -top-[4px] -right-[4px] min-w-[18px] h-[18px] px-[4px] rounded-full bg-destructive text-[10px] leading-[18px] text-white text-center font-semibold">
-              {activeCount > 99 ? "99+" : activeCount}
-            </span>
-          )}
-        </div>
-      </div>,
-      document.body
-    );
-  }
-
-  // Full expanded widget
-  return createPortal(
-    <div
-      className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col rounded-[16px] overflow-hidden bg-popover border border-border"
-      style={{ width: "680px", maxWidth: "calc(100vw - 24px)", boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
-    >
-      <div className="flex items-end justify-between px-[16px] pt-[8px] shrink-0 border-b border-border">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value === "history" ? "history" : value === "failed" ? "failed" : "uploaded")} className="gap-0 flex-1 min-w-0">
-          <TabsList variant="line" className="gap-6 border-b-0">
-            <TabsTrigger value="uploaded" variant="line" className="text-[13px] font-semibold">
-              Uploaded now <span className="opacity-50 font-[inherit]">{uploadedNowJobs.length}</span>
-            </TabsTrigger>
-            <TabsTrigger value="history" variant="line" className="text-[13px] font-semibold">
-              History <span className="opacity-50 font-[inherit]">{historyJobs.length}</span>
-            </TabsTrigger>
-            <TabsTrigger value="failed" variant="line" className="text-[13px] font-semibold data-[state=active]:text-destructive data-[state=active]:after:bg-destructive">
-              Failed <span className="opacity-50 font-[inherit]">{failedJobs.length}</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <div className="flex items-center gap-[1px] pb-[6px] ml-[8px]">
-          {activeTab === "failed" && failedJobs.length > 0 && (
-            <Button
-              variant="ghost"
-              onClick={clearFailedJobs}
-              title="Clear failed files"
-              className="h-[24px] px-[8px] rounded-full text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center gap-[4px]"
-            >
-              <Icon icon={Trash} className="size-[12px]" strokeWidth={1.7} />
-              <span className="font-medium">Clear</span>
-            </Button>
-          )}
-          {/* Collapse to full pill */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setIconOnly(false);
-              setExpanded(false);
-            }}
-            title="Collapse"
-            className="size-[24px] rounded-full flex items-center justify-center transition-colors hover:bg-accent"
-          >
-            <svg className="size-[11px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
-              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Button>
-          {/* Minimize to icon */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setIconOnly(true);
-              setExpanded(false);
-            }}
-            title="Minimize to icon"
-            className="size-[24px] rounded-full flex items-center justify-center transition-colors hover:bg-accent"
-          >
-            <svg className="size-[11px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
-              <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-          </Button>
-        </div>
-      </div>
-
-      {/* Column headers (mini table) */}
-      <>
-        <div className="flex items-center px-[14px] h-[32px] shrink-0" style={{ borderBottom: rowBorder }}>
-          <div className="flex-1 min-w-0">
-            <span className="font-medium text-[11px] text-muted-foreground tracking-wide">File</span>
-          </div>
-          <div className="w-[44px] shrink-0 text-center">
-            <span className="font-medium text-[11px] text-muted-foreground tracking-wide">Lang</span>
-          </div>
-          <div className="w-[52px] shrink-0 text-center">
-            <span className="font-medium text-[11px] text-muted-foreground tracking-wide">Transl.</span>
-          </div>
-          <div className="w-[52px] shrink-0 text-right">
-            <span className="font-medium text-[11px] text-muted-foreground tracking-wide">Dur.</span>
-          </div>
-          <div className="w-[160px] shrink-0 text-right">
-            <span className="font-medium text-[11px] text-muted-foreground tracking-wide">Status</span>
-          </div>
-        </div>
-
-        {/* Job rows */}
-        <div style={{ maxHeight: "320px", overflowY: "auto" }}>
-          {visibleJobs.length === 0 && (
-            <div className="px-[16px] py-[20px] text-[12px] text-muted-foreground">
-              {activeTab === "uploaded"
-                ? "No files in the current upload batch yet."
-                : activeTab === "failed"
-                  ? "No failed uploads."
-                  : "History is empty."}
-            </div>
-          )}
-          {visibleJobs.map((job, idx) => {
-            const isActive = job.status === "uploading" || job.status === "processing";
-            const isDone = job.status === "done";
-            const isError = job.status === "error";
-            const isConnecting = job.status === "connecting";
-            const isRecording = job.status === "recording";
-            const isMeeting = job.kind === "meeting";
-            const isBotFailed = isError && job.errorType === "bot_failed";
-            const errLabel = job.errorType ? (ERROR_LABELS[job.errorType] ?? "Upload failed") : "Upload failed";
-            const canRetry = isError && job.errorType !== "no_audio";
-            const uploadPct = Math.max(0, Math.min(100, Math.round(job.uploadProgress ?? (job.status === "uploading" ? job.progress : 100))));
-            const transcribePct = Math.max(0, Math.min(100, Math.round(job.transcriptionProgress ?? (job.status === "processing" ? job.progress : (job.status === "done" ? 100 : 0)))));
-            const statusLabel = job.status === "uploading"
-              ? "Uploading"
-              : job.status === "processing"
-                ? (transcribePct < 15 ? "Processing" : transcribePct < 75 ? "Transcribing" : "Summarizing")
-                : job.status === "done" ? "Completed" : "Failed";
-            const phasePct = job.status === "uploading" ? uploadPct : transcribePct;
-
-            return (
-              <div key={job.id} className="relative" style={{ borderTop: idx > 0 ? rowBorder : "none" }}>
-                {/* Main row */}
-                <div className={`flex items-center gap-[8px] px-[14px] pt-[9px] pb-[10px] ${isError ? "bg-destructive/5" : ""}`}>
-                  {/* File type icon */}
-                  <div className={`size-[26px] rounded-[7px] flex items-center justify-center shrink-0 ${isError ? "bg-destructive/10" : isMeeting ? "bg-primary/5" : job.fileType === "audio" ? "bg-primary/5" : "bg-violet-500/5"}`}>
-                    {isError ? (
-                      <Icon icon={AlertCircle} className="size-[14px] text-destructive" strokeWidth={1.9} />
-                    ) : isMeeting ? (
-                      <Icon icon={Video01Icon} className="size-[13px] text-primary" strokeWidth={1.7} />
-                    ) : job.fileType === "audio" ? (
-                      <svg className="size-[12px] text-primary" fill="none" viewBox="0 0 24 24">
-                        <path d="M9 18V5l12-2v13M9 18a3 3 0 11-3-3 3 3 0 013 3zM21 16a3 3 0 11-3-3 3 3 0 013 3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    ) : (
-                      <svg className="size-[12px]" fill="none" viewBox="0 0 24 24" style={{ color: "#7c3aed" }}>
-                        <path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </div>
-
-                  {/* Name */}
-                  <div className="flex-1 min-w-0">
-                    <p className={`truncate font-medium text-xs ${isError ? "text-destructive" : "text-foreground"}`} title={job.name}>
-                      {job.name}
-                    </p>
-                    {isActive && (
-                      <p className="text-[10px] text-muted-foreground mt-[1px]">
-                        {statusLabel} {phasePct}%
-                      </p>
-                    )}
-                    {isError && (
-                      <p className="text-[10px] text-destructive mt-[1px] truncate" title={errLabel}>
-                        {errLabel}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Lang column */}
-                  <div className="w-[44px] shrink-0 flex items-center justify-center">
-                    {job.langBilingual && job.langBilingual.length > 0 ? (
-                      <div className="flex gap-[1px]">
-                        {job.langBilingual.slice(0, 2).map((id) => {
-                          const l = LANGUAGES.find((lang) => lang.id === id);
-                          return <span key={id} className="text-[12px]">{l?.flag ?? id.toUpperCase()}</span>;
-                        })}
-                      </div>
-                    ) : job.lang ? (
-                      <div className="flex items-center gap-[2px]">
-                        <span className="text-[12px]">{LANGUAGES.find((lang) => lang.id === job.lang)?.flag ?? ""}</span>
-                        <span className="font-medium text-[10px] text-muted-foreground">{job.lang === "auto" ? "Auto" : job.lang.toUpperCase()}</span>
-                      </div>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground">-</span>
-                    )}
-                  </div>
-
-                  {/* Translation column */}
-                  <div className="w-[52px] shrink-0 flex items-center justify-center">
-                    {job.translationLang ? (
-                      <div className="flex items-center gap-[2px]">
-                        <span className="text-[12px]">{LANGUAGES.find((lang) => lang.id === job.translationLang)?.flag ?? ""}</span>
-                        <span className="font-medium text-[10px] text-muted-foreground">{job.translationLang.toUpperCase()}</span>
-                      </div>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground">-</span>
-                    )}
-                  </div>
-
-                  {/* Duration */}
-                  <div className="w-[52px] shrink-0 text-right">
-                    <span className="text-[11px] text-muted-foreground">
-                      {job.duration ?? (isDone || isError ? "-" : "")}
-                    </span>
-                  </div>
-
-                  {/* Status area */}
-                  <div className="w-[160px] shrink-0 flex items-center justify-end gap-[5px]">
-                    {isActive && (
-                      <div className="flex items-center gap-[8px] w-full">
-                        <span className="min-w-[64px] text-[10px] text-muted-foreground text-right">{statusLabel}</span>
-                        <div className="h-[6px] flex-1 rounded-full overflow-hidden bg-muted">
-                          <div
-                            className="h-full transition-all duration-300"
-                            style={{
-                              width: `${phasePct}%`,
-                              background: job.status === "processing"
-                                ? "linear-gradient(90deg,#2563eb,#7c3aed)"
-                                : "var(--primary)",
-                            }}
-                          />
-                        </div>
-                        <span className="font-medium text-[11px] text-primary min-w-[30px] text-right">
-                          {phasePct}%
-                        </span>
-                      </div>
-                    )}
-                    {isConnecting && (
-                      <div className="flex items-center gap-[6px] text-muted-foreground">
-                        <Icon icon={Loading03Icon} className="size-[13px] animate-spin text-primary" strokeWidth={2} />
-                        <span className="text-[11px] font-medium">Connecting…</span>
-                      </div>
-                    )}
-                    {isRecording && (
-                      <div className="flex items-center gap-[6px] text-destructive">
-                        <span className="relative flex size-[8px]"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" /><span className="relative inline-flex size-[8px] rounded-full bg-destructive" /></span>
-                        <span className="text-[11px] font-medium">Recording…</span>
-                      </div>
-                    )}
-                    {isDone && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          const recordState = mapJobToRecordState(job);
-                          try {
-                            window.sessionStorage.setItem(`uploaded-record:${job.id}`, JSON.stringify(recordState));
-                          } catch {
-                            // best-effort cache; navigation should still work without it
-                          }
-                          window.location.assign(`/transcriptions/${job.id}`);
-                        }}
-                        title="Open transcription"
-                        className="h-[28px] rounded-full pl-[9px] pr-[12px] flex items-center gap-[6px] transition-colors text-emerald-600 hover:bg-emerald-600/10"
-                      >
-                        <Icon icon={CheckmarkCircle02Icon} className="size-[15px]" strokeWidth={2} />
-                        <span className="font-semibold text-[12px]">Open</span>
-                      </Button>
-                    )}
-                    {isError && (
-                      <>
-                        {isBotFailed ? (
-                          <Button
-                            variant="ghost"
-                            onClick={() => reconnectBot(job.id)}
-                            title="Reconnect the meeting bot"
-                            className="h-[26px] rounded-full px-[10px] flex items-center gap-[5px] transition-colors text-primary hover:bg-primary/10"
-                          >
-                            <Icon icon={RefreshIcon} className="size-[12px]" strokeWidth={1.9} />
-                            <span className="font-semibold text-[11px]">Reconnect bot</span>
-                          </Button>
-                        ) : canRetry ? (
-                          <Button
-                            variant="ghost"
-                            onClick={() => retryJob(job.id)}
-                            title="Retry upload"
-                            className="h-[26px] rounded-full px-[10px] flex items-center gap-[5px] transition-colors text-destructive hover:bg-destructive/10"
-                          >
-                            <Icon icon={RefreshIcon} className="size-[12px]" strokeWidth={1.9} />
-                            <span className="font-semibold text-[11px]">Retry</span>
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            onClick={() => removeJob(job.id)}
-                            title="Remove and upload another file"
-                            className="h-[26px] rounded-full px-[10px] flex items-center gap-[5px] transition-colors text-foreground hover:bg-accent"
-                          >
-                            <Icon icon={Upload} className="size-[12px]" strokeWidth={1.8} />
-                            <span className="font-semibold text-[11px]">Re-upload</span>
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeJob(job.id)}
-                          title="Dismiss"
-                          className="size-[24px] rounded-full flex items-center justify-center hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                        >
-                          <Icon icon={X} className="size-[11px]" strokeWidth={2} />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </>
-    </div>,
-    document.body
+  const { jobs, retryJob, reconnectBot, removeJob } = useTranscriptionModals();
+  if (isMobile) return <MobileProcessing />;
+  return (
+    <ProgressWidget
+      jobs={jobs}
+      onRetry={retryJob}
+      onReconnect={reconnectBot}
+      onRemove={removeJob}
+    />
   );
 }
