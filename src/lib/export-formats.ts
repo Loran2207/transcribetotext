@@ -720,7 +720,14 @@ async function buildPlanEntries(plan: ExportFilePlan): Promise<ZipEntry[]> {
 function extOf(name: string): string { const m = name.match(/\.([a-z0-9]+)$/i); return m ? m[1].toLowerCase() : "file"; }
 
 /** Executes per-file plans; single file downloads directly, several files zip. Returns a manifest for the success screen. */
-export async function runExportPlan(plans: ExportFilePlan[], zipName?: string): Promise<ExportManifest> {
+/* opts.zip === false hands the files over one by one instead of packing them.
+   Packing is the expensive path: the server has to pull every file out of
+   storage and build the archive before anything reaches the user. */
+export async function runExportPlan(
+  plans: ExportFilePlan[],
+  zipName?: string,
+  opts?: { zip?: boolean }
+): Promise<ExportManifest> {
   const active = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio || p.includeTranslation);
   if (!active.length) throw new Error("Nothing selected to export");
   const entries: ZipEntry[] = [];
@@ -734,6 +741,10 @@ export async function runExportPlan(plans: ExportFilePlan[], zipName?: string): 
     const mime = active[0].includeTranscript ? FORMAT_META[fmt].mime : "text/plain";
     triggerDownload(new Blob([entries[0].data as BlobPart], { type: mime }), entries[0].name);
     return { downloadName: entries[0].name, zipped: false, files };
+  }
+  if (opts && opts.zip === false) {
+    for (const e of entries) triggerDownload(new Blob([e.data as BlobPart]), e.name);
+    return { downloadName: `${entries.length} files`, zipped: false, files };
   }
   const fallback = active.length === 1 ? `${safeFilename(active[0].record.title)}.zip` : `transcripts-${active.length}.zip`;
   const name = zipName ? (zipName.toLowerCase().endsWith('.zip') ? zipName : `${zipName}.zip`) : fallback;

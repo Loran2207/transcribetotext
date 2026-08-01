@@ -160,6 +160,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   const [shared, setShared] = useState<FileSettings>(DEFAULT_SETTINGS);
   const [exportName, setExportName] = useState("");
   const [nameTouched, setNameTouched] = useState(false);
+  // Off by default: a zip costs the server a full download-and-pack pass.
+  const [zipEnabled, setZipEnabled] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [manifest, setManifest] = useState<ExportManifest | null>(null);
@@ -176,6 +178,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     const demo = typeof window !== "undefined" ? window.localStorage.getItem("ttt_export_demo") : null;
     // ttt_export_full: design-capture flag - every toggle on, options expanded (off by default)
     const full = typeof window !== "undefined" && window.localStorage.getItem("ttt_export_full") === "1";
+    // ttt_export_zip=1 opens the dialog with the archive switch on (design captures).
+    const zipOn = typeof window !== "undefined" && window.localStorage.getItem("ttt_export_zip") === "1";
+    setZipEnabled(zipOn);
     setItems(records);
     setActiveId(records[0]?.id ?? "");
     setShared(full ? { ...DEFAULT_SETTINGS, includeSummary: true, includeAudio: true, includeTranslation: true } : DEFAULT_SETTINGS);
@@ -243,8 +248,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     if (shared.includeSummary) mix.push(`${items.length}× summary`);
     if (shared.includeTranslation) mix.push(`${items.length}× ${shared.translationLanguage} translation`);
     if (shared.includeAudio) mix.push(`${items.length}× mp3`);
-    return `${mix.join(" · ")}  →  ${zipFileName}`;
-  }, [items, shared, fileCount, nothingSelected, zipFileName]);
+    return `${mix.join(" · ")}  →  ${zipEnabled ? zipFileName : "separate files"}`;
+  }, [items, shared, fileCount, nothingSelected, zipFileName, zipEnabled]);
 
   async function handleExport() {
     setPhase("processing");
@@ -254,7 +259,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         await new Promise((r) => setTimeout(r, Math.min(350, 900 / items.length)));
         setProgress(i + 1);
       }
-      const m = await runExportPlan(plans, zipFileName);
+      const m = await runExportPlan(plans, zipFileName, { zip: multi && zipEnabled });
       // Single-file export: no confirmation screen - download and close.
       if (m.files.length === 1) { toast.success(m.downloadName + " downloaded"); onClose(); return; }
       setManifest(m);
@@ -267,10 +272,24 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   /* ── settings panel (right) - one set of settings, applied to every file ── */
   const settingsPanel = (
     <div className="w-[340px] shrink-0 overflow-y-auto px-[24px] py-[6px] max-lg:w-full max-lg:shrink max-lg:overflow-visible max-lg:pb-[20px]">
-      {multi && (
-        <div className="border-b border-border py-[16px]">
-          <p className="font-semibold text-[14.5px] text-foreground">Export name</p>
-          <div className="relative mt-[10px]">
+      {/* How the files are handed over. Off by default: packing an archive
+          makes the server pull every file out of storage first. */}
+      <div className="border-b border-border py-[16px]">
+        <div className="flex items-center justify-between gap-[12px]">
+          <span className={multi ? "font-semibold text-[14.5px] text-foreground" : "font-semibold text-[14.5px] text-muted-foreground"}>
+            Download as ZIP archive
+          </span>
+          <Switch checked={multi && zipEnabled} onCheckedChange={setZipEnabled} disabled={!multi} />
+        </div>
+        <p className="mt-[8px] text-[11.5px] leading-[16px] text-muted-foreground">
+          {!multi
+            ? "A single file downloads on its own. An archive is only worth it for several files."
+            : zipEnabled
+              ? `All ${items.length} files are packed into one archive.`
+              : `Each of the ${items.length} files downloads on its own.`}
+        </p>
+        {multi && zipEnabled && (
+          <div className="relative mt-[12px]">
             <Input
               value={exportName}
               onChange={(e) => { setExportName(e.target.value); setNameTouched(true); }}
@@ -279,9 +298,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
             />
             <span className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 text-[12.5px] text-muted-foreground">.zip</span>
           </div>
-          <p className="mt-[8px] text-[11.5px] leading-[16px] text-muted-foreground">Settings below apply to all {items.length} files. They are packed into one zip archive.</p>
-        </div>
-      )}
+        )}
+        {multi && (
+          <p className="mt-[8px] text-[11.5px] leading-[16px] text-muted-foreground">Settings below apply to all {items.length} files.</p>
+        )}
+      </div>
 
       <SectionRow title="Transcript" enabled={shared.includeTranscript} onToggle={(v) => patchShared({ includeTranscript: v })}>
         <div className={shared.includeTranscript ? "mt-[12px] flex flex-col gap-[12px]" : "hidden"}>
@@ -408,7 +429,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               <p className="text-[13px] text-muted-foreground mb-[18px]">
                 {manifest.zipped
                   ? <>{manifest.files.length} files packed into <span className="font-medium text-foreground">{manifest.downloadName}</span></>
-                  : <><span className="font-medium text-foreground">{manifest.downloadName}</span> has been downloaded</>}
+                  : manifest.files.length > 1
+                    ? <><span className="font-medium text-foreground">{manifest.files.length} files</span> downloaded separately</>
+                    : <><span className="font-medium text-foreground">{manifest.downloadName}</span> has been downloaded</>}
               </p>
               <div className="w-[520px] max-w-full max-h-[240px] overflow-y-auto rounded-[12px] border border-border divide-y divide-border">
                 {manifest.files.map((f) => (

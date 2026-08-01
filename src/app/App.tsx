@@ -15,7 +15,7 @@ export default function App() {
           <FolderProvider>
             <TranscriptionModalsProvider userPlan="free">
               <RouterProvider router={router} />
-              <Toaster position="bottom-center" />
+              <Toaster position="top-right" expand visibleToasts={3} />
             </TranscriptionModalsProvider>
           </FolderProvider>
         </StarredProvider>
