@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { SourceIcon } from "./source-icons";
+import { LanguageFlag } from "./language-flag";
 import {
   FAB_RIGHT,
   HISTORY_FAB_RIGHT,
@@ -69,6 +70,16 @@ export function openQueue() {
   if (requestOpen) requestOpen();
 }
 
+function LangCell({ lang }: { lang?: string }) {
+  if (!lang) return null;
+  return (
+    <span className="inline-flex items-center gap-[5px]">
+      <LanguageFlag lang={lang} />
+      {lang}
+    </span>
+  );
+}
+
 function isInProgress(job: TranscriptionJob) {
   return IN_PROGRESS.includes(job.status);
 }
@@ -101,11 +112,13 @@ function whenLabel(iso?: string): string {
 
 function JobIcon({ job }: { job: TranscriptionJob }) {
   const failed = job.status === "error";
+  /* One neutral tile for everything that is running. The YouTube mark is red,
+     Meet is four colours, Zoom is blue - a tinted tile behind them only added a
+     second, arbitrary colour to each row. Failures keep their red, because
+     there the tile is the status. */
   const tint = failed
     ? "bg-destructive/10 text-destructive"
-    : job.fileType === "audio"
-      ? "bg-primary/8 text-primary"
-      : "bg-violet-500/8 text-violet-600";
+    : "bg-muted text-muted-foreground";
   return (
     <span className={"flex size-9 shrink-0 items-center justify-center rounded-[10px] " + tint}>
       {failed ? (
@@ -137,7 +150,7 @@ function JobRow({
 }) {
   const failed = job.status === "error";
   const pct = progressOf(job);
-  const meta = [whenLabel(job.createdAt), job.lang, job.duration].filter(Boolean) as string[];
+  const meta = [whenLabel(job.createdAt), job.duration].filter(Boolean) as string[];
   const errorLabel = failed
     ? (job.errorType ? ERROR_LABELS[job.errorType] ?? "Upload failed" : "Upload failed")
     : "";
@@ -154,14 +167,30 @@ function JobRow({
           {/* Narrow, the status joins the meta line: a phone has no room for a
               name, a status and a percentage on one row, and the name is the
               part that identifies the record. */}
-          <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground sm:hidden">
-            {failed
-              ? errorLabel
-              : [(STATUS_LABEL[job.status] ?? job.status) + (pct !== null ? " " + pct + "%" : ""), ...meta]
-                  .join("  ·  ")}
+          <p className="mt-0.5 flex items-center gap-[6px] truncate text-[11.5px] text-muted-foreground sm:hidden">
+            {failed ? (
+              errorLabel
+            ) : (
+              <>
+                <span>{(STATUS_LABEL[job.status] ?? job.status) + (pct !== null ? " " + pct + "%" : "")}</span>
+                <span>·</span>
+                <span>{whenLabel(job.createdAt)}</span>
+                <span>·</span>
+                <LangCell lang={job.lang} />
+              </>
+            )}
           </p>
-          <p className="mt-0.5 hidden truncate text-[11.5px] text-muted-foreground sm:block">
-            {failed ? errorLabel : meta.join("  ·  ")}
+          <p className="mt-0.5 hidden items-center gap-[6px] truncate text-[11.5px] text-muted-foreground sm:flex">
+            {failed ? (
+              errorLabel
+            ) : (
+              <>
+                <span>{whenLabel(job.createdAt)}</span>
+                <span>·</span>
+                <LangCell lang={job.lang} />
+                {job.duration ? (<><span>·</span><span>{job.duration}</span></>) : null}
+              </>
+            )}
           </p>
         </div>
 
@@ -367,14 +396,19 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
             {/* Two counters, the way notifications count: blue for what is
                 running, red for what broke. Either can stand alone. */}
             {(progressJobs.length > 0 || failedJobs.length > 0) && (
-              <span className="absolute -right-[7px] -top-[7px] flex items-center gap-[3px]">
+              <span className="absolute -right-[9px] -top-[9px] flex items-center">
                 {progressJobs.length > 0 && (
                   <span className="flex h-[20px] min-w-[20px] items-center justify-center rounded-full border-2 border-background bg-primary px-[4px] text-[10.5px] font-semibold text-primary-foreground">
                     {progressJobs.length}
                   </span>
                 )}
                 {failedJobs.length > 0 && (
-                  <span className="flex h-[20px] min-w-[20px] items-center justify-center rounded-full border-2 border-background bg-destructive px-[4px] text-[10.5px] font-semibold text-destructive-foreground">
+                  <span
+                    className={
+                      "relative flex h-[20px] min-w-[20px] items-center justify-center rounded-full border-2 border-background bg-destructive px-[4px] text-[10.5px] font-semibold text-destructive-foreground " +
+                      (progressJobs.length > 0 ? "-ml-[7px]" : "")
+                    }
+                  >
                     {failedJobs.length}
                   </span>
                 )}
@@ -393,16 +427,21 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
 
   return createPortal(
     <>
+      {/* a sheet needs the page behind it to step back */}
+      <div className={"fixed inset-0 bg-black/40 sm:hidden " + (confirm ? "z-[30]" : "z-[140]")} onClick={() => setExpanded(false)} />
       <div
-        className={"fixed flex flex-col overflow-hidden rounded-[16px] border border-border bg-popover " + layer}
-        style={{
-          right: FAB_RIGHT,
-          bottom: HISTORY_FAB_BOTTOM,
-          width: "620px",
-          maxWidth: "calc(100vw - 24px)",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)",
-        }}
+        /* A phone gets a sheet from the bottom edge, which is what the queue
+           always was there; a desktop keeps the panel hanging off its button. */
+        className={
+          "fixed flex flex-col overflow-hidden border border-border bg-popover " +
+          "max-sm:inset-x-0 max-sm:bottom-0 max-sm:max-h-[78vh] max-sm:rounded-b-none max-sm:rounded-t-[20px] max-sm:border-x-0 max-sm:border-b-0 " +
+          "sm:bottom-[92px] sm:right-[16px] sm:w-[620px] sm:max-w-[calc(100vw-24px)] sm:rounded-[16px] " +
+          layer
+        }
+        style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
       >
+        {/* the grabber a sheet is expected to have */}
+        <div className="mx-auto mt-[8px] h-[4px] w-[36px] shrink-0 rounded-full bg-border sm:hidden" />
         <div className="flex shrink-0 items-end justify-between border-b border-border px-4 pt-2">
           <Tabs value={tab} onValueChange={(v) => setTab(v === "failed" ? "failed" : "progress")} className="min-w-0 flex-1 gap-0">
             <TabsList variant="line" className="gap-6 border-b-0">
@@ -441,7 +480,7 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
           </div>
         </div>
 
-        <div className="max-h-[340px] overflow-y-auto">
+        <div className="overflow-y-auto max-sm:max-h-[calc(78vh-104px)] sm:max-h-[340px]">
           {rows.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <p className="text-[13px] text-muted-foreground">

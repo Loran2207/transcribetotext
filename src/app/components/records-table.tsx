@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import svgPaths from "../../imports/svg-jcr72uvvch";
 import { useStarred } from "./starred-context";
+import { LanguageFlag } from "./language-flag";
 import { SourceIcon, type SourceType } from "./source-icons";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -306,8 +307,12 @@ const languageFlags: Record<string, { flag: string; label: string }> = {
 };
 
 export function LanguageBadge({ lang }: { lang: string }) {
-  const info = languageFlags[lang] ?? { flag: "\u{1F310}", label: lang };
-  return <span className="text-[16px] leading-none" title={info.label}>{info.flag}</span>;
+  const info = languageFlags[lang] ?? { flag: "", label: lang };
+  return (
+    <span className="inline-flex items-center leading-none" title={info.label}>
+      <LanguageFlag lang={lang} size={18} />
+    </span>
+  );
 }
 
 /* ══════════════════════════════════════════════

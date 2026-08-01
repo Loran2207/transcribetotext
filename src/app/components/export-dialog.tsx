@@ -165,6 +165,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [manifest, setManifest] = useState<ExportManifest | null>(null);
+  /* On a phone the list of files is closed to start with. What the user came to
+     do is set the format and press Export; which files are in the batch they
+     already know, because they picked them. One line states it, and opens if
+     they want to change it. */
+  const [filesOpen, setFilesOpen] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const multi = items.length > 1;
@@ -451,8 +456,23 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
             <div className="flex h-full max-lg:flex-col max-lg:overflow-y-auto">
               {showNav && (
                 <nav className={"export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px] max-lg:w-full max-lg:shrink-0 max-lg:border-r-0 max-lg:border-b max-lg:flex-row max-lg:flex-wrap max-lg:items-center max-lg:px-[16px] max-lg:py-[10px] " + (multi || addable.length > 0 ? "" : "max-lg:hidden")}>
-                  <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground max-lg:px-0 max-lg:pb-0 max-lg:whitespace-nowrap">{items.length === 1 ? "1 file in this export" : `${items.length} files in this export`}</p>
-                  <div className="flex-1 min-h-0 overflow-y-auto px-[8px] flex flex-col gap-[2px] max-lg:order-last max-lg:mt-[6px] max-lg:w-full max-lg:max-h-[152px] max-lg:flex-none max-lg:overflow-x-hidden max-lg:px-0">
+                  <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground max-lg:hidden">{items.length === 1 ? "1 file" : `${items.length} files`}</p>
+                  <button
+                    type="button"
+                    onClick={() => setFilesOpen((v) => !v)}
+                    className="hidden w-full items-center justify-between gap-[10px] rounded-[10px] py-[4px] text-left max-lg:flex"
+                  >
+                    <span className="min-w-0 truncate text-[13px] font-medium text-foreground">
+                      {items.length === 1 ? "1 file in this export" : `${items.length} files in this export`}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-[4px] text-[12.5px] font-medium text-primary">
+                      {filesOpen ? "Hide" : "Change"}
+                      <svg className={"size-[12px] transition-transform " + (filesOpen ? "rotate-180" : "")} viewBox="0 0 16 16" fill="none">
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                  </button>
+                  <div className={"flex-1 min-h-0 overflow-y-auto px-[8px] flex flex-col gap-[2px] max-lg:order-last max-lg:mt-[6px] max-lg:w-full max-lg:max-h-[188px] max-lg:flex-none max-lg:overflow-x-hidden max-lg:px-0 " + (filesOpen ? "" : "max-lg:hidden")}>
                     {items.map((r) => {
                       const isActive = activeId === r.id;
                       return (
@@ -481,7 +501,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                     })}
                   </div>
                   {addable.length > 0 && (
-                    <div className="px-[8px] pt-[8px] mt-[8px] border-t border-border max-lg:ml-auto max-lg:mt-0 max-lg:shrink-0 max-lg:border-t-0 max-lg:px-0">
+                    <div className={"px-[8px] pt-[8px] mt-[8px] border-t border-border max-lg:order-last max-lg:mt-[6px] max-lg:w-full max-lg:border-t-0 max-lg:px-0 max-lg:pt-0 " + (filesOpen ? "" : "max-lg:hidden")}>
                       <Popover open={addOpen} onOpenChange={setAddOpen}>
                         <PopoverTrigger asChild>
                           <button type="button" className="flex w-full items-center gap-[8px] h-[34px] px-[14px] rounded-full text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/5 max-lg:h-[30px] max-lg:border max-lg:border-primary/25 max-lg:px-[12px]">
