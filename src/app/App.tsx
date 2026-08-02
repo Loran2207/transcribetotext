@@ -25,14 +25,13 @@ export default function App() {
                 mobileOffset={{ top: "68px", right: "12px", left: "12px" }}
                 toastOptions={{
                   classNames: {
-                    // One elevation for the whole stack, cast by the card on top.
-                    /* Light, and on every card. The cards behind are covered
-                       by the one in front, so their shadows only show at the
-                       edges that peek out - which is what makes the stack read
-                       as one object sitting above the page instead of a lit
-                       card with two flat slabs behind it. */
+                    /* One elevation for the whole stack, cast by the card on
+                       top. A shadow on every card draws a hairline under each
+                       edge that peeks out, and three lit cards read as three
+                       objects; the cards behind carry none, so the stack sits
+                       above the page as one. */
                     toast:
-                      "rounded-[14px] shadow-[0_10px_30px_-12px_rgba(16,24,40,0.085),0_3px_10px_-6px_rgba(16,24,40,0.04)]",
+                      "rounded-[14px] shadow-none data-[front=true]:shadow-[0_10px_30px_-12px_rgba(16,24,40,0.085),0_3px_10px_-6px_rgba(16,24,40,0.04)]",
                   },
                 }}
               />
