@@ -619,7 +619,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
             <DialogTitle className="px-[18px] pt-[16px] pb-[6px] text-[15px] font-semibold text-foreground">Add files to export</DialogTitle>
             <Command>
               <CommandInput placeholder="Search records…" />
-              <CommandList className="max-h-[46dvh]">
+              <CommandList className="max-h-[46dvh] pb-[8px]">
                 <CommandEmpty>No records found.</CommandEmpty>
                 <CommandGroup>
                   {addable.map((r) => (
