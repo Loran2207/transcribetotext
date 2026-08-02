@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/app/components/ui/dialog";
+import { Sheet, SheetContent } from "@/app/components/ui/sheet";
 import { Button } from "@/app/components/ui/button";
 import { Switch } from "@/app/components/ui/switch";
 import { Checkbox } from "@/app/components/ui/checkbox";
@@ -95,6 +96,51 @@ function formatBytes(b: number): string {
 
 function safeName(s: string): string {
   return (s.replace(/[\\/:*?"<>|]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "transcript");
+}
+
+/* The shared useIsMobile draws the line at 1024, because it means "compact
+   layout" and a tablet belongs there. A bottom sheet does not: the adaptives
+   put a centred card on a tablet and keep the sheet for the phone. */
+function useIsPhone() {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    const onChange = () => setPhone(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return phone;
+}
+
+/* On a phone this project puts a modal on the bottom edge, full width, with
+   only its top corners rounded - the sort sheet and the move-to-folder sheet
+   are both built that way. On a tablet and up it is a centred card. The body
+   is written once and the shell changes under it. */
+function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  sheetClass?: string;
+  dialogClass?: string;
+  children: React.ReactNode;
+}) {
+  const isPhone = useIsPhone();
+  if (isPhone) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className={"rounded-t-[22px] p-0 gap-0 flex flex-col " + (sheetClass || "")}>
+          {children}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={"p-0 gap-0 overflow-hidden flex flex-col " + (dialogClass || "")} aria-describedby={undefined}>
+        {children}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function SectionRow({ title, enabled, onToggle, disabled, children }: {
@@ -382,14 +428,18 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   );
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="p-0 gap-0 overflow-hidden flex flex-col bg-background lg:max-w-[960px] max-lg:max-w-none! max-lg:h-[100dvh] max-lg:top-0 max-lg:left-0 max-lg:translate-x-0 max-lg:translate-y-0 max-lg:rounded-none max-lg:border-0" aria-describedby={undefined}>
-        <div className="flex items-center justify-between px-[24px] h-[52px] border-b border-border max-lg:shrink-0">
+    <Modal
+      open={open}
+      onOpenChange={(o) => { if (!o) onClose(); }}
+      sheetClass="bg-background max-h-[88dvh]"
+      dialogClass="bg-background lg:max-w-[960px]! sm:max-w-[560px] max-lg:max-h-[86dvh]"
+    >
+        <div className="flex items-center justify-between px-[20px] h-[52px] border-b border-border shrink-0 max-md:px-[20px] max-md:h-[58px]">
           <DialogTitle className="font-semibold text-[17px] text-foreground">Export</DialogTitle>
         </div>
 
         {/* Body - fixed height so toggling options never resizes the dialog */}
-        <div className="h-[520px] max-lg:h-auto max-lg:flex-1 max-lg:min-h-0">
+        <div className="h-[520px] max-lg:h-auto max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-hidden">
           {phase === "processing" ? (
             <div className="flex h-full flex-col items-center justify-center px-[24px]">
               <div className="size-[64px] rounded-full bg-primary/5 flex items-center justify-center mb-[18px]">
@@ -557,18 +607,17 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           )}
         </div>
 
-        {/* Below lg the file column is a dialog, like every other modal in the
-            app: it dims what is behind it and it keeps what the desktop column
-            has - which file is selected, the remove, and a separate button that
-            opens the picker with its search. */}
-        {/* Below lg the file column is a dialog, built the way every other
-            modal in this app is: it dims what is behind it, it keeps what the
+        {/* Below lg the file column moves into its own modal: it keeps what the
             desktop column has - which file is selected and the remove - and the
             adding is a separate button that opens the picker with its search. */}
-        <Dialog open={filesOpen} onOpenChange={setFilesOpen}>
-          <DialogContent className="p-0 gap-0 overflow-hidden flex flex-col max-w-[calc(100vw-32px)] max-h-[76dvh] lg:hidden" aria-describedby={undefined}>
-            <div className="flex shrink-0 items-center px-[18px] h-[52px] border-b border-border">
-              <DialogTitle className="text-[15px] font-semibold text-foreground">Files in this export</DialogTitle>
+        <Modal
+          open={filesOpen}
+          onOpenChange={setFilesOpen}
+          sheetClass="max-h-[76dvh] lg:hidden"
+          dialogClass="sm:max-w-[440px] max-h-[70dvh] lg:hidden"
+        >
+            <div className="flex shrink-0 items-center px-[20px] h-[52px] max-md:h-[58px] border-b border-border">
+              <DialogTitle className="text-[16px] font-semibold text-foreground">Files in this export</DialogTitle>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-[10px] py-[8px] flex flex-col gap-[2px]">
               {items.map((r) => {
@@ -609,17 +658,20 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                 {addable.length === 0 ? "Nothing left to add" : "Add files to export"}
               </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+        </Modal>
 
         {/* The picker, the same Command with its search that the desktop opens
             in a popover - on a phone a popover would be a postage stamp. */}
-        <Dialog open={addOpenMobile} onOpenChange={setAddOpenMobile}>
-          <DialogContent className="p-0 gap-0 overflow-hidden max-w-[calc(100vw-32px)] lg:hidden" aria-describedby={undefined}>
-            <DialogTitle className="px-[18px] pt-[16px] pb-[6px] text-[15px] font-semibold text-foreground">Add files to export</DialogTitle>
+        <Modal
+          open={addOpenMobile}
+          onOpenChange={setAddOpenMobile}
+          sheetClass="max-h-[72dvh] lg:hidden"
+          dialogClass="sm:max-w-[440px] lg:hidden"
+        >
+            <DialogTitle className="px-[20px] pt-[18px] pb-[8px] text-[16px] font-semibold text-foreground">Add files to export</DialogTitle>
             <Command>
               <CommandInput placeholder="Search records…" />
-              <CommandList className="max-h-[46dvh] pb-[8px]">
+              <CommandList className="max-h-[46dvh] pb-[8px] max-md:pb-[18px]">
                 <CommandEmpty>No records found.</CommandEmpty>
                 <CommandGroup>
                   {addable.map((r) => (
@@ -630,8 +682,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                 </CommandGroup>
               </CommandList>
             </Command>
-          </DialogContent>
-        </Dialog>
+        </Modal>
 
         {/* Footer */}
         <div className="flex items-center gap-[12px] px-[24px] h-[60px] border-t border-border bg-background max-lg:shrink-0">
@@ -678,7 +729,6 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
             </>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </Modal>
   );
 }
