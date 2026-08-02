@@ -445,7 +445,7 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
           "sm:bottom-[92px] sm:right-[16px] sm:w-[620px] sm:max-w-[calc(100vw-24px)] sm:rounded-[16px] " +
           layer
         }
-        style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
+        style={{ boxShadow: "0 22px 60px rgba(16,24,40,0.09), 0 6px 18px rgba(16,24,40,0.035)" }}
       >
         {/* the grabber a sheet is expected to have */}
         <div className="mx-auto mt-[8px] h-[4px] w-[36px] shrink-0 rounded-full bg-border sm:hidden" />

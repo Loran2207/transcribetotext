@@ -32,7 +32,7 @@ export default function App() {
                        as one object sitting above the page instead of a lit
                        card with two flat slabs behind it. */
                     toast:
-                      "rounded-[14px] shadow-[0_6px_18px_-6px_rgba(16,24,40,0.14),0_2px_6px_-3px_rgba(16,24,40,0.07)]",
+                      "rounded-[14px] shadow-[0_10px_30px_-12px_rgba(16,24,40,0.085),0_3px_10px_-6px_rgba(16,24,40,0.04)]",
                   },
                 }}
               />

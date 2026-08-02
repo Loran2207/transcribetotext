@@ -169,6 +169,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
      a desktop anyway - a panel you open. A labelled button reveals it over the
      dialog, with the same remove and the same add inside. */
   const [filesOpen, setFilesOpen] = useState(false);
+  const [addOpenMobile, setAddOpenMobile] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const multi = items.length > 1;
@@ -465,10 +466,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                   <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
                     {items.length === 1 ? "1 file in this export" : `${items.length} files in this export`}
                   </span>
-                  <span className="flex shrink-0 items-center gap-[2px] text-[12.5px] font-medium text-primary">
-                    Change
-                    <Icon icon={ArrowRight01Icon} size={14} strokeWidth={2} />
-                  </span>
+                  <Icon icon={ArrowRight01Icon} size={16} strokeWidth={2} className="shrink-0 text-muted-foreground" />
                 </button>
               )}
               {showNav && (
@@ -544,65 +542,81 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           )}
         </div>
 
-        {/* Below lg the file column lives here instead: over the dialog, with
-            room for long names, the same remove, and the records that are still
-            outside the export listed underneath so adding is one tap. */}
-        {filesOpen && (
-          <div className="absolute inset-0 z-30 flex flex-col justify-end lg:hidden">
-            <button
-              type="button"
-              aria-label="Close the file list"
-              onClick={() => setFilesOpen(false)}
-              className="absolute inset-0 bg-black/40"
-            />
-            <div className="relative flex max-h-[84%] flex-col rounded-t-[20px] border-t border-border bg-background">
-              <div className="mx-auto mt-[8px] h-[4px] w-[36px] shrink-0 rounded-full bg-border" />
-              <div className="flex shrink-0 items-center justify-between gap-[12px] px-[18px] pb-[10px] pt-[12px]">
-                <p className="text-[15px] font-semibold text-foreground">Files in this export</p>
-                <Button variant="ghost" onClick={() => setFilesOpen(false)} className="h-[30px] px-[12px] text-[13px] font-medium text-primary">
-                  Done
-                </Button>
-              </div>
-              <div className="min-h-0 flex-1 overflow-y-auto px-[10px] pb-[18px]">
-                {items.map((r) => (
-                  <div key={r.id} className="flex items-center gap-[8px] rounded-[10px] px-[8px] py-[9px]">
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] text-foreground">{r.title}</span>
+        {/* Below lg the file column is a dialog, like every other modal in the
+            app: it dims what is behind it and it keeps what the desktop column
+            has - which file is selected, the remove, and a separate button that
+            opens the picker with its search. */}
+        {/* Below lg the file column is a dialog, built the way every other
+            modal in this app is: it dims what is behind it, it keeps what the
+            desktop column has - which file is selected and the remove - and the
+            adding is a separate button that opens the picker with its search. */}
+        <Dialog open={filesOpen} onOpenChange={setFilesOpen}>
+          <DialogContent className="p-0 gap-0 overflow-hidden flex flex-col max-w-[calc(100vw-32px)] max-h-[76dvh] lg:hidden" aria-describedby={undefined}>
+            <div className="flex shrink-0 items-center px-[18px] h-[52px] border-b border-border">
+              <DialogTitle className="text-[15px] font-semibold text-foreground">Files in this export</DialogTitle>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-[10px] py-[8px] flex flex-col gap-[2px]">
+              {items.map((r) => {
+                const isActive = activeId === r.id;
+                return (
+                  <div
+                    key={r.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveId(r.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setActiveId(r.id); }}
+                    className={"flex w-full items-center gap-[8px] h-[40px] pl-[14px] pr-[8px] rounded-full text-[13px] cursor-pointer " +
+                      (isActive ? "bg-primary/5 text-primary font-medium" : "text-foreground/85")}
+                  >
+                    <span className="flex-1 min-w-0 truncate text-left">{r.title}</span>
                     {items.length > 1 && (
                       <button
                         type="button"
                         aria-label="Remove from export"
-                        onClick={() => removeItem(r.id)}
-                        className="flex size-[28px] shrink-0 items-center justify-center rounded-full text-muted-foreground"
+                        onClick={(e) => { e.stopPropagation(); removeItem(r.id); }}
+                        className="shrink-0 size-[26px] rounded-full inline-flex items-center justify-center text-muted-foreground"
                       >
-                        <Icon icon={Cancel01Icon} size={13} strokeWidth={2} />
+                        <Icon icon={Cancel01Icon} size={12} strokeWidth={2} />
                       </button>
                     )}
                   </div>
-                ))}
-                {addable.length > 0 && (
-                  <>
-                    <p className="mt-[8px] border-t border-border px-[8px] pb-[4px] pt-[14px] text-[11.5px] font-medium text-muted-foreground">
-                      Add from your records
-                    </p>
-                    {addable.map((r) => (
-                      <button
-                        key={r.id}
-                        type="button"
-                        onClick={() => addItem(r)}
-                        className="flex w-full items-center gap-[8px] rounded-[10px] px-[8px] py-[9px] text-left"
-                      >
-                        <span className="min-w-0 flex-1 truncate text-[13.5px] text-foreground/75">{r.title}</span>
-                        <span className="flex size-[28px] shrink-0 items-center justify-center rounded-full border border-primary/25 text-primary">
-                          <Icon icon={Add01Icon} size={13} strokeWidth={2} />
-                        </span>
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
+                );
+              })}
             </div>
-          </div>
-        )}
+            <div className="shrink-0 border-t border-border p-[12px]">
+              <Button
+                variant="pill-outline"
+                disabled={addable.length === 0}
+                onClick={() => setAddOpenMobile(true)}
+                className="w-full h-[38px] gap-[8px] text-[13px] font-medium"
+              >
+                <Icon icon={Add01Icon} size={14} strokeWidth={2} />
+                {addable.length === 0 ? "Nothing left to add" : "Add files to export"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* The picker, the same Command with its search that the desktop opens
+            in a popover - on a phone a popover would be a postage stamp. */}
+        <Dialog open={addOpenMobile} onOpenChange={setAddOpenMobile}>
+          <DialogContent className="p-0 gap-0 overflow-hidden max-w-[calc(100vw-32px)] lg:hidden" aria-describedby={undefined}>
+            <DialogTitle className="px-[18px] pt-[16px] pb-[6px] text-[15px] font-semibold text-foreground">Add files to export</DialogTitle>
+            <Command>
+              <CommandInput placeholder="Search records…" />
+              <CommandList className="max-h-[46dvh]">
+                <CommandEmpty>No records found.</CommandEmpty>
+                <CommandGroup>
+                  {addable.map((r) => (
+                    <CommandItem key={r.id} value={r.title} onSelect={() => { addItem(r); setAddOpenMobile(false); }}>
+                      <span className="truncate">{r.title}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </DialogContent>
+        </Dialog>
 
         {/* Footer */}
         <div className="flex items-center gap-[12px] px-[24px] h-[60px] border-t border-border bg-background max-lg:shrink-0">
