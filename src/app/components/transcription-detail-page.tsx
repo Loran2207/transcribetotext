@@ -157,31 +157,21 @@ function splitWords(text: string): string[] {
   return out;
 }
 
-/* Three ways to mark the line being spoken. The accent colour is the same in
-   all of them - what changes is how much of it lands on the line:
+/* One way to mark the line being spoken: the sentence turns blue, and the word
+   being said right now carries a wash of the same blue.
 
-     color  the sentence turns blue, nothing else
-     tint   the sentence turns blue on a wash of the same blue
-     word   the sentence turns blue and the word being said carries the wash
+   The wash is painted with a spread shadow rather than padding. Padding makes
+   the word six pixels wider than it is when silent, so the paragraph re-wraps
+   at every step of the playhead; cancelling that with a negative margin leaves
+   the box wider than the text advances, and the Figma converter turns the
+   difference into a gap in front of the word. A shadow paints outside the box
+   and changes no measurement at all.
 
-   None of them change the font weight: the paragraph would re-wrap every time
-   the playhead crossed a sentence, and the whole column would twitch.
-   ttt_demo_highlight = color | tint | word. */
-const HIGHLIGHT_TONE: Record<string, string> = {
-  color: "bg-transparent text-primary",
-  tint: "rounded-[5px] bg-primary/10 px-1 text-primary [box-decoration-break:clone]",
-  word: "bg-transparent text-primary",
-};
-
-function highlightFlag(): string {
-  let flag = "word";
-  try { flag = window.localStorage.getItem("ttt_demo_highlight") || "word"; } catch { /* ignore */ }
-  return HIGHLIGHT_TONE[flag] ? flag : "word";
-}
-
-function highlightTone(): string {
-  return HIGHLIGHT_TONE[highlightFlag()];
-}
+   Solid token, not an opacity modifier - those compile to color-mix() and the
+   capture drops them. Nothing changes the font weight, for the same reason
+   padding is avoided. */
+const ACTIVE_SENTENCE = "bg-transparent text-primary";
+const ACTIVE_WORD = "rounded-[3px] bg-primary-wash py-[2px] text-primary";
 
 function timestampToSeconds(timestamp: string) {
   const parts = timestamp.split(":").map((part) => Number(part));
@@ -753,29 +743,32 @@ function TranscriptSegment({
                 // Still to come: plain.
                 if (i > activeSentence) return <span key={i}>{part}</span>;
                 // Word by word, the sentence stays plain and one word carries it.
-                if (highlightFlag() === "word" && activeWord !== null && activeWord !== undefined) {
+                if (activeWord !== null && activeWord !== undefined) {
+                  /* Three nodes, not one per word. A span around every word and
+                     every space is invisible in the browser and a minefield in
+                     the frame: the converter lays every inline box out on its
+                     own, and the rounding between them adds up to a visible gap
+                     in front of the word being spoken. */
+                  const parts = splitWords(part);
                   let seen = -1;
-                  return (
-                    <span key={i} className="text-primary">
-                      {splitWords(part).map((w, j) => {
-                        if (w === " ") return <span key={j}> </span>;
-                        seen += 1;
-                        return seen === activeWord ? (
-                          <mark
-                            key={j}
-                            className="-mx-[3px] rounded-[4px] bg-primary/18 px-[3px] text-primary [box-decoration-break:clone]"
-                          >
-                            {w}
-                          </mark>
-                        ) : (
-                          <span key={j}>{w}</span>
-                        );
-                      })}
-                    </span>
-                  );
+                  let cut = -1;
+                  for (let k = 0; k < parts.length; k++) {
+                    if (parts[k] === " ") continue;
+                    seen += 1;
+                    if (seen === activeWord) { cut = k; break; }
+                  }
+                  if (cut >= 0) {
+                    return (
+                      <span key={i} className="text-primary">
+                        {parts.slice(0, cut).join("")}
+                        <mark className={ACTIVE_WORD}>{parts[cut]}</mark>
+                        {parts.slice(cut + 1).join("")}
+                      </span>
+                    );
+                  }
                 }
                 return (
-                  <mark key={i} className={highlightTone()}>
+                  <mark key={i} className={ACTIVE_SENTENCE}>
                     {part}
                   </mark>
                 );
@@ -1944,10 +1937,12 @@ export function TranscriptionDetailPage() {
     })),
     [previewSegments],
   );
-  /* ttt_demo_playback=cases swaps in replicas of very different lengths, so the
-     highlight can be judged on a one-word answer as well as a paragraph. */
+  /* ttt_demo_playback=cases* swaps in replicas of very different lengths, so
+     the highlight can be judged on a one-word answer as well as on a paragraph.
+     The three parking spots sit in a question, in that one word, and in the
+     paragraph - all of which need this set, not only the first. */
   const showCases = (() => {
-    try { return window.localStorage.getItem("ttt_demo_playback") === "cases"; } catch { return false; }
+    try { return (window.localStorage.getItem("ttt_demo_playback") || "").startsWith("cases"); } catch { return false; }
   })();
   const contentSegments = useMemo<Segment[]>(
     () => (showCases

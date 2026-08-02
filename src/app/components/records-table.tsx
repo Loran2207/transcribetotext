@@ -4,7 +4,6 @@ import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import svgPaths from "../../imports/svg-jcr72uvvch";
 import { useStarred } from "./starred-context";
-import { LanguageFlag } from "./language-flag";
 import { SourceIcon, type SourceType } from "./source-icons";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -307,12 +306,8 @@ const languageFlags: Record<string, { flag: string; label: string }> = {
 };
 
 export function LanguageBadge({ lang }: { lang: string }) {
-  const info = languageFlags[lang] ?? { flag: "", label: lang };
-  return (
-    <span className="inline-flex items-center leading-none" title={info.label}>
-      <LanguageFlag lang={lang} size={18} />
-    </span>
-  );
+  const info = languageFlags[lang] ?? { flag: "\u{1F310}", label: lang };
+  return <span className="text-[16px] leading-none" title={info.label}>{info.flag}</span>;
 }
 
 /* ══════════════════════════════════════════════
@@ -1302,7 +1297,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.localStorage.getItem("ttt_exportsome") !== "1") return;
-    const few = filteredRecords.slice(0, 3).map((r) => r.id);
+    const few = filteredRecords.slice(0, 6).map((r) => r.id);
     if (few.length === 0) return;
     const t = setTimeout(() => setExportDialogIds(few), 600);
     return () => clearTimeout(t);

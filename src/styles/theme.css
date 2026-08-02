@@ -105,6 +105,9 @@
   --success: rgb(4, 146, 100);
   --success-wash: rgb(226, 246, 239);
   --destructive-wash: rgb(253, 234, 234);
+  /* The word being spoken sits on this. Same reason it is solid: the accent at
+     fifteen percent compiles to color-mix() and the capture drops it. */
+  --primary-wash: rgb(222, 232, 252);
   /* Dark neutral used for OAuth / "on-brand" dark buttons. Slate-tinted so it harmonizes with --primary. */
   --oauth: oklch(0.208 0.042 265.755);
   --oauth-hover: oklch(0.279 0.041 260.031);
@@ -137,6 +140,7 @@
   --color-success: var(--success);
   --color-success-wash: var(--success-wash);
   --color-destructive-wash: var(--destructive-wash);
+  --color-primary-wash: var(--primary-wash);
   --color-oauth: var(--oauth);
   --color-oauth-hover: var(--oauth-hover);
   --color-oauth-foreground: var(--oauth-foreground);

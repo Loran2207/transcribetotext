@@ -22,7 +22,6 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { SourceIcon } from "./source-icons";
-import { LanguageFlag } from "./language-flag";
 import {
   FAB_RIGHT,
   HISTORY_FAB_RIGHT,
@@ -70,11 +69,23 @@ export function openQueue() {
   if (requestOpen) requestOpen();
 }
 
+/* The table shows a flag beside the language, so the queue does too, from the
+   same emoji the rest of the project uses. Jobs carry the language by name. */
+const LANG_FLAG: Record<string, string> = {
+  English: "\u{1F1FA}\u{1F1F8}",
+  Russian: "\u{1F1F7}\u{1F1FA}",
+  Spanish: "\u{1F1EA}\u{1F1F8}",
+  German: "\u{1F1E9}\u{1F1EA}",
+  French: "\u{1F1EB}\u{1F1F7}",
+  Japanese: "\u{1F1EF}\u{1F1F5}",
+};
+
 function LangCell({ lang }: { lang?: string }) {
   if (!lang) return null;
+  const flag = LANG_FLAG[lang];
   return (
     <span className="inline-flex items-center gap-[5px]">
-      <LanguageFlag lang={lang} />
+      {flag ? <span className="text-[13px] leading-none">{flag}</span> : null}
       {lang}
     </span>
   );
@@ -278,10 +289,6 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
       setTab(flag === "expanded_failed" ? "failed" : "progress");
     }
   }, []);
-
-  useEffect(() => {
-    if (tab === "failed" && failedJobs.length === 0 && progressJobs.length > 0) setTab("progress");
-  }, [tab, failedJobs.length, progressJobs.length]);
 
   useEffect(() => {
     requestOpen = () => {

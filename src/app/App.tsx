@@ -26,11 +26,13 @@ export default function App() {
                 toastOptions={{
                   classNames: {
                     // One elevation for the whole stack, cast by the card on top.
-                    /* Light, not hard. Collapsed, only the card on top casts
-                       one - three shadows on a stack turn the edges to smear.
-                       Expanded, every card is its own card again. */
+                    /* Light, and on every card. The cards behind are covered
+                       by the one in front, so their shadows only show at the
+                       edges that peek out - which is what makes the stack read
+                       as one object sitting above the page instead of a lit
+                       card with two flat slabs behind it. */
                     toast:
-                      "rounded-[14px] shadow-none data-[front=true]:shadow-[0_6px_18px_-6px_rgba(16,24,40,0.14),0_2px_6px_-3px_rgba(16,24,40,0.07)] data-[expanded=true]:shadow-[0_6px_18px_-6px_rgba(16,24,40,0.14),0_2px_6px_-3px_rgba(16,24,40,0.07)]",
+                      "rounded-[14px] shadow-[0_6px_18px_-6px_rgba(16,24,40,0.14),0_2px_6px_-3px_rgba(16,24,40,0.07)]",
                   },
                 }}
               />

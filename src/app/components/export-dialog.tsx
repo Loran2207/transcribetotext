@@ -14,7 +14,7 @@ import {
 } from "@/app/components/ui/command";
 import { Icon } from "@/app/components/ui/icon";
 import { toastExported } from "./app-toast";
-import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, ArrowRight01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon, LeftToRightListBulletIcon } from "@hugeicons/core-free-icons";
 import { usePlan } from "./use-plan";
 import { LANGUAGES } from "./language-context";
 import {
@@ -165,10 +165,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [manifest, setManifest] = useState<ExportManifest | null>(null);
-  /* On a phone the list of files is closed to start with. What the user came to
-     do is set the format and press Export; which files are in the batch they
-     already know, because they picked them. One line states it, and opens if
-     they want to change it. */
+  /* Below lg there is no room for the file column, so it becomes what it is on
+     a desktop anyway - a panel you open. A labelled button reveals it over the
+     dialog, with the same remove and the same add inside. */
   const [filesOpen, setFilesOpen] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -455,24 +454,27 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           ) : (
             <div className="flex h-full max-lg:flex-col max-lg:overflow-y-auto">
               {showNav && (
-                <nav className={"export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px] max-lg:w-full max-lg:shrink-0 max-lg:border-r-0 max-lg:border-b max-lg:flex-row max-lg:flex-wrap max-lg:items-center max-lg:px-[16px] max-lg:py-[10px] " + (multi || addable.length > 0 ? "" : "max-lg:hidden")}>
-                  <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground max-lg:hidden">{items.length === 1 ? "1 file" : `${items.length} files`}</p>
-                  <button
-                    type="button"
-                    onClick={() => setFilesOpen((v) => !v)}
-                    className="hidden w-full items-center justify-between gap-[10px] rounded-[10px] py-[4px] text-left max-lg:flex"
-                  >
-                    <span className="min-w-0 truncate text-[13px] font-medium text-foreground">
-                      {items.length === 1 ? "1 file in this export" : `${items.length} files in this export`}
-                    </span>
-                    <span className="flex shrink-0 items-center gap-[4px] text-[12.5px] font-medium text-primary">
-                      {filesOpen ? "Hide" : "Change"}
-                      <svg className={"size-[12px] transition-transform " + (filesOpen ? "rotate-180" : "")} viewBox="0 0 16 16" fill="none">
-                        <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </span>
-                  </button>
-                  <div className={"flex-1 min-h-0 overflow-y-auto px-[8px] flex flex-col gap-[2px] max-lg:order-last max-lg:mt-[6px] max-lg:w-full max-lg:max-h-[188px] max-lg:flex-none max-lg:overflow-x-hidden max-lg:px-0 " + (filesOpen ? "" : "max-lg:hidden")}>
+                <button
+                  type="button"
+                  onClick={() => setFilesOpen(true)}
+                  className="flex w-full shrink-0 items-center gap-[10px] border-b border-border px-[16px] py-[10px] text-left lg:hidden"
+                >
+                  <span className="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] bg-muted text-muted-foreground">
+                    <Icon icon={LeftToRightListBulletIcon} size={15} strokeWidth={1.8} />
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
+                    {items.length === 1 ? "1 file in this export" : `${items.length} files in this export`}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-[2px] text-[12.5px] font-medium text-primary">
+                    Change
+                    <Icon icon={ArrowRight01Icon} size={14} strokeWidth={2} />
+                  </span>
+                </button>
+              )}
+              {showNav && (
+                <nav className="export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px] max-lg:hidden">
+                  <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground">{items.length === 1 ? "1 file" : `${items.length} files`}</p>
+                  <div className="flex-1 min-h-0 overflow-y-auto px-[8px] flex flex-col gap-[2px]">
                     {items.map((r) => {
                       const isActive = activeId === r.id;
                       return (
@@ -500,14 +502,18 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                       );
                     })}
                   </div>
-                  {addable.length > 0 && (
-                    <div className={"px-[8px] pt-[8px] mt-[8px] border-t border-border max-lg:order-last max-lg:mt-[6px] max-lg:w-full max-lg:border-t-0 max-lg:px-0 max-lg:pt-0 " + (filesOpen ? "" : "max-lg:hidden")}>
-                      <Popover open={addOpen} onOpenChange={setAddOpen}>
+                  {/* Always here, so the export never looks like a closed list.
+                      Spent, it says why rather than disappearing. */}
+                  <div className="px-[8px] pt-[8px] mt-[8px] border-t border-border">
+                      <Popover open={addOpen && addable.length > 0} onOpenChange={setAddOpen}>
                         <PopoverTrigger asChild>
-                          <button type="button" className="flex w-full items-center gap-[8px] h-[34px] px-[14px] rounded-full text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/5 max-lg:h-[30px] max-lg:border max-lg:border-primary/25 max-lg:px-[12px]">
+                          <button
+                            type="button"
+                            disabled={addable.length === 0}
+                            className="flex w-full items-center gap-[8px] h-[34px] px-[14px] rounded-full text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/5 disabled:cursor-default disabled:text-muted-foreground disabled:hover:bg-transparent"
+                          >
                             <Icon icon={Add01Icon} size={13} strokeWidth={2} />
-                            <span className="max-lg:hidden">Add files to export</span>
-                            <span className="lg:hidden">Add files</span>
+                            <span className="truncate">{addable.length === 0 ? "Nothing left to add" : "Add files to export"}</span>
                           </button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[248px] max-w-[calc(100vw-32px)] p-0 max-lg:w-[300px]" align="end" side="bottom" sideOffset={6}>
@@ -526,8 +532,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                           </Command>
                         </PopoverContent>
                       </Popover>
-                    </div>
-                  )}
+                  </div>
                 </nav>
               )}
               {/* Center pane - live preview of the selected file */}
@@ -538,6 +543,66 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
             </div>
           )}
         </div>
+
+        {/* Below lg the file column lives here instead: over the dialog, with
+            room for long names, the same remove, and the records that are still
+            outside the export listed underneath so adding is one tap. */}
+        {filesOpen && (
+          <div className="absolute inset-0 z-30 flex flex-col justify-end lg:hidden">
+            <button
+              type="button"
+              aria-label="Close the file list"
+              onClick={() => setFilesOpen(false)}
+              className="absolute inset-0 bg-black/40"
+            />
+            <div className="relative flex max-h-[84%] flex-col rounded-t-[20px] border-t border-border bg-background">
+              <div className="mx-auto mt-[8px] h-[4px] w-[36px] shrink-0 rounded-full bg-border" />
+              <div className="flex shrink-0 items-center justify-between gap-[12px] px-[18px] pb-[10px] pt-[12px]">
+                <p className="text-[15px] font-semibold text-foreground">Files in this export</p>
+                <Button variant="ghost" onClick={() => setFilesOpen(false)} className="h-[30px] px-[12px] text-[13px] font-medium text-primary">
+                  Done
+                </Button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto px-[10px] pb-[18px]">
+                {items.map((r) => (
+                  <div key={r.id} className="flex items-center gap-[8px] rounded-[10px] px-[8px] py-[9px]">
+                    <span className="min-w-0 flex-1 truncate text-[13.5px] text-foreground">{r.title}</span>
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        aria-label="Remove from export"
+                        onClick={() => removeItem(r.id)}
+                        className="flex size-[28px] shrink-0 items-center justify-center rounded-full text-muted-foreground"
+                      >
+                        <Icon icon={Cancel01Icon} size={13} strokeWidth={2} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {addable.length > 0 && (
+                  <>
+                    <p className="mt-[8px] border-t border-border px-[8px] pb-[4px] pt-[14px] text-[11.5px] font-medium text-muted-foreground">
+                      Add from your records
+                    </p>
+                    {addable.map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => addItem(r)}
+                        className="flex w-full items-center gap-[8px] rounded-[10px] px-[8px] py-[9px] text-left"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-[13.5px] text-foreground/75">{r.title}</span>
+                        <span className="flex size-[28px] shrink-0 items-center justify-center rounded-full border border-primary/25 text-primary">
+                          <Icon icon={Add01Icon} size={13} strokeWidth={2} />
+                        </span>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="flex items-center gap-[12px] px-[24px] h-[60px] border-t border-border bg-background max-lg:shrink-0">
