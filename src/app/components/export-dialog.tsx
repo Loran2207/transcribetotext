@@ -9,6 +9,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/app/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/app/components/ui/command";
@@ -170,6 +171,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
      dialog, with the same remove and the same add inside. */
   const [filesOpen, setFilesOpen] = useState(false);
   const [addOpenMobile, setAddOpenMobile] = useState(false);
+  /* Below lg there is room for one pane at a time. Settings is what the export
+     is for, so it opens there; the transcript is one tap away rather than gone. */
+  const [mobilePane, setMobilePane] = useState<"settings" | "transcript">("settings");
   const [progress, setProgress] = useState(0);
 
   const multi = items.length > 1;
@@ -454,6 +458,17 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
             </div>
           ) : (
             <div className="flex h-full max-lg:flex-col max-lg:overflow-y-auto">
+              {/* Two panes, one at a time, in the app's own tab component. */}
+              <Tabs
+                value={mobilePane}
+                onValueChange={(v) => setMobilePane(v === "transcript" ? "transcript" : "settings")}
+                className="w-full shrink-0 border-b border-border px-[16px] py-[8px] lg:hidden"
+              >
+                <TabsList variant="line" className="w-full justify-start gap-[18px]">
+                  <TabsTrigger value="settings" variant="line" className="text-[13px]">Settings</TabsTrigger>
+                  <TabsTrigger value="transcript" variant="line" className="text-[13px]">Transcript</TabsTrigger>
+                </TabsList>
+              </Tabs>
               {showNav && (
                 <button
                   type="button"
@@ -534,10 +549,10 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                 </nav>
               )}
               {/* Center pane - live preview of the selected file */}
-              <div className="flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px] max-lg:hidden">
+              <div className={"flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px] max-lg:px-[16px] max-lg:py-[14px] " + (mobilePane === "transcript" ? "" : "max-lg:hidden")}>
                 {activeRecord && <TranscriptPreview record={activeRecord} options={shared.options} />}
               </div>
-              {settingsPanel}
+              <div className={mobilePane === "transcript" ? "max-lg:hidden contents" : "contents"}>{settingsPanel}</div>
             </div>
           )}
         </div>
