@@ -16,7 +16,7 @@ import {
 } from "@/app/components/ui/command";
 import { Icon } from "@/app/components/ui/icon";
 import { toastExported } from "./app-toast";
-import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, ArrowRight01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon, LeftToRightListBulletIcon } from "@hugeicons/core-free-icons";
+import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon, PencilEdit02Icon } from "@hugeicons/core-free-icons";
 import { usePlan } from "./use-plan";
 import { LANGUAGES } from "./language-context";
 import {
@@ -173,7 +173,7 @@ function TranscriptPreview({ record, options }: { record: ExportableRecord; opti
   return (
     <div className="flex flex-col">
       <div className="mb-[16px] pb-[14px] border-b border-border/70">
-        <p className="font-semibold text-[14px] text-foreground leading-[20px]">{record.title}</p>
+        <p className="font-semibold text-[14px] text-foreground leading-[20px] max-lg:hidden">{record.title}</p>
         <p className="mt-[3px] text-[11.5px] text-muted-foreground">
           {[record.metadata?.duration, record.metadata?.date, record.metadata?.language?.toUpperCase()].filter(Boolean).join("  ·  ")}
         </p>
@@ -434,8 +434,19 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
       sheetClass="bg-background max-h-[88dvh]"
       dialogClass="bg-background lg:max-w-[960px]! sm:max-w-[560px] max-lg:max-h-[86dvh]"
     >
-        <div className="flex items-center justify-between px-[20px] h-[52px] border-b border-border shrink-0 max-md:px-[20px] max-md:h-[58px]">
+        <div className="flex items-center gap-[10px] px-[20px] h-[52px] border-b border-border shrink-0 max-md:h-[58px]">
           <DialogTitle className="font-semibold text-[17px] text-foreground">Export</DialogTitle>
+          {/* Which files are in the export is an edit, not a row of its own:
+              a chip next to the title opens the list. Only below lg, because
+              the desktop keeps the list as a column. */}
+          <button
+            type="button"
+            onClick={() => setFilesOpen(true)}
+            className="flex shrink-0 items-center gap-[6px] h-[26px] pl-[9px] pr-[11px] rounded-full border border-border bg-card text-muted-foreground active:bg-muted/50 transition-colors lg:hidden"
+          >
+            <Icon icon={PencilEdit02Icon} size={13} strokeWidth={1.9} />
+            <span className="text-[12px] font-medium text-foreground">{items.length === 1 ? "1 file" : `${items.length} files`}</span>
+          </button>
         </div>
 
         {/* Body - fixed height so toggling options never resizes the dialog */}
@@ -508,32 +519,25 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
             </div>
           ) : (
             <div className="flex h-full max-lg:flex-col max-lg:overflow-y-auto">
-              {/* Two panes, one at a time, in the app's own tab component. */}
-              <Tabs
-                value={mobilePane}
-                onValueChange={(v) => setMobilePane(v === "transcript" ? "transcript" : "settings")}
-                className="w-full shrink-0 border-b border-border px-[16px] py-[8px] lg:hidden"
-              >
-                <TabsList variant="line" className="w-full justify-start gap-[18px]">
-                  <TabsTrigger value="settings" variant="line" className="text-[13px]">Settings</TabsTrigger>
-                  <TabsTrigger value="transcript" variant="line" className="text-[13px]">Transcript</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              {showNav && (
-                <button
-                  type="button"
-                  onClick={() => setFilesOpen(true)}
-                  className="flex w-full shrink-0 items-center gap-[10px] border-b border-border px-[16px] py-[10px] text-left lg:hidden"
+              {/* Which file you are looking at, and which of its two panes.
+                  Both sit clear of the dividers: an underline that lands on a
+                  border reads as one thick line and the tabs stop looking like
+                  tabs. */}
+              <div className="flex w-full shrink-0 items-end gap-[12px] border-b border-border px-[16px] pt-[12px] pb-[9px] lg:hidden">
+                <span className="min-w-0 flex-1 truncate pb-[7px] text-[13px] font-medium text-foreground">
+                  {activeRecord ? activeRecord.title : ""}
+                </span>
+                <Tabs
+                  value={mobilePane}
+                  onValueChange={(v) => setMobilePane(v === "transcript" ? "transcript" : "settings")}
+                  className="shrink-0"
                 >
-                  <span className="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] bg-muted text-muted-foreground">
-                    <Icon icon={LeftToRightListBulletIcon} size={15} strokeWidth={1.8} />
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground">
-                    {items.length === 1 ? "1 file in this export" : `${items.length} files in this export`}
-                  </span>
-                  <Icon icon={ArrowRight01Icon} size={16} strokeWidth={2} className="shrink-0 text-muted-foreground" />
-                </button>
-              )}
+                  <TabsList variant="line" className="gap-[16px]">
+                    <TabsTrigger value="settings" variant="line" className="text-[13px]">Settings</TabsTrigger>
+                    <TabsTrigger value="transcript" variant="line" className="text-[13px]">Transcript</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
               {showNav && (
                 <nav className="export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px] max-lg:hidden">
                   <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground">{items.length === 1 ? "1 file" : `${items.length} files`}</p>
