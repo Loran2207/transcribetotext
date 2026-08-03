@@ -405,7 +405,7 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
             {/* Two counters, the way notifications count: blue for what is
                 running, red for what broke. Either can stand alone. */}
             {(progressJobs.length > 0 || failedJobs.length > 0) && (
-              <span className="absolute right-[3px] top-[3px] flex items-center">
+              <span className="absolute -right-[3px] -top-[3px] flex items-center">
                 {progressJobs.length > 0 && (
                   <span className="flex h-[20px] min-w-[20px] items-center justify-center rounded-full border-2 border-background bg-primary px-[4px] text-[10.5px] font-semibold text-primary-foreground">
                     {progressJobs.length}
