@@ -51,6 +51,46 @@ import {
   type ExportableRecord,
   type ExportFormat,
 } from "@/lib/export-formats";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+
+/* A replica used to guess its row count from character length, which assumes a
+   desktop line. On a phone that hid roughly half of every line behind an inner
+   scroll, so the field now measures itself and grows to whatever it holds. */
+function EditableLine({ value, onChange }: { value: string; onChange?: (next: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const fit = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, []);
+  useEffect(() => { fit(); }, [fit, value]);
+  useEffect(() => {
+    const box = ref.current?.parentElement;
+    if (!box || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => fit());
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [fit]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={(e) => onChange?.(e.target.value)}
+      className="mt-1 w-full resize-none overflow-hidden rounded-md border border-border bg-muted/30 px-2 py-1.5 text-sm leading-relaxed text-foreground/90 outline-none focus:border-primary/50 focus:bg-background"
+    />
+  );
+}
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -717,12 +757,7 @@ function TranscriptSegment({
         ))}
 
         {isEditing ? (
-          <textarea
-            value={segmentText}
-            onChange={(e) => onEditChange?.(e.target.value)}
-            className="mt-1 w-full resize-none rounded-md border border-border bg-muted/30 px-2 py-1.5 text-sm leading-relaxed text-foreground/90 outline-none focus:border-primary/50 focus:bg-background"
-            rows={Math.max(2, Math.ceil(segmentText.length / 90))}
-          />
+          <EditableLine value={segmentText} onChange={onEditChange} />
         ) : (
           <p
             data-transcript-line=""
@@ -2064,9 +2099,34 @@ export function TranscriptionDetailPage() {
   const { texts, update, undo, redo, canUndo, canRedo, reset } = useEditHistory(initialTexts);
   const savedTextsRef = useRef(initialTexts);
 
+  const originalTextsRef = useRef(initialTexts);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+
+  function sameTexts(a: Record<number, string>, b: Record<number, string>) {
+    for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if ((a[Number(key)] ?? "") !== (b[Number(key)] ?? "")) return false;
+    }
+    return true;
+  }
+  // Leaving without saving is only worth a question when there is something to lose,
+  // and the way back is only offered while the transcript still differs from the text
+  // that came out of the transcription.
+  const hasUnsavedEdits = !sameTexts(texts, savedTextsRef.current);
+  const differsFromOriginal = !sameTexts(texts, originalTextsRef.current);
+
   function handleToggleEdit() { savedTextsRef.current = { ...texts }; setEditMode(true); }
-  function handleSave() { savedTextsRef.current = { ...texts }; setEditMode(false); console.log("Saved transcript texts:", texts); toast.success("Transcript saved"); }
-  function handleCancel() { reset(savedTextsRef.current); setEditMode(false); }
+  function handleSave() { savedTextsRef.current = { ...texts }; setEditMode(false); toast.success("Transcript saved"); }
+  function leaveEdit() { reset(savedTextsRef.current); setDiscardOpen(false); setEditMode(false); }
+  function handleCancel() { if (hasUnsavedEdits) { setDiscardOpen(true); return; } leaveEdit(); }
+  function handleResetToOriginal() {
+    const original = { ...originalTextsRef.current };
+    reset(original);
+    savedTextsRef.current = original;
+    setResetOpen(false);
+    setEditMode(false);
+    toast.success("Transcript restored to the original");
+  }
 
   useEffect(() => {
     setTitle(recordTitle);
@@ -3048,10 +3108,16 @@ export function TranscriptionDetailPage() {
               {isJobTranscribing ? null : activeTab === "transcript" ? (
                 editMode ? (
                   <>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-7 rounded-full" disabled={!canUndo} onClick={undo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button></TooltipTrigger><TooltipContent>Undo</TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-7 rounded-full" disabled={!canRedo} onClick={redo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button></TooltipTrigger><TooltipContent>Redo</TooltipContent></Tooltip>
-                    <Button variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-xs text-muted-foreground" onClick={handleCancel}>Cancel</Button>
-                    <Button size="sm" className="h-7 rounded-full px-3 text-xs" onClick={handleSave}>Save</Button>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-9 rounded-full lg:size-7" disabled={!canUndo} onClick={undo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button></TooltipTrigger><TooltipContent>Undo</TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-9 rounded-full lg:size-7" disabled={!canRedo} onClick={redo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button></TooltipTrigger><TooltipContent>Redo</TooltipContent></Tooltip>
+                    {differsFromOriginal && (
+                      <Button variant="ghost" size="sm" className="h-9 shrink-0 rounded-full px-3 text-[13px] text-muted-foreground lg:h-7 lg:px-2.5 lg:text-xs" onClick={() => setResetOpen(true)}>
+                        <span className="lg:hidden">Reset</span>
+                        <span className="max-lg:hidden">Reset to original</span>
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" className="h-9 rounded-full px-3 text-[13px] text-muted-foreground lg:h-7 lg:px-2.5 lg:text-xs" onClick={handleCancel}>Cancel</Button>
+                    <Button size="sm" className="h-9 rounded-full px-4 text-[13px] lg:h-7 lg:px-3 lg:text-xs" onClick={handleSave}>Save</Button>
                   </>
                 ) : (
                   <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
@@ -3292,6 +3358,32 @@ export function TranscriptionDetailPage() {
         <LanguageSheet open={langSheetOpen && belowLg} onOpenChange={setLangSheetOpen} languages={TRANSLATION_LANGUAGES} activeLang={activeTranslationLang} disabled={isTranslationLoading || isJobTranscribing} onPick={(code) => { void handleTranslate(code); }} />
         <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={1} onMove={(id) => moveToFolder(id)} onCreateFolder={() => { setMoveDialogOpen(false); createFolderAndMove(); }} folders={folders} />
 
+        <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Leave without saving?</AlertDialogTitle>
+              <AlertDialogDescription>The edits you made to this transcript will be lost.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Keep editing</AlertDialogCancel>
+              <AlertDialogAction onClick={leaveEdit} className="px-[18px] text-[13px] font-semibold bg-destructive text-white hover:bg-destructive/90">Discard</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Restore the original transcript?</AlertDialogTitle>
+              <AlertDialogDescription>Every edit goes away, including the ones you already saved. You get back the text exactly as the transcription produced it.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleResetToOriginal} className="px-[18px] text-[13px] font-semibold bg-destructive text-white hover:bg-destructive/90">Restore original</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {isJobTranscribing ? null : (
           <MediaPlayer
             duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
@@ -3309,11 +3401,19 @@ export function TranscriptionDetailPage() {
         {!isJobTranscribing && (
           <div className="md:hidden shrink-0 border-t border-border bg-background px-4 pt-[10px] pb-[calc(10px+env(safe-area-inset-bottom))]">
             {editMode ? (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2.5">
+                {differsFromOriginal && (
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[13px] text-muted-foreground">{hasUnsavedEdits ? "Unsaved changes" : "Edited"}</span>
+                    <button type="button" className="shrink-0 text-[13px] font-medium text-primary" onClick={() => setResetOpen(true)}>Reset to original</button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="size-[44px] rounded-full shrink-0" disabled={!canUndo} onClick={undo} aria-label="Undo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button>
                 <Button variant="ghost" size="icon" className="size-[44px] rounded-full shrink-0" disabled={!canRedo} onClick={redo} aria-label="Redo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button>
                 <Button variant="pill-outline" className="flex-1 h-[46px]" onClick={handleCancel}>Cancel</Button>
                 <Button className="flex-1 h-[46px] font-semibold" onClick={handleSave}>Save</Button>
+                </div>
               </div>
             ) : (
               <div className="flex items-center gap-2">
