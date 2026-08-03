@@ -362,7 +362,7 @@ function RecordPreview() {
         <span className="min-w-0 flex-1 text-[14px] font-semibold">{RECORD_PREVIEW.name}</span>
         <span className="shrink-0 text-[12px] text-muted-foreground">{RECORD_PREVIEW.time}</span>
       </div>
-      <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1">
+      <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1 max-sm:grid-cols-1 max-sm:gap-y-1.5">
         <RecordMetaRow
           icon={TranslateIcon}
           label="Language"
@@ -401,7 +401,7 @@ function FilesStep({
       <StepBody>
         <DialogHero src="/images/files-folder.png" alt="Folder with documents" tone="danger" />
         <StepTitle>Delete all your files?</StepTitle>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-2.5 max-sm:grid-cols-1">
           {DELETE_STATS.map((stat) => (
             <div
               key={stat.label}
