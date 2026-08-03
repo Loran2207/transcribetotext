@@ -615,6 +615,21 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
   const billingEmail = user?.email || "you@example.com";
   const [cancelFlowOpen, setCancelFlowOpen] = useState(false);
   const [cancelFlowStep, setCancelFlowStep] = useState<CancelFlowInitialStep>("confirm");
+  const [planStatus, setPlanStatus] = useState<PlanStatus>("active");
+
+  // Demo/capture flag: ttt_demo_plan_status=<status> shows the plan card in one of
+  // its four states. Only the card changes, which is what the product does: the
+  // sections under it read the same whatever the subscription is doing.
+  useEffect(() => {
+    try {
+      const flag = localStorage.getItem("ttt_demo_plan_status");
+      if (flag === "paused" || flag === "cancelled" || flag === "expired" || flag === "active") {
+        setPlanStatus(flag);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Demo/capture flag: ttt_demo_cancel=<step> auto-opens the cancel flow at that step.
   useEffect(() => {
@@ -672,7 +687,7 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
         <>
           <SectionTitle>My plans</SectionTitle>
           <PlanCard
-            status="active"
+            status={planStatus}
             rows={[
               { label: "email", value: billingEmail },
               { label: "duration", value: "week" },

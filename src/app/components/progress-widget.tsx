@@ -397,7 +397,7 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
               boxShadow: "0 8px 20px -6px rgba(16,24,40,0.16), 0 2px 6px -2px rgba(16,24,40,0.08)",
             }}
           >
-            <svg className="size-[20px] text-foreground" viewBox="0 0 24 24" fill="none">
+            <svg className="size-[24px] text-foreground" viewBox="0 0 24 24" fill="none">
               <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
               <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

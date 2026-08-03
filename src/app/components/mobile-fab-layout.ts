@@ -7,10 +7,11 @@
 
 export const FAB_RIGHT = 16; // px, shared right edge for both FABs
 export const ADD_FAB_SIZE = 56; // px, primary "+" add button (bottom of the stack)
-export const HISTORY_FAB_SIZE = 48; // px, upload-history button (above the add button)
+export const HISTORY_FAB_SIZE = 56; // px, upload-history button (above the add button)
 export const FAB_STACK_GAP = 12; // px, vertical gap between the two FABs
-// The history FAB is narrower than the add FAB; nudge its right edge so the two
-// share a common CENTER line (not just a right edge) - reads as one aligned stack.
+// Both circles are the same size, so the nudge resolves to zero and they share a
+// right edge and a centre line at once. The formula stays: if the two ever differ
+// again, they still line up on their centres rather than on their edges.
 export const HISTORY_FAB_RIGHT = FAB_RIGHT + (ADD_FAB_SIZE - HISTORY_FAB_SIZE) / 2; // 20px
 
 /* With no bottom nav pill, the add FAB simply floats near the bottom edge. */

@@ -175,7 +175,7 @@ export function MobileProcessing() {
               <path d="M27 2a25 25 0 0125 25" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" />
             </svg>
           )}
-          <svg className="size-[20px] text-foreground" viewBox="0 0 24 24" fill="none">
+          <svg className="size-[24px] text-foreground" viewBox="0 0 24 24" fill="none">
             <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
           </svg>

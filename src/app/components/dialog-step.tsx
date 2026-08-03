@@ -53,11 +53,12 @@ export function StepChrome({ onBack, onSkip }: { onBack?: () => void; onSkip?: (
 
 // Every title is centred and carries the same weight, whether the step asks a
 // question or shows a result, so the flow reads as one dialog instead of a pile
-// of screens. The symmetric padding keeps it on the optical centre despite the
-// close button.
+// of screens. On a phone the side padding drops to 8px, because with px-8 half
+// the titles broke into two lines; text-balance cannot rescue that, since Figma
+// re-wraps the capture by its own metrics and drops the balancing with it.
 export function StepTitle({ children }: { children: ReactNode }) {
   return (
-    <DialogTitle className="text-balance px-8 text-center text-[22px] font-bold leading-[1.2] tracking-[-0.4px]">
+    <DialogTitle className="px-2 text-center text-[22px] font-bold leading-[1.2] tracking-[-0.4px] sm:px-8">
       {children}
     </DialogTitle>
   );
@@ -88,10 +89,13 @@ export function StepBody({ centered, children }: { centered?: boolean; children:
 }
 
 // Actions run the full width of the dialog and stack primary first, so the block
-// keeps its shape and position on every step.
+// keeps its shape and position on every step. Side by side a phone gives each
+// button 116px, and every two-button step overran it - "Get 3 months for $14.99"
+// by 42px. Below sm the row becomes a column so each label gets the full width,
+// reversed so the primary action still comes first.
 export function StepActions({ children }: { children: ReactNode }) {
   return (
-    <div className="flex shrink-0 items-center gap-2.5 [&>button]:min-w-0 [&>button]:flex-1">
+    <div className="flex shrink-0 items-center gap-2.5 max-sm:flex-col-reverse max-sm:items-stretch [&>button]:min-w-0 [&>button]:flex-1 max-sm:[&>button]:flex-none">
       {children}
     </div>
   );
