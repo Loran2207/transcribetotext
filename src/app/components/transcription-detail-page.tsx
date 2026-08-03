@@ -3060,21 +3060,21 @@ export function TranscriptionDetailPage() {
         <UpgradeGateModal open={limitedModalOpen} onOpenChange={setLimitedModalOpen} variant="done" />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
+          <div className="flex items-end justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
             <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
-              <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">Transcript</TabsTrigger>
-              <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px]">Summary</TabsTrigger>
-              <TabsTrigger value="outline" variant="line" className="lg:hidden max-lg:text-[13px]">Outline</TabsTrigger>
-              <TabsTrigger value="comments" variant="line" className="lg:hidden max-lg:text-[13px]">Comments</TabsTrigger>
+              <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
+              <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
+              <TabsTrigger value="outline" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Outline</TabsTrigger>
+              <TabsTrigger value="comments" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Comments</TabsTrigger>
               {activeTranslationMeta && !isJobTranscribing ? (
                 <>
-                  <TabsTrigger value="transcript-translated" variant="line" className="max-lg:text-[13px]">
+                  <TabsTrigger value="transcript-translated" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">
                     <span className="inline-flex items-center gap-1.5">
                       <span>{activeTranslationMeta.flag}</span>
                       <span>Transcript {activeTranslationMeta.short}</span>
                     </span>
                   </TabsTrigger>
-                  <TabsTrigger value="summary-translated" variant="line" className="max-lg:text-[13px]">
+                  <TabsTrigger value="summary-translated" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">
                     <span className="inline-flex items-center gap-1.5">
                       <span>{activeTranslationMeta.flag}</span>
                       <span>Summary {activeTranslationMeta.short}</span>
@@ -3085,7 +3085,7 @@ export function TranscriptionDetailPage() {
             </TabsList>
 
             {/* Right side of tab row: context-dependent */}
-            <div className="flex items-center gap-2 max-md:hidden">
+            <div className="mb-1 flex items-center gap-2 max-md:hidden md:max-lg:mb-2">
               <div className="lg:hidden inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
                 <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing}>
                   <SelectTrigger size="sm" className="h-8 w-[168px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
@@ -3401,11 +3401,15 @@ export function TranscriptionDetailPage() {
         {!isJobTranscribing && (
           <div className="md:hidden shrink-0 border-t border-border bg-background px-4 pt-[10px] pb-[calc(10px+env(safe-area-inset-bottom))]">
             {editMode ? (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-3.5">
                 {differsFromOriginal && (
                   <div className="flex items-center justify-between gap-3">
+                    {/* The reset sits on the left, over undo and redo. Right-aligned it
+                        stood directly above Save, and a thumb reaching for it landed on
+                        the one button that must not be pressed by accident. The padding
+                        gives it a tap area without making the strip any taller. */}
+                    <button type="button" className="-my-2 shrink-0 py-2 text-[13px] font-medium text-primary" onClick={() => setResetOpen(true)}>Reset to original</button>
                     <span className="text-[13px] text-muted-foreground">{hasUnsavedEdits ? "Unsaved changes" : "Edited"}</span>
-                    <button type="button" className="shrink-0 text-[13px] font-medium text-primary" onClick={() => setResetOpen(true)}>Reset to original</button>
                   </div>
                 )}
                 <div className="flex items-center gap-2">
