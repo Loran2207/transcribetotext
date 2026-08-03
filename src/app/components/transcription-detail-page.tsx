@@ -3359,27 +3359,27 @@ export function TranscriptionDetailPage() {
         <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={1} onMove={(id) => moveToFolder(id)} onCreateFolder={() => { setMoveDialogOpen(false); createFolderAndMove(); }} folders={folders} />
 
         <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Leave without saving?</AlertDialogTitle>
-              <AlertDialogDescription>The edits you made to this transcript will be lost.</AlertDialogDescription>
+          <AlertDialogContent className="max-w-[420px] rounded-[18px] max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:w-full max-md:max-w-none! max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-b-none max-md:rounded-t-[22px] max-md:p-[20px]">
+            <AlertDialogHeader className="text-left">
+              <AlertDialogTitle className="text-[17px] font-bold tracking-tight">Leave without saving?</AlertDialogTitle>
+              <AlertDialogDescription className="mt-1.5 text-[13px] leading-[1.55]">The edits you made to this transcript will be lost.</AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Keep editing</AlertDialogCancel>
-              <AlertDialogAction onClick={leaveEdit} className="px-[18px] text-[13px] font-semibold bg-destructive text-white hover:bg-destructive/90">Discard</AlertDialogAction>
+            <AlertDialogFooter className="flex-row justify-end gap-2">
+              <AlertDialogCancel className="h-9 px-4 text-[13px] font-medium">Keep editing</AlertDialogCancel>
+              <AlertDialogAction onClick={leaveEdit} className="h-9 bg-destructive px-5 text-[13px] font-semibold text-destructive-foreground hover:bg-destructive/90">Discard</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
 
         <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Restore the original transcript?</AlertDialogTitle>
-              <AlertDialogDescription>Every edit goes away, including the ones you already saved. You get back the text exactly as the transcription produced it.</AlertDialogDescription>
+          <AlertDialogContent className="max-w-[420px] rounded-[18px] max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:w-full max-md:max-w-none! max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-b-none max-md:rounded-t-[22px] max-md:p-[20px]">
+            <AlertDialogHeader className="text-left">
+              <AlertDialogTitle className="text-[17px] font-bold tracking-tight">Restore the original transcript?</AlertDialogTitle>
+              <AlertDialogDescription className="mt-1.5 text-[13px] leading-[1.55]">Every edit goes away, including the ones you already saved. You get back the text exactly as the transcription produced it.</AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleResetToOriginal} className="px-[18px] text-[13px] font-semibold bg-destructive text-white hover:bg-destructive/90">Restore original</AlertDialogAction>
+            <AlertDialogFooter className="flex-row justify-end gap-2">
+              <AlertDialogCancel className="h-9 px-4 text-[13px] font-medium">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleResetToOriginal} className="h-9 bg-destructive px-5 text-[13px] font-semibold text-destructive-foreground hover:bg-destructive/90">Restore original</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
