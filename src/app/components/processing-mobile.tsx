@@ -180,7 +180,7 @@ export function MobileProcessing() {
             <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           {badgeCount > 0 && (
-            <span className={"absolute -top-[4px] -right-[4px] min-w-[20px] h-[20px] px-[5px] rounded-full text-[11px] font-semibold flex items-center justify-center text-white " + (badgeIsError ? "bg-destructive" : "bg-primary")}>
+            <span className={"absolute top-[3px] right-[3px] min-w-[20px] h-[20px] px-[5px] rounded-full text-[11px] font-semibold flex items-center justify-center text-white " + (badgeIsError ? "bg-destructive" : "bg-primary")}>
               {badgeCount}
             </span>
           )}
