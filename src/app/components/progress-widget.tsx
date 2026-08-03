@@ -348,8 +348,8 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
 
   const confirmDialog = (
     <AlertDialog open={confirm !== null} onOpenChange={(open) => { if (!open) setConfirm(null); }}>
-      <AlertDialogContent className="max-w-[420px] rounded-[18px]">
-        <AlertDialogHeader>
+      <AlertDialogContent className="max-w-[420px] rounded-[18px] max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:w-full max-md:max-w-none! max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-b-none max-md:rounded-t-[22px] max-md:p-[20px]">
+        <AlertDialogHeader className="text-left">
           <AlertDialogTitle className="text-[17px] font-bold tracking-tight">
             {confirm && confirm.kind === "all"
               ? tab === "failed" ? "Delete all failed records?" : "Delete everything in the queue?"
@@ -360,7 +360,9 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
               ? tab === "failed"
                 ? "All " + failedJobs.length + " failed records will be deleted for good."
                 : "All " + progressJobs.length + " records in the queue will be deleted for good, and whatever is still running stops."
-              : "The record will be deleted for good. This cannot be undone."}
+              : confirm && confirm.kind === "one"
+                ? "\"" + confirm.job.name + "\" leaves the queue and is deleted for good. This cannot be undone."
+                : ""}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-row justify-end gap-2">

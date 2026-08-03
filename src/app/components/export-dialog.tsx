@@ -431,8 +431,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     <Modal
       open={open}
       onOpenChange={(o) => { if (!o) onClose(); }}
-      sheetClass="bg-background max-h-[88dvh]"
-      dialogClass="bg-background lg:max-w-[960px]! sm:max-w-[560px] max-lg:max-h-[86dvh]"
+      sheetClass="bg-background h-[84dvh]"
+      dialogClass="bg-background lg:max-w-[960px]! sm:max-w-[560px] max-lg:h-[74dvh]"
     >
         <div className="flex items-center gap-[10px] px-[20px] h-[52px] border-b border-border shrink-0 max-md:h-[58px]">
           <DialogTitle className="font-semibold text-[17px] text-foreground">Export</DialogTitle>
@@ -523,8 +523,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                   Both sit clear of the dividers: an underline that lands on a
                   border reads as one thick line and the tabs stop looking like
                   tabs. */}
-              <div className="flex w-full shrink-0 items-end gap-[12px] border-b border-border px-[16px] pt-[12px] pb-[9px] lg:hidden">
-                <span className="min-w-0 flex-1 truncate pb-[7px] text-[13px] font-medium text-foreground">
+              <div className="flex w-full shrink-0 items-end gap-[12px] border-b border-border px-[16px] pt-[10px] lg:hidden">
+                <span className="min-w-0 flex-1 truncate pb-[10px] text-[13px] font-medium text-foreground">
                   {activeRecord ? activeRecord.title : ""}
                 </span>
                 <Tabs
@@ -532,7 +532,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                   onValueChange={(v) => setMobilePane(v === "transcript" ? "transcript" : "settings")}
                   className="shrink-0"
                 >
-                  <TabsList variant="line" className="gap-[16px]">
+                  <TabsList variant="line" className="gap-[16px] border-b-0">
                     <TabsTrigger value="settings" variant="line" className="text-[13px]">Settings</TabsTrigger>
                     <TabsTrigger value="transcript" variant="line" className="text-[13px]">Transcript</TabsTrigger>
                   </TabsList>
@@ -617,8 +617,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         <Modal
           open={filesOpen}
           onOpenChange={setFilesOpen}
-          sheetClass="max-h-[76dvh] lg:hidden"
-          dialogClass="sm:max-w-[440px] max-h-[70dvh] lg:hidden"
+          sheetClass="h-[72dvh] lg:hidden"
+          dialogClass="sm:max-w-[440px] max-lg:h-[62dvh] lg:hidden"
         >
             <div className="flex shrink-0 items-center px-[20px] h-[52px] max-md:h-[58px] border-b border-border">
               <DialogTitle className="text-[16px] font-semibold text-foreground">Files in this export</DialogTitle>
@@ -669,13 +669,13 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         <Modal
           open={addOpenMobile}
           onOpenChange={setAddOpenMobile}
-          sheetClass="max-h-[72dvh] lg:hidden"
-          dialogClass="sm:max-w-[440px] lg:hidden"
+          sheetClass="h-[72dvh] lg:hidden"
+          dialogClass="sm:max-w-[440px] max-lg:h-[62dvh] lg:hidden"
         >
             <DialogTitle className="px-[20px] pt-[18px] pb-[8px] text-[16px] font-semibold text-foreground">Add files to export</DialogTitle>
-            <Command>
+            <Command className="flex-1 min-h-0 flex flex-col">
               <CommandInput placeholder="Search records…" />
-              <CommandList className="max-h-[46dvh] pb-[8px] max-md:pb-[18px]">
+              <CommandList className="flex-1 min-h-0 max-h-none pb-[8px] max-md:pb-[18px]">
                 <CommandEmpty>No records found.</CommandEmpty>
                 <CommandGroup>
                   {addable.map((r) => (
