@@ -3,8 +3,8 @@ import {
   User,
   Camera,
   Lock,
-  Eye,
-  EyeOff,
+  EyeIcon,
+  ViewOffIcon,
   Shield,
   Info,
   Mail,
@@ -345,18 +345,19 @@ function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
               </div>
               <Button variant="ghost" type="button" onClick={() => setShowPw(v=>!v)}
                 className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
-                {showPw ? <Icon icon={EyeOff} className="size-4"/> : <Icon icon={Eye} className="size-4"/>}
+                {showPw ? <Icon icon={ViewOffIcon} className="size-4"/> : <Icon icon={EyeIcon} className="size-4"/>}
               </Button>
             </div>
           </div>
-          {password && password.length < 6 && !pwFocused && (
-            <p className="text-[11px] mt-1.5 px-1 text-destructive">
-              Password must be at least 6 characters
-            </p>
-          )}
-          {error && (
-            <p className="text-[11px] mt-1.5 px-1 text-destructive">{error}</p>
-          )}
+          <div className="mt-1.5 min-h-4 px-1">
+            {password && password.length < 6 && !pwFocused ? (
+              <p className="text-[11px] leading-4 text-destructive">
+                Password must be at least 6 characters
+              </p>
+            ) : error ? (
+              <p className="text-[11px] leading-4 text-destructive">{error}</p>
+            ) : null}
+          </div>
         </div>
 
         {/* Confirm password */}
@@ -374,14 +375,16 @@ function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
             </div>
             <Button variant="ghost" type="button" onClick={() => setShowConf(v=>!v)}
               className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
-              {showConf ? <Icon icon={EyeOff} className="size-4"/> : <Icon icon={Eye} className="size-4"/>}
+              {showConf ? <Icon icon={ViewOffIcon} className="size-4"/> : <Icon icon={EyeIcon} className="size-4"/>}
             </Button>
           </div>
-          {confirm && confirm !== password && (
-            <p className="text-[11px] mt-1.5 px-1 text-destructive">
-              Passwords do not match
-            </p>
-          )}
+          <div className="mt-1.5 min-h-4 px-1">
+            {confirm && confirm !== password && (
+              <p className="text-[11px] leading-4 text-destructive">
+                Passwords do not match
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
