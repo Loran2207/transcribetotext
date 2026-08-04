@@ -3,8 +3,8 @@ import {
   User,
   Camera,
   Lock,
-  EyeIcon,
-  ViewOffIcon,
+  ViewIcon,
+  ViewOffSlashIcon,
   Shield,
   Info,
   Mail,
@@ -345,18 +345,9 @@ function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
               </div>
               <Button variant="ghost" type="button" onClick={() => setShowPw(v=>!v)}
                 className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
-                {showPw ? <Icon icon={ViewOffIcon} className="size-4"/> : <Icon icon={EyeIcon} className="size-4"/>}
+                {showPw ? <Icon icon={ViewOffSlashIcon} className="size-4"/> : <Icon icon={ViewIcon} className="size-4"/>}
               </Button>
             </div>
-          </div>
-          <div className="mt-1.5 min-h-4 px-1">
-            {password && password.length < 6 && !pwFocused ? (
-              <p className="text-[11px] leading-4 text-destructive">
-                Password must be at least 6 characters
-              </p>
-            ) : error ? (
-              <p className="text-[11px] leading-4 text-destructive">{error}</p>
-            ) : null}
           </div>
         </div>
 
@@ -375,15 +366,19 @@ function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
             </div>
             <Button variant="ghost" type="button" onClick={() => setShowConf(v=>!v)}
               className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
-              {showConf ? <Icon icon={ViewOffIcon} className="size-4"/> : <Icon icon={EyeIcon} className="size-4"/>}
+              {showConf ? <Icon icon={ViewOffSlashIcon} className="size-4"/> : <Icon icon={ViewIcon} className="size-4"/>}
             </Button>
           </div>
+          {/* One line, always here: the dialog keeps its height whether or not
+              the form has something to say, and the fields keep their spacing. */}
           <div className="mt-1.5 min-h-4 px-1">
-            {confirm && confirm !== password && (
-              <p className="text-[11px] leading-4 text-destructive">
-                Passwords do not match
-              </p>
-            )}
+            {error ? (
+              <p className="text-[11px] leading-4 text-destructive">{error}</p>
+            ) : confirm && confirm !== password ? (
+              <p className="text-[11px] leading-4 text-destructive">Passwords do not match</p>
+            ) : password && password.length < 6 && !pwFocused ? (
+              <p className="text-[11px] leading-4 text-destructive">Password must be at least 6 characters</p>
+            ) : null}
           </div>
         </div>
       </div>

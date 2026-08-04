@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
-import { EyeIcon, ViewOffIcon, Loading01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
+import { ViewIcon, ViewOffSlashIcon, Loading01Icon, Tick01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -195,7 +195,7 @@ export function ResetPasswordPage() {
               tabIndex={-1}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              <Icon icon={showPassword ? ViewOffIcon : EyeIcon} size={16} />
+              <Icon icon={showPassword ? ViewOffSlashIcon : ViewIcon} size={16} />
             </button>
           </div>
           {errors.password && (
@@ -228,7 +228,7 @@ export function ResetPasswordPage() {
               tabIndex={-1}
               aria-label={showConfirmPassword ? "Hide password" : "Show password"}
             >
-              <Icon icon={showConfirmPassword ? ViewOffIcon : EyeIcon} size={16} />
+              <Icon icon={showConfirmPassword ? ViewOffSlashIcon : ViewIcon} size={16} />
             </button>
           </div>
           {errors.confirmPassword && (
