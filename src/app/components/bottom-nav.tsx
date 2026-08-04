@@ -98,7 +98,9 @@ export function BottomNav() {
                 className="flex size-9 shrink-0 items-center justify-center rounded-full"
                 style={{ backgroundColor: tint, color: fg }}
               >
-                <Icon icon={icon} className="size-[18px]" strokeWidth={1.9} />
+                {/* The item repaints any icon that does not name a colour of its
+                    own, so the class is what keeps the tint. */}
+                <Icon icon={icon} className="size-[18px] text-current" strokeWidth={1.9} />
               </span>
               <span className="min-w-0 truncate text-[14px] font-medium text-foreground">
                 {t(labelKey)}

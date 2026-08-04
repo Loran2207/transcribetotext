@@ -35,8 +35,15 @@ const SHEET = [
   "max-md:border-b-0",
 ].join(" ");
 
+/* The surface owns no padding. The base sets its own through media variants
+   (sm:p-6, max-sm:p-5), which beat an unconditional p-0 from the caller and left
+   the confirmation with 24 of its own plus 24 from its header - a title 49px
+   from the edge, against 25 in the dialog beside it. The header, body and footer
+   space themselves. */
+const NO_PADDING = "p-0!";
+
 /** Content classes for a shadcn Dialog or AlertDialog: card above md, sheet below. */
-export const MODAL_SURFACE = `${SHEET} md:rounded-[18px]`;
+export const MODAL_SURFACE = `${SHEET} ${NO_PADDING} md:rounded-[18px]`;
 
 /** A confirmation: one question, two buttons, nothing to fill in. */
 export const MODAL_W_CONFIRM = "md:max-w-[380px]!";

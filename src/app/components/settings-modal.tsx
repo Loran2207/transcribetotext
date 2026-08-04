@@ -68,8 +68,8 @@ const PW_RULES = [
 
 function PasswordRequirements({ value }: { value: string }) {
   return (
-    <div className="absolute left-full top-0 ml-3 w-[220px] bg-card rounded-[10px] shadow-lg border border-border py-3 px-4 z-10">
-      <div className="flex flex-col gap-[6px]">
+    <div className="mt-2 rounded-[12px] border border-border bg-muted/30 px-3.5 py-3">
+      <div className="grid grid-cols-1 gap-[6px] sm:grid-cols-2">
         {PW_RULES.map(rule => (
           <div key={rule.label} className="flex items-center gap-2">
             <div
@@ -145,13 +145,18 @@ function DialogShell({
           <DialogTitle className="font-bold text-[18px] text-foreground tracking-tight">
             {title}
           </DialogTitle>
+          {/* The same close the sheets and the record card use: a round grey
+              ghost with a 16px cross at stroke 1.5, not a black one. */}
           <DialogClose asChild>
-            <Button variant="ghost" size="icon" className="size-8 shrink-0 rounded-full">
-              <svg viewBox="0 0 14 14" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M1 1l12 12M13 1L1 13"/>
+            <button
+              type="button"
+              aria-label="Close"
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
               </svg>
-              <span className="sr-only">Close</span>
-            </Button>
+            </button>
           </DialogClose>
         </DialogHeader>
         {children}
@@ -186,7 +191,7 @@ function DialogFooter({ onCancel, onConfirm, confirmLabel, confirmDisabled }: {
   onCancel: () => void; onConfirm: () => void; confirmLabel: string; confirmDisabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
+    <div className="flex items-center justify-end gap-2 px-6 pt-5 pb-6 max-md:pb-[calc(20px+env(safe-area-inset-bottom))]">
       <Button variant="pill-outline" onClick={onCancel}
         className="h-9 px-4 rounded-full text-[13px] text-muted-foreground">
         Cancel
@@ -367,14 +372,12 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
   return (
     <DialogShell title="Change password" onClose={onClose}>
       <div className="px-6 flex flex-col gap-4">
-        {error && (
-          <p className="text-[13px] text-destructive">{error}</p>
-        )}
-
         {/* Current password */}
         <div>
           <FieldLabel label="Current password" />
-          <div className="flex items-center rounded-[12px] overflow-hidden border border-border bg-background">
+          <div className={`flex items-center rounded-[12px] overflow-hidden bg-background ${
+            error ? "border border-destructive" : "border border-border"
+          }`}>
             <div className="flex items-center gap-2 flex-1 px-4">
               <Icon icon={Lock} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
               <Input type={showCurr?"text":"password"} value={currentPw}
@@ -387,6 +390,9 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
               {showCurr ? <Icon icon={EyeOff} className="size-4"/> : <Icon icon={Eye} className="size-4"/>}
             </Button>
           </div>
+          {error && (
+            <p className="text-[11px] mt-1.5 px-1 text-destructive">{error}</p>
+          )}
         </div>
 
         {/* New password */}
