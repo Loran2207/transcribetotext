@@ -74,7 +74,7 @@ function PasswordRequirements({ value }: { value: string }) {
           <div key={rule.label} className="flex items-center gap-2">
             <div
               className={`size-[6px] rounded-full shrink-0 transition-colors ${
-                value && rule.test(value) ? "bg-green-500" : "bg-muted-foreground/30"
+                value && rule.test(value) ? "bg-[var(--strength-strong)]" : "bg-muted-foreground/30"
               }`}
             />
             <span className="text-[12px] text-muted-foreground">{rule.label}</span>
