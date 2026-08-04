@@ -57,34 +57,6 @@ import { useAuth } from "./auth-context";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
-// ── Password requirements ─────────────────────────────────────
-const PW_RULES = [
-  { label: "8 - 20 characters",           test: (v: string) => v.length >= 8 && v.length <= 20 },
-  { label: "At least 1 uppercase letter",  test: (v: string) => /[A-Z]/.test(v) },
-  { label: "At least 1 lowercase letter",  test: (v: string) => /[a-z]/.test(v) },
-  { label: "At least 1 special character", test: (v: string) => /[^A-Za-z0-9]/.test(v) },
-  { label: "At least 1 number",            test: (v: string) => /[0-9]/.test(v) },
-];
-
-function PasswordRequirements({ value }: { value: string }) {
-  return (
-    <div className="mt-2 rounded-[12px] border border-border bg-muted/30 px-3.5 py-3">
-      <div className="grid grid-cols-1 gap-[6px] sm:grid-cols-2">
-        {PW_RULES.map(rule => (
-          <div key={rule.label} className="flex items-center gap-2">
-            <div
-              className={`size-[6px] rounded-full shrink-0 transition-colors ${
-                value && rule.test(value) ? "bg-[var(--strength-strong)]" : "bg-muted-foreground/30"
-              }`}
-            />
-            <span className="text-[12px] text-muted-foreground">{rule.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ── Reusable action button ────────────────────────────────────
 interface ActionBtnProps {
   label: string;
@@ -322,14 +294,11 @@ function ChangeEmailDialog({ currentEmail, onClose }: ChangeEmailDialogProps) {
 
 // ── Change Password Dialog ───────────────────────────────────
 interface ChangePasswordDialogProps {
-  email: string;
   onClose: () => void;
 }
-function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
-  const [currentPw,  setCurrentPw]  = useState("");
+function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
   const [password,   setPassword]   = useState("");
   const [confirm,    setConfirm]    = useState("");
-  const [showCurr,   setShowCurr]   = useState(false);
   const [showPw,     setShowPw]     = useState(false);
   const [showConf,   setShowConf]   = useState(false);
   const [pwFocused,  setPwFocused]  = useState(false);
@@ -337,23 +306,12 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
   const [error,      setError]      = useState<string | null>(null);
 
   const passwordsMatch = password !== "" && confirm !== "" && password === confirm;
-  const canSubmit = currentPw.trim() !== "" && password.length >= 6 && passwordsMatch && !saving;
+  const canSubmit = password.length >= 6 && passwordsMatch && !saving;
 
   async function handleSave() {
     if (!canSubmit) return;
     setSaving(true);
     setError(null);
-
-    // Verify current password by re-authenticating
-    const { error: verifyError } = await supabase.auth.signInWithPassword({
-      email,
-      password: currentPw,
-    });
-    if (verifyError) {
-      setError("Current password is incorrect");
-      setSaving(false);
-      return;
-    }
 
     // Update to new password
     const { error: updateError } = await supabase.auth.updateUser({
@@ -372,29 +330,6 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
   return (
     <DialogShell title="Change password" onClose={onClose}>
       <div className="px-6 flex flex-col gap-4">
-        {/* Current password */}
-        <div>
-          <FieldLabel label="Current password" />
-          <div className={`flex items-center rounded-[12px] overflow-hidden bg-background ${
-            error ? "border border-destructive" : "border border-border"
-          }`}>
-            <div className="flex items-center gap-2 flex-1 px-4">
-              <Icon icon={Lock} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
-              <Input type={showCurr?"text":"password"} value={currentPw}
-                onChange={e => { setCurrentPw(e.target.value); setError(null); }}
-                placeholder="Enter your current password"
-                className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-2.5 text-sm h-auto rounded-none"/>
-            </div>
-            <Button variant="ghost" type="button" onClick={() => setShowCurr(v=>!v)}
-              className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
-              {showCurr ? <Icon icon={EyeOff} className="size-4"/> : <Icon icon={Eye} className="size-4"/>}
-            </Button>
-          </div>
-          {error && (
-            <p className="text-[11px] mt-1.5 px-1 text-destructive">{error}</p>
-          )}
-        </div>
-
         {/* New password */}
         <div>
           <FieldLabel label="New password" />
@@ -403,7 +338,7 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
               <div className="flex items-center gap-2 flex-1 px-4">
                 <Icon icon={Lock} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
                 <Input type={showPw?"text":"password"} value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={e => { setPassword(e.target.value); setError(null); }}
                   onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)}
                   placeholder="Create a strong password..."
                   className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-2.5 text-sm h-auto rounded-none min-w-0"/>
@@ -413,12 +348,14 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
                 {showPw ? <Icon icon={EyeOff} className="size-4"/> : <Icon icon={Eye} className="size-4"/>}
               </Button>
             </div>
-            {pwFocused && <PasswordRequirements value={password}/>}
           </div>
           {password && password.length < 6 && !pwFocused && (
             <p className="text-[11px] mt-1.5 px-1 text-destructive">
               Password must be at least 6 characters
             </p>
+          )}
+          {error && (
+            <p className="text-[11px] mt-1.5 px-1 text-destructive">{error}</p>
           )}
         </div>
 
@@ -566,7 +503,7 @@ export function AccountSettingsDetailed({ onOpenSection }: { onOpenSection: (id:
 
   return (
     <>
-      {showSetPw     && <ChangePasswordDialog email={EMAIL} onClose={() => setShowSetPw(false)} />}
+      {showSetPw     && <ChangePasswordDialog onClose={() => setShowSetPw(false)} />}
       {showChgEmail  && <ChangeEmailDialog currentEmail={EMAIL} onClose={() => setShowChgEmail(false)} />}
       {showSignOut   && <ConfirmDialog
         title="Are you sure you want to log out?"
@@ -812,7 +749,7 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void
 
   return (
     <>
-      {showSetPw && <ChangePasswordDialog email={email} onClose={() => setShowSetPw(false)} />}
+      {showSetPw && <ChangePasswordDialog onClose={() => setShowSetPw(false)} />}
       {showDeleteAcc && <ConfirmDialog
         title="Are you sure you want to delete your account?"
         description="This action is permanent and cannot be undone. All your data will be deleted."
