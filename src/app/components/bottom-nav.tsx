@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import { Plus, File01Icon, Mic, Video01Icon, Link01Icon, X } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
@@ -8,6 +8,13 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "./ui/drawer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
 import { FAB_RIGHT, ADD_FAB_SIZE, ADD_FAB_BOTTOM } from "./mobile-fab-layout";
@@ -26,30 +33,86 @@ const CREATE_ACTIONS = [
   { key: "link", modal: "link" as const, icon: Link01Icon, labelKey: "dash.card.transcribeFromLink", tint: "#FEECEB", fg: "#EF4444" },
 ];
 
+/* The sheet is a phone pattern. useIsMobile() in this project is 1024, which
+   would leave a tablet with a full-width band for four rows, so the switch is
+   made here at md - the width where the rest of the product stops behaving
+   like a phone. */
+function useCompactViewport() {
+  const [compact, setCompact] = useState(() => window.innerWidth < 768);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    const onChange = () => setCompact(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return compact;
+}
+
 export function BottomNav() {
   const { t } = useLanguage();
   const { setOpenModal } = useTranscriptionModals();
   const [createOpen, setCreateOpen] = useState(false);
   const inner = useInnerScreen();
   const fabHidden = useFabHidden();
+  const compact = useCompactViewport();
 
   const { pathname } = useLocation();
   const onDetailPage = pathname.startsWith("/transcriptions/");
 
   if (inner?.hideNav || onDetailPage) return null;
 
+  const fab = (
+    <button
+      aria-label="New transcription"
+      data-mobile-fab="add"
+      className={`fixed z-[45] flex items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition-all motion-reduce:transition-none motion-reduce:active:scale-100 ${fabHidden ? "opacity-0 translate-y-3 pointer-events-none" : "opacity-100"}`}
+      style={{ right: FAB_RIGHT, bottom: ADD_FAB_BOTTOM, width: ADD_FAB_SIZE, height: ADD_FAB_SIZE, boxShadow: "0 10px 24px -6px rgba(37,99,235,0.5), 0 3px 8px -3px rgba(37,99,235,0.4)" }}
+    >
+      <Icon icon={Plus} className="size-[26px]" strokeWidth={2} />
+    </button>
+  );
+
+  /* From md up the four paths hang off the button, right-aligned to it and
+     opening upwards, so the choice appears where the finger already is. */
+  if (!compact) {
+    return (
+      <DropdownMenu open={createOpen} onOpenChange={setCreateOpen}>
+        <DropdownMenuTrigger asChild>{fab}</DropdownMenuTrigger>
+        <DropdownMenuContent
+          side="top"
+          align="end"
+          sideOffset={12}
+          className="w-[272px] rounded-[18px] p-1.5 shadow-[var(--elevation-md)]"
+        >
+          <DropdownMenuLabel className="px-2.5 pt-1 pb-2 text-[12px] font-medium text-muted-foreground">
+            New transcription
+          </DropdownMenuLabel>
+          {CREATE_ACTIONS.map(({ key, modal, icon, labelKey, tint, fg }) => (
+            <DropdownMenuItem
+              key={key}
+              onSelect={() => setOpenModal(modal)}
+              className="gap-3 rounded-[12px] px-2.5 py-2 focus:bg-muted"
+            >
+              <span
+                className="flex size-9 shrink-0 items-center justify-center rounded-full"
+                style={{ backgroundColor: tint, color: fg }}
+              >
+                <Icon icon={icon} className="size-[18px]" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 truncate text-[14px] font-medium text-foreground">
+                {t(labelKey)}
+              </span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
   return (
     <Drawer open={createOpen} onOpenChange={setCreateOpen}>
-      <DrawerTrigger asChild>
-        <button
-          aria-label="New transcription"
-          data-mobile-fab="add"
-          className={`fixed z-[45] flex items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition-all motion-reduce:transition-none motion-reduce:active:scale-100 ${fabHidden ? "opacity-0 translate-y-3 pointer-events-none" : "opacity-100"}`}
-          style={{ right: FAB_RIGHT, bottom: ADD_FAB_BOTTOM, width: ADD_FAB_SIZE, height: ADD_FAB_SIZE, boxShadow: "0 10px 24px -6px rgba(37,99,235,0.5), 0 3px 8px -3px rgba(37,99,235,0.4)" }}
-        >
-          <Icon icon={Plus} className="size-[26px]" strokeWidth={2} />
-        </button>
-      </DrawerTrigger>
+      <DrawerTrigger asChild>{fab}</DrawerTrigger>
       <DrawerContent className="[&>div:first-child]:hidden">
         <div className="flex items-center justify-between px-[18px] pt-[18px] pb-[10px]">
           <DrawerTitle style={{ fontSize: 18, fontWeight: 600 }}>New transcription</DrawerTitle>

@@ -42,6 +42,15 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "./ui/alert-dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { cn } from "./ui/utils";
+import { MODAL_SURFACE, MODAL_W_CONFIRM, MODAL_W_FORM, MODAL_FOOTER, MODAL_HEADER } from "./modal-surface";
 import { useUserProfile } from "./user-profile-context";
 import { setInnerScreen } from "./inner-screen";
 import { useAuth } from "./auth-context";
@@ -123,24 +132,31 @@ function DialogShell({
   title, onClose, children,
 }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
-      <div className="relative flex flex-col bg-background border border-border shadow-xl"
-        style={{ width: "480px", maxWidth: "calc(100vw - 32px)", borderRadius: "18px" }}>
-        <div className="flex items-center justify-between px-6 pt-6 pb-5">
-          <h3 className="font-bold text-[18px] text-foreground tracking-tight">
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      {/* The base content draws its own bare close glyph as the last child. This
+          product closes with a round ghost button in the header, so that one is
+          hidden rather than drawn twice. The description is opted out of because
+          each dialog says what it is in its own body. */}
+      <DialogContent
+        aria-describedby={undefined}
+        className={cn(MODAL_SURFACE, MODAL_W_FORM, "gap-0 p-0 [&>button:last-child]:hidden")}
+      >
+        <DialogHeader className="flex-row items-center justify-between gap-4 space-y-0 px-6 pt-6 pb-5 text-left">
+          <DialogTitle className="font-bold text-[18px] text-foreground tracking-tight">
             {title}
-          </h3>
-          <Button variant="ghost" size="icon"
-            onClick={onClose}
-            className="size-8 rounded-full">
-            <svg viewBox="0 0 14 14" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M1 1l12 12M13 1L1 13"/>
-            </svg>
-          </Button>
-        </div>
+          </DialogTitle>
+          <DialogClose asChild>
+            <Button variant="ghost" size="icon" className="size-8 shrink-0 rounded-full">
+              <svg viewBox="0 0 14 14" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M1 1l12 12M13 1L1 13"/>
+              </svg>
+              <span className="sr-only">Close</span>
+            </Button>
+          </DialogClose>
+        </DialogHeader>
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -349,7 +365,7 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
   }
 
   return (
-    <DialogShell title="Change Password" onClose={onClose}>
+    <DialogShell title="Change password" onClose={onClose}>
       <div className="px-6 flex flex-col gap-4">
         {error && (
           <p className="text-[13px] text-destructive">{error}</p>
@@ -444,8 +460,8 @@ function ConfirmDialog({ title, description, confirmLabel, onConfirm, onClose }:
 }) {
   return (
     <AlertDialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <AlertDialogContent className="rounded-[18px] max-w-[380px] p-0 gap-0">
-        <AlertDialogHeader className="px-6 pt-6 pb-5">
+      <AlertDialogContent className={cn(MODAL_SURFACE, MODAL_W_CONFIRM, "p-0 gap-0")}>
+        <AlertDialogHeader className={cn(MODAL_HEADER, "px-6 pt-6 pb-5")}>
           <AlertDialogTitle className="font-bold text-[17px] tracking-tight">
             {title}
           </AlertDialogTitle>
@@ -453,7 +469,7 @@ function ConfirmDialog({ title, description, confirmLabel, onConfirm, onClose }:
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex-row justify-end gap-2 px-6 pb-5">
+        <AlertDialogFooter className={cn(MODAL_FOOTER, "px-6 pb-5 max-md:pb-[calc(20px+env(safe-area-inset-bottom))]")}>
           <AlertDialogCancel
             className="h-9 px-4 rounded-full text-[13px] font-medium"
             onClick={onClose}>
@@ -549,14 +565,14 @@ export function AccountSettingsDetailed({ onOpenSection }: { onOpenSection: (id:
       {showSignOut   && <ConfirmDialog
         title="Are you sure you want to log out?"
         description="You'll need to sign in again to access your account."
-        confirmLabel="Log Out"
+        confirmLabel="Log out"
         onConfirm={() => { setShowSignOut(false); signOut(); }}
         onClose={() => setShowSignOut(false)}
       />}
       {showDeleteAcc && <ConfirmDialog
         title="Are you sure you want to delete your account?"
         description="This action is permanent and cannot be undone. All your data will be deleted."
-        confirmLabel="Delete Account"
+        confirmLabel="Delete account"
         onConfirm={() => { setShowDeleteAcc(false); toast("Account deletion coming soon."); }}
         onClose={() => setShowDeleteAcc(false)}
       />}
@@ -714,7 +730,7 @@ export function AccountSettingsDetailed({ onOpenSection }: { onOpenSection: (id:
               onClick={() => setShowDeleteAcc(true)}
               className="rounded-full text-[13px]"
             >
-              Delete Account
+              Delete account
             </Button>
           </div>
 
@@ -794,7 +810,7 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void
       {showDeleteAcc && <ConfirmDialog
         title="Are you sure you want to delete your account?"
         description="This action is permanent and cannot be undone. All your data will be deleted."
-        confirmLabel="Delete Account"
+        confirmLabel="Delete account"
         onConfirm={() => { setShowDeleteAcc(false); toast("Account deletion coming soon."); }}
         onClose={() => setShowDeleteAcc(false)}
       />}
@@ -874,7 +890,7 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void
           onClick={() => setShowDeleteAcc(true)}
           className="mt-8 h-12 w-full border border-destructive/40 bg-transparent text-[14px] font-semibold hover:bg-destructive/5 sm:w-[calc(50%-12px)]"
         >
-          Delete Account
+          Delete account
         </Button>
       </div>
     </>
