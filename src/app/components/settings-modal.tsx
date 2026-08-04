@@ -344,6 +344,7 @@ function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
                   className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-2.5 text-sm h-auto rounded-none min-w-0"/>
               </div>
               <Button variant="ghost" type="button" onClick={() => setShowPw(v=>!v)}
+                aria-label={showPw ? "Hide password" : "Show password"}
                 className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
                 {showPw ? <Icon icon={ViewOffSlashIcon} className="size-4"/> : <Icon icon={ViewIcon} className="size-4"/>}
               </Button>
@@ -365,13 +366,14 @@ function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
                 className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-2.5 text-sm h-auto rounded-none"/>
             </div>
             <Button variant="ghost" type="button" onClick={() => setShowConf(v=>!v)}
+              aria-label={showConf ? "Hide password" : "Show password"}
               className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
               {showConf ? <Icon icon={ViewOffSlashIcon} className="size-4"/> : <Icon icon={ViewIcon} className="size-4"/>}
             </Button>
           </div>
           {/* One line, always here: the dialog keeps its height whether or not
               the form has something to say, and the fields keep their spacing. */}
-          <div className="mt-1.5 min-h-4 px-1">
+          <div className="mt-1.5 min-h-4">
             {error ? (
               <p className="text-[11px] leading-4 text-destructive">{error}</p>
             ) : confirm && confirm !== password ? (
