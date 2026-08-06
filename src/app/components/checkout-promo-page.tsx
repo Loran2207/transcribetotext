@@ -1,11 +1,14 @@
-import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
 import { Button } from "./ui/button";
+import { DialogHero } from "./dialog-hero";
 import { Icon } from "./ui/icon";
 import { CardFields, PaymentButtons, SummaryRow, TrustBadges } from "./checkout-parts";
 
 /* The 75% win-back checkout, in the house design system.
-   Same copy and the same layout as the brief: a promo panel and the checkout
-   beside it on a wide screen, stacked below it on anything narrower.
+   Copy and layout follow the brief: the offer and the checkout side by side on
+   a wide screen, stacked below it on anything narrower. The surfaces are ours -
+   a white page, the halo the plan dialogs put behind this same gift, and one
+   raised card - instead of the brief's grey and blue slabs.
    Route: /checkout-75. Design and capture only, like /checkout. */
 
 const BODY =
@@ -19,44 +22,44 @@ function Header() {
       <button
         type="button"
         aria-label="Back"
-        className="absolute left-4 flex size-10 items-center justify-center rounded-full bg-primary/[0.08] text-primary md:left-5"
+        className="absolute left-2 flex size-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:left-3"
       >
-        <Icon icon={ArrowLeft01Icon} className="size-5" />
+        <Icon icon={ArrowLeft02Icon} className="size-5" strokeWidth={2} />
       </button>
       <img src="/images/logo-full.svg" alt="TranscribeToText.AI" className="h-[24px] md:h-[26px]" draggable={false} />
     </header>
   );
 }
 
-function PromoPanel() {
+function Offer() {
   return (
-    <section className="rounded-[22px] bg-muted px-5 py-6 md:flex md:items-center md:gap-10 md:px-10 md:py-10 lg:min-w-0 lg:flex-1 lg:flex-col lg:items-start lg:justify-center lg:gap-0 lg:px-12 lg:py-16">
-      {/* Wide and tablet: the gift leads. On a phone it sits beside the headline
-          instead, which is what the mobile brief does. */}
-      <img src={GIFT} alt="" className="hidden shrink-0 md:block md:size-[132px] lg:mb-9 lg:size-[168px]" draggable={false} />
-      <div className="min-w-0 max-md:flex max-md:items-start max-md:gap-4">
+    <section className="px-2 pb-5 md:flex md:items-center md:gap-9 md:px-2 md:py-4 lg:flex-1 lg:flex-col lg:items-start lg:justify-center lg:gap-0 lg:px-8 lg:py-0">
+      {/* Wide and tablet: the gift leads. On a phone it sits beside the
+          headline instead, which is what the mobile brief does. */}
+      <DialogHero src={GIFT} alt="Gift box" className="mx-0 hidden shrink-0 md:flex md:size-[132px] lg:mb-8 lg:size-[168px]" />
+      <div className="min-w-0 max-md:flex max-md:items-center max-md:gap-2">
         <div className="min-w-0 flex-1">
-          <h1 className="font-bold tracking-[-0.4px] text-foreground text-[20px] leading-[26px] md:text-[34px] md:leading-[42px] lg:text-[40px] lg:leading-[50px]">
+          <h1 className="font-bold tracking-[-0.4px] text-foreground text-[21px] leading-[27px] md:text-[34px] md:leading-[42px] lg:text-[40px] lg:leading-[50px]">
             Great news - your <span className="whitespace-nowrap text-primary">75% discount</span> has been activated!
           </h1>
           <p className="hidden text-muted-foreground md:mt-5 md:block md:text-[15px] md:leading-[26px] lg:mt-7 lg:text-[17px] lg:leading-[29px]">
             {BODY}
           </p>
-          <p className="mt-3 font-semibold text-primary text-[13px] leading-[19px] md:mt-6 md:text-[17px] md:leading-[24px] lg:mt-8 lg:text-[19px] lg:leading-[26px]">
+          <p className="mt-2.5 font-semibold text-primary text-[13px] leading-[19px] md:mt-6 md:text-[17px] md:leading-[24px] lg:mt-8 lg:text-[19px] lg:leading-[26px]">
             {TAGLINE}
           </p>
         </div>
-        <img src={GIFT} alt="" className="size-[96px] shrink-0 md:hidden" draggable={false} />
+        <DialogHero src={GIFT} alt="" className="mx-0 size-[104px] shrink-0 md:hidden" />
       </div>
     </section>
   );
 }
 
-function CheckoutPanel() {
+function Checkout() {
   return (
-    <section className="md:rounded-[22px] md:bg-primary-wash md:px-10 md:py-10 lg:flex lg:min-w-0 lg:flex-1 lg:items-center lg:justify-center lg:px-12 lg:py-14">
-      <div className="mx-auto w-full max-w-[508px] md:rounded-[22px] md:bg-card md:px-10 md:py-9 md:shadow-[var(--elevation-md)]">
-        <h2 className="text-center font-bold tracking-[-0.3px] text-foreground text-[24px] leading-[30px] md:text-[28px] md:leading-[34px]">
+    <section className="lg:flex lg:flex-1 lg:items-center lg:justify-center lg:px-8">
+      <div className="mx-auto w-full max-w-[508px] md:rounded-[22px] md:border md:border-border md:bg-card md:p-8 md:shadow-[var(--elevation-md)]">
+        <h2 className="text-center font-bold tracking-[-0.3px] text-foreground text-[24px] leading-[30px] md:text-[26px] md:leading-[32px]">
           Complete Checkout
         </h2>
 
@@ -74,7 +77,10 @@ function CheckoutPanel() {
           <SummaryRow label="Business Package" value="Free" />
           <SummaryRow label="Priority Processing" value="Free" />
           <SummaryRow label="Total today:" value="$7.49" bold />
-          <p className="text-[15px] font-semibold text-success">You just saved $22.50 (75% OFF)</p>
+          {/* The saving is a chip, the same one the toasts use for good news. */}
+          <span className="mt-1 inline-flex w-fit items-center rounded-full bg-success-wash px-3 py-1 text-[13px] font-semibold text-success">
+            You just saved $22.50 (75% OFF)
+          </span>
         </div>
 
         <div className="mt-6"><PaymentButtons /></div>
@@ -107,12 +113,12 @@ export function CheckoutPromoPage() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <Header />
-      <main className="flex flex-1 flex-col gap-4 px-4 pb-6 md:gap-5 md:px-5 md:pb-8 lg:flex-row lg:items-stretch lg:gap-5 lg:px-5">
-        <PromoPanel />
-        {/* The brief draws a rule under the promo on a phone, where the two
+      <main className="flex flex-1 flex-col gap-2 px-4 pb-8 md:gap-4 md:px-6 lg:flex-row lg:items-stretch lg:gap-4 lg:px-8 lg:pb-10">
+        <Offer />
+        {/* The brief draws a rule under the offer on a phone, where the two
             blocks share one white page instead of sitting on their own panels. */}
         <div className="mx-1 h-px bg-border md:hidden" />
-        <CheckoutPanel />
+        <Checkout />
       </main>
     </div>
   );

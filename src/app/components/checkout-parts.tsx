@@ -32,12 +32,23 @@ export function SummaryRow({ label, value, bold }: { label: string; value: React
   );
 }
 
+/* The brand buttons are pictures, so the pill has to be cut around them. They
+   also sit one step below the primary action - 44 against its 48 - so Continue
+   stays the largest thing on the screen. */
+const BRAND_BUTTONS = [
+  { src: CHECKOUT_ASSET.paypal, alt: "Pay with PayPal" },
+  { src: CHECKOUT_ASSET.link, alt: "Pay with Link" },
+  { src: CHECKOUT_ASSET.gpay, alt: "Pay with Google Pay" },
+];
+
 export function PaymentButtons() {
   return (
-    <div className="flex flex-col gap-[12px]">
-      <img src={CHECKOUT_ASSET.paypal} alt="Pay with PayPal" className="block w-full" draggable={false} />
-      <img src={CHECKOUT_ASSET.link} alt="Pay with Link" className="block w-full" draggable={false} />
-      <img src={CHECKOUT_ASSET.gpay} alt="Pay with Google Pay" className="block w-full" draggable={false} />
+    <div className="flex flex-col gap-[10px]">
+      {BRAND_BUTTONS.map((b) => (
+        <span key={b.alt} className="block h-11 overflow-hidden rounded-full">
+          <img src={b.src} alt={b.alt} className="size-full object-cover" draggable={false} />
+        </span>
+      ))}
     </div>
   );
 }
