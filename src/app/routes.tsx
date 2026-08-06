@@ -38,6 +38,10 @@ export const router = createBrowserRouter([
   { path: "/design-system", Component: DesignSystemPage },
   { path: "/checkout", Component: CheckoutPage },
   {
+    path: "/checkout-75",
+    lazy: async () => ({ Component: (await import("./components/checkout-promo-page")).CheckoutPromoPage }),
+  },
+  {
     path: "/checkout-loader",
     lazy: async () => ({
       Component: (await import("./components/checkout-loader/checkout-loader-page")).CheckoutLoaderPage,
