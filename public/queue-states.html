@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Upload queue - the collapsed button</title>
+<style>
+  @keyframes queue-halo {
+    0%   { transform: scale(1);    opacity: 0.5; }
+    70%  { transform: scale(1.32); opacity: 0; }
+    100% { transform: scale(1.32); opacity: 0; }
+  }
+  @keyframes queue-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .halo  { animation: queue-halo 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+  .sweep { animation: queue-sweep 1.5s linear infinite; }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #fff; color: #16181D;
+    font: 15px/1.5 Inter, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { padding: 52px 48px 56px; }
+  .row { display: flex; gap: 52px; align-items: flex-start; }
+  .case { width: 230px; }
+  .stage { height: 128px; display: flex; align-items: center; justify-content: center; }
+  .btnwrap { position: relative; width: 56px; height: 56px; transform: scale(1.5); }
+  .halo { position: absolute; inset: 0; border-radius: 999px; box-shadow: 0 0 14px 5px rgba(37,99,235,0.28); pointer-events: none; }
+  .btn {
+    position: relative; width: 56px; height: 56px; border-radius: 999px; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 20px -6px rgba(16,24,40,0.16), 0 2px 6px -2px rgba(16,24,40,0.08);
+  }
+  .ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .pct { font-size: 13.5px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; color: #16181D; }
+  .glyph { width: 24px; height: 24px; color: #16181D; }
+  .badges { position: absolute; top: -3px; right: -3px; display: flex; align-items: center; }
+  .b {
+    height: 20px; min-width: 20px; padding: 0 4px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10.5px; font-weight: 600; color: #fff; border: 2px solid #fff;
+  }
+  .b.blue { background: #2563EB; }
+  .b.red { background: #EE1A1A; margin-left: -7px; }
+  .b.red.solo { margin-left: 0; }
+  .name { font-size: 15px; font-weight: 600; margin: 10px 0 5px; }
+  .desc { font-size: 13.5px; color: #5B6170; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row">
+
+    <div class="case">
+      <div class="stage">
+        <div class="btnwrap">
+          <span class="halo"></span>
+          <div class="btn">
+            <svg class="ring" viewBox="0 0 56 56" fill="none">
+              <circle cx="28" cy="28" r="26.4" stroke="#E4E4E7" stroke-width="2.4" />
+              <path d="M 28 1.6 A 26.4 26.4 0 1 1 8.13 45.02" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+            <span class="pct">71%</span>
+            <span class="badges"><span class="b blue">5</span></span>
+          </div>
+        </div>
+      </div>
+      <p class="name">Five files, all measuring</p>
+      <p class="desc">The ring fills and the figure is the average across the five.</p>
+    </div>
+
+    <div class="case">
+      <div class="stage">
+        <div class="btnwrap">
+          <span class="halo"></span>
+          <div class="btn">
+            <svg class="ring" viewBox="0 0 56 56" fill="none">
+              <circle cx="28" cy="28" r="26.4" stroke="#E4E4E7" stroke-width="2.4" />
+              <path d="M 28 1.6 A 26.4 26.4 0 1 1 8.13 45.02" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" />
+            </svg>
+            <span class="pct">71%</span>
+            <span class="badges"><span class="b blue">5</span><span class="b red">3</span></span>
+          </div>
+        </div>
+      </div>
+      <p class="name">Running and broken at once</p>
+      <p class="desc">Nothing about the ring changes. The red counter joins the blue one.</p>
+    </div>
+
+    <div class="case">
+      <div class="stage">
+        <div class="btnwrap">
+          <span class="halo"></span>
+          <div class="btn">
+            <svg class="ring" viewBox="0 0 56 56" fill="none">
+              <circle cx="28" cy="28" r="26.4" stroke="#E4E4E7" stroke-width="2.4" />
+            </svg>
+            <span class="sweep" style="position:absolute;inset:0">
+              <svg class="ring" viewBox="0 0 56 56" fill="none">
+                <path d="M 28 1.6 A 26.4 26.4 0 0 1 51.11 15.28" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+            </span>
+            <svg class="glyph" viewBox="0 0 24 24" fill="none">
+              <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="badges"><span class="b blue">2</span></span>
+          </div>
+        </div>
+      </div>
+      <p class="name">Nothing to measure yet</p>
+      <p class="desc">A bot connecting reports no percentage, so the sweep turns instead of a figure being invented.</p>
+    </div>
+
+    <div class="case">
+      <div class="stage">
+        <div class="btnwrap">
+          <div class="btn">
+            <svg class="ring" viewBox="0 0 56 56" fill="none">
+              <circle cx="28" cy="28" r="26.4" stroke="rgba(238,26,26,0.3)" stroke-width="2.4" />
+            </svg>
+            <svg class="glyph" viewBox="0 0 24 24" fill="none">
+              <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <span class="badges"><span class="b red solo">3</span></span>
+          </div>
+        </div>
+      </div>
+      <p class="name">Nothing running, three failed</p>
+      <p class="desc">Only here does red reach the ring, and the halo stops.</p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
