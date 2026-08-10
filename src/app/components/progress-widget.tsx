@@ -449,28 +449,25 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
           >
             <svg viewBox="0 0 56 56" fill="none" className="pointer-events-none absolute inset-0 size-full">
               <circle cx="28" cy="28" r="26.4" stroke="currentColor" strokeWidth="2.4" className={trackClass} />
-              {overall.pct !== null && (
-                <path d={arcPath(28, 28, 26.4, overall.pct)} stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" className="text-primary" />
-              )}
             </svg>
-            {/* Nothing measurable, but something is happening: the sweep says so
-                without claiming a figure. The rotation is on the wrapper, because
-                the capture drops a transform written on the svg itself. */}
-            {running && overall.pct === null && (
+            {/* One arc, turning. It says work is happening without claiming how
+                far along it is, which is the only honest thing to say while the
+                per-file figures are still half simulated. The rotation sits on
+                the wrapper, because the capture drops a transform written on the
+                svg itself. */}
+            {running && (
               <span aria-hidden="true" className="queue-sweep pointer-events-none absolute inset-0">
                 <svg viewBox="0 0 56 56" fill="none" className="size-full text-primary">
-                  <path d={arcPath(28, 28, 26.4, 22)} stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+                  <path d={arcPath(28, 28, 26.4, 24)} stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
                 </svg>
               </span>
             )}
-            {overall.pct !== null ? (
-              <span className="text-[13.5px] font-semibold tabular-nums leading-none text-foreground">{overall.pct}%</span>
-            ) : (
-              <svg className="size-[24px] text-foreground" viewBox="0 0 24 24" fill="none">
-                <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            )}
+            {/* The product's own upload mark, with the arrow travelling into the
+                tray while anything is on its way. */}
+            <svg className="size-[24px] text-foreground" viewBox="0 0 24 24" fill="none">
+              <path className={running ? "queue-lift" : undefined} d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
 
             {/* Two counters, the way notifications count: blue for what is
                 running, red for what broke. Either can stand alone. */}
@@ -558,21 +555,6 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
             </Button>
           </div>
         </div>
-
-        {/* Open, the button is gone, so the figure it carried moves here. The
-            files that report no percentage are named rather than averaged in. */}
-        {tab === "progress" && overall.pct !== null && (
-          <div className="shrink-0 border-b border-border px-4 py-[10px]">
-            <p className="text-[12.5px] text-muted-foreground">
-              <span className="font-semibold tabular-nums text-foreground">{overall.pct}%</span>
-              {" of " + overall.measured + (overall.measured === 1 ? " file" : " files")}
-              {overall.unmeasured > 0 ? " · " + overall.unmeasured + " " + overall.restLabel : ""}
-            </p>
-            <div className="mt-[7px] h-[3px] w-full overflow-hidden rounded-full bg-border/70">
-              <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: overall.pct + "%" }} />
-            </div>
-          </div>
-        )}
 
         <div className="overflow-y-auto max-sm:max-h-[calc(78vh-104px)] sm:max-h-[340px]">
           {rows.length === 0 ? (
