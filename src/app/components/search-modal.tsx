@@ -314,10 +314,10 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[10vh]">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => { closeDropdowns(); onClose(); }} />
+      <div className="ttt-dim absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => { closeDropdowns(); onClose(); }} />
 
       <div
-        className="md:relative max-md:fixed max-md:inset-0 max-md:z-[210] md:w-[calc(100vw-24px)] md:max-w-[560px] lg:w-[640px] lg:max-w-none md:rounded-[16px] overflow-visible flex flex-col md:bg-popover max-md:bg-background max-md:!max-h-none max-md:!shadow-none max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)]"
+        className="ttt-search md:relative max-md:fixed max-md:inset-0 max-md:z-[210] md:w-[calc(100vw-24px)] md:max-w-[560px] lg:w-[640px] lg:max-w-none md:rounded-[16px] overflow-visible flex flex-col md:bg-popover max-md:bg-background max-md:!max-h-none max-md:!shadow-none max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)]"
         style={{
           boxShadow: "0px 24px 64px rgba(0,0,0,0.12), 0px 8px 24px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
           maxHeight: "70vh",

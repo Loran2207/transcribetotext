@@ -1673,23 +1673,15 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick, hideModeTog
   );
 }
 
+/* Advanced options is a heading, not a door. In four of the five dialogs the
+   only thing behind it was the speaker toggle, so the disclosure hid a single
+   control and cost a tap to find it; the settings now stand open and the words
+   stay as the label of the group. */
 function AdvancedSection({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => setOpen(v => !v)}
-        className="inline-flex items-center gap-[8px] h-[30px] rounded-[8px] pl-0 pr-[8px] outline-none transition-colors hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/40"
-      >
-        <svg className={`size-[14px] transition-transform text-muted-foreground ${open ? "rotate-90" : ""}`} fill="none" viewBox="0 0 16 16">
-          <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-        <span className="font-medium text-[13px] text-foreground">Advanced options</span>
-      </button>
-      {open && (
-        <div className="mt-[10px]">{children}</div>
-      )}
+      <p className="flex h-[30px] items-center font-medium text-[13px] text-foreground">Advanced options</p>
+      <div className="mt-[10px]">{children}</div>
     </div>
   );
 }
@@ -1742,8 +1734,8 @@ function ModalShell({ title, subtitle, onClose, onBackdropClick, children, width
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 md:items-center md:p-4">
-      <div className="absolute inset-0 bg-[rgba(15,23,42,0.55)] backdrop-blur-[3px]" onClick={onBackdropClick} />
-      <div className="relative flex flex-col overflow-hidden bg-popover w-full max-h-[90vh] rounded-t-[24px] rounded-b-none pb-[env(safe-area-inset-bottom)] md:w-[min(var(--modal-w),calc(100vw_-_32px))] md:max-h-[calc(100vh_-_40px)] md:rounded-[20px] md:pb-0"
+      <div className="ttt-dim absolute inset-0 bg-[rgba(15,23,42,0.55)] backdrop-blur-[3px]" onClick={onBackdropClick} />
+      <div className="ttt-modal-rise ttt-modal-sheet relative flex flex-col overflow-hidden bg-popover w-full max-h-[90vh] rounded-t-[24px] rounded-b-none pb-[env(safe-area-inset-bottom)] md:w-[min(var(--modal-w),calc(100vw_-_32px))] md:max-h-[calc(100vh_-_40px)] md:rounded-[20px] md:pb-0"
         style={{ "--modal-w": `${width}px`, boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" } as React.CSSProperties}>
         {/* Header */}
         <div className="flex items-center justify-between px-[22px] pt-[18px] pb-[16px] shrink-0">

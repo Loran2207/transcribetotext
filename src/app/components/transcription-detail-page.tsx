@@ -1357,9 +1357,14 @@ function MediaPlayer({
   return (
     <div className="shrink-0 border-t border-border bg-background px-4 py-3 lg:px-6">
       <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="mb-3 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
-      <div className="flex items-center justify-between">
+      {/* Three columns, and Play is the middle one. The speed control used to be
+          a fourth element inside the transport group, which had no mirror on the
+          left and pushed Play about twenty pixels off the centre of the bar; it
+          now sits with the total time on the right. The side columns are equal
+          fractions, so Play stays centred whatever the label does. */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center">
         <span className="min-w-[50px] text-xs tabular-nums text-muted-foreground">{formatTime(currentSeconds)}</span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-center gap-1.5">
           <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.max(0, progress[0] - (5 / totalSeconds) * 100))])} title="Back 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 19l-7-7 7-7" /><text x="14" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
@@ -1375,12 +1380,14 @@ function MediaPlayer({
           <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])} title="Forward 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l7 7-7 7" /><text x="2" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="ml-0.5 h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
-          </DropdownMenu>
         </div>
-        <span className="min-w-[50px] text-right text-xs tabular-nums text-muted-foreground">{duration}</span>
+        <div className="flex items-center justify-end gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
+          </DropdownMenu>
+          <span className="text-xs tabular-nums text-muted-foreground">{duration}</span>
+        </div>
       </div>
     </div>
   );
@@ -3399,7 +3406,7 @@ export function TranscriptionDetailPage() {
         )}
         {/* Mobile bottom action bar: Copy + Export + More (md:hidden) */}
         {!isJobTranscribing && (
-          <div className="md:hidden shrink-0 border-t border-border bg-background px-4 pt-[10px] pb-[calc(10px+env(safe-area-inset-bottom))]">
+          <div className="md:hidden shrink-0 border-t border-border bg-background px-4 pt-[10px] pb-[calc(12px+env(safe-area-inset-bottom))]">
             {editMode ? (
               <div className="flex flex-col gap-3.5">
                 {differsFromOriginal && (
@@ -3413,15 +3420,18 @@ export function TranscriptionDetailPage() {
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="size-[44px] rounded-full shrink-0" disabled={!canUndo} onClick={undo} aria-label="Undo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button>
-                <Button variant="ghost" size="icon" className="size-[44px] rounded-full shrink-0" disabled={!canRedo} onClick={redo} aria-label="Redo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button>
+                <Button variant="ghost" size="icon" className="size-[46px] rounded-full shrink-0" disabled={!canUndo} onClick={undo} aria-label="Undo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button>
+                <Button variant="ghost" size="icon" className="size-[46px] rounded-full shrink-0" disabled={!canRedo} onClick={redo} aria-label="Redo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button>
                 <Button variant="pill-outline" className="flex-1 h-[46px]" onClick={handleCancel}>Cancel</Button>
                 <Button className="flex-1 h-[46px] font-semibold" onClick={handleSave}>Save</Button>
                 </div>
               </div>
             ) : (
+              /* One rule for every phone action bar in the product: the
+                 secondary actions read first, the one blue action sits at the
+                 right edge under the thumb. The template screen already read
+                 this way, the record screen did not. */
               <div className="flex items-center gap-2">
-                {templateCta}
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setCopySheetOpen(true)} aria-label="Copy">
                   <Icon icon={Copy} className="size-[18px]" strokeWidth={1.7} />
                 </Button>
@@ -3431,6 +3441,7 @@ export function TranscriptionDetailPage() {
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
                   <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
                 </Button>
+                {templateCta}
               </div>
             )}
           </div>

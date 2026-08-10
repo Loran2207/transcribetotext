@@ -43,7 +43,7 @@ const SHEET = [
 const NO_PADDING = "p-0!";
 
 /** Content classes for a shadcn Dialog or AlertDialog: card above md, sheet below. */
-export const MODAL_SURFACE = `${SHEET} ${NO_PADDING} md:rounded-[18px]`;
+export const MODAL_SURFACE = `ttt-modal-sheet ${SHEET} ${NO_PADDING} md:rounded-[18px]`;
 
 /** A confirmation: one question, two buttons, nothing to fill in. */
 export const MODAL_W_CONFIRM = "md:max-w-[380px]!";
