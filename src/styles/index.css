@@ -130,104 +130,86 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Overlay motion — one contract for every dialog, sheet and the search
+   Overlay motion — one animation for every dialog, sheet and the search
    ═══════════════════════════════════════════════════════════════════════════
 
-   One curve and one pair of durations, three shapes: the dim behind, the card
-   on a laptop, the sheet on a phone. Search is the card with a shorter drop.
-   Radix drives its own through data-state; the two hand-rolled portals run the
-   same keyframes on mount. Opening is unhurried, closing is quick: a user who
-   dismissed something is already looking elsewhere. */
+   The numbers are not ours. A centred dialog uses what the Radix team ships in
+   Radix Themes, the production system built on the primitive this project's
+   dialogs come from: 200ms in, a shorter exit, an expo-out curve, a five pixel
+   rise and a 0.97 scale. A sheet on a phone is a different object with an edge
+   to come from, so it slides its own height on the iOS curve vaul uses for the
+   same job, over a longer beat. Nothing bounces, nothing scales on the way out
+   more than a hair, and the whole block is gated on the motion setting.
+
+   Radix Themes 3.2.1 styles.css · vaul 1.1.2 style.css · Material 3 emphasized
+   decelerate for a large container entering. */
 
 :root {
-  --motion-enter: cubic-bezier(0.22, 1, 0.36, 1);
-  --motion-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-sheet-ease: cubic-bezier(0.32, 0.72, 0, 1);
   --motion-dim: 200ms;
-  --motion-card: 260ms;
-  --motion-sheet: 300ms;
-  --motion-out: 160ms;
+  --motion-card: 200ms;
+  --motion-sheet: 400ms;
+  --motion-out: 120ms;
+  --motion-dim-out: 150ms;
+  --motion-sheet-out: 200ms;
 }
 
 @keyframes ttt-dim-in  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ttt-dim-out { from { opacity: 1; } to { opacity: 0; } }
 
-/* A card centred with translate(-50%, -50%) has to keep that translate inside
+/* A card centred with translate(-50%, -50%) has to carry that translate inside
    the keyframe, or it jumps to the corner for the length of the animation. */
 @keyframes ttt-card-in {
-  from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)) scale(0.965); }
+  from { opacity: 0; transform: translate(-50%, calc(-50% + 6px)) scale(0.97); }
   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 @keyframes ttt-card-out {
   from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  to   { opacity: 0; transform: translate(-50%, calc(-50% + 8px)) scale(0.985); }
+  to   { opacity: 0; transform: translate(-50%, calc(-50% + 4px)) scale(0.99); }
 }
 
-/* The same movement for a card that is centred by its flex parent instead. */
-@keyframes ttt-rise-in {
-  from { opacity: 0; transform: translateY(14px) scale(0.965); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes ttt-rise-out {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to   { opacity: 0; transform: translateY(8px) scale(0.985); }
-}
+/* The same movement for a card its flex parent centres. */
+@keyframes ttt-rise-in  { from { opacity: 0; transform: translateY(6px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes ttt-rise-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(4px) scale(0.99); } }
 
-/* A sheet travels its own height, so it reads as one object arriving rather
-   than a rectangle fading in at the bottom of the screen. */
+/* A sheet travels its own height. No scale, no fade: it has an edge to arrive
+   from, and fading it as well reads as two things happening at once. */
 @keyframes ttt-sheet-in  { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes ttt-sheet-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
 
-/* Search drops from above, because that is where it is summoned from. */
-@keyframes ttt-search-in {
-  from { opacity: 0; transform: translateY(-10px) scale(0.985); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes ttt-search-out {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to   { opacity: 0; transform: translateY(-6px) scale(0.99); }
-}
+/* Search is summoned from the top bar, so it arrives from above. */
+@keyframes ttt-search-in  { from { opacity: 0; transform: translateY(-6px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes ttt-search-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-4px) scale(0.99); } }
 
-.ttt-dim,
-.ttt-dim[data-state="open"]          { animation: ttt-dim-in var(--motion-dim) var(--motion-enter) both; }
-.ttt-dim[data-state="closed"]        { animation: ttt-dim-out var(--motion-out) var(--motion-exit) both; }
+.ttt-dim,        .ttt-dim[data-state="open"]          { animation: ttt-dim-in    var(--motion-dim)  var(--motion-enter) both; }
+                 .ttt-dim[data-state="closed"]        { animation: ttt-dim-out   var(--motion-dim-out) var(--motion-enter) both; }
+.ttt-modal-card, .ttt-modal-card[data-state="open"]   { animation: ttt-card-in   var(--motion-card) var(--motion-enter) both; }
+                 .ttt-modal-card[data-state="closed"] { animation: ttt-card-out  var(--motion-out)  var(--motion-enter) both; }
+.ttt-modal-rise, .ttt-modal-rise[data-state="open"]   { animation: ttt-rise-in   var(--motion-card) var(--motion-enter) both; }
+                 .ttt-modal-rise[data-state="closed"] { animation: ttt-rise-out  var(--motion-out)  var(--motion-enter) both; }
+.ttt-search,     .ttt-search[data-state="open"]       { animation: ttt-search-in var(--motion-card) var(--motion-enter) both; }
+                 .ttt-search[data-state="closed"]     { animation: ttt-search-out var(--motion-out) var(--motion-enter) both; }
 
-.ttt-modal-card,
-.ttt-modal-card[data-state="open"]   { animation: ttt-card-in var(--motion-card) var(--motion-enter) both; }
-.ttt-modal-card[data-state="closed"] { animation: ttt-card-out var(--motion-out) var(--motion-exit) both; }
-
-.ttt-modal-rise,
-.ttt-modal-rise[data-state="open"]   { animation: ttt-rise-in var(--motion-card) var(--motion-enter) both; }
-.ttt-modal-rise[data-state="closed"] { animation: ttt-rise-out var(--motion-out) var(--motion-exit) both; }
-
-.ttt-search,
-.ttt-search[data-state="open"]       { animation: ttt-search-in var(--motion-card) var(--motion-enter) both; }
-.ttt-search[data-state="closed"]     { animation: ttt-search-out var(--motion-out) var(--motion-exit) both; }
-
-/* The sheet rules come last on purpose: an element carries both the card class
-   and a sheet class, and the width decides which one is allowed to speak. 768
-   is this product's own boundary, 640 is the one the shadcn base still uses for
-   the confirmations that have not moved over. */
+/* The sheet rules come last on purpose: one element carries a card class and a
+   sheet class, and the width decides which of them is allowed to speak. */
 @media (max-width: 767px) {
-  .ttt-modal-sheet,
-  .ttt-modal-sheet[data-state="open"]   { animation: ttt-sheet-in var(--motion-sheet) var(--motion-enter) both; }
-  .ttt-modal-sheet[data-state="closed"] { animation: ttt-sheet-out var(--motion-out) var(--motion-exit) both; }
+  .ttt-modal-sheet,    .ttt-modal-sheet[data-state="open"]      { animation: ttt-sheet-in  var(--motion-sheet) var(--motion-sheet-ease) both; }
+                       .ttt-modal-sheet[data-state="closed"]    { animation: ttt-sheet-out var(--motion-sheet-out) var(--motion-sheet-ease) both; }
 }
 @media (max-width: 639px) {
-  .ttt-modal-sheet-sm,
-  .ttt-modal-sheet-sm[data-state="open"]   { animation: ttt-sheet-in var(--motion-sheet) var(--motion-enter) both; }
-  .ttt-modal-sheet-sm[data-state="closed"] { animation: ttt-sheet-out var(--motion-out) var(--motion-exit) both; }
+  .ttt-modal-sheet-sm, .ttt-modal-sheet-sm[data-state="open"]   { animation: ttt-sheet-in  var(--motion-sheet) var(--motion-sheet-ease) both; }
+                       .ttt-modal-sheet-sm[data-state="closed"] { animation: ttt-sheet-out var(--motion-sheet-out) var(--motion-sheet-ease) both; }
 }
 
-/* Asked for less movement, the product still tells you something arrived. */
+/* Asked for less movement, the product still says something arrived. */
 @media (prefers-reduced-motion: reduce) {
   .ttt-dim, .ttt-modal-card, .ttt-modal-rise, .ttt-modal-sheet, .ttt-modal-sheet-sm, .ttt-search {
     animation-duration: 120ms;
     animation-timing-function: linear;
   }
   .ttt-modal-card, .ttt-modal-rise, .ttt-modal-sheet, .ttt-modal-sheet-sm, .ttt-search { animation-name: ttt-dim-in; }
-  .ttt-modal-card[data-state="closed"],
-  .ttt-modal-rise[data-state="closed"],
-  .ttt-modal-sheet[data-state="closed"],
-  .ttt-modal-sheet-sm[data-state="closed"],
+  .ttt-modal-card[data-state="closed"], .ttt-modal-rise[data-state="closed"],
+  .ttt-modal-sheet[data-state="closed"], .ttt-modal-sheet-sm[data-state="closed"],
   .ttt-search[data-state="closed"] { animation-name: ttt-dim-out; }
 }

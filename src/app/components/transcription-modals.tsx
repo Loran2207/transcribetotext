@@ -1659,29 +1659,36 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick, hideModeTog
       <div className="flex-1 min-w-0">
         <LanguageSelector value={state.langPrimary} onChange={v => onChange({ langPrimary: v })} label="Transcription language" />
       </div>
-      <AdvancedSection>
-        <div className="pt-[2px]">
-          <SpeakerSection
-            enabled={state.speakerEnabled}
-            onToggle={() => onChange({ speakerEnabled: !state.speakerEnabled })}
-            count={state.speakerCount}
-            onCountChange={v => onChange({ speakerCount: v })}
-          />
-        </div>
-      </AdvancedSection>
+      <SpeakerSection
+        enabled={state.speakerEnabled}
+        onToggle={() => onChange({ speakerEnabled: !state.speakerEnabled })}
+        count={state.speakerCount}
+        onCountChange={v => onChange({ speakerCount: v })}
+      />
     </div>
   );
 }
 
-/* Advanced options is a heading, not a door. In four of the five dialogs the
-   only thing behind it was the speaker toggle, so the disclosure hid a single
-   control and cost a tap to find it; the settings now stand open and the words
-   stay as the label of the group. */
+/* Speaker identification no longer lives behind this door: it is the one setting
+   people came for, so it stands with the language above. What is left here is the
+   rest, and where there is no rest the section is not rendered at all. */
 function AdvancedSection({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
   return (
     <div>
-      <p className="flex h-[30px] items-center font-medium text-[13px] text-foreground">Advanced options</p>
-      <div className="mt-[10px]">{children}</div>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="inline-flex items-center gap-[8px] h-[30px] rounded-[8px] pl-0 pr-[8px] outline-none transition-colors hover:bg-accent/60 focus-visible:ring-[3px] focus-visible:ring-ring/40"
+      >
+        <svg className={`size-[14px] transition-transform text-muted-foreground ${open ? "rotate-90" : ""}`} fill="none" viewBox="0 0 16 16">
+          <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span className="font-medium text-[13px] text-foreground">Advanced options</span>
+      </button>
+      {open && (
+        <div className="mt-[10px]">{children}</div>
+      )}
     </div>
   );
 }
@@ -2485,10 +2492,11 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                 <div className="flex-1 min-w-0">
                   <LanguageSelector value={langId} onChange={setLangId} label="Transcription language" />
                 </div>
-                {/* Advanced options */}
+                <SpeakerSection enabled={speakerEnabled} onToggle={() => setSpeakerEnabled(v => !v)} count={speakerCount} onCountChange={setSpeakerCount} />
+                {/* Advanced options: the bot's own settings, and nothing that a
+                    person opening this dialog is looking for straight away. */}
                 <AdvancedSection>
                   <div className="flex flex-col gap-[14px] pt-[2px]">
-                    <SpeakerSection enabled={speakerEnabled} onToggle={() => setSpeakerEnabled(v => !v)} count={speakerCount} onCountChange={setSpeakerCount} />
                     <div>
                       <SectionLabel>Bot display name</SectionLabel>
                       <Input type="text" value={botName} onChange={e => setBotName(e.target.value)}
