@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Upload queue - the collapsed button</title>
+<title>Upload queue states</title>
 <style>
   @keyframes queue-halo {
     0%   { transform: scale(1);    opacity: 0.5; }
@@ -10,13 +10,6 @@
     100% { transform: scale(1.32); opacity: 0; }
   }
   @keyframes queue-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-  @keyframes queue-lift {
-    0%   { transform: translateY(2.5px); opacity: 0.35; }
-    35%  { transform: translateY(0);     opacity: 1; }
-    70%  { transform: translateY(-2px);  opacity: 1; }
-    100% { transform: translateY(-3.5px); opacity: 0; }
-  }
-  .lift { animation: queue-lift 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; transform-origin: center; }
   .halo  { animation: queue-halo 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
   .sweep { animation: queue-sweep 1.5s linear infinite; }
 
@@ -38,8 +31,8 @@
     box-shadow: 0 8px 20px -6px rgba(16,24,40,0.16), 0 2px 6px -2px rgba(16,24,40,0.08);
   }
   .ring { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .pct { font-size: 13.5px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; color: #16181D; }
-  .glyph { width: 24px; height: 24px; color: #16181D; }
+  .lottie-glyph { position: relative; z-index: 1; width: 30px; height: 30px; }
+  .failed-glyph { position: relative; z-index: 1; width: 22px; height: 22px; color: #EE1A1A; }
   .badges { position: absolute; top: -3px; right: -3px; display: flex; align-items: center; }
   .b {
     height: 20px; min-width: 20px; padding: 0 4px; border-radius: 999px;
@@ -51,6 +44,9 @@
   .b.red.solo { margin-left: 0; }
   .name { font-size: 15px; font-weight: 600; margin: 10px 0 5px; }
   .desc { font-size: 13.5px; color: #5B6170; line-height: 1.5; }
+  @media (prefers-reduced-motion: reduce) {
+    .halo, .sweep { animation: none; }
+  }
 </style>
 </head>
 <body>
@@ -63,13 +59,13 @@
           <div class="btn">
             <svg class="ring" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26.4" stroke="#E4E4E7" stroke-width="2.4" /></svg>
             <span class="sweep" style="position:absolute;inset:0"><svg class="ring" viewBox="0 0 56 56" fill="none"><path d="M 28 1.6 A 26.4 26.4 0 0 1 51.11 15.28" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" /></svg></span>
-            <svg class="glyph" viewBox="0 0 24 24" fill="none"><path class="lift" d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /><path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span class="lottie-glyph" aria-hidden="true"></span>
             <span class="badges"><span class="b blue">5</span></span>
           </div>
         </div>
       </div>
       <p class="name">Five files on their way</p>
-      <p class="desc">The arc turns, the arrow travels into the tray, and the counter says how many. No percentage is claimed, because none of the per-file figures can be trusted yet.</p>
+      <p class="desc">The arc turns, the file lands in the tray, and the counter says how many. No aggregate percentage is claimed.</p>
     </div>
     <div class="case">
       <div class="stage">
@@ -78,7 +74,7 @@
           <div class="btn">
             <svg class="ring" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26.4" stroke="#E4E4E7" stroke-width="2.4" /></svg>
             <span class="sweep" style="position:absolute;inset:0"><svg class="ring" viewBox="0 0 56 56" fill="none"><path d="M 28 1.6 A 26.4 26.4 0 0 1 51.11 15.28" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" /></svg></span>
-            <svg class="glyph" viewBox="0 0 24 24" fill="none"><path class="lift" d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /><path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span class="lottie-glyph" aria-hidden="true"></span>
             <span class="badges"><span class="b blue">5</span><span class="b red">3</span></span>
           </div>
         </div>
@@ -93,7 +89,7 @@
           <div class="btn">
             <svg class="ring" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26.4" stroke="#E4E4E7" stroke-width="2.4" /></svg>
             <span class="sweep" style="position:absolute;inset:0"><svg class="ring" viewBox="0 0 56 56" fill="none"><path d="M 28 1.6 A 26.4 26.4 0 0 1 51.11 15.28" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" /></svg></span>
-            <svg class="glyph" viewBox="0 0 24 24" fill="none"><path class="lift" d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /><path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span class="lottie-glyph" aria-hidden="true"></span>
             <span class="badges"><span class="b blue">2</span></span>
           </div>
         </div>
@@ -108,7 +104,7 @@
           <div class="btn">
             <svg class="ring" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26.4" stroke="rgba(238,26,26,0.3)" stroke-width="2.4" /></svg>
             
-            <svg class="glyph" viewBox="0 0 24 24" fill="none"><path class="lift" d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /><path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <svg class="failed-glyph" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" /><path d="M12 7.5v5.5M12 16.5h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
             <span class="badges"><span class="b red solo">3</span></span>
           </div>
         </div>
@@ -118,5 +114,25 @@
     </div>
   </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
+<script>
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.__lotties = [];
+  document.querySelectorAll(".lottie-glyph").forEach((container) => {
+    const animation = window.lottie.loadAnimation({
+      container,
+      renderer: "svg",
+      loop: !reducedMotion,
+      autoplay: !reducedMotion,
+      path: "/lottie/upload-file-blue.json",
+      rendererSettings: { preserveAspectRatio: "xMidYMid meet" },
+    });
+    window.__lotties.push(animation);
+    animation.addEventListener("DOMLoaded", () => {
+      animation.setSpeed(0.9);
+      if (reducedMotion) animation.goToAndStop(30, true);
+    });
+  });
+</script>
 </body>
 </html>

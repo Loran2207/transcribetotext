@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { SourceIcon } from "./source-icons";
+import { LottieStage } from "./checkout-loader/lottie-stage";
 import {
   FAB_RIGHT,
   HISTORY_FAB_RIGHT,
@@ -105,27 +106,6 @@ function progressOf(job: TranscriptionJob): number | null {
     return Math.max(0, Math.min(100, Math.round(job.transcriptionProgress ?? job.progress ?? 0)));
   }
   return null;
-}
-
-/* The queue's own figure: the mean of the files that actually report one.
-   A bot that is still connecting has no percentage to average, so it is counted
-   apart instead of being folded in as a zero - that would report 30% for a queue
-   where one file is at 60% and one bot has not begun to measure. */
-function overallProgress(jobs: TranscriptionJob[]) {
-  const measured: number[] = [];
-  let unmeasured = 0;
-  jobs.forEach((job) => {
-    const n = progressOf(job);
-    if (n === null) unmeasured += 1;
-    else measured.push(n);
-  });
-  const rest = jobs.filter((job) => progressOf(job) === null);
-  return {
-    pct: measured.length ? Math.round(measured.reduce((a, b) => a + b, 0) / measured.length) : null,
-    measured: measured.length,
-    unmeasured,
-    restLabel: rest.length ? (STATUS_LABEL[rest[0].status] ?? rest[0].status).toLowerCase() : "",
-  };
 }
 
 /* The ring is a real path. A ring drawn with stroke-dasharray is the one thing
@@ -354,7 +334,6 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
     if (n > dominantCount) { dominantCount = n; dominant = status; }
   });
   const uniform = counts.size <= 1;
-  const overall = overallProgress(progressJobs);
   const failedPhrase = failedJobs.length === 1 ? "1 file failed" : failedJobs.length + " files failed";
   /* Mixed queues used to say nothing about the failures as long as something was
      still running, so the only sign of them was a small red counter. */
@@ -363,7 +342,6 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
     : (uniform
         ? (STATUS_LABEL[dominant] ?? "Processing") + (progressJobs.length > 1 ? " " + progressJobs.length + " files" : "")
         : (STATUS_LABEL[dominant] ?? "Processing") + " " + dominantCount + " of " + progressJobs.length)
-      + (overall.pct !== null ? ", " + overall.pct + "%" : "")
       + (failedJobs.length > 0 ? ", " + failedPhrase : "");
 
   /* The border is gone: the ring below is the border now, and it is drawn as a
@@ -462,12 +440,19 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
                 </svg>
               </span>
             )}
-            {/* The product's own upload mark, with the arrow travelling into the
-                tray while anything is on its way. */}
-            <svg className="size-[24px] text-foreground" viewBox="0 0 24 24" fill="none">
-              <path className={running ? "queue-lift" : undefined} d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            {running ? (
+              <span data-queue-lottie aria-hidden="true" className="relative z-[1] flex size-[30px] items-center justify-center">
+                <LottieStage
+                  src="/lottie/upload-file-blue.json"
+                  w={30}
+                  h={30}
+                  speed={0.9}
+                  reducedMotionFrame={30}
+                />
+              </span>
+            ) : (
+              <Icon icon={AlertCircle} className="relative z-[1] size-[21px] text-destructive" strokeWidth={1.8} />
+            )}
 
             {/* Two counters, the way notifications count: blue for what is
                 running, red for what broke. Either can stand alone. */}

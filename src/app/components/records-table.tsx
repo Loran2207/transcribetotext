@@ -912,7 +912,7 @@ const DEMO_VIDEO_URL = "https://interactive-examples.mdn.mozilla.net/media/cc0-v
 export interface RecordRow {
   id: string; name: string; iconColor: string; iconType: "square" | "circle" | "link"; duration: string;
   dateCreated: string; dateGroup: string; template: string; language: string; source: SourceType;
-  summary: string; tasks: number; screenshots: number; time: string; thumbnail?: string; videoUrl?: string;
+  summary: string; tasks: number; screenshots: number; time: string; thumbnail?: string; videoUrl?: string; templateId?: string;
 }
 
 export const records: RecordRow[] = [
@@ -990,7 +990,8 @@ function mapJobToRecord(job: TranscriptionJob): RecordRow {
     duration: isDone ? (job.duration ?? "-") : isError ? "Failed" : "In progress",
     dateCreated: dateParts.dateCreated,
     dateGroup: dateParts.dateGroup,
-    template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
+    template: job.templateName ?? (job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary"),
+    templateId: job.templateId,
     language: normalizeLanguage(job.lang, job.langBilingual),
     source: normalizeSource(job.source, job.fileType),
     summary: isDone

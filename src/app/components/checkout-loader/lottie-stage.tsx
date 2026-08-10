@@ -12,17 +12,28 @@ export function LottieStage({
   w,
   h,
   speed = 1,
+  reducedMotionFrame = 0,
   className,
 }: {
   src: string;
   w: number;
   h: number;
   speed?: number;
+  reducedMotionFrame?: number;
   className?: string;
 }) {
   const [data, setData] = useState<object | null>(null);
   const [failed, setFailed] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
   const ref = useRef<LottieRefCurrentProps>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -45,8 +56,12 @@ export function LottieStage({
   }, [src]);
 
   useEffect(() => {
-    ref.current?.setSpeed(speed);
-  }, [speed, data]);
+    const player = ref.current;
+    if (!player) return;
+    player.setSpeed(speed);
+    if (reducedMotion) player.goToAndStop(reducedMotionFrame, true);
+    else player.play();
+  }, [speed, data, reducedMotion, reducedMotionFrame]);
 
   // Dev only: register the player so the Figma capture script can freeze each
   // animation on a representative frame (Figma renders a still, not the loop).
@@ -80,8 +95,8 @@ export function LottieStage({
     <Lottie
       lottieRef={ref}
       animationData={data}
-      loop
-      autoplay
+      loop={!reducedMotion}
+      autoplay={!reducedMotion}
       rendererSettings={{ preserveAspectRatio: "xMidYMid meet" }}
       style={{ width: w, height: h }}
       className={className}

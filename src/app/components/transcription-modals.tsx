@@ -24,6 +24,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Layers } from "@hugeicons/core-free-icons";
 import { useTemplates } from "@/hooks/use-templates";
+import type { Template } from "@/lib/templates";
 import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
@@ -59,6 +60,8 @@ export interface TranscriptionJob {
   langBilingual?: string[];
   translationLang?: string;
   folderId?: string;
+  templateId?: string;
+  templateName?: string;
   source?: SourceType;
   kind?: "meeting";
   mediaUrl?: string;
@@ -171,18 +174,31 @@ type WindowWithSpeechRecognition = Window & {
   webkitSpeechRecognition?: BrowserSpeechRecognitionCtor;
 };
 
-type InstantRecordingSubmitOptions = {
+type TranscriptionJobOptions = {
   lang?: string;
   langBilingual?: string[];
   translationLang?: string;
   folderId?: string;
+  templateId?: string;
+  templateName?: string;
+  source?: SourceType;
+  mediaUrl?: string;
+  livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
+  noAudioDetected?: boolean;
+  kind?: "meeting";
 };
+
+type InstantRecordingSubmitOptions = Pick<
+  TranscriptionJobOptions,
+  "lang" | "langBilingual" | "translationLang" | "folderId" | "templateId" | "templateName"
+>;
 
 interface CtxValue {
   openModal: ModalType;
   setOpenModal: (m: ModalType) => void;
   jobs: TranscriptionJob[];
-  addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean }) => string;
+  templates: Template[];
+  addJob: (name: string, fileType: "audio" | "video", opts?: TranscriptionJobOptions) => string;
   retryJob: (id: string) => void;
   reconnectBot: (id: string) => void;
   removeJob: (id: string) => void;
@@ -230,6 +246,7 @@ export function TranscriptionModalsProvider({
   children, userPlan = "free",
 }: { children: React.ReactNode; userPlan?: UserPlan }) {
   const { assignToFolder } = useFolders();
+  const { templates } = useTemplates();
   const [openModal, setOpenModal] = useState<ModalType>(null);
   const [jobs, setJobs] = useState<TranscriptionJob[]>(demoSeedJobs);
   const jobsRef = useRef<TranscriptionJob[]>([]);
@@ -874,7 +891,7 @@ export function TranscriptionModalsProvider({
     setTimeout(tickUpload, 300);
   }
 
-  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean; kind?: "meeting" }) {
+  function addJob(name: string, fileType: "audio" | "video", opts?: TranscriptionJobOptions) {
     const id = Math.random().toString(36).slice(2, 10);
     const createdAt = new Date().toISOString();
     let batchId: string | undefined;
@@ -930,7 +947,7 @@ export function TranscriptionModalsProvider({
   }
 
   return (
-    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, reconnectBot, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId, guardFreeLimit }}>
+    <Ctx.Provider value={{ openModal, setOpenModal, jobs, templates, addJob, retryJob, reconnectBot, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId, guardFreeLimit }}>
       {children}
       <AllModals />
       <UpgradeGateModal open={freeGateOpen} onOpenChange={setFreeGateOpen} variant="limit" />
@@ -991,7 +1008,8 @@ export function mapJobToRecordState(job: TranscriptionJob) {
     duration: isDone ? (job.duration ?? "-") : isError ? "Failed" : "In progress",
     dateCreated: dateParts.dateCreated,
     dateGroup: dateParts.dateGroup,
-    template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
+    template: job.templateName ?? (job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary"),
+    templateId: job.templateId,
     language: "en",
     source: normalizeSource(job.source, job.fileType),
     summary: isDone
@@ -1253,7 +1271,7 @@ function TemplateSelector({
   onChange: (templateId: string | null) => void;
   compact?: boolean;
 }) {
-  const { templates } = useTemplates();
+  const { templates } = useTranscriptionModals();
   const selected = value ? templates.find((t) => t.id === value) : null;
 
   return (
@@ -1282,6 +1300,14 @@ function TemplateSelector({
       />
     </div>
   );
+}
+
+function selectedTemplateJobFields(templates: Template[], templateId: string | null) {
+  const selected = templateId ? templates.find((template) => template.id === templateId) : undefined;
+  return {
+    templateId: selected?.id,
+    templateName: selected?.name,
+  };
 }
 
 // ── Languages ──────────────────────────────────────────────
@@ -1871,7 +1897,7 @@ async function detectVideoHasAudioTrack(file: File): Promise<boolean | null> {
 }
 
 function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { startInstantRecording, userPlan, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
+  const { startInstantRecording, templates, userPlan, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
@@ -1882,6 +1908,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
     if (!open) return;
     setSettings(DEFAULT_SETTINGS);
     setSelectedFolderId(consumeDefaultFolderId());
+    setSelectedTemplateId(null);
     setIsStarting(false);
   }, [open]);
 
@@ -1894,6 +1921,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
       langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
       translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
       folderId: selectedFolderId ?? undefined,
+      ...selectedTemplateJobFields(templates, selectedTemplateId),
     });
     setIsStarting(false);
     if (!started) {
@@ -1926,6 +1954,9 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
               <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              </div>
+              <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
@@ -1952,7 +1983,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
 }
 
 function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan, consumePreloadedFiles, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
+  const { addJob, templates, userPlan, consumePreloadedFiles, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
 
   const [files, setFiles] = useState<File[]>([]);
   const [preparing, setPreparing] = useState<Set<string>>(new Set());
@@ -1978,7 +2009,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  function resetForm() { setFiles([]); setPreparing(new Set()); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
+  function resetForm() { setFiles([]); setPreparing(new Set()); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); setSelectedTemplateId(null); }
   function handleClose() { resetForm(); onClose(); }
 
   // Newly added files show a short "preparing" state while they are read.
@@ -2030,6 +2061,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
         source: isAudio ? "mp3" : "mp4",
         mediaUrl: isAudio ? undefined : URL.createObjectURL(file),
         noAudioDetected: isAudio ? undefined : noAudioDetected,
+        ...selectedTemplateJobFields(templates, selectedTemplateId),
       });
     });
     handleClose();
@@ -2149,6 +2181,9 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
           {/* Footer: template + folder row, then Cancel + Start row */}
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
+              <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              </div>
               <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
@@ -2280,7 +2315,7 @@ function LinkInputIcons() {
 }
 
 function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
+  const { addJob, templates, userPlan, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
 
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
@@ -2297,7 +2332,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  function resetForm() { setUrl(""); setUrlError(""); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
+  function resetForm() { setUrl(""); setUrlError(""); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); setSelectedTemplateId(null); }
   function handleClose() { resetForm(); onClose(); }
 
   function validateUrl(s: string) {
@@ -2315,6 +2350,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
       translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
       folderId: selectedFolderId ?? undefined,
       source: detectLinkSource(url),
+      ...selectedTemplateJobFields(templates, selectedTemplateId),
     });
     handleClose();
   }
@@ -2359,6 +2395,9 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
               <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              </div>
+              <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
@@ -2385,7 +2424,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 // ════════════════════════════════════════════════════════════
 
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, meetingCounterRef, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
+  const { addJob, templates, meetingCounterRef, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
 
   const [meetingUrl, setMeetingUrl] = useState("");
   const [meetingUrlError, setMeetingUrlError] = useState("");
@@ -2417,6 +2456,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
     setBotName("TranscribeToText Bot"); setRealTimeTranslation(false); setRealTimeTranslationLang("en");
     setSpeakerEnabled(false); setSpeakerCount(2);
     setSelectedFolderId(null);
+    setSelectedTemplateId(null);
     setNotifyParticipants(true);
     setNotifyMessage("I'm recording this meeting with TranscribeToText for note-taking purposes.");
   }
@@ -2437,6 +2477,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
       folderId: selectedFolderId ?? undefined,
       source: detectMeetingSource(meetingUrl),
       kind: "meeting",
+      ...selectedTemplateJobFields(templates, selectedTemplateId),
     });
     handleClose();
   }
@@ -2529,6 +2570,9 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
 
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
+              <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              </div>
               <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>

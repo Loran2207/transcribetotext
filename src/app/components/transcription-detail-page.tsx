@@ -267,7 +267,8 @@ function mapJobToDetailRecord(job: TranscriptionJob): RecordRow {
     duration: isDone ? (job.duration ?? "-") : isError ? "Failed" : "In progress",
     dateCreated: dateParts.dateCreated,
     dateGroup: dateParts.dateGroup,
-    template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
+    template: job.templateName ?? (job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary"),
+    templateId: job.templateId,
     language: normalizeJobLanguage(job.lang, job.langBilingual),
     source: normalizeJobSource(job.source, job.fileType),
     summary: isDone
@@ -1879,7 +1880,9 @@ export function TranscriptionDetailPage() {
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoPlaybackRate, setVideoPlaybackRate] = useState(1);
   const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
+    selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null,
+  );
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryStage, setSummaryStage] = useState("");
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
@@ -1903,6 +1906,10 @@ export function TranscriptionDetailPage() {
     return () => mq.removeEventListener("change", sync);
   }, []);
   const { templates } = useTemplates();
+
+  useEffect(() => {
+    setActiveTemplateId(selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null);
+  }, [id, selectedJob?.templateId, routeStateRecord?.templateId, persistedRecord?.templateId]);
 
   // PRO "Apply template" deep-link: a record opened with a template to apply.
   const appliedFromRouteRef = useRef(false);
