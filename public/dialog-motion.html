@@ -3,25 +3,28 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Transcribe To Text - overlay motion</title>
+<title>Transcribe To Text - how a dialog opens</title>
 <style>
   /* ══════════════════════════════════════════════════════════════════════════
-     THE CONTRACT. Everything below this block is the demo page; this block is
-     the whole implementation. Paste it into src/styles/index.css.
+     THE ANIMATION. This block is the whole implementation - paste it into
+     src/styles/index.css. One curve, one pair of durations. Everything that
+     opens over the page uses it: every dialog, the phone sheet, the search.
      ══════════════════════════════════════════════════════════════════════════ */
 
   :root {
     --motion-enter: cubic-bezier(0.22, 1, 0.36, 1);
-    --motion-exit: cubic-bezier(0.4, 0, 1, 1);
-    --motion-dim: 200ms;
-    --motion-card: 260ms;
-    --motion-sheet: 300ms;
-    --motion-out: 160ms;
+    --motion-exit:  cubic-bezier(0.4, 0, 1, 1);
+    --motion-dim:   200ms;   /* the dim behind */
+    --motion-card:  260ms;   /* the dialog itself */
+    --motion-sheet: 300ms;   /* the same dialog docked to a phone's bottom edge */
+    --motion-out:   160ms;   /* every exit */
   }
 
   @keyframes ttt-dim-in  { from { opacity: 0; } to { opacity: 1; } }
   @keyframes ttt-dim-out { from { opacity: 1; } to { opacity: 0; } }
 
+  /* The dialog rises fourteen pixels and settles. A centred card keeps its own
+     translate inside the keyframe, or it jumps to the corner while it animates. */
   @keyframes ttt-card-in {
     from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)) scale(0.965); }
     to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
@@ -31,301 +34,185 @@
     to   { opacity: 0; transform: translate(-50%, calc(-50% + 8px)) scale(0.985); }
   }
 
-  @keyframes ttt-rise-in {
-    from { opacity: 0; transform: translateY(14px) scale(0.965); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  @keyframes ttt-rise-out {
-    from { opacity: 1; transform: translateY(0) scale(1); }
-    to   { opacity: 0; transform: translateY(8px) scale(0.985); }
-  }
+  /* The same movement for a card centred by its flex parent. */
+  @keyframes ttt-rise-in  { from { opacity: 0; transform: translateY(14px) scale(0.965); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes ttt-rise-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(8px) scale(0.985); } }
 
+  /* On a phone the dialog is docked to the bottom edge, so it travels its own
+     height. Same curve, forty milliseconds longer because it goes further. */
   @keyframes ttt-sheet-in  { from { transform: translateY(100%); } to { transform: translateY(0); } }
   @keyframes ttt-sheet-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
 
-  @keyframes ttt-search-in {
-    from { opacity: 0; transform: translateY(-10px) scale(0.985); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  @keyframes ttt-search-out {
-    from { opacity: 1; transform: translateY(0) scale(1); }
-    to   { opacity: 0; transform: translateY(-6px) scale(0.99); }
-  }
+  /* Search is summoned from the top bar, so it arrives from above. */
+  @keyframes ttt-search-in  { from { opacity: 0; transform: translateY(-10px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  @keyframes ttt-search-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-6px) scale(0.99); } }
 
-  .ttt-dim,
-  .ttt-dim[data-state="open"]          { animation: ttt-dim-in var(--motion-dim) var(--motion-enter) both; }
-  .ttt-dim[data-state="closed"]        { animation: ttt-dim-out var(--motion-out) var(--motion-exit) both; }
+  .ttt-dim,        .ttt-dim[data-state="open"]          { animation: ttt-dim-in    var(--motion-dim)   var(--motion-enter) both; }
+                   .ttt-dim[data-state="closed"]        { animation: ttt-dim-out   var(--motion-out)   var(--motion-exit)  both; }
+  .ttt-modal-card, .ttt-modal-card[data-state="open"]   { animation: ttt-card-in   var(--motion-card)  var(--motion-enter) both; }
+                   .ttt-modal-card[data-state="closed"] { animation: ttt-card-out  var(--motion-out)   var(--motion-exit)  both; }
+  .ttt-modal-rise, .ttt-modal-rise[data-state="open"]   { animation: ttt-rise-in   var(--motion-card)  var(--motion-enter) both; }
+                   .ttt-modal-rise[data-state="closed"] { animation: ttt-rise-out  var(--motion-out)   var(--motion-exit)  both; }
+  .ttt-search,     .ttt-search[data-state="open"]       { animation: ttt-search-in var(--motion-card)  var(--motion-enter) both; }
+                   .ttt-search[data-state="closed"]     { animation: ttt-search-out var(--motion-out)  var(--motion-exit)  both; }
 
-  .ttt-modal-card,
-  .ttt-modal-card[data-state="open"]   { animation: ttt-card-in var(--motion-card) var(--motion-enter) both; }
-  .ttt-modal-card[data-state="closed"] { animation: ttt-card-out var(--motion-out) var(--motion-exit) both; }
-
-  .ttt-modal-rise,
-  .ttt-modal-rise[data-state="open"]   { animation: ttt-rise-in var(--motion-card) var(--motion-enter) both; }
-  .ttt-modal-rise[data-state="closed"] { animation: ttt-rise-out var(--motion-out) var(--motion-exit) both; }
-
-  .ttt-search,
-  .ttt-search[data-state="open"]       { animation: ttt-search-in var(--motion-card) var(--motion-enter) both; }
-  .ttt-search[data-state="closed"]     { animation: ttt-search-out var(--motion-out) var(--motion-exit) both; }
-
-  /* Last on purpose: an element carries a card class and a sheet class, and the
+  /* Last on purpose: one element carries a card class and a sheet class, and the
      width decides which of them is allowed to speak. */
   @media (max-width: 767px) {
-    .ttt-modal-sheet,
-    .ttt-modal-sheet[data-state="open"]   { animation: ttt-sheet-in var(--motion-sheet) var(--motion-enter) both; }
-    .ttt-modal-sheet[data-state="closed"] { animation: ttt-sheet-out var(--motion-out) var(--motion-exit) both; }
+    .ttt-modal-sheet,    .ttt-modal-sheet[data-state="open"]      { animation: ttt-sheet-in  var(--motion-sheet) var(--motion-enter) both; }
+                         .ttt-modal-sheet[data-state="closed"]    { animation: ttt-sheet-out var(--motion-out)   var(--motion-exit)  both; }
   }
   @media (max-width: 639px) {
-    .ttt-modal-sheet-sm,
-    .ttt-modal-sheet-sm[data-state="open"]   { animation: ttt-sheet-in var(--motion-sheet) var(--motion-enter) both; }
-    .ttt-modal-sheet-sm[data-state="closed"] { animation: ttt-sheet-out var(--motion-out) var(--motion-exit) both; }
+    .ttt-modal-sheet-sm, .ttt-modal-sheet-sm[data-state="open"]   { animation: ttt-sheet-in  var(--motion-sheet) var(--motion-enter) both; }
+                         .ttt-modal-sheet-sm[data-state="closed"] { animation: ttt-sheet-out var(--motion-out)   var(--motion-exit)  both; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .ttt-dim, .ttt-modal-card, .ttt-modal-rise, .ttt-modal-sheet, .ttt-modal-sheet-sm, .ttt-search {
-      animation-duration: 120ms;
-      animation-timing-function: linear;
+      animation-duration: 120ms; animation-timing-function: linear;
     }
     .ttt-modal-card, .ttt-modal-rise, .ttt-modal-sheet, .ttt-modal-sheet-sm, .ttt-search { animation-name: ttt-dim-in; }
-    .ttt-modal-card[data-state="closed"],
-    .ttt-modal-rise[data-state="closed"],
-    .ttt-modal-sheet[data-state="closed"],
-    .ttt-modal-sheet-sm[data-state="closed"],
+    .ttt-modal-card[data-state="closed"], .ttt-modal-rise[data-state="closed"],
+    .ttt-modal-sheet[data-state="closed"], .ttt-modal-sheet-sm[data-state="closed"],
     .ttt-search[data-state="closed"] { animation-name: ttt-dim-out; }
   }
 
   /* ══════════════════════════════════════════════════════════════════════════
-     Demo page below. Not part of the contract.
+     Demo page below. Not part of the implementation.
      ══════════════════════════════════════════════════════════════════════════ */
 
   * { box-sizing: border-box; }
   body {
-    margin: 0;
-    background: #F6F7F9;
-    color: #16181D;
-    font: 15px/1.55 Inter, "Segoe UI", system-ui, sans-serif;
-    -webkit-font-smoothing: antialiased;
+    margin: 0; background: #F6F7F9; color: #16181D;
+    font: 15px/1.55 Inter, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 48px 24px 96px; }
-  h1 { font-size: 30px; letter-spacing: -0.4px; margin: 0 0 8px; font-weight: 700; }
-  h2 { font-size: 19px; letter-spacing: -0.2px; margin: 56px 0 6px; font-weight: 700; }
-  .lede { color: #5B6170; max-width: 720px; margin: 0 0 4px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-top: 22px; }
-  .demo {
-    background: #fff; border: 1px solid #E5E7EB; border-radius: 18px; overflow: hidden;
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 44px 24px 80px; }
+  h1 { font-size: 29px; letter-spacing: -0.4px; margin: 0 0 8px; font-weight: 700; }
+  .lede { color: #5B6170; max-width: 680px; margin: 0 0 26px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 22px; }
+  button {
+    appearance: none; border: 0; cursor: pointer; font: 600 13.5px Inter, sans-serif;
+    height: 38px; padding: 0 18px; border-radius: 999px; background: #2563EB; color: #fff;
+  }
+  button.ghost { background: #fff; color: #16181D; border: 1px solid #E1E4EA; }
+  button.ghost[aria-pressed="true"] { border-color: #2563EB; color: #2563EB; }
+  button:active { transform: scale(0.98); }
+
+  .device {
+    position: relative; overflow: hidden; background: #fff;
+    border: 1px solid #E5E7EB; border-radius: 20px; margin: 0 auto;
     box-shadow: 0 1px 2px rgba(16,24,40,0.05);
+    width: 900px; height: 520px; transition: width 260ms var(--motion-enter), height 260ms var(--motion-enter);
   }
-  .demo header {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 14px 16px; border-bottom: 1px solid #EEF0F3;
-  }
-  .demo header b { font-size: 14px; font-weight: 600; }
-  .demo header span { font-size: 12px; color: #6B7280; font-variant-numeric: tabular-nums; }
-  .play {
-    appearance: none; border: 0; cursor: pointer;
-    background: #2563EB; color: #fff; font: 600 12.5px Inter, sans-serif;
-    height: 30px; padding: 0 14px; border-radius: 999px;
-  }
-  .play:active { transform: scale(0.97); }
-  .stage {
-    position: relative; height: 260px; background: #fff;
-    background-image: linear-gradient(#F2F4F7 1px, transparent 1px), linear-gradient(90deg, #F2F4F7 1px, transparent 1px);
-    background-size: 22px 22px;
-    overflow: hidden;
-  }
-  .stage .scrim { position: absolute; inset: 0; background: rgba(15,23,42,0.55); }
-  .card {
+  .device.phone { width: 390px; height: 620px; }
+  .page { position: absolute; inset: 0; padding: 22px 24px; }
+  .ph { height: 10px; border-radius: 5px; background: #EDEFF3; }
+  .ph + .ph { margin-top: 10px; }
+  .ph.t { height: 15px; width: 46%; background: #DCE0E7; margin-bottom: 18px; }
+
+  .dim { position: absolute; inset: 0; background: rgba(15,23,42,0.55); }
+  .dialog {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 220px; background: #fff; border-radius: 16px; padding: 16px;
-    box-shadow: 0 24px 56px rgba(0,0,0,0.22);
+    width: 460px; background: #fff; border-radius: 20px; padding: 22px;
+    box-shadow: 0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06);
   }
-  .sheet {
-    position: absolute; inset-inline: 0; bottom: 0;
-    background: #fff; border-radius: 20px 20px 0 0; padding: 16px 16px 22px;
-    box-shadow: 0 -18px 48px rgba(0,0,0,0.2);
+  .device.phone .dialog {
+    top: auto; bottom: 0; left: 0; transform: none;
+    width: 100%; border-radius: 24px 24px 0 0;
   }
   .palette {
-    position: absolute; top: 26px; left: 50%; transform: translateX(-50%);
-    width: 260px; background: #fff; border-radius: 14px; padding: 10px;
+    position: absolute; top: 56px; left: 50%; transform: translateX(-50%);
+    width: 520px; background: #fff; border-radius: 16px; padding: 12px;
     box-shadow: 0 24px 56px rgba(0,0,0,0.22);
   }
-  .ph { height: 9px; border-radius: 5px; background: #EAECF0; }
-  .ph.t { height: 12px; width: 62%; background: #D5D9E0; margin-bottom: 12px; }
-  .ph + .ph { margin-top: 8px; }
-  .row { display: flex; gap: 8px; margin-top: 14px; }
-  .btn { height: 30px; border-radius: 999px; flex: 1; }
-  .btn.ghost { border: 1px solid #E5E7EB; }
-  .btn.solid { background: #2563EB; }
-  .field { height: 32px; border-radius: 9px; background: #F3F4F6; margin-bottom: 8px; }
+  .device.phone .palette { width: calc(100% - 24px); }
+  .dtitle { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+  .dsub { font-size: 12.5px; color: #6B7280; margin: 0 0 18px; }
+  .field { height: 42px; border-radius: 12px; border: 1px solid #E1E4EA; margin-bottom: 12px; }
+  .frow { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .pill { height: 36px; padding: 0 18px; border-radius: 999px; display: flex; align-items: center; font-size: 13px; font-weight: 600; }
+  .pill.out { border: 1px solid #E1E4EA; color: #16181D; }
+  .pill.solid { background: #2563EB; color: #fff; }
+  .srow { height: 34px; border-radius: 9px; background: #F3F4F6; }
+  .srow + .srow { margin-top: 7px; }
+
   pre {
-    margin: 14px 0 0; padding: 14px 16px; overflow-x: auto;
-    background: #14161B; color: #E6E8EC; border-radius: 12px;
-    font: 12.5px/1.65 "SF Mono", Menlo, Consolas, monospace;
+    margin: 26px 0 0; padding: 16px 18px; overflow-x: auto;
+    background: #14161B; color: #E6E8EC; border-radius: 14px;
+    font: 12.5px/1.7 "SF Mono", Menlo, Consolas, monospace;
   }
-  .k { color: #8AB4F8; } .v { color: #F0B34A; } .c { color: #7A8494; }
-  table { border-collapse: collapse; width: 100%; margin-top: 18px; font-size: 13.5px; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #EAECF0; vertical-align: top; }
+  h2 { font-size: 18px; margin: 46px 0 6px; font-weight: 700; letter-spacing: -0.2px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 14px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid #EAECF0; vertical-align: top; }
   th { font-weight: 600; color: #5B6170; font-size: 12.5px; }
   code { background: #EEF1F6; border-radius: 5px; padding: 1px 5px; font: 12.5px "SF Mono", Menlo, Consolas, monospace; }
-  .note { margin-top: 14px; padding: 12px 14px; border-left: 3px solid #2563EB; background: #F3F7FF; border-radius: 0 10px 10px 0; font-size: 13.5px; color: #33405A; }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <h1>Overlay motion</h1>
+  <h1>How a dialog opens</h1>
   <p class="lede">
-    One curve and one pair of durations for everything that opens over the page.
-    Opening is unhurried, closing is quick. Press Play on any card to replay it.
+    One animation for everything that opens over the page. Press the button and watch it;
+    press it again and watch it close. The width switch shows the same dialog on a phone,
+    where it is docked to the bottom edge and travels its own height instead.
   </p>
 
-  <h2>Tokens</h2>
-  <pre><span class="c">/* opening is unhurried, closing is quick */</span>
-<span class="k">--motion-enter</span>: <span class="v">cubic-bezier(0.22, 1, 0.36, 1)</span>;
-<span class="k">--motion-exit</span>:  <span class="v">cubic-bezier(0.4, 0, 1, 1)</span>;
-<span class="k">--motion-dim</span>:   <span class="v">200ms</span>;   <span class="c">/* the dim behind    */</span>
-<span class="k">--motion-card</span>:  <span class="v">260ms</span>;   <span class="c">/* a centred card    */</span>
-<span class="k">--motion-sheet</span>: <span class="v">300ms</span>;   <span class="c">/* a sheet on a phone */</span>
-<span class="k">--motion-out</span>:   <span class="v">160ms</span>;   <span class="c">/* every exit        */</span></pre>
-
-  <h2>The four shapes</h2>
-
-  <div class="grid">
-
-    <div class="demo">
-      <header><b>Dim</b><span>200ms in / 160ms out</span><button class="play" data-target="d1">Play</button></header>
-      <div class="stage" id="d1">
-        <div class="ph t" style="position:absolute;top:20px;left:20px;width:150px"></div>
-        <div class="ph" style="position:absolute;top:48px;left:20px;width:70%"></div>
-        <div class="ph" style="position:absolute;top:68px;left:20px;width:55%"></div>
-        <div class="scrim anim" data-anim="ttt-dim"></div>
-      </div>
-    </div>
-
-    <div class="demo">
-      <header><b>Card</b><span>from 768px up</span><button class="play" data-target="d2">Play</button></header>
-      <div class="stage" id="d2">
-        <div class="scrim anim" data-anim="ttt-dim"></div>
-        <div class="card anim" data-anim="ttt-modal-card">
-          <div class="ph t"></div>
-          <div class="ph"></div><div class="ph" style="width:80%"></div>
-          <div class="row"><i class="btn ghost"></i><i class="btn solid"></i></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="demo">
-      <header><b>Sheet</b><span>below 768px</span><button class="play" data-target="d3">Play</button></header>
-      <div class="stage" id="d3">
-        <div class="scrim anim" data-anim="ttt-dim"></div>
-        <div class="sheet anim" data-anim="sheet-demo">
-          <div class="ph t"></div>
-          <div class="field"></div><div class="field"></div>
-          <div class="row"><i class="btn ghost"></i><i class="btn solid"></i></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="demo">
-      <header><b>Search</b><span>drops from where it is summoned</span><button class="play" data-target="d4">Play</button></header>
-      <div class="stage" id="d4">
-        <div class="scrim anim" data-anim="ttt-dim"></div>
-        <div class="palette anim" data-anim="ttt-search">
-          <div class="field" style="margin-bottom:10px"></div>
-          <div class="ph" style="width:70%"></div>
-          <div class="ph" style="width:52%"></div>
-          <div class="ph" style="width:61%"></div>
-        </div>
-      </div>
-    </div>
-
+  <div class="controls">
+    <button id="play">Open the dialog</button>
+    <button class="ghost" id="playSearch">Open search</button>
+    <button class="ghost" id="toPhone" aria-pressed="false">Phone width</button>
+    <button class="ghost" id="slow" aria-pressed="false">Quarter speed</button>
   </div>
 
-  <div class="note">
-    The sheet demo runs the phone keyframes at any window width so the movement can be
-    seen here. In the product the sheet keyframes are inside <code>@media (max-width: 767px)</code>,
-    and the same element uses the card keyframes above that width.
+  <div class="device" id="device">
+    <div class="page">
+      <div class="ph t"></div>
+      <div class="ph" style="width:88%"></div>
+      <div class="ph" style="width:74%"></div>
+      <div class="ph" style="width:81%"></div>
+      <div class="ph" style="width:56%"></div>
+    </div>
   </div>
 
-  <h2>Where each class goes</h2>
-  <table>
-    <tr><th style="width:210px">Class</th><th style="width:230px">Put it on</th><th>Why that one</th></tr>
-    <tr>
-      <td><code>ttt-dim</code></td>
-      <td><code>DialogOverlay</code>, <code>AlertDialogOverlay</code>, the scrim in <code>ModalShell</code> and in <code>SearchModal</code></td>
-      <td>Anything that dims the page behind an overlay.</td>
-    </tr>
-    <tr>
-      <td><code>ttt-modal-card</code></td>
-      <td><code>DialogContent</code>, <code>AlertDialogContent</code></td>
-      <td>A card centred with <code>translate(-50%, -50%)</code>. The keyframe carries that translate, otherwise the card jumps to the corner while it animates.</td>
-    </tr>
-    <tr>
-      <td><code>ttt-modal-rise</code></td>
-      <td>The card in <code>ModalShell</code></td>
-      <td>Same movement for a card centred by its flex parent, with no transform of its own.</td>
-    </tr>
-    <tr>
-      <td><code>ttt-modal-sheet</code></td>
-      <td><code>MODAL_SURFACE</code> in <code>modal-surface.ts</code>, and <code>ModalShell</code></td>
-      <td>Below 768 those surfaces dock to the bottom edge, so they travel their own height instead of zooming from the middle of the screen.</td>
-    </tr>
-    <tr>
-      <td><code>ttt-modal-sheet-sm</code></td>
-      <td><code>AlertDialogContent</code></td>
-      <td>The shadcn base still docks its confirmations at 640, not 768. Same keyframes, its own boundary.</td>
-    </tr>
-    <tr>
-      <td><code>ttt-search</code></td>
-      <td>The panel in <code>SearchModal</code></td>
-      <td>Search is summoned from the top bar, so it arrives from above.</td>
-    </tr>
-  </table>
+  <pre id="code"></pre>
 
-  <h2>Three things this replaced</h2>
+  <h2>Where it is already applied</h2>
   <table>
-    <tr><th style="width:50%">Before</th><th>Now</th></tr>
-    <tr>
-      <td>The overlay ran 150ms and the dialog 200ms, so the dim finished first and the card arrived into an already dark screen.</td>
-      <td>200ms and 260ms on the same curve: the dim leads by a little and they settle together.</td>
-    </tr>
-    <tr>
-      <td>A dialog that is a sheet on a phone still animated <code>zoom-in-95</code> from the centre of the screen.</td>
-      <td>It travels its own height from the bottom edge.</td>
-    </tr>
-    <tr>
-      <td>No <code>prefers-reduced-motion</code> anywhere in the codebase.</td>
-      <td>Every shape falls back to a 120ms fade with no movement.</td>
-    </tr>
+    <tr><th style="width:220px">Class</th><th>On</th></tr>
+    <tr><td><code>ttt-dim</code></td><td>DialogOverlay, AlertDialogOverlay, the scrim in ModalShell and in SearchModal</td></tr>
+    <tr><td><code>ttt-modal-card</code></td><td>DialogContent, AlertDialogContent</td></tr>
+    <tr><td><code>ttt-modal-rise</code></td><td>the card in ModalShell, which its flex parent centres</td></tr>
+    <tr><td><code>ttt-modal-sheet</code></td><td>MODAL_SURFACE and ModalShell, below 768</td></tr>
+    <tr><td><code>ttt-modal-sheet-sm</code></td><td>AlertDialogContent, below 640, the boundary the shadcn base still uses</td></tr>
+    <tr><td><code>ttt-search</code></td><td>the panel in SearchModal</td></tr>
   </table>
 
   <h2>If a surface is built with Framer Motion</h2>
-  <p class="lede">The app already has <code>motion/react</code>. Same numbers, same curve.</p>
-  <pre><span class="k">const</span> EASE_IN  = [<span class="v">0.22</span>, <span class="v">1</span>, <span class="v">0.36</span>, <span class="v">1</span>];
-<span class="k">const</span> EASE_OUT = [<span class="v">0.4</span>, <span class="v">0</span>, <span class="v">1</span>, <span class="v">1</span>];
+  <pre>const EASE_IN  = [0.22, 1, 0.36, 1];
+const EASE_OUT = [0.4, 0, 1, 1];
 
-<span class="c">// the dim</span>
-initial={{ opacity: <span class="v">0</span> }}
-animate={{ opacity: <span class="v">1</span>, transition: { duration: <span class="v">0.2</span>,  ease: EASE_IN  } }}
-exit=   {{ opacity: <span class="v">0</span>, transition: { duration: <span class="v">0.16</span>, ease: EASE_OUT } }}
+// the dim
+initial={{ opacity: 0 }}
+animate={{ opacity: 1, transition: { duration: 0.2,  ease: EASE_IN  } }}
+exit=   {{ opacity: 0, transition: { duration: 0.16, ease: EASE_OUT } }}
 
-<span class="c">// a card</span>
-initial={{ opacity: <span class="v">0</span>, y: <span class="v">14</span>, scale: <span class="v">0.965</span> }}
-animate={{ opacity: <span class="v">1</span>, y: <span class="v">0</span>, scale: <span class="v">1</span>, transition: { duration: <span class="v">0.26</span>, ease: EASE_IN } }}
-exit=   {{ opacity: <span class="v">0</span>, y: <span class="v">8</span>, scale: <span class="v">0.985</span>, transition: { duration: <span class="v">0.16</span>, ease: EASE_OUT } }}
+// the dialog
+initial={{ opacity: 0, y: 14, scale: 0.965 }}
+animate={{ opacity: 1, y: 0, scale: 1,     transition: { duration: 0.26, ease: EASE_IN  } }}
+exit=   {{ opacity: 0, y: 8, scale: 0.985, transition: { duration: 0.16, ease: EASE_OUT } }}
 
-<span class="c">// a sheet</span>
-initial={{ y: <span class="v">"100%"</span> }}
-animate={{ y: <span class="v">0</span>, transition: { duration: <span class="v">0.3</span>,  ease: EASE_IN  } }}
-exit=   {{ y: <span class="v">"100%"</span>, transition: { duration: <span class="v">0.16</span>, ease: EASE_OUT } }}
+// the same dialog on a phone
+initial={{ y: "100%" }}
+animate={{ y: 0,      transition: { duration: 0.3,  ease: EASE_IN  } }}
+exit=   {{ y: "100%", transition: { duration: 0.16, ease: EASE_OUT } }}
 
-<span class="c">// and honour the setting</span>
-<span class="k">const</span> reduce = useReducedMotion();</pre>
+const reduce = useReducedMotion();  // and honour it</pre>
 
   <h2>Two rules</h2>
   <table>
     <tr>
-      <td style="width:50%">A stack of dialogs animates only the one that arrives. The layers underneath stay where they are; moving them turns a stack into a pile.</td>
+      <td style="width:50%">A stack of dialogs animates only the one that arrives. The layers underneath stay where they are.</td>
       <td>The exit is never longer than the enter. A user who dismissed something is already looking somewhere else.</td>
     </tr>
   </table>
@@ -333,29 +220,71 @@ exit=   {{ y: <span class="v">"100%"</span>, transition: { duration: <span class
 </div>
 
 <script>
-  /* Replay: strip the class, force a reflow, put it back. */
-  document.querySelectorAll(".play").forEach(function (b) {
-    b.addEventListener("click", function () {
-      var stage = document.getElementById(b.dataset.target);
-      stage.querySelectorAll(".anim").forEach(function (el) {
-        var name = el.dataset.anim;
-        var cls = name === "sheet-demo" ? "sheet-play" : name;
-        el.classList.remove(cls);
-        void el.offsetWidth;
-        el.classList.add(cls);
-      });
-    });
+  var device = document.getElementById("device");
+  var phone = false, slow = false, open = null;
+
+  var CSS_DIALOG =
+    '<span style="color:#7A8494">&lt;!-- the markup the animation runs on --&gt;</span>\n' +
+    '&lt;div class="<span style="color:#8AB4F8">ttt-dim</span>" data-state="open"&gt;&lt;/div&gt;\n' +
+    '&lt;div class="<span style="color:#8AB4F8">ttt-modal-card ttt-modal-sheet</span>" data-state="open"&gt;\n' +
+    '  &lt;!-- the dialog --&gt;\n' +
+    '&lt;/div&gt;\n\n' +
+    '<span style="color:#7A8494">/* Radix writes data-state for you. A hand-rolled portal that\n' +
+    '   mounts only while open needs no attribute at all: the class\n' +
+    '   alone runs the enter animation on mount. */</span>';
+  document.getElementById("code").innerHTML = CSS_DIALOG;
+
+  function speed() { document.documentElement.style.setProperty("--motion-card", slow ? "1040ms" : "260ms"); document.documentElement.style.setProperty("--motion-sheet", slow ? "1200ms" : "300ms"); document.documentElement.style.setProperty("--motion-dim", slow ? "800ms" : "200ms"); document.documentElement.style.setProperty("--motion-out", slow ? "640ms" : "160ms"); }
+
+  function build(kind) {
+    var dim = document.createElement("div");
+    dim.className = "ttt-dim dim";
+    dim.setAttribute("data-state", "open");
+    var box = document.createElement("div");
+    if (kind === "search") {
+      box.className = "ttt-search palette";
+      box.setAttribute("data-state", "open");
+      box.innerHTML = '<div class="field" style="margin-bottom:10px"></div><div class="srow"></div><div class="srow"></div><div class="srow"></div>';
+    } else {
+      box.className = "ttt-modal-card ttt-modal-sheet dialog";
+      box.setAttribute("data-state", "open");
+      box.innerHTML =
+        '<p class="dtitle">Transcribe from URL</p>' +
+        '<p class="dsub">YouTube, Instagram, Dropbox, Google Drive and more</p>' +
+        '<div class="field"></div><div class="field"></div>' +
+        '<div class="frow"><span class="pill out">Cancel</span><span class="pill solid">Start transcription</span></div>';
+    }
+    device.appendChild(dim);
+    device.appendChild(box);
+    return [dim, box];
+  }
+
+  function close() {
+    if (!open) return;
+    open.forEach(function (el) { el.setAttribute("data-state", "closed"); });
+    var gone = open;
+    open = null;
+    setTimeout(function () { gone.forEach(function (el) { el.remove(); }); }, slow ? 700 : 220);
+  }
+
+  function toggle(kind) {
+    if (open) { close(); return; }
+    open = build(kind);
+  }
+
+  document.getElementById("play").addEventListener("click", function () { toggle("dialog"); });
+  document.getElementById("playSearch").addEventListener("click", function () { toggle("search"); });
+  document.getElementById("toPhone").addEventListener("click", function (e) {
+    phone = !phone;
+    device.classList.toggle("phone", phone);
+    e.target.setAttribute("aria-pressed", String(phone));
   });
-  /* The sheet demo has to run at any width, so it gets its own ungated rule. */
-  var s = document.createElement("style");
-  s.textContent = ".sheet-play { animation: ttt-sheet-in var(--motion-sheet) var(--motion-enter) both; }";
-  document.head.appendChild(s);
-  /* First paint plays everything once. */
-  window.addEventListener("load", function () {
-    document.querySelectorAll(".play").forEach(function (b, i) {
-      setTimeout(function () { b.click(); }, 260 + i * 220);
-    });
+  document.getElementById("slow").addEventListener("click", function (e) {
+    slow = !slow; speed();
+    e.target.setAttribute("aria-pressed", String(slow));
   });
+  speed();
+  window.addEventListener("load", function () { setTimeout(function () { toggle("dialog"); }, 400); });
 </script>
 </body>
 </html>
