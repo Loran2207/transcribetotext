@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Upload queue states</title>
+<title>Upload queue - the collapsed button</title>
 <style>
   @keyframes queue-halo {
     0%   { transform: scale(1);    opacity: 0.5; }
@@ -20,8 +20,8 @@
     -webkit-font-smoothing: antialiased;
   }
   .wrap { padding: 52px 48px 56px; }
-  .row { display: flex; gap: 52px; align-items: flex-start; }
-  .case { width: 230px; }
+  .row { display: flex; gap: 44px; align-items: flex-start; }
+  .case { width: 250px; }
   .stage { height: 128px; display: flex; align-items: center; justify-content: center; }
   .btnwrap { position: relative; width: 56px; height: 56px; transform: scale(1.5); }
   .halo { position: absolute; inset: 0; border-radius: 999px; box-shadow: 0 0 14px 5px rgba(37,99,235,0.28); pointer-events: none; }
@@ -31,8 +31,7 @@
     box-shadow: 0 8px 20px -6px rgba(16,24,40,0.16), 0 2px 6px -2px rgba(16,24,40,0.08);
   }
   .ring { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .lottie-glyph { position: relative; z-index: 1; width: 30px; height: 30px; }
-  .failed-glyph { position: relative; z-index: 1; width: 22px; height: 22px; color: #EE1A1A; }
+  .mark { position: relative; z-index: 1; width: 26px; height: 26px; }
   .badges { position: absolute; top: -3px; right: -3px; display: flex; align-items: center; }
   .b {
     height: 20px; min-width: 20px; padding: 0 4px; border-radius: 999px;
@@ -44,95 +43,99 @@
   .b.red.solo { margin-left: 0; }
   .name { font-size: 15px; font-weight: 600; margin: 10px 0 5px; }
   .desc { font-size: 13.5px; color: #5B6170; line-height: 1.5; }
-  @media (prefers-reduced-motion: reduce) {
-    .halo, .sweep { animation: none; }
-  }
+  .foot { margin-top: 30px; font-size: 13px; color: #5B6170; }
+  .foot code { background: #EEF1F6; border-radius: 5px; padding: 1px 5px; font: 12.5px "SF Mono", Menlo, Consolas, monospace; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="row">
+
+    <div class="case">
+      <div class="stage">
+        <div class="btnwrap">
+          <div class="btn">
+            <svg class="ring" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26.4" stroke="#E4E4E7" stroke-width="2.4" /></svg>
+            <svg class="mark" viewBox="0 0 24 24" fill="none" style="color:#9CA3AF">
+              <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+        </div>
+      </div>
+      <p class="name">Nothing is loading</p>
+      <p class="desc">The tray waits in the quietest ink the product has. No ring colour, no counters, nothing turning.</p>
+    </div>
+
     <div class="case">
       <div class="stage">
         <div class="btnwrap">
           <span class="halo"></span>
           <div class="btn">
             <svg class="ring" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26.4" stroke="#E4E4E7" stroke-width="2.4" /></svg>
-            <span class="sweep" style="position:absolute;inset:0"><svg class="ring" viewBox="0 0 56 56" fill="none"><path d="M 28 1.6 A 26.4 26.4 0 0 1 51.11 15.28" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" /></svg></span>
-            <span class="lottie-glyph" aria-hidden="true"></span>
+            <span class="sweep" style="position:absolute;inset:0">
+              <svg class="ring" viewBox="0 0 56 56" fill="none">
+                <path d="M 28 1.6 A 26.4 26.4 0 0 1 51.11 15.28" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+            </span>
+            <svg class="mark" viewBox="0 0 24 24" fill="#2563EB">
+              <path d="M9.1 17.2a2.1 2.1 0 11-1.5-2v-6l7.6-2.1v5.6a2.1 2.1 0 11-1.5-2V7.6L9.1 8.9z" />
+              <path d="M17.4 5.1l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z" opacity="0.85" />
+            </svg>
             <span class="badges"><span class="b blue">5</span></span>
           </div>
         </div>
       </div>
-      <p class="name">Five files on their way</p>
-      <p class="desc">The arc turns, the file lands in the tray, and the counter says how many. No aggregate percentage is claimed.</p>
+      <p class="name">Loading</p>
+      <p class="desc">The blue mark plays inside a ring that turns with it, and the counter says how many files. No percentage: none of the per-file figures can be trusted yet.</p>
     </div>
+
     <div class="case">
       <div class="stage">
         <div class="btnwrap">
           <span class="halo"></span>
           <div class="btn">
             <svg class="ring" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26.4" stroke="#E4E4E7" stroke-width="2.4" /></svg>
-            <span class="sweep" style="position:absolute;inset:0"><svg class="ring" viewBox="0 0 56 56" fill="none"><path d="M 28 1.6 A 26.4 26.4 0 0 1 51.11 15.28" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" /></svg></span>
-            <span class="lottie-glyph" aria-hidden="true"></span>
+            <span class="sweep" style="position:absolute;inset:0">
+              <svg class="ring" viewBox="0 0 56 56" fill="none">
+                <path d="M 28 1.6 A 26.4 26.4 0 0 1 51.11 15.28" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+            </span>
+            <svg class="mark" viewBox="0 0 24 24" fill="#2563EB">
+              <path d="M9.1 17.2a2.1 2.1 0 11-1.5-2v-6l7.6-2.1v5.6a2.1 2.1 0 11-1.5-2V7.6L9.1 8.9z" />
+              <path d="M17.4 5.1l.5 1.3 1.3.5-1.3.5-.5 1.3-.5-1.3-1.3-.5 1.3-.5z" opacity="0.85" />
+            </svg>
             <span class="badges"><span class="b blue">5</span><span class="b red">3</span></span>
           </div>
         </div>
       </div>
-      <p class="name">Running and broken at once</p>
-      <p class="desc">Nothing about the ring changes. The red counter joins the blue one, and the tooltip names both.</p>
+      <p class="name">Loading, and something broke</p>
+      <p class="desc">Nothing about the ring or the mark changes. The red counter joins the blue one, and the tooltip names both.</p>
     </div>
+
     <div class="case">
       <div class="stage">
         <div class="btnwrap">
-          <span class="halo"></span>
-          <div class="btn">
-            <svg class="ring" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26.4" stroke="#E4E4E7" stroke-width="2.4" /></svg>
-            <span class="sweep" style="position:absolute;inset:0"><svg class="ring" viewBox="0 0 56 56" fill="none"><path d="M 28 1.6 A 26.4 26.4 0 0 1 51.11 15.28" stroke="#2563EB" stroke-width="2.4" stroke-linecap="round" /></svg></span>
-            <span class="lottie-glyph" aria-hidden="true"></span>
-            <span class="badges"><span class="b blue">2</span></span>
-          </div>
-        </div>
-      </div>
-      <p class="name">A bot still connecting</p>
-      <p class="desc">It reports nothing measurable, and it looks exactly the same, which is the point: the button says work is happening, not how far along it is.</p>
-    </div>
-    <div class="case">
-      <div class="stage">
-        <div class="btnwrap">
-          
           <div class="btn">
             <svg class="ring" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="26.4" stroke="rgba(238,26,26,0.3)" stroke-width="2.4" /></svg>
-            
-            <svg class="failed-glyph" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" /><path d="M12 7.5v5.5M12 16.5h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" /></svg>
+            <svg class="mark" viewBox="0 0 24 24" fill="none" style="color:#EE1A1A">
+              <circle cx="12" cy="12" r="8.4" stroke="currentColor" stroke-width="1.8" />
+              <path d="M12 8v4.6M12 15.6v.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
             <span class="badges"><span class="b red solo">3</span></span>
           </div>
         </div>
       </div>
-      <p class="name">Nothing running, three failed</p>
-      <p class="desc">Only here does red reach the ring, the arc stops turning and the halo stops: there is no work to be pulsing about.</p>
+      <p class="name">Error</p>
+      <p class="desc">Only when the work is over does red reach the ring and the mark. The arc stops turning and the halo stops: there is nothing to be pulsing about.</p>
     </div>
+
   </div>
+
+  <p class="foot">
+    In the product the blue mark is a Lottie, <code>public/lottie/queue-loading-blue.json</code>, playing at 0.9 speed
+    and frozen on one frame when the reader asks for less motion. The still above is that frame.
+  </p>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
-<script>
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  window.__lotties = [];
-  document.querySelectorAll(".lottie-glyph").forEach((container) => {
-    const animation = window.lottie.loadAnimation({
-      container,
-      renderer: "svg",
-      loop: !reducedMotion,
-      autoplay: !reducedMotion,
-      path: "/lottie/upload-file-blue.json",
-      rendererSettings: { preserveAspectRatio: "xMidYMid meet" },
-    });
-    window.__lotties.push(animation);
-    animation.addEventListener("DOMLoaded", () => {
-      animation.setSpeed(0.9);
-      if (reducedMotion) animation.goToAndStop(30, true);
-    });
-  });
-</script>
 </body>
 </html>

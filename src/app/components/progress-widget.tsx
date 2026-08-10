@@ -443,15 +443,22 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
             {running ? (
               <span data-queue-lottie aria-hidden="true" className="relative z-[1] flex size-[30px] items-center justify-center">
                 <LottieStage
-                  src="/lottie/upload-file-blue.json"
+                  src="/lottie/queue-loading-blue.json"
                   w={30}
                   h={30}
                   speed={0.9}
                   reducedMotionFrame={30}
                 />
               </span>
-            ) : (
+            ) : failedJobs.length > 0 ? (
               <Icon icon={AlertCircle} className="relative z-[1] size-[21px] text-destructive" strokeWidth={1.8} />
+            ) : (
+              /* Nothing running and nothing broken: the tray waits, in the
+                 quietest ink the product has. */
+              <svg className="relative z-[1] size-[24px] text-muted-foreground" viewBox="0 0 24 24" fill="none">
+                <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             )}
 
             {/* Two counters, the way notifications count: blue for what is
