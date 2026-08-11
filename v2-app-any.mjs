@@ -957,7 +957,14 @@ if (state === "home_folder_hover") {
   });
   if (box) {
     await p.mouse.move(box.x, box.y);
-    await p.waitForTimeout(420);
+    await p.waitForTimeout(900);
+    await p.evaluate(() => {
+      Array.from(document.querySelectorAll("div")).forEach((n) => {
+        const cls = typeof n.className === "string" ? n.className : "";
+        if (cls.indexOf("z-[60]") >= 0 && /SUMMARY/i.test(n.textContent || "")) n.style.display = "none";
+      });
+    });
+    await p.waitForTimeout(200);
   }
 }
 
