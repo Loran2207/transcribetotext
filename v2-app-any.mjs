@@ -937,6 +937,51 @@ if (state === "recfolder_hover" || state === "recfolder_hover_btn") {
   await p.waitForTimeout(200);
 }
 
+/* A scrolled container is drawn from its top by the capture, so the unlock card
+   that the screen actually shows gets clipped. Fold the offset into a margin. */
+if ((state === "limited" || state.startsWith("copy_"))) {
+  await p.evaluate(() => {
+    const boxes = Array.from(document.querySelectorAll("div")).filter((el) => {
+      const st = getComputedStyle(el);
+      return /(auto|scroll)/.test(st.overflowY) && el.scrollTop > 0;
+    });
+    boxes.forEach((box) => {
+      const first = box.firstElementChild;
+      if (!first) return;
+      const off = box.scrollTop;
+      first.style.marginTop = "-" + off + "px";
+      box.scrollTop = 0;
+    });
+  });
+  await p.waitForTimeout(300);
+}
+
+/* A bottom sheet is position:fixed; the capture flattens it into flow and the
+   frame grows by the sheet's height. Pin it where it visually sits. */
+if (state.startsWith("copy_") && width < 768) {
+  await p.evaluate(() => {
+    const pin = (el, r) => {
+      el.style.position = "absolute";
+      el.style.top = Math.round(r.top + window.scrollY) + "px";
+      el.style.left = Math.round(r.left + window.scrollX) + "px";
+      el.style.width = Math.round(r.width) + "px";
+      el.style.height = Math.round(r.height) + "px";
+      el.style.right = "auto";
+      el.style.bottom = "auto";
+      el.style.transform = "none";
+      el.style.margin = "0";
+    };
+    const ov = document.querySelector('[data-slot="drawer-overlay"]');
+    if (ov) pin(ov, { top: 0, left: 0, width: window.innerWidth, height: window.innerHeight });
+    const sheet = document.querySelector('[data-slot="drawer-content"]');
+    if (sheet) pin(sheet, sheet.getBoundingClientRect());
+    document.documentElement.style.height = window.innerHeight + "px";
+    document.body.style.height = window.innerHeight + "px";
+    document.body.style.overflow = "hidden";
+  });
+  await p.waitForTimeout(300);
+}
+
 if (preview) {
   await p.screenshot({ path: target });
   console.log("saved", target);
