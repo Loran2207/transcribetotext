@@ -215,6 +215,10 @@ if (state.startsWith("planstatus_")) {
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   await p.waitForTimeout(2500);
+} else if (state.startsWith("recfolder_")) {
+  await p.waitForTimeout(1500);
+  const link = p.getByText("My Records", { exact: true }).filter({ visible: true }).first();
+  if (await link.count()) { await link.click({ force: true }); await p.waitForTimeout(1800); }
 } else if (state.startsWith("copy_")) {
   // copy_menu -> the record carries a finished Russian translation, so the menu
   // has to say which language it copies. copy_plain -> no translation, so it
@@ -285,6 +289,11 @@ if (state === "limited") {
     }
   });
   await p.waitForTimeout(900);
+}
+
+if (state === "recfolder_filter") {
+  await p.getByRole("button", { name: "Folder", exact: true }).filter({ visible: true }).first().click({ force: true });
+  await p.waitForTimeout(700);
 }
 
 /* Which control opens the copy list depends on the width: a phone has it in the
@@ -916,6 +925,20 @@ if (process.env.TTT_DBG) {
     return { t: (d.textContent || "").slice(0, 22), x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), z: cs.zIndex, op: cs.opacity, vis: cs.visibility, disp: cs.display, pz: d.parentElement ? getComputedStyle(d.parentElement).zIndex : "-" };
   }));
   console.log("DIALOGS " + JSON.stringify(info));
+}
+
+/* Last of all: the respacing pass above rewrites text nodes, and a stationary
+   cursor over shifting text fires mouseleave, which drops the row's hover. */
+if (state === "recfolder_hover") {
+  // "All-hands - March highlights" is one of the records that sits in no folder,
+  // so its folder cell is the empty one that offers to file it.
+  // A real pointer move, because the row sets its hover state from onMouseEnter
+  // and a forced hover on a matched wrapper lands on the wrong element.
+  const cell = p.getByText("All-hands - March highlights", { exact: false }).filter({ visible: true }).first();
+  await cell.scrollIntoViewIfNeeded();
+  const box = await cell.boundingBox();
+  if (box) await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await p.waitForTimeout(800);
 }
 
 if (preview) {
