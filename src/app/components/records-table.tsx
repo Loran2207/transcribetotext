@@ -74,7 +74,7 @@ type FolderColumnMode = "compact" | "full";
 const NO_FOLDER = "__no_folder__";
 
 /* ── Inline folder helpers ── */
-const INLINE_FOLDER_PATH = "M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z";
+export const INLINE_FOLDER_PATH = "M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z";
 const INLINE_FOLDER_COLORS = [
   { id: "blue", color: "#3B82F6" }, { id: "green", color: "#22C55E" }, { id: "amber", color: "#F59E0B" }, { id: "red", color: "#EF4444" },
   { id: "purple", color: "#8B5CF6" }, { id: "pink", color: "#EC4899" }, { id: "cyan", color: "#06B6D4" }, { id: "gray", color: "#6B7280" },
@@ -1565,7 +1565,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
       <div className="lg:hidden mt-[12px] pb-[40px]">
         {surface !== "home" && activeTab === "Recent" && !scopedFolderId && !hasActiveFilters && !forceEmpty && inlineFolders.length > 0 && (
-          <div className="grid grid-cols-1 gap-[10px] mb-[10px]">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-[10px] mb-[10px]">
             {inlineFolders.map((folder) => {
               const fcount = mobileFolderCounts.get(folder.id) ?? 0;
               return (
@@ -1632,13 +1632,12 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
               {visibleColumns.map((col) => {
                 if (col === "template") return <div key={col} className="flex-[1] min-w-0 px-[12px] flex items-center"><ColumnHeaderDropdown label={t("table.template")} options={templateFilterOptions} selected={templateFilter} onToggle={(id) => setTemplateFilter((s) => toggleSetItem(s, id))} /></div>;
                 if (col === "folder") return (
-                  <div key={col} className={(folderColumnMode === "full" ? "w-[156px]" : "w-[46px]") + " shrink-0 px-[8px] flex items-center"}>
+                  <div key={col} className={(folderColumnMode === "full" ? "w-[156px]" : "w-[72px]") + " shrink-0 px-[8px] flex items-center"}>
                     <ColumnHeaderDropdown
                       label={t("table.folder")}
                       options={folderFilterOptions}
                       selected={folderFilter}
                       onToggle={(id) => setFolderFilter((sel) => toggleSetItem(sel, id))}
-                      compactIcon={folderColumnMode === "compact" ? <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill="currentColor" /></svg> : undefined}
                     />
                   </div>
                 );
@@ -1863,7 +1862,7 @@ function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected
     if (col === "folder") {
       if (folderColumnMode === "compact") {
         return (
-          <div key={col} className="w-[46px] shrink-0 px-[8px] flex items-center">
+          <div key={col} className="w-[72px] shrink-0 px-[8px] flex items-center">
             {folder ? (
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1891,7 +1890,7 @@ function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onMoveFolder(); }}
-              className={"flex items-center gap-[5px] rounded-full px-[7px] py-[3px] text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground " + (isHovered ? "opacity-100" : "opacity-0 pointer-events-none")}
+              className={"flex items-center gap-[5px] rounded-full px-[7px] py-[3px] text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary " + (isHovered ? "opacity-100" : "opacity-0 pointer-events-none")}
             >
               <Icon icon={FolderPlus} className="size-[13px]" strokeWidth={1.6} />
               <span className="text-[12.5px] whitespace-nowrap">{tRow("table.addToFolder")}</span>

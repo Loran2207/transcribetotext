@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Clock, MoreHorizontal, Copy, FolderOpen, Upload, Share, Edit, StarIcon, Trash, X } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
@@ -37,7 +37,7 @@ import { useFolders } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { ShareDialog } from "./share-dialog";
 import { ExportDialog } from "./export-dialog";
-import { LanguageBadge, MoveToFolderDialog, recordRowToExportable, type RecordRow, FigmaCheckbox } from "./records-table";
+import { LanguageBadge, MoveToFolderDialog, recordRowToExportable, type RecordRow, FigmaCheckbox, INLINE_FOLDER_PATH } from "./records-table";
 
 /* A single recording rendered as a card (mobile + tablet replacement for the
    desktop records table). The whole card opens the transcript; the kebab
@@ -76,7 +76,17 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
   const isMobile = useIsMobile();
   const { t } = useLanguage();
   const { starred, toggleStar, renameRecord, getName } = useStarred();
-  const { folders, assignToFolder } = useFolders();
+  const { folders, assignToFolder, folderAssignments } = useFolders();
+
+  /* Which folder this record sits in. The tree is shallow, so one walk is cheap. */
+  const cardFolder = useMemo(() => {
+    const target = folderAssignments[record.id];
+    if (!target) return null;
+    let found: { name: string; color: string } | null = null;
+    const walk = (list: typeof folders) => list.forEach((f) => { if (f.id === target) found = f; walk(f.children ?? []); });
+    walk(folders);
+    return found as { name: string; color: string } | null;
+  }, [folders, folderAssignments, record.id]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
@@ -140,6 +150,12 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
           <span className="shrink-0 leading-none">
             <LanguageBadge lang={record.language} />
           </span>
+          {cardFolder && (
+            <span className="flex min-w-0 shrink-0 items-center gap-[5px]" title={cardFolder.name}>
+              <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={cardFolder.color} /></svg>
+              <span className="hidden truncate text-[12px] md:inline">{cardFolder.name}</span>
+            </span>
+          )}
         </div>
       </div>
 

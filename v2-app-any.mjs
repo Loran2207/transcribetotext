@@ -248,24 +248,8 @@ if (width !== 1440) {
 if (state === "limited") {
   // A phone screen has the player and the action bar pinned over the bottom, so the
   // frame needs room before the card can sit clear of them.
-  if (width < 768) {
-    // The player and the action bar are pinned over the bottom, so the frame is cut
-    // to the card plus room for them: any taller and the screen is mostly white.
-    await p.setViewportSize({ width, height: 1600 });
-    await p.waitForTimeout(700);
-    const bottom = await p.evaluate(() => {
-      const el = Array.from(document.querySelectorAll("button, a")).find((b) =>
-        /unlock full access/i.test(b.textContent || "")
-      );
-      const card = el ? el.closest("div") : null;
-      if (!card) return 0;
-      return Math.ceil(card.getBoundingClientRect().bottom + window.scrollY);
-    });
-    if (bottom) {
-      await p.setViewportSize({ width, height: Math.min(2400, bottom + 250) });
-      await p.waitForTimeout(700);
-    }
-  }
+  // The phone keeps its real height; the card is scrolled to sit just above the
+  // pinned player instead of the frame growing to reach it.
   // The transcript scrolls inside its own container, so scrollIntoView on the window
   // barely moves it: find the scrollable ancestor and centre the card in that.
   await p.evaluate(() => {
@@ -929,7 +913,7 @@ if (process.env.TTT_DBG) {
 
 /* Last of all: the respacing pass above rewrites text nodes, and a stationary
    cursor over shifting text fires mouseleave, which drops the row's hover. */
-if (state === "recfolder_hover") {
+if (state === "recfolder_hover" || state === "recfolder_hover_btn") {
   // "All-hands - March highlights" is one of the records that sits in no folder,
   // so its folder cell is the empty one that offers to file it.
   // A real pointer move, because the row sets its hover state from onMouseEnter
@@ -939,6 +923,18 @@ if (state === "recfolder_hover") {
   const box = await cell.boundingBox();
   if (box) await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await p.waitForTimeout(800);
+  await p.evaluate((blue) => {
+    const btn = Array.from(document.querySelectorAll("button")).find((b) => /add to folder/i.test(b.textContent || ""));
+    if (!btn) return;
+    const row = btn.closest("div[draggable]");
+    if (row) row.style.background = "#f4f4f5";
+    if (blue) {
+      btn.style.background = "rgba(37,99,235,0.10)";
+      btn.style.color = "#2563EB";
+      Array.from(btn.querySelectorAll("svg")).forEach((sv) => { sv.style.color = "#2563EB"; });
+    }
+  }, state === "recfolder_hover_btn");
+  await p.waitForTimeout(200);
 }
 
 if (preview) {

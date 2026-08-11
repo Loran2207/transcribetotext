@@ -1658,7 +1658,6 @@ function PageHeader({
           <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>
           {!hasSummary && (
             <Button className="order-first flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
-              <Icon icon={Zap} className="size-[14px]" strokeWidth={1.5} />
               <span className="font-medium text-[13px]">Apply template</span>
             </Button>
           )}
@@ -1671,16 +1670,11 @@ function PageHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={6} className={"z-[120] " + (copyMenu.translation ? "w-[236px]" : "w-[190px]")}>
-              <DropdownMenuItem className="gap-2" onClick={onCopyLink}>
-                <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                Copy link
-              </DropdownMenuItem>
               {copyMenu.translation ? (
                 <>
                   {/* With a translation on the record, "Copy transcript" no longer
                       names one thing, so the language is the choice and the flag
                       carries it. */}
-                  <DropdownMenuSeparator />
                   <DropdownMenuLabel className="text-[11.5px] font-medium text-muted-foreground">Transcript</DropdownMenuLabel>
                   <DropdownMenuItem className="gap-2" onClick={() => onCopyTranscript()}>
                     <span className="w-4 text-center text-[14px] leading-none">{copyMenu.original.flag}</span>
@@ -1777,7 +1771,6 @@ function PageHeader({
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={onSetTemplate}>
-                  <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                   Apply template
                 </DropdownMenuItem>
               )}
@@ -3032,8 +3025,7 @@ export function TranscriptionDetailPage() {
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
     </Button>
   ) : (
-    <Button onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] gap-1.5 text-[14px] font-semibold">
-      <Icon icon={Zap} className="size-[16px]" strokeWidth={1.7} />
+    <Button onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] text-[14px] font-semibold">
       Apply template
     </Button>
   );
