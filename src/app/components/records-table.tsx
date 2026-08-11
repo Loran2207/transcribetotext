@@ -14,6 +14,7 @@ import { setFabHidden } from "./fab-visibility";
 import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit, X } from "@hugeicons/core-free-icons";
 import { ShareDialog } from "./share-dialog";
 import { Icon } from "./ui/icon";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { useSidebar } from "./ui/sidebar";
@@ -54,16 +55,23 @@ import {
    Column Configuration Types
    ══════════════════════════════════════════════ */
 
-type ColumnId = "template" | "lang" | "duration" | "date";
+type ColumnId = "template" | "folder" | "lang" | "duration" | "date";
 
 const COLUMN_LABEL_KEYS: Record<ColumnId, string> = {
   template: "table.template",
+  folder: "table.folder",
   lang: "table.colLanguage",
   duration: "table.duration",
   date: "table.colDateCreated",
 };
 
-const DEFAULT_COLUMN_ORDER: ColumnId[] = ["template", "lang", "duration", "date"];
+const DEFAULT_COLUMN_ORDER: ColumnId[] = ["template", "folder", "lang", "duration", "date"];
+
+/* The folder cell has two widths. On the dashboard the right rail takes a third
+   of the row, so only the colour fits and the name arrives on hover. On My
+   Records there is room, so the name is written out. */
+type FolderColumnMode = "compact" | "full";
+const NO_FOLDER = "__no_folder__";
 
 /* ── Inline folder helpers ── */
 const INLINE_FOLDER_PATH = "M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z";
@@ -188,12 +196,13 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
    Multi-select Column Header Dropdown
    ══════════════════════════════════════════════ */
 
-function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "left" }: {
+function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "left", compactIcon }: {
   label: string;
-  options: { id: string; label: string; icon?: string; sourceIcon?: SourceType }[];
+  options: { id: string; label: string; icon?: string; sourceIcon?: SourceType; color?: string }[];
   selected: Set<string>;
   onToggle: (id: string) => void;
   align?: "left" | "right";
+  compactIcon?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -205,10 +214,14 @@ function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "lef
 
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-[3px] transition-opacity hover:opacity-70 group">
-        <span className={`uppercase tracking-[0.3404px] font-medium text-[11px] ${isFiltered ? "text-primary" : "text-foreground"}`}>
-          {label}
-        </span>
+      <button onClick={() => setOpen(!open)} aria-label={label} title={compactIcon ? label : undefined} className="flex items-center gap-[3px] transition-opacity hover:opacity-70 group">
+        {compactIcon ? (
+          <span className={isFiltered ? "text-primary" : "text-muted-foreground"}>{compactIcon}</span>
+        ) : (
+          <span className={`uppercase tracking-[0.3404px] font-medium text-[11px] ${isFiltered ? "text-primary" : "text-foreground"}`}>
+            {label}
+          </span>
+        )}
         {isFiltered && (
           <span className="ml-[2px] font-semibold text-[10px] text-primary">{filterCount}</span>
         )}
@@ -236,6 +249,7 @@ function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "lef
                 </div>
                 {opt.sourceIcon && <div className="w-[18px] shrink-0 flex items-center justify-center"><SourceIcon source={opt.sourceIcon} /></div>}
                 {opt.icon && !opt.sourceIcon && <span className="text-[14px] w-[18px] text-center shrink-0">{opt.icon}</span>}
+                {opt.color && <span className="w-[18px] shrink-0 flex items-center justify-center"><svg className="size-[16px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={opt.color} /></svg></span>}
                 <span className={`flex-1 text-left truncate text-[13px] ${isSelected ? "font-medium text-primary" : "text-foreground"}`}>{opt.label}</span>
               </Button>
             );
@@ -1033,7 +1047,7 @@ const dateFilterOptions = [{ id: "newest", label: "Newest first" }, { id: "oldes
    ══════════════════════════════════════════════ */
 
 interface SavedView {
-  id: string; name: string; typeFilter: Set<string>; templateFilter: Set<string>; langFilter: Set<string>; dateSort: string;
+  id: string; name: string; typeFilter: Set<string>; templateFilter: Set<string>; langFilter: Set<string>; folderFilter: Set<string>; dateSort: string;
 }
 
 function SavedViewTab({ view, isActive, onLoad, onRename, onDelete }: { view: SavedView; isActive: boolean; onLoad: () => void; onRename: (name: string) => void; onDelete: () => void }) {
@@ -1094,12 +1108,15 @@ interface RecordsTableProps {
   hideTopHeader?: boolean;
   showAddFolderButton?: boolean;
   scopedFolderId?: string | null;
-  showInlineFolderRows?: boolean;
+  /* "home" is the dashboard: a feed of recent records, with no folders on it at
+     all and only room for the folder colour. "records" is the place, where the
+     folders are the contents and the column writes their name out. */
+  surface?: "home" | "records";
   onNavigateToRecords?: () => void;
   onOpenFolder?: (folderId: string | null) => void;
 }
 
-export function RecordsTable({ hideTopHeader = false, showAddFolderButton = false, scopedFolderId = null, showInlineFolderRows = true, onNavigateToRecords, onOpenFolder }: RecordsTableProps = {}) {
+export function RecordsTable({ hideTopHeader = false, showAddFolderButton = false, scopedFolderId = null, surface = "records", onNavigateToRecords, onOpenFolder }: RecordsTableProps = {}) {
   const navigate = useNavigate();
   const { t } = useLanguage();
   
@@ -1116,6 +1133,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
   const [templateFilter, setTemplateFilter] = useState<Set<string>>(new Set());
   const [langFilter, setLangFilter] = useState<Set<string>>(new Set());
+  const [folderFilter, setFolderFilter] = useState<Set<string>>(new Set());
   const [dateSort, setDateSort] = useState("newest");
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1150,7 +1168,31 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     setColumnOrder([...DEFAULT_COLUMN_ORDER]);
     setHiddenColumns(new Set());
   }
-  const visibleColumns = columnOrder.filter((c) => !hiddenColumns.has(c));
+  /* Inside a folder every row shares the same one, so the column would repeat a
+     single answer down the whole table. It earns its place only where records
+     from different folders are mixed. */
+  const showFolderColumn = !scopedFolderId;
+  const visibleColumns = columnOrder.filter((c) => !hiddenColumns.has(c)).filter((c) => c !== "folder" || showFolderColumn);
+  const folderColumnMode: FolderColumnMode = surface === "home" ? "compact" : "full";
+
+  /* A record knows only its folder id, so the column needs one flat lookup. */
+  const folderById = useMemo(() => {
+    const map = new Map<string, FolderItem>();
+    const walk = (list: FolderItem[]) => list.forEach((f) => { map.set(f.id, f); walk(f.children ?? []); });
+    walk(userFolders);
+    return map;
+  }, [userFolders]);
+  const folderOfRecord = useCallback(
+    (recordId: string) => folderById.get(folderAssignments[recordId] ?? "") ?? null,
+    [folderById, folderAssignments]
+  );
+  const folderFilterOptions = useMemo(
+    () => [
+      ...Array.from(folderById.values()).map((f) => ({ id: f.id, label: f.name, color: f.color })),
+      { id: NO_FOLDER, label: t("table.noFolder") },
+    ],
+    [folderById, t]
+  );
 
   function toggleSetItem(set: Set<string>, id: string): Set<string> { const next = new Set(set); if (next.has(id)) next.delete(id); else next.add(id); return next; }
   function toggleRow(id: string) { setSelectedRows((prev) => toggleSetItem(prev, id)); }
@@ -1168,10 +1210,10 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     });
   }
   function clearSelection() { setSelectedRows(new Set()); }
-  function clearAllFilters() { setSearchQuery(""); setTypeFilter(new Set()); setTemplateFilter(new Set()); setLangFilter(new Set()); setDateSort("newest"); }
+  function clearAllFilters() { setSearchQuery(""); setTypeFilter(new Set()); setTemplateFilter(new Set()); setLangFilter(new Set()); setFolderFilter(new Set()); setDateSort("newest"); }
   useEffect(() => { clearSelection(); }, [scopedFolderId]);
-  const hasActiveFilters = searchQuery !== "" || typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0;
-  const showSaveView = (typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0) && !activeTab.startsWith("sv_");
+  const hasActiveFilters = searchQuery !== "" || typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0 || folderFilter.size > 0;
+  const showSaveView = (typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0 || folderFilter.size > 0) && !activeTab.startsWith("sv_");
   function trashSelected() { setTrashedIds((prev) => { const next = new Set(prev); selectedRows.forEach((id) => next.add(id)); return next; }); clearSelection(); }
   function trashOne(id: string) { setTrashedIds((prev) => { const next = new Set(prev); next.add(id); return next; }); }
   function restoreFromTrash(id: string) { setTrashedIds((prev) => { const next = new Set(prev); next.delete(id); return next; }); }
@@ -1184,7 +1226,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
   function saveCurrentView() {
     const id = "sv_" + Date.now();
-    const newView: SavedView = { id, name: "My View", typeFilter: new Set(typeFilter), templateFilter: new Set(templateFilter), langFilter: new Set(langFilter), dateSort };
+    const newView: SavedView = { id, name: "My View", typeFilter: new Set(typeFilter), templateFilter: new Set(templateFilter), langFilter: new Set(langFilter), folderFilter: new Set(folderFilter), dateSort };
     setSavedViews((prev) => [...prev, newView]);
     // Clear filters from current tab and switch to new view
     clearAllFilters();
@@ -1193,9 +1235,10 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     setTypeFilter(new Set(newView.typeFilter));
     setTemplateFilter(new Set(newView.templateFilter));
     setLangFilter(new Set(newView.langFilter));
+    setFolderFilter(new Set(newView.folderFilter));
     setDateSort(newView.dateSort);
   }
-  function loadView(view: SavedView) { setTypeFilter(new Set(view.typeFilter)); setTemplateFilter(new Set(view.templateFilter)); setLangFilter(new Set(view.langFilter)); setDateSort(view.dateSort); setActiveTab(view.id); }
+  function loadView(view: SavedView) { setTypeFilter(new Set(view.typeFilter)); setTemplateFilter(new Set(view.templateFilter)); setLangFilter(new Set(view.langFilter)); setFolderFilter(new Set(view.folderFilter ?? [])); setDateSort(view.dateSort); setActiveTab(view.id); }
   function renameView(id: string, name: string) { setSavedViews((prev) => prev.map((v) => v.id === id ? { ...v, name } : v)); setEditingViewId(null); }
   function deleteView(id: string) { setSavedViews((prev) => prev.filter((v) => v.id !== id)); }
 
@@ -1275,6 +1318,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     if (typeFilter.size > 0) filteredRecords = filteredRecords.filter((r) => typeFilter.has(r.source));
     if (templateFilter.size > 0) filteredRecords = filteredRecords.filter((r) => templateFilter.has(r.template));
     if (langFilter.size > 0) filteredRecords = filteredRecords.filter((r) => langFilter.has(r.language));
+    if (folderFilter.size > 0) filteredRecords = filteredRecords.filter((r) => folderFilter.has(folderAssignments[r.id] ?? NO_FOLDER));
   }
   if (dateSort === "newest") filteredRecords = [...filteredRecords].sort((a, b) => b.dateCreated.localeCompare(a.dateCreated));
   else if (dateSort === "oldest") filteredRecords = [...filteredRecords].sort((a, b) => a.dateCreated.localeCompare(b.dateCreated));
@@ -1520,7 +1564,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
       {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
       <div className="lg:hidden mt-[12px] pb-[40px]">
-        {activeTab === "Recent" && !scopedFolderId && !hasActiveFilters && !forceEmpty && inlineFolders.length > 0 && (
+        {surface !== "home" && activeTab === "Recent" && !scopedFolderId && !hasActiveFilters && !forceEmpty && inlineFolders.length > 0 && (
           <div className="grid grid-cols-1 gap-[10px] mb-[10px]">
             {inlineFolders.map((folder) => {
               const fcount = mobileFolderCounts.get(folder.id) ?? 0;
@@ -1587,6 +1631,17 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
               <div className="w-[32px] shrink-0" />
               {visibleColumns.map((col) => {
                 if (col === "template") return <div key={col} className="flex-[1] min-w-0 px-[12px] flex items-center"><ColumnHeaderDropdown label={t("table.template")} options={templateFilterOptions} selected={templateFilter} onToggle={(id) => setTemplateFilter((s) => toggleSetItem(s, id))} /></div>;
+                if (col === "folder") return (
+                  <div key={col} className={(folderColumnMode === "full" ? "w-[156px]" : "w-[46px]") + " shrink-0 px-[8px] flex items-center"}>
+                    <ColumnHeaderDropdown
+                      label={t("table.folder")}
+                      options={folderFilterOptions}
+                      selected={folderFilter}
+                      onToggle={(id) => setFolderFilter((sel) => toggleSetItem(sel, id))}
+                      compactIcon={folderColumnMode === "compact" ? <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill="currentColor" /></svg> : undefined}
+                    />
+                  </div>
+                );
                 if (col === "lang") return <div key={col} className="w-[50px] shrink-0 px-[6px] flex items-center justify-center"><ColumnHeaderDropdown label={t("table.lang")} options={langFilterOptions} selected={langFilter} onToggle={(id) => setLangFilter((s) => toggleSetItem(s, id))} align="right" /></div>;
                 if (col === "duration") return <div key={col} className="w-[80px] shrink-0 px-[8px] flex items-center"><span className="uppercase tracking-[0.3404px] font-medium text-[11px] text-foreground">{t("table.duration")}</span></div>;
                 if (col === "date") return <div key={col} className="w-[130px] shrink-0 px-[8px] flex items-center"><SortHeaderDropdown label={t("table.date")} options={[{ id: "newest", label: t("table.newestFirst") }, { id: "oldest", label: t("table.oldestFirst") }]} selected={dateSort} onSelect={setDateSort} align="right" /></div>;
@@ -1604,7 +1659,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                 <div key={group.label}>
                   <DateSeparator label={group.label} />
                   {group.records.map((record) => (
-                    <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
+                    <TableRow key={record.id} record={record} folder={folderOfRecord(record.id)} folderColumnMode={folderColumnMode} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
                       onToggleRow={() => toggleRow(record.id)} onMouseEnter={() => setHoveredRow(record.id)} onMouseLeave={() => setHoveredRow(null)}
                       onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
                       onShare={() => setShareDialogRecord(record.id)}
@@ -1621,98 +1676,8 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
               ))
             ) : (
               <>
-                {showInlineFolderRows && activeTab === "Recent" && inlineFolders.map((folder) => (
-                  <div
-                    key={folder.id}
-                    className={"group flex items-center h-[40px] transition-colors cursor-pointer border-b border-border " + (dragOverFolderId === folder.id ? "bg-primary/5 ring-1 ring-inset ring-primary/40" : "hover:bg-accent")}
-                    onDragOver={(e) => { if (dragRecordId) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverFolderId !== folder.id) setDragOverFolderId(folder.id); } }}
-                    onDragLeave={() => { if (dragOverFolderId === folder.id) setDragOverFolderId(null); }}
-                    onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("text/record-id") || dragRecordId; if (id) { assignToFolder([id], folder.id); toast.success(`Moved to ${folder.name}`); } setDragOverFolderId(null); setDragRecordId(null); }}
-                    onDoubleClick={() => onOpenFolder?.(folder.id)}
-                  >
-                    <div className="w-[40px] shrink-0" />
-                    <div className="flex-[2.2] min-w-0 px-[12px] flex items-center gap-[8px]">
-                      <svg className="size-[16px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
-                      {renamingInlineFolderId === folder.id ? (
-                        <input
-                          autoFocus
-                          defaultValue={folder.name}
-                          className="h-[26px] w-[220px] rounded-[6px] border border-primary/50 bg-background px-[8px] font-medium text-[14px] text-foreground outline-none focus:ring-2 focus:ring-primary/15"
-                          onClick={(e) => e.stopPropagation()}
-                          onDoubleClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") { const v = (e.target as HTMLInputElement).value.trim(); if (v) renameFolder(folder.id, v); setRenamingInlineFolderId(null); }
-                            if (e.key === "Escape") setRenamingInlineFolderId(null);
-                          }}
-                          onBlur={(e) => { const v = e.target.value.trim(); if (v) renameFolder(folder.id, v); setRenamingInlineFolderId(null); }}
-                        />
-                      ) : (
-                        <span className="font-medium text-[14px] text-foreground">{folder.name}</span>
-                      )}
-                    </div>
-                    {/* Star column placeholder */}
-                    <div className="w-[32px] shrink-0" />
-                    {visibleColumns.map((col) => (
-                      <div key={col} className={col === "time" ? "flex-[1.3] min-w-0 px-[12px]" : col === "duration" ? "flex-[0.8] min-w-0 px-[12px]" : col === "language" ? "flex-[0.6] min-w-0 px-[12px]" : col === "template" ? "flex-[1.2] min-w-0 px-[12px]" : "flex-[0.8] min-w-0 px-[12px]"}>
-                        {col === "time" && folder.createdAt ? <span className="text-[13px] text-muted-foreground">{new Date(folder.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span> : null}
-                      </div>
-                    ))}
-                    <div className="w-[100px] shrink-0 flex items-center justify-end pr-[8px]">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                          onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                          className="flex size-[28px] shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-accent hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <svg className="size-[14px]" fill="none" viewBox="0 0 16 16">
-                            <circle cx="8" cy="3" r="1.2" fill="currentColor" />
-                            <circle cx="8" cy="8" r="1.2" fill="currentColor" />
-                            <circle cx="8" cy="13" r="1.2" fill="currentColor" />
-                          </svg>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" sideOffset={6} className="w-[170px]">
-                          <DropdownMenuItem className="gap-2" onClick={() => onOpenFolder?.(folder.id)}>
-                            <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                            Open folder
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onClick={() => setRenamingInlineFolderId(folder.id)}>
-                            <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                            Rename
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onClick={() => setEditingInlineFolder(folder)}>
-                            <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger className="gap-2">
-                              <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                              Move to folder
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="w-[210px]">
-                              <DropdownMenuItem className="gap-2" onClick={() => moveFolder(folder.id, null)}>
-                                <svg className="size-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="13" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.1" /><path d="M1.5 6.5h13" stroke="currentColor" strokeWidth="1.1" /></svg>
-                                <span className="truncate">My Records (root)</span>
-                              </DropdownMenuItem>
-                              {flattenFoldersInTable(userFolders, folder.id).map((f) => (
-                                <DropdownMenuItem key={f.id} className="gap-2" onClick={() => moveFolder(folder.id, f.id)}>
-                                  <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={f.color} /></svg>
-                                  <span className="truncate">{f.name}</span>
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => setDeletingInlineFolderId(folder.id)}>
-                            <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                ))}
                 {pagedRecords.map((record) => (
-                  <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
+                  <TableRow key={record.id} record={record} folder={folderOfRecord(record.id)} folderColumnMode={folderColumnMode} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
                     onToggleRow={() => toggleRow(record.id)} onMouseEnter={() => setHoveredRow(record.id)} onMouseLeave={() => setHoveredRow(null)}
                     onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
                     onShare={() => setShareDialogRecord(record.id)}
@@ -1888,13 +1853,53 @@ export function PaginationBar({ total, page, pageSize, onPage, onPageSize, compa
    Table Row
    ══════════════════════════════════════════════ */
 
-function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onDeleteForever, onMoveFolder, onTrash, onExport, onDoubleClick, rowDragging, onRowDragStart, onRowDragEnd }: {
-  record: RecordRow; visibleColumns: ColumnId[]; isSelected: boolean; isStarred: boolean; isShared: boolean; isHovered: boolean; isEditing: boolean; isTrash: boolean;
+function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onDeleteForever, onMoveFolder, onTrash, onExport, onDoubleClick, rowDragging, onRowDragStart, onRowDragEnd }: {
+  record: RecordRow; folder: FolderItem | null; folderColumnMode: FolderColumnMode; visibleColumns: ColumnId[]; isSelected: boolean; isStarred: boolean; isShared: boolean; isHovered: boolean; isEditing: boolean; isTrash: boolean;
   onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onDeleteForever: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: () => void; onDoubleClick: () => void; rowDragging?: boolean; onRowDragStart?: (e: React.DragEvent) => void; onRowDragEnd?: () => void;
 }) {
   const { t: tRow } = useLanguage();
 
   function renderColumn(col: ColumnId) {
+    if (col === "folder") {
+      if (folderColumnMode === "compact") {
+        return (
+          <div key={col} className="w-[46px] shrink-0 px-[8px] flex items-center">
+            {folder ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex size-[22px] items-center justify-center">
+                    <svg className="size-[16px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{folder.name}</TooltipContent>
+              </Tooltip>
+            ) : null}
+          </div>
+        );
+      }
+      return (
+        <div key={col} className="w-[156px] min-w-0 shrink-0 px-[8px] flex items-center">
+          {folder ? (
+            <span className="flex min-w-0 items-center gap-[6px]">
+              <svg className="size-[16px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
+              <span className="truncate text-[13px] text-foreground">{folder.name}</span>
+            </span>
+          ) : (
+            /* Nothing is written for a record that sits in no folder. The offer to
+               put it in one belongs to the row you are pointing at, not to every
+               row at once. */
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onMoveFolder(); }}
+              className={"flex items-center gap-[5px] rounded-full px-[7px] py-[3px] text-muted-foreground transition-opacity hover:bg-accent hover:text-foreground " + (isHovered ? "opacity-100" : "opacity-0 pointer-events-none")}
+            >
+              <Icon icon={FolderPlus} className="size-[13px]" strokeWidth={1.6} />
+              <span className="text-[12.5px] whitespace-nowrap">{tRow("table.addToFolder")}</span>
+            </button>
+          )}
+        </div>
+      );
+    }
     if (col === "template") return <div key={col} className="flex-[1] min-w-0 px-[12px]"><div className="inline-flex items-center h-[22px] px-[8px] rounded-[4px] bg-muted"><span className="truncate text-[12px] text-muted-foreground">{record.template}</span></div></div>;
     if (col === "lang") return <div key={col} className="w-[50px] shrink-0 px-[6px] flex justify-center"><LanguageBadge lang={record.language} /></div>;
     if (col === "duration") return <div key={col} className="w-[80px] shrink-0 px-[8px]"><p className="leading-[20px] whitespace-nowrap text-[14px] text-muted-foreground tracking-[-0.154px]">{record.duration}</p></div>;

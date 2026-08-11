@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
@@ -430,6 +431,27 @@ const RU_DEMO_SUMMARY = `## Ключевые моменты обсуждения
 - Планирование спринта: четверг
 - Встреча по планированию 2 квартала: дата уточняется (с пунктом о системе уведомлений)
 `;
+
+/* The language a record was spoken in. TRANSLATION_LANGUAGES is what you can
+   translate INTO, which is a different list: it has no English in it. */
+const SOURCE_LANGUAGES: Record<string, { flag: string; label: string }> = {
+  en: { flag: "\u{1F1FA}\u{1F1F8}", label: "English" },
+  ru: { flag: "\u{1F1F7}\u{1F1FA}", label: "Russian" },
+  es: { flag: "\u{1F1EA}\u{1F1F8}", label: "Spanish" },
+  de: { flag: "\u{1F1E9}\u{1F1EA}", label: "German" },
+  fr: { flag: "\u{1F1EB}\u{1F1F7}", label: "French" },
+  ja: { flag: "\u{1F1EF}\u{1F1F5}", label: "Japanese" },
+  it: { flag: "\u{1F1EE}\u{1F1F9}", label: "Italian" },
+  pt: { flag: "\u{1F1F5}\u{1F1F9}", label: "Portuguese" },
+  zh: { flag: "\u{1F1E8}\u{1F1F3}", label: "Chinese" },
+};
+
+type CopyMenuModel = {
+  original: { flag: string; label: string };
+  translation: { code: string; flag: string; label: string } | null;
+  summaryTranslated: boolean;
+  hasSummary: boolean;
+};
 
 const TRANSLATION_LANGUAGES = [
   { code: "ru", label: "Russian", flag: "🇷🇺", short: "RU" },
@@ -1563,7 +1585,7 @@ interface PageHeaderProps {
   shares: ShareRecord[];
   onShare: () => void;
   onCopyLink: () => void;
-  onCopySummary: () => void;
+  onCopySummary: (lang?: string) => void;
   hasSummary: boolean;
   onSetTemplate: () => void;
   onMoveToFolder: (folderId: string) => void;
@@ -1573,7 +1595,8 @@ interface PageHeaderProps {
   onRegenerateSummary: () => void;
   onSyncTextToAudio: () => void;
   onDelete: () => void;
-  onCopyTranscript: () => void;
+  onCopyTranscript: (lang?: string) => void;
+  copyMenu: CopyMenuModel;
   isTranscriptTab: boolean;
   onOpenMore: () => void;
   onTranslateTo: (code: string) => void;
@@ -1601,6 +1624,7 @@ function PageHeader({
   onSyncTextToAudio,
   onDelete,
   onCopyTranscript,
+  copyMenu,
   isTranscriptTab,
   onOpenMore,
   onTranslateTo,
@@ -1646,15 +1670,59 @@ function PageHeader({
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[190px]">
-              <DropdownMenuItem className="gap-2" onClick={onCopySummary}>
-                <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                Copy summary
+            <DropdownMenuContent align="end" sideOffset={6} className={"z-[120] " + (copyMenu.translation ? "w-[236px]" : "w-[190px]")}>
+              <DropdownMenuItem className="gap-2" onClick={onCopyLink}>
+                <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                Copy link
               </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2" onClick={onCopyTranscript}>
-                <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                Copy transcript
-              </DropdownMenuItem>
+              {copyMenu.translation ? (
+                <>
+                  {/* With a translation on the record, "Copy transcript" no longer
+                      names one thing, so the language is the choice and the flag
+                      carries it. */}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[11.5px] font-medium text-muted-foreground">Transcript</DropdownMenuLabel>
+                  <DropdownMenuItem className="gap-2" onClick={() => onCopyTranscript()}>
+                    <span className="w-4 text-center text-[14px] leading-none">{copyMenu.original.flag}</span>
+                    {copyMenu.original.label}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="gap-2" onClick={() => onCopyTranscript(copyMenu.translation.code)}>
+                    <span className="w-4 text-center text-[14px] leading-none">{copyMenu.translation.flag}</span>
+                    {copyMenu.translation.label}
+                  </DropdownMenuItem>
+                  {copyMenu.hasSummary && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-[11.5px] font-medium text-muted-foreground">Summary</DropdownMenuLabel>
+                      <DropdownMenuItem className="gap-2" onClick={() => onCopySummary()}>
+                        <span className="w-4 text-center text-[14px] leading-none">{copyMenu.original.flag}</span>
+                        {copyMenu.original.label}
+                      </DropdownMenuItem>
+                      {/* Only offered once the summary itself came back translated:
+                          the transcript can be done while this one is still running. */}
+                      {copyMenu.summaryTranslated && (
+                        <DropdownMenuItem className="gap-2" onClick={() => onCopySummary(copyMenu.translation.code)}>
+                          <span className="w-4 text-center text-[14px] leading-none">{copyMenu.translation.flag}</span>
+                          {copyMenu.translation.label}
+                        </DropdownMenuItem>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem className="gap-2" onClick={() => onCopyTranscript()}>
+                    <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                    Copy transcript
+                  </DropdownMenuItem>
+                  {copyMenu.hasSummary && (
+                    <DropdownMenuItem className="gap-2" onClick={() => onCopySummary()}>
+                      <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                      Copy summary
+                    </DropdownMenuItem>
+                  )}
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" onClick={onExport} aria-label="Export">
@@ -1688,8 +1756,22 @@ function PageHeader({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={8} className="z-[120] w-[230px]">
               {/* Mobile only: actions relocated from the header row + translate picker */}
+              {copyMenu.translation && (
+                <>
+                  <DropdownMenuLabel className="max-md:hidden lg:hidden text-[11.5px] font-medium text-muted-foreground">Copy transcript</DropdownMenuLabel>
+                  <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={() => onCopyTranscript()}>
+                    <span className="w-4 text-center text-[14px] leading-none">{copyMenu.original.flag}</span>
+                    {copyMenu.original.label}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={() => onCopyTranscript(copyMenu.translation.code)}>
+                    <span className="w-4 text-center text-[14px] leading-none">{copyMenu.translation.flag}</span>
+                    {copyMenu.translation.label}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="max-md:hidden lg:hidden" />
+                </>
+              )}
               {hasSummary ? (
-                <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={onCopySummary}>
+                <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={() => onCopySummary()}>
                   <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                   Copy summary
                 </DropdownMenuItem>
@@ -2639,16 +2721,33 @@ export function TranscriptionDetailPage() {
     toast.success("Link copied");
   }
 
-  function copySummary() {
-    navigator.clipboard.writeText(contentSummary);
-    toast.success("Summary copied");
+  function copySummary(lang?: string) {
+    const translated = lang && lang === activeTranslationLang && translatedSummary;
+    navigator.clipboard.writeText(translated ? translatedSummary : contentSummary);
+    toast.success(translated ? "Translated summary copied" : "Summary copied");
   }
 
-  function copyTranscript() {
-    const text = contentSegments.map((seg) => texts[seg.id] ?? seg.text).join(String.fromCharCode(10, 10));
+  function copyTranscript(lang?: string) {
+    const translated = lang && lang === activeTranslationLang && Object.keys(translatedSegments).length > 0;
+    const text = contentSegments
+      .map((seg) => (translated ? translatedSegments[seg.id] ?? texts[seg.id] ?? seg.text : texts[seg.id] ?? seg.text))
+      .join(String.fromCharCode(10, 10));
     navigator.clipboard.writeText(text);
-    toast.success("Transcript copied");
+    toast.success(translated ? "Translated transcript copied" : "Transcript copied");
   }
+
+  /* What the Copy menu is allowed to offer. Built from the record itself, so a
+     record with no translation still shows the two plain lines. */
+  const copyMenu: CopyMenuModel = useMemo(() => {
+    const activeLang = TRANSLATION_LANGUAGES.find((l) => l.code === activeTranslationLang) ?? null;
+    const transcriptReady = !!activeLang && Object.keys(translatedSegments).length > 0;
+    return {
+      original: SOURCE_LANGUAGES[selectedRecord?.language ?? "en"] ?? { flag: "\u{1F310}", label: "Original" },
+      translation: transcriptReady && activeLang ? { code: activeLang.code, flag: activeLang.flag, label: activeLang.label } : null,
+      summaryTranslated: !!translatedSummary && translationSummaryStatus === "done",
+      hasSummary: !!contentSummary,
+    };
+  }, [activeTranslationLang, translatedSegments, translatedSummary, translationSummaryStatus, contentSummary, selectedRecord?.language]);
 
   const [exportDialogOpen, setExportDialogOpen] = useState(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("export") === "1");
@@ -3035,6 +3134,7 @@ export function TranscriptionDetailPage() {
           onCopyLink={copyTranscriptLink}
           onCopySummary={copySummary}
           onCopyTranscript={copyTranscript}
+          copyMenu={copyMenu}
           isTranscriptTab={activeTab === "transcript" || activeTab === "transcript-translated"}
           onOpenMore={() => setMoreSheetOpen(true)}
           hasSummary={activeTemplateId !== null}
@@ -3226,20 +3326,34 @@ export function TranscriptionDetailPage() {
                 ) : null}
                 </div>
                 {limitedActive ? (
-                  <div className="relative z-10 -mt-[117px]">
+                  <div className="relative z-10 -mt-[62px] md:-mt-[117px]">
                     <div className="flex justify-center">
-                      <div className="w-full max-w-[460px] rounded-2xl border border-border bg-card px-8 py-5 text-center shadow-md">
-                        <span className="mx-auto flex size-10 items-center justify-center rounded-full bg-primary/10">
-                          <Icon icon={SquareLock01Icon} size={18} strokeWidth={1.8} className="text-primary" />
-                        </span>
-                        <h3 className="mt-3.5 text-[16px] font-semibold text-foreground">The rest of this transcript is locked</h3>
-                        <p className="mx-auto mt-1.5 max-w-[400px] text-[13px] leading-relaxed text-muted-foreground">
-                          You are hearing the first 10 minutes. Unlock the full 43 minute transcript, the AI summary and every export format.
-                        </p>
-                        <Button className="mt-4 h-10 px-6" onClick={() => navigate("/checkout")}>
-                          Unlock full access
-                        </Button>
-                        <p className="mt-2.5 text-[12px] text-muted-foreground">Free plan includes the first 10 minutes of every file.</p>
+                      <div className="w-full max-w-[460px] rounded-2xl border border-border bg-card px-[14px] py-[11px] text-left shadow-md md:px-8 md:py-5 md:text-center">
+                        {/* A phone screen is mostly transcript, and the card was
+                            taking a third of it. Here the lock, the line and the
+                            button share one row; from md up the original card
+                            comes back unchanged. */}
+                        <div className="flex items-center gap-[10px] md:block">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 md:mx-auto md:size-10">
+                            <Icon icon={SquareLock01Icon} size={15} strokeWidth={1.8} className="text-primary md:hidden" />
+                            <Icon icon={SquareLock01Icon} size={18} strokeWidth={1.8} className="hidden text-primary md:block" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-[13px] font-semibold leading-[17px] text-foreground md:mt-3.5 md:text-[16px] md:leading-normal">
+                              <span className="md:hidden">The rest is locked</span>
+                              <span className="hidden md:inline">The rest of this transcript is locked</span>
+                            </h3>
+                            <p className="mt-[3px] text-[11.5px] leading-[15px] text-muted-foreground md:hidden">First 10 minutes are free.</p>
+                            <p className="mx-auto mt-1.5 hidden max-w-[400px] text-[13px] leading-relaxed text-muted-foreground md:block">
+                              You are hearing the first 10 minutes. Unlock the full 43 minute transcript, the AI summary and every export format.
+                            </p>
+                          </div>
+                          <Button className="h-[30px] shrink-0 px-[13px] text-[12.5px] md:mt-4 md:h-10 md:px-6 md:text-[14px]" onClick={() => navigate("/checkout")}>
+                            <span className="md:hidden">Unlock</span>
+                            <span className="hidden md:inline">Unlock full access</span>
+                          </Button>
+                        </div>
+                        <p className="mt-2.5 hidden text-[12px] text-muted-foreground md:block">Free plan includes the first 10 minutes of every file.</p>
                       </div>
                     </div>
                   </div>
@@ -3336,12 +3450,41 @@ export function TranscriptionDetailPage() {
           <DrawerContent className="md:hidden [&>div:first-child]:hidden">
             <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Copy</DrawerTitle><button type="button" onClick={() => setCopySheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
             <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(); setCopySheetOpen(false); }}>
-                <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy summary
-              </button>
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscript(); setCopySheetOpen(false); }}>
-                <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy transcript
-              </button>
+              {copyMenu.translation ? (
+                <>
+                  <p className="px-3 pt-1.5 pb-1 text-[12.5px] font-medium text-muted-foreground">Transcript</p>
+                  <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscript(); setCopySheetOpen(false); }}>
+                    <span className="w-[18px] text-center text-[16px] leading-none">{copyMenu.original.flag}</span> {copyMenu.original.label}
+                  </button>
+                  <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscript(copyMenu.translation.code); setCopySheetOpen(false); }}>
+                    <span className="w-[18px] text-center text-[16px] leading-none">{copyMenu.translation.flag}</span> {copyMenu.translation.label}
+                  </button>
+                  {copyMenu.hasSummary && (
+                    <>
+                      <p className="px-3 pt-3 pb-1 text-[12.5px] font-medium text-muted-foreground">Summary</p>
+                      <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(); setCopySheetOpen(false); }}>
+                        <span className="w-[18px] text-center text-[16px] leading-none">{copyMenu.original.flag}</span> {copyMenu.original.label}
+                      </button>
+                      {copyMenu.summaryTranslated && (
+                        <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(copyMenu.translation.code); setCopySheetOpen(false); }}>
+                          <span className="w-[18px] text-center text-[16px] leading-none">{copyMenu.translation.flag}</span> {copyMenu.translation.label}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {copyMenu.hasSummary && (
+                    <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(); setCopySheetOpen(false); }}>
+                      <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy summary
+                    </button>
+                  )}
+                  <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscript(); setCopySheetOpen(false); }}>
+                    <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy transcript
+                  </button>
+                </>
+              )}
             </div>
           </DrawerContent>
         </Drawer>

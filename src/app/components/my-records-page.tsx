@@ -711,7 +711,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
           </div>
 
-          <RecordsTable hideTopHeader showAddFolderButton={false} scopedFolderId={activeFolderId} onOpenFolder={(folderId) => setActiveFolderId(folderId)} />
+          <RecordsTable hideTopHeader showAddFolderButton={false} surface="records" scopedFolderId={activeFolderId} onOpenFolder={(folderId) => setActiveFolderId(folderId)} />
         </div>
       </div>
 
