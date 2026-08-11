@@ -937,6 +937,30 @@ if (state === "recfolder_hover" || state === "recfolder_hover_btn") {
   await p.waitForTimeout(200);
 }
 
+/* Hovering the folder colour on the dashboard: the name is only in the tooltip,
+   so the frame has to catch it. Radix mounts it on hover, so this is a real
+   pointer move, and it happens last. */
+if (state === "home_folder_hover") {
+  const glyph = p.locator('div[draggable] svg[viewBox="0 0 16 16"]').first();
+  const box = await p.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll("div[draggable]"));
+    for (const row of rows) {
+      const cells = Array.from(row.children);
+      const cell = cells.find((c) => c.querySelector('svg[viewBox="0 0 16 16"]') && c.getBoundingClientRect().width < 90);
+      if (cell) {
+        const sv = cell.querySelector("svg");
+        const r = sv.getBoundingClientRect();
+        if (r.width > 0) return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      }
+    }
+    return null;
+  });
+  if (box) {
+    await p.mouse.move(box.x, box.y);
+    await p.waitForTimeout(420);
+  }
+}
+
 /* A scrolled container is drawn from its top by the capture, so the unlock card
    that the screen actually shows gets clipped. Fold the offset into a margin. */
 if ((state === "limited" || state.startsWith("copy_"))) {

@@ -3441,7 +3441,7 @@ export function TranscriptionDetailPage() {
         <Drawer open={copySheetOpen} onOpenChange={setCopySheetOpen}>
           <DrawerContent className="md:hidden [&>div:first-child]:hidden">
             <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Copy</DrawerTitle><button type="button" onClick={() => setCopySheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
-            <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
+            <div className="px-1 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
               {copyMenu.translation ? (
                 <>
                   <p className="px-3 pt-1.5 pb-1 text-[12.5px] font-medium text-muted-foreground">Transcript</p>
