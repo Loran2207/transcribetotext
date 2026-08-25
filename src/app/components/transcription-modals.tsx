@@ -3,7 +3,7 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon, Download01Icon } from "@hugeicons/core-free-icons";
+import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon, Download01Icon, ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -35,6 +35,8 @@ import { openQueue } from "./progress-widget";
 import { ProgressWidget } from "./progress-widget";
 import { UpgradeGateModal } from "./upgrade-gate-modal";
 import { usePlan } from "./use-plan";
+import { QuickExport } from "./quick-export";
+import type { ExportableRecord } from "@/lib/export-formats";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -66,6 +68,42 @@ export interface TranscriptionJob {
   kind?: "meeting";
   mediaUrl?: string;
   livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
+}
+
+function exportableJob(job: TranscriptionJob): ExportableRecord {
+  return {
+    id: job.id,
+    title: job.name.replace(/\.(aac|aiff?|flac|m4a|mkv|mov|mp3|mp4|mpeg|mpg|ogg|opus|wav|webm|wma)$/i, ""),
+    summary: "Transcription complete",
+    segments: (job.livePreviewSegments ?? []).map((segment) => ({
+      speaker: "Speaker",
+      timestamp: segment.timestamp,
+      text: segment.text,
+    })),
+    metadata: {
+      date: job.createdAt,
+      duration: job.duration,
+      source: job.source ?? job.fileType,
+      language: job.lang ?? job.langBilingual?.join(", ") ?? "Auto-detect",
+    },
+  };
+}
+
+function ReadyExportControl({ jobs }: { jobs: TranscriptionJob[] }) {
+  const records = jobs.map(exportableJob);
+  return (
+    <QuickExport
+      records={records}
+      availableRecords={records}
+      trigger={(
+        <Button className="h-8 gap-1.5 rounded-full px-3" aria-label="Export ready files">
+          <Icon icon={Upload} className="size-[14px]" strokeWidth={1.7} />
+          <span className="text-[12.5px] font-semibold">Export</span>
+          <Icon icon={ArrowDown01Icon} className="size-[12px]" strokeWidth={2} />
+        </Button>
+      )}
+    />
+  );
 }
 
 /* ttt_demo_jobs seeds the widget so its states can be captured:
@@ -261,7 +299,7 @@ export function TranscriptionModalsProvider({
      Ten files can land within a second of each other, which is ten toasts and a
      buried screen. Completions are collected for a beat first: one of them gets
      its own toast, several share one line. */
-  const readyBufferRef = useRef<{ id: string; name: string }[]>([]);
+  const readyBufferRef = useRef<TranscriptionJob[]>([]);
   const flushRef = useRef<number | null>(null);
   const seededRef = useRef(false);
   useEffect(() => {
@@ -277,22 +315,24 @@ export function TranscriptionModalsProvider({
     const fresh = jobs.filter((job) => job.status === "done" && !announcedRef.current.has(job.id));
     if (fresh.length === 0) return;
     fresh.forEach((job) => announcedRef.current.add(job.id));
-    readyBufferRef.current = readyBufferRef.current.concat(
-      fresh.map((job) => ({ id: job.id, name: job.name }))
-    );
+    readyBufferRef.current = readyBufferRef.current.concat(fresh);
     if (flushRef.current !== null) window.clearTimeout(flushRef.current);
     flushRef.current = window.setTimeout(() => {
       const batch = readyBufferRef.current;
       readyBufferRef.current = [];
       flushRef.current = null;
       if (batch.length === 1) {
-        toastReady(batch[0].name, () => {
-          void router.navigate("/transcriptions/" + batch[0].id);
-        });
+        toastReady(
+          batch[0].name,
+          () => { void router.navigate("/transcriptions/" + batch[0].id); },
+          <ReadyExportControl jobs={batch} />,
+        );
       } else if (batch.length > 1) {
-        toastManyReady(batch.map((entry) => entry.name), () => {
-          void router.navigate("/", { state: { page: "records" } });
-        });
+        toastManyReady(
+          batch.map((entry) => entry.name),
+          () => { void router.navigate("/", { state: { page: "records" } }); },
+          <ReadyExportControl jobs={batch} />,
+        );
       }
     }, 700);
   }, [jobs]);
@@ -320,9 +360,39 @@ export function TranscriptionModalsProvider({
       "Weekly sync - product team.mp3",
       "Northwind Labs - youtube walkthrough",
     ];
+    const readyJobs: TranscriptionJob[] = names.map((name, index) => ({
+      id: `demo-ready-${index + 1}`,
+      name,
+      createdAt: new Date().toISOString(),
+      duration: `${index + 3} min`,
+      progress: 100,
+      uploadProgress: 100,
+      transcriptionProgress: 100,
+      status: "done",
+      fileType: name.endsWith(".mp3") ? "audio" : "video",
+      lang: "English",
+    }));
     const park = { duration: 600000 };
     const open = { label: "Open", onClick: () => {} };
-    if (flag === "many") {
+    if (flag === "ready") {
+      toast.custom(
+        () => (
+          <ToastCard
+            title="3 files are ready"
+            meta="Transcription complete"
+            actions={(
+              <div className="flex shrink-0 items-center gap-1">
+                <button type="button" className="rounded-full px-2.5 py-1.5 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/8">
+                  Open
+                </button>
+                <ReadyExportControl jobs={readyJobs} />
+              </div>
+            )}
+          />
+        ),
+        park,
+      );
+    } else if (flag === "many") {
       names.forEach((name) => {
         toast.custom(
           () => <ToastCard title={name} meta="Transcription is ready" action={open} />,

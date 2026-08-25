@@ -27,9 +27,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import {
@@ -43,7 +40,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { ExportDialog } from "./export-dialog";
-import { QuickExport } from "./quick-export";
+import { QuickExport, QuickExportSubMenu } from "./quick-export";
 import { MOCK_TRANSCRIPTS } from "@/lib/mock-transcripts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import {
@@ -132,8 +129,9 @@ function CopyToast({ text }: { text: string }) {
   );
 }
 
-function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash, onExport, summary }: { isStarred: boolean; onStar: () => void; onEdit: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: () => void; summary: string }) {
+function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash, summary, exportRecord }: { isStarred: boolean; onStar: () => void; onEdit: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void; summary: string; exportRecord: ExportableRecord }) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { t } = useLanguage();
 
   function copyToClipboard(text: string, label: string) {
@@ -141,7 +139,7 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
   }
 
   return (
-    <div className="flex items-center gap-[2px] relative">
+    <div className="pointer-events-auto relative flex items-center gap-[2px]">
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="Rename" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M11.333 2a1.886 1.886 0 012.667 2.667L5.333 13.333 2 14l.667-3.333L11.333 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground" /></svg>
       </Button>
@@ -156,7 +154,7 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title={isStarred ? "Unstar" : "Star"} onClick={(e) => { e.stopPropagation(); onStar(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={isStarred ? "" : "text-muted-foreground"} /></svg>
       </Button>
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="More" onClick={(e) => e.stopPropagation()}>
             <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><circle cx="8" cy="3" r="1.2" fill="currentColor" /><circle cx="8" cy="8" r="1.2" fill="currentColor" /><circle cx="8" cy="13" r="1.2" fill="currentColor" /></svg>
@@ -177,10 +175,7 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
             <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
             {t("table.moveToFolder")}
           </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2" onSelect={() => onExport()}>
-            <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.5} />
-            Export…
-          </DropdownMenuItem>
+          <QuickExportSubMenu records={[exportRecord]} onCloseMenu={() => setMenuOpen(false)} />
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" className="gap-2" onSelect={onTrash}>
             <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
@@ -375,23 +370,28 @@ function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary,
   const { t } = useLanguage();
   const [copied, setCopied] = useState<string | null>(null);
   return (
-    <div className="flex items-center gap-[4px] h-[36px] bg-primary/5" style={{ borderBottom: "1px solid hsl(var(--primary) / 0.2)" }}>
-      <div className="w-[40px] shrink-0 flex items-center justify-center">
-        <FigmaCheckbox checked onChange={onCancel} />
-      </div>
-      <span className="font-semibold text-[13px] text-foreground">{count} {t("table.selected")}</span>
-      <div className="h-[20px] w-px ml-[2px] bg-primary/20" />
-      <MultiSelectTextBtn label="Summary" onClick={() => { onCopySummary(); setCopied("s"); setTimeout(() => setCopied(null), 1500); }} icon={<Icon icon={Copy} className="size-[14px]" strokeWidth={1.5} />} />
-      <MultiSelectTextBtn label="Share" onClick={onShare} icon={<Icon icon={Share} className="size-[14px]" strokeWidth={1.5} />} />
-      <MultiSelectTextBtn label="Folder" onClick={onMoveFolder} icon={<Icon icon={FolderOpen} className="size-[14px]" strokeWidth={1.5} />} />
-      {exportControl}
-      <MultiSelectTextBtn label="Trash" onClick={onTrash} variant="destructive" icon={<Icon icon={Trash} className="size-[14px]" strokeWidth={1.5} />} />
-      <div className="flex-1" />
-      <Button variant="ghost" onClick={onCancel} className="h-[30px] px-[12px] rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent">
-        {t("common.cancel")}
-      </Button>
-      {copied && <CopyToast text={t("common.copied")} />}
-    </div>
+    <>
+      <div className="h-[36px] border-b border-border" />
+      {createPortal(
+        <div className="fixed bottom-[24px] left-1/2 z-50 flex max-w-[calc(100vw-48px)] -translate-x-1/2 items-center gap-[4px] rounded-[18px] border border-border bg-card px-[8px] py-[7px] shadow-xl">
+          <div className="w-[32px] shrink-0 flex items-center justify-center">
+            <FigmaCheckbox checked onChange={onCancel} />
+          </div>
+          <span className="whitespace-nowrap font-semibold text-[13px] text-foreground">{count} {t("table.selected")}</span>
+          <div className="h-[20px] w-px ml-[2px] bg-border" />
+          <MultiSelectTextBtn label="Summary" onClick={() => { onCopySummary(); setCopied("s"); setTimeout(() => setCopied(null), 1500); }} icon={<Icon icon={Copy} className="size-[14px]" strokeWidth={1.5} />} />
+          <MultiSelectTextBtn label="Share" onClick={onShare} icon={<Icon icon={Share} className="size-[14px]" strokeWidth={1.5} />} />
+          <MultiSelectTextBtn label="Folder" onClick={onMoveFolder} icon={<Icon icon={FolderOpen} className="size-[14px]" strokeWidth={1.5} />} />
+          {exportControl}
+          <MultiSelectTextBtn label="Trash" onClick={onTrash} variant="destructive" icon={<Icon icon={Trash} className="size-[14px]" strokeWidth={1.5} />} />
+          <Button variant="ghost" onClick={onCancel} className="h-[30px] px-[12px] rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent">
+            {t("common.cancel")}
+          </Button>
+          {copied && <CopyToast text={t("common.copied")} />}
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }
 
@@ -1666,7 +1666,6 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                       onShare={() => setShareDialogRecord(record.id)}
                       onEdit={() => setEditingId(record.id)} onSaveName={(n) => { renameRecord(record.id, n); setEditingId(null); }} onCancelEdit={() => setEditingId(null)}
                       onRestore={() => restoreFromTrash(record.id)} onDeleteForever={() => setConfirmDeleteIds([record.id])} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
-                      onExport={() => setExportDialogIds([record.id])}
                       onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
                       rowDragging={dragRecordId === record.id}
                       onRowDragStart={activeTab === "Recent" && !scopedFolderId ? (e) => { e.dataTransfer.setData("text/record-id", record.id); e.dataTransfer.effectAllowed = "move"; setDragRecordId(record.id); } : undefined}
@@ -1684,7 +1683,6 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                     onShare={() => setShareDialogRecord(record.id)}
                     onEdit={() => setEditingId(record.id)} onSaveName={(n) => { renameRecord(record.id, n); setEditingId(null); }} onCancelEdit={() => setEditingId(null)}
                     onRestore={() => restoreFromTrash(record.id)} onDeleteForever={() => setConfirmDeleteIds([record.id])} onMoveFolder={() => { setSelectedRows(new Set([record.id])); setMoveDialogOpen(true); }} onTrash={() => trashOne(record.id)}
-                    onExport={() => setExportDialogIds([record.id])}
                     onDoubleClick={() => navigate(`/transcriptions/${record.id}`, { state: { record } })}
                       rowDragging={dragRecordId === record.id}
                       onRowDragStart={activeTab === "Recent" && !scopedFolderId ? (e) => { e.dataTransfer.setData("text/record-id", record.id); e.dataTransfer.effectAllowed = "move"; setDragRecordId(record.id); } : undefined}
@@ -1854,9 +1852,9 @@ export function PaginationBar({ total, page, pageSize, onPage, onPageSize, compa
    Table Row
    ══════════════════════════════════════════════ */
 
-function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onDeleteForever, onMoveFolder, onTrash, onExport, onDoubleClick, rowDragging, onRowDragStart, onRowDragEnd }: {
+function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onDeleteForever, onMoveFolder, onTrash, onDoubleClick, rowDragging, onRowDragStart, onRowDragEnd }: {
   record: RecordRow; folder: FolderItem | null; folderColumnMode: FolderColumnMode; visibleColumns: ColumnId[]; isSelected: boolean; isStarred: boolean; isShared: boolean; isHovered: boolean; isEditing: boolean; isTrash: boolean;
-  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onDeleteForever: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: () => void; onDoubleClick: () => void; rowDragging?: boolean; onRowDragStart?: (e: React.DragEvent) => void; onRowDragEnd?: () => void;
+  onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onDeleteForever: () => void; onMoveFolder: () => void; onTrash: () => void; onDoubleClick: () => void; rowDragging?: boolean; onRowDragStart?: (e: React.DragEvent) => void; onRowDragEnd?: () => void;
 }) {
   const { t: tRow } = useLanguage();
 
@@ -1950,11 +1948,11 @@ function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected
         {/* Actions overlay - appears at right edge of name cell on hover */}
         {!isTrash && !isEditing && (
           <div
-            className={`absolute top-0 bottom-0 z-20 flex items-center justify-end pr-[4px] transition-opacity duration-150 ${isHovered ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+            className={`pointer-events-none absolute top-0 bottom-0 z-20 flex items-center justify-end pr-[4px] transition-opacity duration-150 ${isHovered ? "opacity-100" : "opacity-0"}`}
             style={{ right: "-26px", width: "180px", background: `linear-gradient(to right, transparent 0px, ${actionsBg} 48px)` }}
             onClick={e => e.stopPropagation()}
           >
-            <RowActions isStarred={isStarred} onStar={onStar} onEdit={onEdit} onShare={onShare} onMoveFolder={onMoveFolder} onTrash={onTrash} onExport={onExport} summary={record.summary} />
+            <RowActions isStarred={isStarred} onStar={onStar} onEdit={onEdit} onShare={onShare} onMoveFolder={onMoveFolder} onTrash={onTrash} summary={record.summary} exportRecord={recordRowToExportable(record)} />
           </div>
         )}
         {/* Trash restore button */}

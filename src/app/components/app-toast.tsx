@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -30,12 +31,14 @@ export function ToastCard({
   title,
   meta,
   action,
+  actions,
 }: {
   tone?: Tone;
   glyph?: unknown;
   title: string;
   meta?: string;
   action?: { label: string; onClick: () => void };
+  actions?: ReactNode;
 }) {
   const t = TONE[tone];
   return (
@@ -66,7 +69,7 @@ export function ToastCard({
         ) : null}
       </div>
 
-      {action ? (
+      {actions ?? (action ? (
         <button
           type="button"
           onClick={action.onClick}
@@ -74,19 +77,26 @@ export function ToastCard({
         >
           {action.label}
         </button>
-      ) : null}
+      ) : null)}
     </div>
   );
 }
 
 /* One record finished while the user was somewhere else. */
-export function toastReady(name: string, onOpen: () => void) {
+export function toastReady(name: string, onOpen: () => void, exportControl?: ReactNode) {
   toast.custom(
     (id) => (
       <ToastCard
         title={name}
-        meta="Transcription is ready"
-        action={{ label: "Open", onClick: () => { toast.dismiss(id); onOpen(); } }}
+        meta="Transcription complete"
+        actions={(
+          <div className="flex shrink-0 items-center gap-1">
+            <button type="button" onClick={() => { toast.dismiss(id); onOpen(); }} className="rounded-full px-2.5 py-1.5 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/8">
+              Open
+            </button>
+            {exportControl}
+          </div>
+        )}
       />
     ),
     { duration: DURATION }
@@ -95,15 +105,20 @@ export function toastReady(name: string, onOpen: () => void) {
 
 /* Ten files can finish within a second of each other. Ten toasts would bury the
    screen, so a batch collapses into one line that still names what arrived. */
-export function toastManyReady(names: string[], onViewAll: () => void) {
-  const shown = names.slice(0, 2).join(", ");
-  const rest = names.length - 2;
+export function toastManyReady(names: string[], onViewAll: () => void, exportControl?: ReactNode) {
   toast.custom(
     (id) => (
       <ToastCard
-        title={names.length + " transcriptions are ready"}
-        meta={rest > 0 ? shown + " and " + rest + " more" : names.join(", ")}
-        action={{ label: "View all", onClick: () => { toast.dismiss(id); onViewAll(); } }}
+        title={names.length + " files are ready"}
+        meta="Transcription complete"
+        actions={(
+          <div className="flex shrink-0 items-center gap-1">
+            <button type="button" onClick={() => { toast.dismiss(id); onViewAll(); }} className="rounded-full px-2.5 py-1.5 text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/8">
+              Open
+            </button>
+            {exportControl}
+          </div>
+        )}
       />
     ),
     { duration: DURATION + 2000 }

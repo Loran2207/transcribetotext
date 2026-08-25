@@ -36,7 +36,7 @@ import { useStarred } from "./starred-context";
 import { useFolders } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { ShareDialog } from "./share-dialog";
-import { ExportDialog } from "./export-dialog";
+import { QuickExport, QuickExportSubMenu } from "./quick-export";
 import { LanguageBadge, MoveToFolderDialog, recordRowToExportable, type RecordRow, FigmaCheckbox, INLINE_FOLDER_PATH } from "./records-table";
 
 /* A single recording rendered as a card (mobile + tablet replacement for the
@@ -89,8 +89,9 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
   }, [folders, folderAssignments, record.id]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileExportOpen, setMobileExportOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -191,7 +192,7 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
             <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={1.8} />
           </Button>
         ) : (
-          <DropdownMenu>
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="size-[32px] text-muted-foreground" aria-label="Record actions">
                 <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={1.8} />
@@ -206,10 +207,7 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
                 <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                 {t("table.moveToFolder")}
               </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2" onSelect={() => setExportOpen(true)}>
-                <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.5} />
-                {t("common.export")}
-              </DropdownMenuItem>
+              <QuickExportSubMenu records={[recordRowToExportable(record)]} label={t("common.export")} onCloseMenu={() => setMenuOpen(false)} />
               <DropdownMenuItem className="gap-2" onSelect={() => setShareOpen(true)}>
                 <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                 {t("common.share")}
@@ -247,21 +245,22 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
 
             {/* Action tiles - same bordered style as the result-page tiles (one component look) */}
             <div className="grid grid-cols-4 gap-[8px] px-[16px] pt-[4px] pb-[10px]">
-              {[
-                { key: "copy", icon: Copy, label: t("sheet.copy"), run: doCopy },
-                { key: "move", icon: FolderOpen, label: t("sheet.moveTo"), run: () => setMoveOpen(true) },
-                { key: "export", icon: Upload, label: t("common.export"), run: () => setExportOpen(true) },
-                { key: "share", icon: Share, label: t("common.share"), run: () => setShareOpen(true) },
-              ].map(({ key, icon, label, run }) => (
-                <button
-                  key={key}
-                  onClick={() => { setSheetOpen(false); run(); }}
-                  className="flex flex-col items-center justify-center gap-[7px] h-[62px] rounded-[14px] border border-border/60 bg-card active:bg-muted/60 transition-colors"
-                >
-                  <Icon icon={icon} className="size-[19px] text-foreground" strokeWidth={1.7} />
-                  <span className="whitespace-nowrap text-[11.5px] leading-none font-medium text-muted-foreground">{label}</span>
-                </button>
-              ))}
+              <button onClick={() => { setSheetOpen(false); doCopy(); }} className="flex h-[62px] flex-col items-center justify-center gap-[7px] rounded-[14px] border border-border/60 bg-card transition-colors active:bg-muted/60">
+                <Icon icon={Copy} className="size-[19px] text-foreground" strokeWidth={1.7} />
+                <span className="whitespace-nowrap text-[11.5px] font-medium leading-none text-muted-foreground">{t("sheet.copy")}</span>
+              </button>
+              <button onClick={() => { setSheetOpen(false); setMoveOpen(true); }} className="flex h-[62px] flex-col items-center justify-center gap-[7px] rounded-[14px] border border-border/60 bg-card transition-colors active:bg-muted/60">
+                <Icon icon={FolderOpen} className="size-[19px] text-foreground" strokeWidth={1.7} />
+                <span className="whitespace-nowrap text-[11.5px] font-medium leading-none text-muted-foreground">{t("sheet.moveTo")}</span>
+              </button>
+              <button onClick={() => { setSheetOpen(false); window.setTimeout(() => setMobileExportOpen(true), 120); }} className="flex h-[62px] flex-col items-center justify-center gap-[7px] rounded-[14px] border border-border/60 bg-card transition-colors active:bg-muted/60">
+                <Icon icon={Upload} className="size-[19px] text-foreground" strokeWidth={1.7} />
+                <span className="whitespace-nowrap text-[11.5px] font-medium leading-none text-muted-foreground">{t("common.export")}</span>
+              </button>
+              <button onClick={() => { setSheetOpen(false); setShareOpen(true); }} className="flex h-[62px] flex-col items-center justify-center gap-[7px] rounded-[14px] border border-border/60 bg-card transition-colors active:bg-muted/60">
+                <Icon icon={Share} className="size-[19px] text-foreground" strokeWidth={1.7} />
+                <span className="whitespace-nowrap text-[11.5px] font-medium leading-none text-muted-foreground">{t("common.share")}</span>
+              </button>
             </div>
 
             <div className="h-px mx-[16px] bg-border" />
@@ -283,6 +282,14 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
           </DrawerContent>
         </Drawer>
 
+        <QuickExport
+          records={[recordRowToExportable(record)]}
+          availableRecords={[recordRowToExportable(record)]}
+          open={mobileExportOpen}
+          onOpenChange={setMobileExportOpen}
+          trigger={<button type="button" className="hidden" aria-hidden="true" tabIndex={-1} />}
+        />
+
         {/* Lazily mounted dialogs - only the currently open one exists in the tree */}
         {moveOpen && (
           <MoveToFolderDialog
@@ -292,15 +299,6 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
             onClose={() => setMoveOpen(false)}
             onMove={(folderId) => assignToFolder([record.id], folderId)}
             onCreateFolder={() => setMoveOpen(false)}
-          />
-        )}
-
-        {exportOpen && (
-          <ExportDialog
-            open
-            onClose={() => setExportOpen(false)}
-            records={[recordRowToExportable(record)]}
-            availableRecords={[recordRowToExportable(record)]}
           />
         )}
 

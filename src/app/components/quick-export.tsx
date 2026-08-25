@@ -10,9 +10,14 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { runExportPlan, type ExportableRecord } from "@/lib/export-formats";
+import { Upload } from "@hugeicons/core-free-icons";
+import { Icon } from "./ui/icon";
 
 function presetSummary(preset: ExportPreset, recordCount: number) {
   const { settings } = preset;
@@ -30,6 +35,20 @@ function presetSummary(preset: ExportPreset, recordCount: number) {
   return parts.join(" · ");
 }
 
+function PresetItemContent({ preset, recordCount }: { preset: ExportPreset; recordCount: number }) {
+  return (
+    <>
+      <FormatIcon format={preset.settings.format} size={25} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13.5px] font-semibold text-foreground">{preset.name}</span>
+        <span className="mt-0.5 block truncate text-[11.5px] text-muted-foreground">
+          {presetSummary(preset, recordCount)}
+        </span>
+      </span>
+    </>
+  );
+}
+
 const PresetItem = forwardRef<HTMLButtonElement, {
   preset: ExportPreset;
   recordCount: number;
@@ -41,27 +60,48 @@ const PresetItem = forwardRef<HTMLButtonElement, {
     className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-accent active:bg-accent"
     onClick={onSelect}
   >
-    <FormatIcon format={preset.settings.format} size={25} />
-    <span className="min-w-0 flex-1">
-      <span className="block truncate text-[13.5px] font-semibold text-foreground">{preset.name}</span>
-      <span className="mt-0.5 block truncate text-[11.5px] text-muted-foreground">
-        {presetSummary(preset, recordCount)}
-      </span>
-    </span>
+    <PresetItemContent preset={preset} recordCount={recordCount} />
   </button>
 ));
 
 PresetItem.displayName = "PresetItem";
 
-export function QuickExport({ records, availableRecords, trigger }: {
+async function exportWithPreset(records: ExportableRecord[], preset: ExportPreset) {
+  const { settings } = preset;
+  const manifest = await runExportPlan(
+    records.map((record) => ({
+      record,
+      format: settings.format,
+      includeTranscript: settings.includeTranscript,
+      includeSummary: settings.includeSummary,
+      includeAudio: settings.includeAudio,
+      includeTranslation: settings.includeTranslation,
+      translationLanguage: settings.translationLanguage,
+      options: settings.options,
+    })),
+    undefined,
+    { zip: records.length > 1 && settings.zipEnabled },
+  );
+  toast.success(`Exported with "${preset.name}"`, { description: manifest.downloadName });
+}
+
+export function QuickExport({ records, availableRecords, trigger, open: controlledOpen, onOpenChange }: {
   records: ExportableRecord[];
   availableRecords?: ExportableRecord[];
   trigger: ReactElement;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   const isMobile = useIsMobile();
   const { presets } = useExportPresets();
-  const [quickOpen, setQuickOpen] = useState(false);
+  const [internalQuickOpen, setInternalQuickOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const quickOpen = controlledOpen ?? internalQuickOpen;
+
+  function setQuickOpen(open: boolean) {
+    if (controlledOpen === undefined) setInternalQuickOpen(open);
+    onOpenChange?.(open);
+  }
 
   function handleOpenChange(open: boolean) {
     if (open && presets.length === 0) {
@@ -74,23 +114,8 @@ export function QuickExport({ records, availableRecords, trigger }: {
 
   async function runPreset(preset: ExportPreset) {
     setQuickOpen(false);
-    const { settings } = preset;
     try {
-      const manifest = await runExportPlan(
-        records.map((record) => ({
-          record,
-          format: settings.format,
-          includeTranscript: settings.includeTranscript,
-          includeSummary: settings.includeSummary,
-          includeAudio: settings.includeAudio,
-          includeTranslation: settings.includeTranslation,
-          translationLanguage: settings.translationLanguage,
-          options: settings.options,
-        })),
-        undefined,
-        { zip: records.length > 1 && settings.zipEnabled },
-      );
-      toast.success(`Exported with "${preset.name}"`, { description: manifest.downloadName });
+      await exportWithPreset(records, preset);
     } catch {
       toast.error("Export failed. Please try again.");
     }
@@ -131,8 +156,8 @@ export function QuickExport({ records, availableRecords, trigger }: {
           <DropdownMenuContent align="end" sideOffset={8} className="z-[130] w-[320px] rounded-[14px] p-2">
             <DropdownMenuLabel className="px-3 pb-1.5 pt-2 text-[13px] font-semibold text-foreground">Quick export</DropdownMenuLabel>
             {presets.map((preset) => (
-              <DropdownMenuItem key={preset.id} asChild className="p-0 focus:bg-transparent">
-                <PresetItem preset={preset} recordCount={records.length} onSelect={() => void runPreset(preset)} />
+              <DropdownMenuItem key={preset.id} className="flex gap-3 rounded-xl px-3 py-2.5 focus:bg-accent" onSelect={() => void runPreset(preset)}>
+                <PresetItemContent preset={preset} recordCount={records.length} />
               </DropdownMenuItem>
             ))}
             <DropdownMenuSeparator className="mx-2 my-1.5" />
@@ -141,6 +166,65 @@ export function QuickExport({ records, availableRecords, trigger }: {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      )}
+      <ExportDialog open={advancedOpen} onClose={() => setAdvancedOpen(false)} records={records} availableRecords={availableRecords} />
+    </>
+  );
+}
+
+export function QuickExportSubMenu({ records, availableRecords, label = "Export", onCloseMenu }: {
+  records: ExportableRecord[];
+  availableRecords?: ExportableRecord[];
+  label?: string;
+  onCloseMenu?: () => void;
+}) {
+  const { presets } = useExportPresets();
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  async function runPreset(preset: ExportPreset) {
+    onCloseMenu?.();
+    try {
+      await exportWithPreset(records, preset);
+    } catch {
+      toast.error("Export failed. Please try again.");
+    }
+  }
+
+  const triggerContent = (
+    <>
+      <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.5} />
+      {label}
+    </>
+  );
+
+  return (
+    <>
+      {presets.length === 0 ? (
+        <DropdownMenuItem className="gap-2" onSelect={() => { onCloseMenu?.(); setAdvancedOpen(true); }}>
+          {triggerContent}
+        </DropdownMenuItem>
+      ) : (
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger className="gap-2">
+            {triggerContent}
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent sideOffset={8} className="z-[130] w-[320px] rounded-[14px] p-2">
+            <DropdownMenuLabel className="px-3 pb-1.5 pt-2 text-[13px] font-semibold text-foreground">Quick export</DropdownMenuLabel>
+            {presets.map((preset) => (
+              <DropdownMenuItem
+                key={preset.id}
+                className="flex gap-3 rounded-xl px-3 py-2.5 focus:bg-accent"
+                onSelect={() => void runPreset(preset)}
+              >
+                <PresetItemContent preset={preset} recordCount={records.length} />
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator className="mx-2 my-1.5" />
+            <DropdownMenuItem className="rounded-lg px-3 py-2.5 text-[13px] font-medium text-primary focus:bg-primary/5 focus:text-primary" onSelect={() => { onCloseMenu?.(); setAdvancedOpen(true); }}>
+              Advanced export...
+            </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
       )}
       <ExportDialog open={advancedOpen} onClose={() => setAdvancedOpen(false)} records={records} availableRecords={availableRecords} />
     </>

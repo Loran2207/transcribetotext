@@ -128,12 +128,30 @@ function escapeHtml(s: string): string {
 }
 
 function safeFilename(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "") || "transcript"
-  );
+  const base = s.trim().replace(/\.(aac|aiff?|flac|m4a|mkv|mov|mp3|mp4|mpeg|mpg|ogg|opus|wav|webm|wma)$/i, "");
+  return base
+    .normalize("NFKC")
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/[. ]+$/g, "")
+    .trim() || "transcript";
+}
+
+function uniqueEntries(entries: ZipEntry[]): ZipEntry[] {
+  const used = new Set<string>();
+  return entries.map((entry) => {
+    const dot = entry.name.lastIndexOf(".");
+    const base = dot > 0 ? entry.name.slice(0, dot) : entry.name;
+    const extension = dot > 0 ? entry.name.slice(dot) : "";
+    let name = entry.name;
+    let copy = 2;
+    while (used.has(name.toLocaleLowerCase())) {
+      name = `${base} (${copy})${extension}`;
+      copy += 1;
+    }
+    used.add(name.toLocaleLowerCase());
+    return name === entry.name ? entry : { ...entry, name };
+  });
 }
 
 /* ──────────────────────────────────────────
@@ -666,7 +684,7 @@ export async function runExport(req: ExportRequest): Promise<string> {
     }
     if (includeSummary) entries.push({ name: `${base}-summary.txt`, data: enc.encode(buildSummaryTxt(rec)) });
   }
-  triggerDownload(buildZipBlob(entries), filename);
+  triggerDownload(buildZipBlob(uniqueEntries(entries)), filename);
   return filename;
 }
 
@@ -734,20 +752,21 @@ export async function runExportPlan(
   for (const plan of active) entries.push(...await buildPlanEntries(plan));
   if (!entries.length) throw new Error("Nothing to export");
 
-  const files: ExportManifestFile[] = entries.map((e) => ({ name: e.name, format: extOf(e.name), bytes: e.data.length }));
+  const resolvedEntries = uniqueEntries(entries);
+  const files: ExportManifestFile[] = resolvedEntries.map((e) => ({ name: e.name, format: extOf(e.name), bytes: e.data.length }));
 
-  if (entries.length === 1) {
+  if (resolvedEntries.length === 1) {
     const fmt = active[0].format;
     const mime = active[0].includeTranscript ? FORMAT_META[fmt].mime : "text/plain";
-    triggerDownload(new Blob([entries[0].data as BlobPart], { type: mime }), entries[0].name);
-    return { downloadName: entries[0].name, zipped: false, files };
+    triggerDownload(new Blob([resolvedEntries[0].data as BlobPart], { type: mime }), resolvedEntries[0].name);
+    return { downloadName: resolvedEntries[0].name, zipped: false, files };
   }
   if (opts && opts.zip === false) {
-    for (const e of entries) triggerDownload(new Blob([e.data as BlobPart]), e.name);
-    return { downloadName: `${entries.length} files`, zipped: false, files };
+    for (const e of resolvedEntries) triggerDownload(new Blob([e.data as BlobPart]), e.name);
+    return { downloadName: `${resolvedEntries.length} files`, zipped: false, files };
   }
   const fallback = active.length === 1 ? `${safeFilename(active[0].record.title)}.zip` : `transcripts-${active.length}.zip`;
   const name = zipName ? (zipName.toLowerCase().endsWith('.zip') ? zipName : `${zipName}.zip`) : fallback;
-  triggerDownload(buildZipBlob(entries), name);
+  triggerDownload(buildZipBlob(resolvedEntries), name);
   return { downloadName: name, zipped: true, files };
 }
