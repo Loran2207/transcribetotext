@@ -43,3 +43,4 @@ test-results/
 _*.png
 _*.mjs
 v2_*.png
+.vercel
