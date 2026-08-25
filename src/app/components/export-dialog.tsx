@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogTitle } from "@/app/components/ui/dialog";
 import { Sheet, SheetContent } from "@/app/components/ui/sheet";
 import { Button } from "@/app/components/ui/button";
@@ -10,17 +11,23 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/app/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/app/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/app/components/ui/command";
 import { Icon } from "@/app/components/ui/icon";
 import { toastExported } from "./app-toast";
-import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon, PencilEdit02Icon } from "@hugeicons/core-free-icons";
+import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon, PencilEdit02Icon, Delete02Icon, MoreHorizontal, InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { usePlan } from "./use-plan";
 import { LANGUAGES } from "./language-context";
+import { EMPTY_EXPORT_SETTINGS, useExportPresets, type ExportPreset, type ExportPresetSettings } from "./export-presets-context";
 import {
-  runExportPlan, transformForExport, DEFAULT_EXPORT_OPTIONS, FORMAT_META,
+  runExportPlan, transformForExport, FORMAT_META,
   type ExportableRecord, type ExportFormat, type ExportContentOptions, type ExportFilePlan, type ExportManifest,
 } from "@/lib/export-formats";
 
@@ -46,13 +53,13 @@ interface FileSettings {
 }
 
 const DEFAULT_SETTINGS: FileSettings = {
-  format: "txt",
-  includeTranscript: true,
-  includeSummary: false,
-  includeAudio: false,
-  includeTranslation: false,
-  translationLanguage: "es",
-  options: DEFAULT_EXPORT_OPTIONS,
+  format: EMPTY_EXPORT_SETTINGS.format,
+  includeTranscript: EMPTY_EXPORT_SETTINGS.includeTranscript,
+  includeSummary: EMPTY_EXPORT_SETTINGS.includeSummary,
+  includeAudio: EMPTY_EXPORT_SETTINGS.includeAudio,
+  includeTranslation: EMPTY_EXPORT_SETTINGS.includeTranslation,
+  translationLanguage: EMPTY_EXPORT_SETTINGS.translationLanguage,
+  options: EMPTY_EXPORT_SETTINGS.options,
 };
 
 interface FormatChoice { format: ExportFormat; label: string; pro: boolean; }
@@ -96,6 +103,37 @@ function formatBytes(b: number): string {
 
 function safeName(s: string): string {
   return (s.replace(/[\\/:*?"<>|]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "transcript");
+}
+
+function settingsFromPreset(preset: ExportPreset): FileSettings {
+  const { zipEnabled: _zipEnabled, ...settings } = preset.settings;
+  return { ...settings, options: { ...settings.options } };
+}
+
+function settingsForPreset(shared: FileSettings, zipEnabled: boolean): ExportPresetSettings {
+  return { ...shared, zipEnabled, options: { ...shared.options } };
+}
+
+function sameSettings(left: ExportPresetSettings, right: ExportPresetSettings) {
+  return left.format === right.format
+    && left.includeTranscript === right.includeTranscript
+    && left.includeSummary === right.includeSummary
+    && left.includeAudio === right.includeAudio
+    && left.includeTranslation === right.includeTranslation
+    && left.translationLanguage === right.translationLanguage
+    && left.zipEnabled === right.zipEnabled
+    && left.options.showSpeakers === right.options.showSpeakers
+    && left.options.showTimestamps === right.options.showTimestamps
+    && left.options.combineSameSpeaker === right.options.combineSameSpeaker
+    && left.options.combineAll === right.options.combineAll;
+}
+
+function suggestedPresetName(format: ExportFormat) {
+  if (format === "srt") return "SRT captions";
+  if (format === "vtt") return "VTT captions";
+  if (format === "docx") return "Word document";
+  if (format === "pdf") return "PDF document";
+  return "Plain text";
 }
 
 /* The shared useIsMobile draws the line at 1024, because it means "compact
@@ -200,6 +238,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   open: boolean; onClose: () => void; records: ExportableRecord[]; availableRecords?: ExportableRecord[];
 }) {
   const plan = usePlan();
+  const { presets, createPreset, updatePreset, deletePreset } = useExportPresets();
 
   const [phase, setPhase] = useState<Phase>("form");
   const [items, setItems] = useState<ExportableRecord[]>(records);
@@ -221,6 +260,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
      is for, so it opens there; the transcript is one tap away rather than gone. */
   const [mobilePane, setMobilePane] = useState<"settings" | "transcript">("settings");
   const [progress, setProgress] = useState(0);
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [presetDialogMode, setPresetDialogMode] = useState<"create" | "edit" | null>(null);
+  const [presetName, setPresetName] = useState("");
+  const [deletePresetOpen, setDeletePresetOpen] = useState(false);
+  const [changeNoticeDismissed, setChangeNoticeDismissed] = useState(false);
 
   const multi = items.length > 1;
 
@@ -242,6 +286,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     setExportName(records.length > 1 ? `transcripts-${records.length}` : "");
     setNameTouched(false);
     setAddOpen(false); setMoreOpen(full); setProgress(0); setManifest(null);
+    setSelectedPresetId(null); setPresetDialogMode(null); setPresetName("");
+    setDeletePresetOpen(false); setChangeNoticeDismissed(false);
     if (demo === "error") setPhase("error");
     else if (demo === "processing") { setPhase("processing"); setProgress(Math.max(1, Math.floor(records.length / 2))); }
     else if (demo === "success") {
@@ -261,11 +307,15 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   }, [items, nameTouched]);
 
   const activeRecord = items.find((r) => r.id === activeId) ?? items[0];
+  const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? null;
+  const currentPresetSettings = settingsForPreset(shared, zipEnabled);
+  const selectedPresetChanged = !!selectedPreset && !sameSettings(currentPresetSettings, selectedPreset.settings);
   const addable = (availableRecords ?? []).filter((r) => !items.some((i) => i.id === r.id));
   const showNav = true; // unified design: the file list is always present
 
   function patchShared(patch: Partial<FileSettings>) {
     setShared((prev) => ({ ...prev, ...patch }));
+    setChangeNoticeDismissed(false);
   }
   const patchOptions = (k: keyof ExportContentOptions, v: boolean) => patchShared({ options: { ...shared.options, [k]: v } });
 
@@ -277,6 +327,64 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   }
   function addItem(r: ExportableRecord) {
     setItems((prev) => (prev.some((i) => i.id === r.id) ? prev : [...prev, r]));
+  }
+
+  function selectPreset(id: string) {
+    if (id === "none") {
+      setSelectedPresetId(null);
+      setChangeNoticeDismissed(false);
+      return;
+    }
+    const preset = presets.find((candidate) => candidate.id === id);
+    if (!preset) return;
+    setSelectedPresetId(preset.id);
+    setShared(settingsFromPreset(preset));
+    setZipEnabled(preset.settings.zipEnabled);
+    setMoreOpen(
+      preset.settings.options.showSpeakers
+      || preset.settings.options.showTimestamps
+      || preset.settings.options.combineSameSpeaker
+      || preset.settings.options.combineAll,
+    );
+    setChangeNoticeDismissed(false);
+  }
+
+  function openCreatePreset() {
+    setPresetName(suggestedPresetName(shared.format));
+    setPresetDialogMode("create");
+  }
+
+  function openEditPreset() {
+    if (!selectedPreset) return;
+    setPresetName(selectedPreset.name);
+    setPresetDialogMode("edit");
+  }
+
+  function savePresetDialog() {
+    const name = presetName.trim() || suggestedPresetName(shared.format);
+    if (presetDialogMode === "edit" && selectedPreset) {
+      updatePreset(selectedPreset.id, { name });
+      toast.success("Preset updated", { description: name });
+    } else {
+      const preset = createPreset(name, currentPresetSettings);
+      setSelectedPresetId(preset.id);
+      toast.success("Preset saved", { description: name });
+    }
+    setPresetDialogMode(null);
+  }
+
+  function saveAsNewPreset() {
+    setPresetName(selectedPreset ? `${selectedPreset.name} copy` : suggestedPresetName(shared.format));
+    setPresetDialogMode("create");
+  }
+
+  function confirmDeletePreset() {
+    if (!selectedPreset) return;
+    const name = selectedPreset.name;
+    deletePreset(selectedPreset.id);
+    setSelectedPresetId(null);
+    setDeletePresetOpen(false);
+    toast.success("Preset deleted", { description: name });
   }
 
   const zipFileName = `${safeName(exportName || `transcripts-${items.length}`)}.zip`;
@@ -310,6 +418,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     setPhase("processing");
     setProgress(0);
     try {
+      if (selectedPreset && selectedPresetChanged) {
+        updatePreset(selectedPreset.id, { settings: currentPresetSettings });
+      }
       for (let i = 0; i < items.length; i++) {
         await new Promise((r) => setTimeout(r, Math.min(350, 900 / items.length)));
         setProgress(i + 1);
@@ -327,6 +438,64 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   /* ── settings panel (right) - one set of settings, applied to every file ── */
   const settingsPanel = (
     <div className="w-[340px] shrink-0 overflow-y-auto px-[24px] py-[6px] max-lg:w-full max-lg:shrink max-lg:overflow-visible max-lg:pb-[20px]">
+      <div className="pt-[16px]">
+        <div className="relative rounded-[10px] border border-border bg-background px-[14px] py-[10px]">
+          <span className="block text-[11.5px] font-medium text-muted-foreground">Export preset</span>
+          <div className="mt-[3px] flex min-h-[30px] items-center gap-[8px]">
+            <Select value={selectedPresetId ?? "none"} onValueChange={selectPreset} disabled={presets.length === 0}>
+              <SelectTrigger className="h-[30px] min-w-0 flex-1 border-0 bg-transparent p-0 text-[13.5px] shadow-none focus-visible:ring-0 disabled:cursor-default disabled:opacity-100">
+                <SelectValue>
+                  {selectedPreset ? (
+                    <span className="flex min-w-0 items-center gap-[8px]">
+                      <FormatIcon format={selectedPreset.settings.format} size={21} />
+                      <span className="truncate font-semibold text-foreground">{selectedPreset.name}</span>
+                    </span>
+                  ) : <span className="font-medium text-foreground">No preset</span>}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No preset</SelectItem>
+                {presets.map((preset) => (
+                  <SelectItem key={preset.id} value={preset.id}>
+                    <span className="flex items-center gap-[8px]"><FormatIcon format={preset.settings.format} size={20} />{preset.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedPreset ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button type="button" className="inline-flex size-[30px] shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-accent" aria-label="Preset actions">
+                    <Icon icon={MoreHorizontal} size={16} strokeWidth={1.8} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[176px]">
+                  <DropdownMenuItem className="gap-[8px]" onSelect={openEditPreset}>
+                    <Icon icon={PencilEdit02Icon} size={15} strokeWidth={1.7} />Edit preset
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="gap-[8px] text-destructive focus:text-destructive" onSelect={() => setDeletePresetOpen(true)}>
+                    <Icon icon={Delete02Icon} size={15} strokeWidth={1.7} />Delete preset
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <button type="button" className="shrink-0 text-[12.5px] font-medium text-primary hover:underline" onClick={openCreatePreset}>Save current settings</button>
+            )}
+          </div>
+        </div>
+        {selectedPresetChanged && !changeNoticeDismissed && (
+          <div className="relative mt-[10px] flex gap-[10px] rounded-[10px] bg-primary/5 px-[12px] py-[10px] pr-[34px]">
+            <Icon icon={InformationCircleIcon} size={17} className="mt-[1px] shrink-0 text-primary" strokeWidth={1.6} />
+            <div className="min-w-0">
+              <p className="text-[12px] leading-[17px] text-foreground">Export will update "{selectedPreset?.name}".</p>
+              <button type="button" className="mt-[4px] text-[12px] font-medium text-primary hover:underline" onClick={saveAsNewPreset}>Save as new preset</button>
+            </div>
+            <button type="button" className="absolute right-[8px] top-[8px] inline-flex size-[22px] items-center justify-center rounded-full text-muted-foreground hover:bg-primary/10" onClick={() => setChangeNoticeDismissed(true)} aria-label="Dismiss">
+              <Icon icon={Cancel01Icon} size={11} strokeWidth={2} />
+            </button>
+          </div>
+        )}
+      </div>
       {/* How the files are handed over. Off by default: packing an archive
           makes the server pull every file out of storage first. */}
       <div className="border-b border-border py-[16px]">
@@ -334,7 +503,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           <span className={multi ? "font-semibold text-[14.5px] text-foreground" : "font-semibold text-[14.5px] text-muted-foreground"}>
             Download as ZIP archive
           </span>
-          <Switch checked={multi && zipEnabled} onCheckedChange={setZipEnabled} disabled={!multi} />
+          <Switch checked={multi && zipEnabled} onCheckedChange={(value) => { setZipEnabled(value); setChangeNoticeDismissed(false); }} disabled={!multi} />
         </div>
         <p className="mt-[8px] text-[11.5px] leading-[16px] text-muted-foreground">
           {!multi
@@ -385,8 +554,10 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           <div className={moreOpen ? "flex flex-col gap-[10px]" : "hidden"}>
             {!shared.options.combineAll && (
               <>
-                <OptionCheck id="opt-speakers" label="Show speaker names" checked={shared.options.showSpeakers} onChange={(v) => patchOptions("showSpeakers", v)} />
-                <OptionCheck id="opt-timestamps" label="Show timestamps" checked={shared.options.showTimestamps} onChange={(v) => patchOptions("showTimestamps", v)} />
+                <div className="grid grid-cols-2 gap-[10px] max-[380px]:grid-cols-1">
+                  <OptionCheck id="opt-speakers" label="Show speaker names" checked={shared.options.showSpeakers} onChange={(v) => patchOptions("showSpeakers", v)} />
+                  <OptionCheck id="opt-timestamps" label="Show timestamps" checked={shared.options.showTimestamps} onChange={(v) => patchOptions("showTimestamps", v)} />
+                </div>
                 <OptionCheck id="opt-combine-same" label="Combine paragraphs of the same speaker" checked={shared.options.combineSameSpeaker} onChange={(v) => patchOptions("combineSameSpeaker", v)} />
               </>
             )}
@@ -432,7 +603,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
       open={open}
       onOpenChange={(o) => { if (!o) onClose(); }}
       sheetClass="bg-background h-[84dvh]"
-      dialogClass="bg-background lg:max-w-[960px]! sm:max-w-[560px] max-lg:h-[74dvh]"
+      dialogClass="bg-background sm:max-w-[560px] max-lg:h-[74dvh] lg:h-[calc(100dvh-24px)] lg:max-h-[634px] lg:max-w-[960px]!"
     >
         <div className="flex items-center gap-[10px] px-[20px] h-[52px] border-b border-border shrink-0 max-md:h-[58px]">
           <DialogTitle className="font-semibold text-[17px] text-foreground">Export</DialogTitle>
@@ -450,7 +621,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         </div>
 
         {/* Body - fixed height so toggling options never resizes the dialog */}
-        <div className="h-[520px] max-lg:h-auto max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-hidden">
+        <div className="min-h-0 flex-1 overflow-hidden max-lg:h-auto">
           {phase === "processing" ? (
             <div className="flex h-full flex-col items-center justify-center px-[24px]">
               <div className="size-[64px] rounded-full bg-primary/5 flex items-center justify-center mb-[18px]">
@@ -687,6 +858,47 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               </CommandList>
             </Command>
         </Modal>
+
+        <Modal
+          open={presetDialogMode !== null}
+          onOpenChange={(next) => { if (!next) setPresetDialogMode(null); }}
+          sheetClass="h-auto max-h-[70dvh]"
+          dialogClass="sm:max-w-[420px]"
+        >
+          <div className="border-b border-border px-[20px] py-[17px]">
+            <DialogTitle className="text-[17px] font-semibold text-foreground">
+              {presetDialogMode === "edit" ? "Edit export preset" : "Save export preset"}
+            </DialogTitle>
+          </div>
+          <div className="px-[20px] py-[20px]">
+            <Label htmlFor="export-preset-name" className="mb-[7px] block text-[12.5px] font-medium text-foreground">Preset name</Label>
+            <Input
+              id="export-preset-name"
+              value={presetName}
+              onChange={(event) => setPresetName(event.target.value)}
+              onKeyDown={(event) => { if (event.key === "Enter") savePresetDialog(); }}
+              autoFocus
+              className="h-[40px] rounded-[8px]"
+            />
+          </div>
+          <div className="flex items-center justify-end gap-[10px] border-t border-border px-[20px] py-[14px]">
+            <Button variant="pill-outline" className="h-[36px] px-[16px] text-[13px]" onClick={() => setPresetDialogMode(null)}>Cancel</Button>
+            <Button className="h-[36px] px-[20px] text-[13px] font-semibold" onClick={savePresetDialog}>Save</Button>
+          </div>
+        </Modal>
+
+        <AlertDialog open={deletePresetOpen} onOpenChange={setDeletePresetOpen}>
+          <AlertDialogContent className="max-w-[420px] rounded-[18px] max-md:bottom-0 max-md:left-0 max-md:top-auto max-md:w-full max-md:max-w-none! max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-b-none max-md:rounded-t-[22px]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete "{selectedPreset?.name}"?</AlertDialogTitle>
+              <AlertDialogDescription>This preset will be removed from Quick export. Your files and transcripts will not change.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={confirmDeletePreset}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Footer */}
         <div className="flex items-center gap-[12px] px-[24px] h-[60px] border-t border-border bg-background max-lg:shrink-0">

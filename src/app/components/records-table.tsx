@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -43,6 +43,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { ExportDialog } from "./export-dialog";
+import { QuickExport } from "./quick-export";
 import { MOCK_TRANSCRIPTS } from "@/lib/mock-transcripts";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import {
@@ -349,7 +350,7 @@ function MSActionBtn({ icon, label, onClick, destructive = false }: { icon: Reac
   );
 }
 
-function MobileMultiSelectBar({ count, onCancel, onCopySummary, onShare, onMoveFolder, onTrash }: { count: number; onCancel: () => void; onCopySummary: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void }) {
+function MobileMultiSelectBar({ count, onCancel, onCopySummary, onShare, onMoveFolder, onTrash, exportControl }: { count: number; onCancel: () => void; onCopySummary: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void; exportControl: ReactNode }) {
   return (
     <div className="lg:hidden fixed left-[12px] z-40" style={{ right: 12, bottom: "calc(16px + env(safe-area-inset-bottom))" }}>
       <div className="rounded-[18px] bg-card border border-border px-[8px] py-[7px] flex items-center gap-[2px]" style={{ boxShadow: "0 10px 30px -6px rgba(16,24,40,0.22), 0 2px 8px -2px rgba(16,24,40,0.12)" }}>
@@ -361,14 +362,15 @@ function MobileMultiSelectBar({ count, onCancel, onCopySummary, onShare, onMoveF
         <MSActionBtn icon={Copy} label="Summary" onClick={onCopySummary} />
         <MSActionBtn icon={Share} label="Share" onClick={onShare} />
         <MSActionBtn icon={FolderOpen} label="Folder" onClick={onMoveFolder} />
+        {exportControl}
         <MSActionBtn icon={Trash} label="Trash" onClick={onTrash} destructive />
       </div>
     </div>
   );
 }
 
-function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary, onExport, onShare }: {
-  count: number; onCancel: () => void; onMoveFolder: () => void; onTrash: () => void; onCopySummary: () => void; onExport: () => void; onShare: () => void;
+function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary, exportControl, onShare }: {
+  count: number; onCancel: () => void; onMoveFolder: () => void; onTrash: () => void; onCopySummary: () => void; exportControl: ReactNode; onShare: () => void;
 }) {
   const { t } = useLanguage();
   const [copied, setCopied] = useState<string | null>(null);
@@ -382,7 +384,7 @@ function MultiSelectBar({ count, onCancel, onMoveFolder, onTrash, onCopySummary,
       <MultiSelectTextBtn label="Summary" onClick={() => { onCopySummary(); setCopied("s"); setTimeout(() => setCopied(null), 1500); }} icon={<Icon icon={Copy} className="size-[14px]" strokeWidth={1.5} />} />
       <MultiSelectTextBtn label="Share" onClick={onShare} icon={<Icon icon={Share} className="size-[14px]" strokeWidth={1.5} />} />
       <MultiSelectTextBtn label="Folder" onClick={onMoveFolder} icon={<Icon icon={FolderOpen} className="size-[14px]" strokeWidth={1.5} />} />
-      <MultiSelectTextBtn label="Export" onClick={onExport} icon={<Icon icon={Upload} className="size-[14px]" strokeWidth={1.5} />} />
+      {exportControl}
       <MultiSelectTextBtn label="Trash" onClick={onTrash} variant="destructive" icon={<Icon icon={Trash} className="size-[14px]" strokeWidth={1.5} />} />
       <div className="flex-1" />
       <Button variant="ghost" onClick={onCancel} className="h-[30px] px-[12px] rounded-full text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent">
@@ -1424,7 +1426,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       <CreateFolderModal open={folderModalOpen} onClose={() => setFolderModalOpen(false)} onCreate={(name, color) => { addFolderToContext(name, color); }} />
       <ExportDialog open={!!exportDialogIds} onClose={() => setExportDialogIds(null)} records={(exportDialogIds ?? []).map((id) => displayRecords.find((r) => r.id === id)).filter((r): r is typeof displayRecords[number] => !!r).map(recordToExportable)} availableRecords={displayRecords.map(recordToExportable)} />
       <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={selectedRows.size} onMove={(folderId) => { assignToFolder(Array.from(selectedRows), folderId); clearSelection(); }} onCreateFolder={() => { setMoveDialogOpen(false); setFolderModalOpen(true); }} folders={userFolders} />
-      {hasSelection && (<MobileMultiSelectBar count={selectedRows.size} onCancel={clearSelection} onCopySummary={() => { const sep = String.fromCharCode(10, 10); const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => r.name + ": " + r.summary).join(sep); navigator.clipboard.writeText(texts); }} onShare={() => { const ids = Array.from(selectedRows); if (ids.length) setShareDialogRecord(ids[0]); }} onMoveFolder={() => setMoveDialogOpen(true)} onTrash={trashSelected} />)}
+      {hasSelection && (<MobileMultiSelectBar count={selectedRows.size} onCancel={clearSelection} onCopySummary={() => { const sep = String.fromCharCode(10, 10); const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => r.name + ": " + r.summary).join(sep); navigator.clipboard.writeText(texts); }} onShare={() => { const ids = Array.from(selectedRows); if (ids.length) setShareDialogRecord(ids[0]); }} onMoveFolder={() => setMoveDialogOpen(true)} onTrash={trashSelected} exportControl={<QuickExport records={displayRecords.filter((record) => selectedRows.has(record.id)).map(recordToExportable)} availableRecords={displayRecords.map(recordToExportable)} trigger={<button type="button" className="flex h-[46px] min-w-[46px] flex-col items-center justify-center gap-[3px] rounded-[12px] active:bg-muted"><Icon icon={Upload} className="size-[18px] text-foreground" strokeWidth={1.6} /><span className="text-[10px] font-medium leading-none text-muted-foreground">Export</span></button>} />} />)}
 
       {/* Hard-delete confirmation (permanent, bypasses Trash) */}
       <AlertDialog open={!!confirmDeleteIds} onOpenChange={(open) => { if (!open) setConfirmDeleteIds(null); }}>
@@ -1621,7 +1623,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                   const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => `${r.name}: ${r.summary}`).join("\n\n");
                   navigator.clipboard.writeText(texts);
                 }}
-                onExport={() => setExportDialogIds(Array.from(selectedRows))}
+                exportControl={<QuickExport records={displayRecords.filter((record) => selectedRows.has(record.id)).map(recordToExportable)} availableRecords={displayRecords.map(recordToExportable)} trigger={<button type="button" className="flex h-[30px] items-center gap-[5px] rounded-full px-[8px] text-primary transition-opacity hover:opacity-70"><Icon icon={Upload} className="size-[14px]" strokeWidth={1.5} /><span className="text-[13px] font-medium">Export</span></button>} />}
               />
             ) : (
             <div className="flex items-center h-[36px] border-b border-border">

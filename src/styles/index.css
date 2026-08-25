@@ -159,8 +159,8 @@
 
 /* A card centred with translate(-50%, -50%) carries that translate inside the
    keyframe, or it jumps to the corner for the length of the animation. */
-@keyframes ttt-card-move     { from { transform: translate(-50%, calc(-50% + 12px)) scale(0.96); } to { transform: translate(-50%, -50%) scale(1); } }
-@keyframes ttt-card-move-out { from { transform: translate(-50%, -50%) scale(1); } to { transform: translate(-50%, calc(-50% + 4px)) scale(0.99); } }
+@keyframes ttt-card-move     { from { translate: -50% calc(-50% + 12px); scale: 0.96; } to { translate: -50% -50%; scale: 1; } }
+@keyframes ttt-card-move-out { from { translate: -50% -50%; scale: 1; } to { translate: -50% calc(-50% + 4px); scale: 0.99; } }
 
 /* The same movement for a card its flex parent centres. */
 @keyframes ttt-rise-move     { from { transform: translateY(12px) scale(0.96); } to { transform: translateY(0) scale(1); } }
@@ -184,10 +184,10 @@
 @keyframes ttt-search-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-6px) scale(0.99); } }
 
 .ttt-dim,        .ttt-dim[data-state="open"]          { animation: ttt-dim-in  var(--motion-dim) var(--motion-ease) both; }
-                 .ttt-dim[data-state="closed"]        { animation: ttt-dim-out var(--motion-out) var(--motion-ease) both; }
+                 .ttt-dim[data-state="closed"]        { animation: ttt-dim-out var(--motion-out) var(--motion-ease) both; pointer-events: none; }
 
 .ttt-modal-card, .ttt-modal-card[data-state="open"]   { animation: ttt-card-move var(--motion-in) var(--motion-spring) both, ttt-card-fade var(--motion-fade) var(--motion-ease) both; }
-                 .ttt-modal-card[data-state="closed"] { animation: ttt-card-move-out var(--motion-out) var(--motion-ease) both, ttt-card-fade-out var(--motion-out) var(--motion-ease) both; }
+                 .ttt-modal-card[data-state="closed"] { animation: ttt-card-move-out var(--motion-out) var(--motion-ease) both, ttt-card-fade-out var(--motion-out) var(--motion-ease) both; pointer-events: none; }
 
 .ttt-modal-rise, .ttt-modal-rise[data-state="open"]   { animation: ttt-rise-move var(--motion-in) var(--motion-spring) both, ttt-card-fade var(--motion-fade) var(--motion-ease) both; }
                  .ttt-modal-rise[data-state="closed"] { animation: ttt-rise-move-out var(--motion-out) var(--motion-ease) both, ttt-card-fade-out var(--motion-out) var(--motion-ease) both; }

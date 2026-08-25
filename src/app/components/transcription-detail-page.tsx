@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
@@ -44,14 +44,11 @@ import { setInnerScreen } from "./inner-screen";
 import { SharedUsersAvatars } from "./shared-users-avatars";
 import { useShares } from "@/hooks/use-shares";
 import type { Share as ShareRecord } from "@/lib/shares";
+import { QuickExport } from "./quick-export";
 import { ExportDialog } from "./export-dialog";
 import { UpgradeGateModal } from "./upgrade-gate-modal";
 import { records as demoRecords, recordRowToExportable } from "./records-table";
-import {
-  exportRecords,
-  type ExportableRecord,
-  type ExportFormat,
-} from "@/lib/export-formats";
+import { type ExportableRecord } from "@/lib/export-formats";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1590,7 +1587,7 @@ interface PageHeaderProps {
   onSetTemplate: () => void;
   onMoveToFolder: (folderId: string) => void;
   onCreateFolderAndMove: () => void;
-  onExport: () => void;
+  exportControl: ReactNode;
   onRematchSpeakers: () => void;
   onRegenerateSummary: () => void;
   onSyncTextToAudio: () => void;
@@ -1618,7 +1615,7 @@ function PageHeader({
   onSetTemplate,
   onMoveToFolder,
   onCreateFolderAndMove,
-  onExport,
+  exportControl,
   onRematchSpeakers,
   onRegenerateSummary,
   onSyncTextToAudio,
@@ -1641,7 +1638,7 @@ function PageHeader({
 
   return (
     <div className="px-4 pt-4 pb-0 lg:px-8 lg:pt-6">
-      <div className="mb-2 flex items-start justify-between gap-4">
+      <div className="mb-2 flex flex-col gap-2 2xl:flex-row 2xl:items-start 2xl:justify-between">
         <div
           className={`min-w-0 flex-1 rounded-xl py-2 pr-2 pl-0 transition-colors ${
             editingTitle ? "bg-muted/55" : "cursor-text hover:bg-muted/45"
@@ -1654,7 +1651,7 @@ function PageHeader({
             <h1 className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal">{title}</h1>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex w-full flex-wrap items-center justify-start gap-2 2xl:w-auto 2xl:shrink-0 2xl:justify-end">
           <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>
           {!hasSummary && (
             <Button className="order-first flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
@@ -1719,9 +1716,7 @@ function PageHeader({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" onClick={onExport} aria-label="Export">
-            <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} />
-          </Button>
+          {exportControl}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" onClick={onCopyLink} aria-label="Copy link">
@@ -2747,10 +2742,6 @@ export function TranscriptionDetailPage() {
   const [copySheetOpen, setCopySheetOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  function exportTranscript() {
-    setExportDialogOpen(true);
-  }
-
   function moveToFolder(folderId: string) {
     if (!selectedRecord) {
       toast.error("No transcript selected");
@@ -3133,7 +3124,7 @@ export function TranscriptionDetailPage() {
           onSetTemplate={() => { setActiveTab("summary"); setTemplatePickerOpen(true); }}
           onMoveToFolder={moveToFolder}
           onCreateFolderAndMove={createFolderAndMove}
-          onExport={exportTranscript}
+          exportControl={<QuickExport records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} trigger={<Button variant="pill-outline" className="hidden h-9 items-center gap-[7px] px-[14px] md:flex" aria-label="Export"><Icon icon={Upload} className="size-[14px]" strokeWidth={1.7} /><span className="text-[13px] font-medium">Export</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg></Button>} />}
           onRematchSpeakers={rematchSpeakers}
           onRegenerateSummary={regenerateSummary}
           onSyncTextToAudio={syncTextToAudio}
@@ -3154,7 +3145,6 @@ export function TranscriptionDetailPage() {
           </div>
         )}
         <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
-
         <ShareDialog
           open={shareDialogOpen}
           onOpenChange={setShareDialogOpen}
@@ -3577,9 +3567,7 @@ export function TranscriptionDetailPage() {
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setCopySheetOpen(true)} aria-label="Copy">
                   <Icon icon={Copy} className="size-[18px]" strokeWidth={1.7} />
                 </Button>
-                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
-                  <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
-                </Button>
+                <QuickExport records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} trigger={<Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" aria-label="Export"><Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} /></Button>} />
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
                   <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
                 </Button>
@@ -3624,5 +3612,3 @@ export function TranscriptionDetailPage() {
     </div>
   );
 }
-
-

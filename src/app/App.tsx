@@ -6,6 +6,7 @@ import { LanguageProvider } from "./components/language-context";
 import { TranscriptionModalsProvider } from "./components/transcription-modals";
 import { AuthProvider } from "./components/auth-context";
 import { Toaster } from "./components/ui/sonner";
+import { ExportPresetsProvider } from "./components/export-presets-context";
 
 export default function App() {
   return (
@@ -13,11 +14,12 @@ export default function App() {
       <LanguageProvider>
         <StarredProvider>
           <FolderProvider>
-            <TranscriptionModalsProvider userPlan="free">
-              <RouterProvider router={router} />
-              {/* Top right, clear of the search and profile bar (56px tall).
-                  Three at a time: the rest wait behind the stack. */}
-              <Toaster
+            <ExportPresetsProvider>
+              <TranscriptionModalsProvider userPlan="free">
+                <RouterProvider router={router} />
+                {/* Top right, clear of the search and profile bar (56px tall).
+                    Three at a time: the rest wait behind the stack. */}
+                <Toaster
                 position="top-right"
                 visibleToasts={3}
                 gap={10}
@@ -34,8 +36,9 @@ export default function App() {
                       "rounded-[14px] shadow-none data-[front=true]:shadow-[0_10px_30px_-12px_rgba(16,24,40,0.085),0_3px_10px_-6px_rgba(16,24,40,0.04)]",
                   },
                 }}
-              />
-            </TranscriptionModalsProvider>
+                />
+              </TranscriptionModalsProvider>
+            </ExportPresetsProvider>
           </FolderProvider>
         </StarredProvider>
       </LanguageProvider>
