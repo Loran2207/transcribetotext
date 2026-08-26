@@ -45,6 +45,9 @@ const PRESEED = {
   toast_many: ["", "", "many"],
   toast_grouped: ["", "", "grouped"],
   toast_export: ["", "", "export"],
+  toast_access_removed: ["", "", "access_removed"],
+  toast_access_undo: ["", "", "access_undo"],
+  toast_access_revoked: ["", "", "access_revoked"],
   toast_failed: ["", "", "failed"],
   toast_expanded: ["", "", "many"],
 };
@@ -198,6 +201,20 @@ if (state.startsWith("planstatus_")) {
     await p.getByRole("button", { name: /delete all/i }).first().click({ force: true });
     await p.waitForTimeout(900);
   }
+} else if (state.startsWith("mail_")) {
+  /* The four letters, each in a mail client's own chrome. */
+  await p.goto(`${BASE}/email-preview?tpl=${state.slice(5)}`, { waitUntil: "networkidle" });
+  await p.waitForTimeout(1400);
+} else if (state.startsWith("link_")) {
+  /* The pages a link opens, seen by somebody who is not signed in. */
+  const q = state === "link_invalid" ? "?state=invalid" : state === "link_card" ? "?state=card" : state === "link_folder" ? "?kind=folder" : "";
+  await p.goto(`${BASE}/share/8f3a2c41d9${q}`, { waitUntil: "networkidle" });
+  await p.waitForTimeout(1400);
+} else if (state.startsWith("recshared")) {
+  /* My Records, with the marks that say which objects other people can see. */
+  await set("ttt_plan", "pro");
+  await p.getByText("My Records", { exact: true }).filter({ visible: true }).first().click({ force: true });
+  await p.waitForTimeout(1800);
 } else if (state.startsWith("sharedrec_")) {
   /* The record page in its second state: it belongs to somebody else. */
   await set("ttt_plan", "pro");

@@ -608,13 +608,29 @@ function StatBadge({ icon, count }: { icon: "tasks" | "screenshots"; count: numb
 }
 
 /* Shared badge - outline pill matching screenshot */
-export function SharedBadge() {
+/* One mark for "more than one person can see this", used wherever an object is
+   listed: on a record row, and on a folder. With an owner it says the other
+   direction - this one came from them. */
+export function SharedBadge({ owner }: { owner?: string } = {}) {
   return (
-    <span className="inline-flex items-center shrink-0 h-[17px] px-[6px] rounded-full border border-border">
-      <span className="font-medium text-[11px] text-primary">Shared</span>
+    <span className="inline-flex h-[18px] shrink-0 items-center gap-[4px] rounded-full border border-border pl-[5px] pr-[7px]">
+      <svg className="size-[11px] shrink-0 text-primary" viewBox="0 0 16 16" fill="none">
+        <circle cx="6" cy="5.4" r="2.3" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M1.9 12.4c0-1.8 1.8-3.1 4.1-3.1s4.1 1.3 4.1 3.1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        <path d="M10.6 3.6a2 2 0 010 3.7M11.4 9.6c1.6.3 2.7 1.4 2.7 2.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      </svg>
+      <span className="whitespace-nowrap text-[11px] font-medium text-primary">
+        {owner ? "Shared by " + owner : "Shared"}
+      </span>
     </span>
   );
 }
+
+/* Which records in the demo world arrived from somebody else, and from whom. */
+export const SHARED_BY: Record<string, string> = { "7": "Sofia Marchetti", "11": "Emma Larsen" };
+
+/** Folders of yours that other people can see. */
+export const SHARED_FOLDER_IDS = new Set(["f1", "f3"]);
 
 function InlineNameEditor({ value, onSave, onCancel }: { value: string; onSave: (v: string) => void; onCancel: () => void }) {
   const [text, setText] = useState(value);
@@ -1573,8 +1589,11 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                   <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
                     <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
                   </span>
-                  <span className="min-w-0 flex flex-1 flex-col gap-[1px]">
-                    <span className="truncate font-medium text-[14px] leading-[19px] text-foreground">{folder.name}</span>
+                  <span className="min-w-0 flex flex-1 flex-col gap-[3px]">
+                    <span className="flex min-w-0 items-center gap-[6px]">
+                      <span className="truncate font-medium text-[14px] leading-[19px] text-foreground">{folder.name}</span>
+                      {SHARED_FOLDER_IDS.has(folder.id) && <SharedBadge />}
+                    </span>
                     <span className="text-[11px] leading-[14px] text-muted-foreground">{t(fcount === 1 ? "folder.fileOne" : "folder.fileOther", fcount)}</span>
                   </span>
                   <Icon icon={ChevronRight} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={2} />
@@ -1942,7 +1961,7 @@ function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected
         ) : (
           <div className="flex items-center gap-[6px] min-w-0 flex-1">
             <p className="truncate min-w-0 leading-[20px] font-medium text-[14px] text-foreground tracking-[-0.154px]">{record.name}</p>
-            {isShared && !isTrash && <SharedBadge />}
+            {!isTrash && (SHARED_BY[record.id] ? <SharedBadge owner={SHARED_BY[record.id]} /> : isShared ? <SharedBadge /> : null)}
           </div>
         )}
         {/* Actions overlay - appears at right edge of name cell on hover */}

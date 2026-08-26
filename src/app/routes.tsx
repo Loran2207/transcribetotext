@@ -36,6 +36,10 @@ export const router = createBrowserRouter([
   { path: "/reset-password", Component: ResetPasswordPage },
   { path: "/share/:token", Component: ShareViewPage },
   { path: "/design-system", Component: DesignSystemPage },
+  {
+    path: "/email-preview",
+    lazy: async () => ({ Component: (await import("./components/email-preview-page")).EmailPreviewPage }),
+  },
   { path: "/checkout", Component: CheckoutPage },
   {
     path: "/checkout-75",

@@ -340,6 +340,40 @@ export function TranscriptionModalsProvider({
         ),
         park
       );
+    } else if (flag === "access_removed") {
+      toast.custom(
+        () => (
+          <ToastCard
+            title="Access removed"
+            meta="Emma Larsen"
+            action={{ label: "Undo", onClick: () => {} }}
+          />
+        ),
+        park
+      );
+    } else if (flag === "access_undo") {
+      /* The same toast at the moment the way back is pressed. */
+      toast.custom(
+        () => (
+          <ToastCard
+            title="Access removed"
+            meta="Emma Larsen"
+            action={{ label: "Undo", onClick: () => {}, pressed: true }}
+          />
+        ),
+        park
+      );
+    } else if (flag === "access_revoked") {
+      toast.custom(
+        () => (
+          <ToastCard
+            tone="error"
+            title="Access to this record was removed"
+            meta="Taking you back to Shared with me"
+          />
+        ),
+        park
+      );
     } else if (flag === "export") {
       toast.custom(
         () => (

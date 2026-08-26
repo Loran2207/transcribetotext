@@ -1,272 +1,157 @@
-import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router";
-import { motion, useReducedMotion } from "motion/react";
-import { Link01Icon } from "@hugeicons/core-free-icons";
-import { Icon } from "@/app/components/ui/icon";
+import { useSearchParams } from "react-router";
+import { Link } from "react-router";
+
 import { Button } from "@/app/components/ui/button";
-import { Skeleton } from "@/app/components/ui/skeleton";
-import { Separator } from "@/app/components/ui/separator";
-import { ScrollArea } from "@/app/components/ui/scroll-area";
-import { SourceIcon, type SourceType } from "@/app/components/source-icons";
 import { useLanguage } from "@/app/components/language-context";
-import { validateShareToken, type ShareLink } from "@/lib/shares";
-import { records, type RecordRow } from "@/app/components/records-table";
+import { getInitials } from "@/lib/format";
+import { SHARED_OWNERS } from "@/lib/share-demo";
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+/* What a link actually opens.
+ *
+ * The page a stranger lands on used to print the whole record: transcript,
+ * summary, date, duration. A link can be forwarded, and a forwarded link that
+ * reads out the meeting before anyone signs in gives the record away. So this
+ * page says exactly three things - who sent it, what it is, and the two ways
+ * in - and nothing else. The record itself is behind the sign in.
+ */
 
-/** Look up a mock record for demo display. */
-function findMockRecord(resourceId: string): RecordRow | null {
-  return records.find((r) => r.id === resourceId) ?? null;
-}
-
-// Mock transcript segments for demo display
-const DEMO_SEGMENTS = [
-  { speaker: "Speaker 1", timestamp: "0:00", text: "Welcome everyone, let's get started with today's discussion." },
-  { speaker: "Speaker 2", timestamp: "0:15", text: "Thanks for organizing this. I have some updates on the project timeline." },
-  { speaker: "Speaker 1", timestamp: "0:32", text: "Great, please go ahead and share what you have." },
-  { speaker: "Speaker 2", timestamp: "0:45", text: "We've completed the initial phase ahead of schedule. The integration testing is now underway and we expect results by end of week." },
-  { speaker: "Speaker 1", timestamp: "1:12", text: "That's excellent progress. Any blockers we should be aware of?" },
-  { speaker: "Speaker 2", timestamp: "1:25", text: "One minor issue with the API rate limits, but the team has a workaround in place." },
-];
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+const RECORD_NAME = "Weekly product sync - Q2 roadmap";
+const FOLDER_NAME = "Q2 research calls";
 
 export function ShareViewPage() {
-  const { token } = useParams<{ token: string }>();
-  const { t } = useLanguage();
-  const prefersReducedMotion = useReducedMotion();
+  const [params] = useSearchParams();
+  const state = params.get("state") ?? "invite";
+  const isFolder = params.get("kind") === "folder";
 
-  const [loading, setLoading] = useState(true);
-  const [shareLink, setShareLink] = useState<ShareLink | null>(null);
-  const [record, setRecord] = useState<RecordRow | null>(null);
-
-  useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function validate() {
-      setLoading(true);
-      try {
-        const link = await validateShareToken(token!);
-        if (cancelled) return;
-        setShareLink(link);
-
-        if (link) {
-          const mockRecord = findMockRecord(link.resource_id);
-          setRecord(mockRecord);
-        }
-      } catch {
-        if (!cancelled) setShareLink(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    void validate();
-    return () => { cancelled = true; };
-  }, [token]);
-
-  const animProps = (delay: number) =>
-    prefersReducedMotion
-      ? {}
-      : {
-          initial: { opacity: 0, y: 20 },
-          animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] },
-        };
-
-  if (loading) {
-    return <LoadingState />;
-  }
-
-  if (!shareLink) {
-    return <InvalidLinkState prefersReducedMotion={prefersReducedMotion} />;
-  }
-
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Top bar */}
-      <header className="h-14 border-b border-border flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-2">
-          <Icon icon={Link01Icon} size={18} className="text-primary" />
-          <span className="text-[14px] font-medium text-foreground">
-            {t("shareView.title")}
-          </span>
-        </div>
-        <Link to="/login">
-          <Button variant="outline" className="rounded-full text-[13px] h-8 px-4">
-            {t("shareView.signIn")}
-          </Button>
-        </Link>
-      </header>
-
-      {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="max-w-3xl mx-auto px-6 py-8">
-          {/* Title and meta */}
-          <motion.div {...animProps(0)}>
-            <div className="flex items-center gap-3 mb-2">
-              {record && <SourceIcon source={record.source} />}
-              <h1 className="text-2xl font-semibold text-foreground">
-                {record?.name ?? t("shareView.sharedTranscription")}
-              </h1>
-            </div>
-            <div className="flex items-center gap-4 text-[13px] text-muted-foreground">
-              {record?.duration && <span>{record.duration}</span>}
-              {record?.dateCreated && (
-                <>
-                  <span className="size-1 rounded-full bg-muted-foreground/40" />
-                  <span>{record.dateCreated}</span>
-                </>
-              )}
-              {record?.language && (
-                <>
-                  <span className="size-1 rounded-full bg-muted-foreground/40" />
-                  <span className="uppercase">{record.language}</span>
-                </>
-              )}
-            </div>
-          </motion.div>
-
-          <Separator className="my-6" />
-
-          {/* Summary */}
-          {record?.summary && (
-            <motion.div {...animProps(0.08)} className="mb-8">
-              <h2 className="text-[15px] font-semibold text-foreground mb-3">
-                {t("shareView.summary")}
-              </h2>
-              <div className="rounded-xl border border-border bg-card p-4">
-                <p className="text-[14px] text-foreground leading-relaxed">
-                  {record.summary}
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Transcript */}
-          <motion.div {...animProps(0.16)}>
-            <h2 className="text-[15px] font-semibold text-foreground mb-3">
-              {t("shareView.transcript")}
-            </h2>
-            <div className="space-y-4">
-              {DEMO_SEGMENTS.map((segment, index) => (
-                <motion.div
-                  key={index}
-                  {...(prefersReducedMotion
-                    ? {}
-                    : {
-                        initial: { opacity: 0, y: 8 },
-                        animate: { opacity: 1, y: 0 },
-                        transition: { duration: 0.25, delay: 0.2 + index * 0.05 },
-                      })}
-                  className="flex gap-4"
-                >
-                  <div className="w-[80px] shrink-0 pt-0.5">
-                    <span className="text-[12px] font-medium text-primary">
-                      {segment.speaker}
-                    </span>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {segment.timestamp}
-                    </p>
-                  </div>
-                  <p className="text-[14px] text-foreground leading-relaxed flex-1">
-                    {segment.text}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-
-          <Separator className="my-8" />
-
-          {/* Footer CTA */}
-          <motion.div
-            {...animProps(0.24)}
-            className="text-center py-6"
-          >
-            <p className="text-[13px] text-muted-foreground mb-3">
-              {t("shareView.poweredBy")}
-            </p>
-            <Link to="/signup">
-              <Button className="rounded-full px-6">
-                {t("shareView.signUpFree")}
-              </Button>
-            </Link>
-          </motion.div>
-        </div>
-      </ScrollArea>
-    </div>
-  );
+  if (state === "invalid") return <InvalidLink />;
+  if (state === "card") return <MessengerCard isFolder={isFolder} />;
+  return <InviteLanding isFolder={isFolder} />;
 }
 
-// ---------------------------------------------------------------------------
-// Loading state
-// ---------------------------------------------------------------------------
+/* ------------------------------------------------------------------ */
+/* 10.1 The screen an emailed link opens for somebody not signed in.    */
 
-function LoadingState() {
+function InviteLanding({ isFolder }: { isFolder: boolean }) {
+  const { t } = useLanguage();
+  const owner = SHARED_OWNERS.emma;
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="h-14 border-b border-border flex items-center px-6 shrink-0">
-        <Skeleton className="h-5 w-[180px]" />
-      </header>
-      <div className="max-w-3xl mx-auto px-6 py-8 w-full space-y-6">
-        <Skeleton className="h-8 w-[60%]" />
-        <Skeleton className="h-4 w-[30%]" />
-        <Separator />
-        <div className="space-y-4">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-[90%]" />
-          <Skeleton className="h-4 w-[85%]" />
-          <Skeleton className="h-4 w-[70%]" />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 py-10">
+      <div className="flex w-full max-w-[400px] flex-col items-center text-center">
+        <img src="/images/logo-full.svg" alt="Transcribe To Text" className="mb-10 h-[22px]" />
+
+        <span
+          className="mb-5 flex size-[56px] items-center justify-center overflow-hidden rounded-full text-[18px] font-medium"
+          style={{ background: owner.tint, color: owner.ink }}
+        >
+          {owner.avatar ? <img src={owner.avatar} alt="" className="size-full object-cover" /> : getInitials(owner.name)}
+        </span>
+
+        <p className="text-[15px] leading-[22px] text-muted-foreground">
+          {t(isFolder ? "shareView.sharedFolderWithYou" : "shareView.sharedWithYou").replace("{owner}", owner.name)}
+        </p>
+
+        <h1 className="mt-2 text-[22px] font-bold leading-[30px] tracking-[-0.3px] text-foreground">
+          {isFolder ? FOLDER_NAME : RECORD_NAME}
+        </h1>
+
+        {/* Two ways in and nothing under them. Whatever else could be written
+            here would be a fact about a record the reader has not earned yet. */}
+        <div className="mt-8 flex w-full flex-col gap-2.5">
+          <Link to="/signup" className="w-full">
+            <Button className="h-11 w-full rounded-full text-[14px] font-semibold">
+              {t("shareView.signUp")}
+            </Button>
+          </Link>
+          <Link to="/login" className="w-full">
+            <Button variant="pill-outline" className="h-11 w-full text-[14px] font-medium">
+              {t("shareView.logIn")}
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Invalid / expired link
-// ---------------------------------------------------------------------------
+/* ------------------------------------------------------------------ */
+/* 10.2 One screen for every dead link: revoked, deleted, switched off.  */
 
-function InvalidLinkState({ prefersReducedMotion }: { prefersReducedMotion: boolean | null }) {
+function InvalidLink() {
   const { t } = useLanguage();
-
-  const animProps = (delay: number) =>
-    prefersReducedMotion
-      ? {}
-      : {
-          initial: { opacity: 0, y: 20 },
-          animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] },
-        };
-
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
-      <motion.div {...animProps(0)} className="text-center max-w-md">
-        <div className="size-[72px] rounded-2xl bg-destructive/5 flex items-center justify-center mx-auto mb-5">
-          <Icon icon={Link01Icon} size={32} className="text-destructive/60" />
-        </div>
-        <h1 className="text-xl font-semibold text-foreground mb-2">
-          {t("shareView.linkExpired")}
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 py-10">
+      <div className="flex w-full max-w-[400px] flex-col items-center text-center">
+        <img src="/images/logo-full.svg" alt="Transcribe To Text" className="mb-10 h-[22px]" />
+
+        <span className="mb-5 flex size-[56px] items-center justify-center rounded-full bg-muted">
+          <svg className="size-[26px] text-muted-foreground" fill="none" viewBox="0 0 24 24">
+            <path d="M9.5 14.5l5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M11 6.5l1.6-1.6a4 4 0 015.6 5.6L16.6 12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M13 17.5l-1.6 1.6a4 4 0 01-5.6-5.6L7.4 12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M4 4l16 16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
+        </span>
+
+        <h1 className="text-[22px] font-bold leading-[30px] tracking-[-0.3px] text-foreground">
+          {t("shareView.linkNotValid")}
         </h1>
-        <p className="text-[14px] text-muted-foreground mb-6">
-          {t("shareView.linkExpiredDesc")}
+        <p className="mt-2 text-[14px] leading-[21px] text-muted-foreground">
+          {t("shareView.linkNotValidDesc")}
         </p>
-        <Link to="/login">
-          <Button className="rounded-full px-6">
-            {t("shareView.goToApp")}
+
+        <Link to="/" className="mt-8 w-full">
+          <Button className="h-11 w-full rounded-full text-[14px] font-semibold">
+            {t("shareView.goHome")}
           </Button>
         </Link>
-      </motion.div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* 10.3 What the link looks like when it is pasted into a chat.         */
+
+function MessengerCard({ isFolder }: { isFolder: boolean }) {
+  const { t } = useLanguage();
+  const owner = SHARED_OWNERS.emma;
+  const line = t(isFolder ? "shareView.sharedFolderWithYou" : "shareView.sharedWithYou").replace("{owner}", owner.name);
+
+  /* Drawn inside a message, because that is the only place this card is ever
+     seen, and its size only means something next to the bubble around it. */
+  return (
+    <div className="flex min-h-screen items-center justify-center px-6 py-10" style={{ background: "#F4F4F5" }}>
+      <div className="w-full max-w-[420px]">
+        <div className="flex items-start gap-2">
+          <span
+            className="mt-[2px] flex size-[28px] shrink-0 items-center justify-center rounded-full text-[11px] font-medium"
+            style={{ background: owner.tint, color: owner.ink }}
+          >
+            {getInitials(owner.name)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="inline-block max-w-full rounded-[18px] rounded-bl-[6px] bg-card px-3.5 py-2.5 text-[14px] leading-[20px] text-foreground shadow-[0_1px_2px_rgba(16,24,40,0.06)]">
+              Have a look at this one
+            </div>
+
+            <div className="mt-1.5 overflow-hidden rounded-[14px] border border-border bg-card">
+              <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
+                <img src="/images/logo-mark.svg" alt="" className="size-[18px]" />
+                <span className="text-[12px] font-medium text-muted-foreground">transcribetotext.ai</span>
+              </div>
+              <div className="px-3.5 py-3">
+                <p className="text-[12.5px] leading-[18px] text-muted-foreground">{line}</p>
+                <p className="mt-1 text-[14.5px] font-semibold leading-[20px] text-foreground">
+                  {isFolder ? FOLDER_NAME : RECORD_NAME}
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-1.5 text-[11px] text-muted-foreground">9:41</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -35,7 +35,7 @@ export function ToastCard({
   glyph?: unknown;
   title: string;
   meta?: string;
-  action?: { label: string; onClick: () => void };
+  action?: { label: string; onClick: () => void; pressed?: boolean };
 }) {
   const t = TONE[tone];
   return (
@@ -70,7 +70,7 @@ export function ToastCard({
         <button
           type="button"
           onClick={action.onClick}
-          className="-mr-[4px] shrink-0 rounded-full px-[10px] py-[6px] text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/8"
+          className={"-mr-[4px] shrink-0 rounded-full px-[10px] py-[6px] text-[12.5px] font-semibold text-primary transition-colors hover:bg-primary/8 " + (action.pressed ? "bg-primary/12" : "")}
         >
           {action.label}
         </button>
