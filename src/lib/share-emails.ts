@@ -70,8 +70,9 @@ export function buildShareEmail(i: ShareEmailInput): string {
 <body style="margin:0;padding:0;background:#f4f4f5;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f5;">
  <tr><td align="center" style="padding:32px 16px;">
-  <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"
-         style="width:600px;max-width:100%;background:#ffffff;border:1px solid ${BORDER};border-radius:16px;">
+  <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+         style="width:100%;max-width:600px;background:#ffffff;border:1px solid ${BORDER};border-radius:16px;">
    <tr><td style="padding:28px 32px 0 32px;">
      <img src="${esc(logo)}" alt="Transcribe To Text" width="150" style="display:block;height:20px;width:auto;border:0;">
    </td></tr>
@@ -120,6 +121,7 @@ export function buildShareEmail(i: ShareEmailInput): string {
      </div>
    </td></tr>
   </table>
+  <!--[if mso]></td></tr></table><![endif]-->
  </td></tr>
 </table>
 </body></html>`;

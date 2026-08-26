@@ -34,16 +34,18 @@ export function EmailPreviewPage() {
               together with the letter rather than guessed at. */}
           <div className="border-b border-border px-5 py-4">
             <p className="text-[16px] font-semibold leading-[22px] text-foreground">{subject}</p>
-            <div className="mt-2 flex items-center gap-2">
+            {/* A mail client truncates a long address rather than pushing the
+                time off the screen, and so does this. */}
+            <div className="mt-2 flex min-w-0 items-center gap-2">
               <span
                 className="flex size-[28px] shrink-0 items-center justify-center rounded-full text-[11px] font-medium"
                 style={{ background: sample.senderTint, color: sample.senderInk }}
               >
                 {sample.senderInitials}
               </span>
-              <span className="text-[13px] text-foreground">Transcribe To Text</span>
-              <span className="text-[13px] text-muted-foreground">&lt;notifications@transcribetotext.ai&gt;</span>
-              <span className="ml-auto text-[12px] text-muted-foreground">9:41</span>
+              <span className="shrink-0 text-[13px] text-foreground">Transcribe To Text</span>
+              <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">&lt;notifications@transcribetotext.ai&gt;</span>
+              <span className="shrink-0 text-[12px] text-muted-foreground">9:41</span>
             </div>
           </div>
 
