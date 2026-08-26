@@ -149,7 +149,7 @@ export function SharedWithMePage() {
                 person looks for the place before the paper inside it. */}
             {folders.length > 0 && !hasFilters && (
               <div className="mb-[22px]">
-                <p className="mb-[10px] text-[12px] font-medium uppercase tracking-[0.34px] text-muted-foreground">
+                <p className="mb-[10px] text-[12px] font-medium text-muted-foreground">
                   {t("shared.folders")}
                 </p>
                 <div className="grid grid-cols-1 gap-[10px] md:grid-cols-2 xl:grid-cols-3">
@@ -180,7 +180,7 @@ export function SharedWithMePage() {
             )}
 
             {folders.length > 0 && !hasFilters && (
-              <p className="mb-[10px] text-[12px] font-medium uppercase tracking-[0.34px] text-muted-foreground">
+              <p className="mb-[10px] text-[12px] font-medium text-muted-foreground">
                 {t("shared.records")}
               </p>
             )}
