@@ -201,6 +201,37 @@ if (state.startsWith("planstatus_")) {
     await p.getByRole("button", { name: /delete all/i }).first().click({ force: true });
     await p.waitForTimeout(900);
   }
+} else if (state.startsWith("entry_")) {
+  /* Where the Share control lives, shown in the context it lives in. */
+  await set("ttt_plan", "pro");
+  if (state === "entry_result") {
+    await p.evaluate(() => { history.pushState({}, "", "/transcriptions/2"); window.dispatchEvent(new PopStateEvent("popstate")); });
+    await p.waitForTimeout(2600);
+  } else {
+    await p.getByText("My Records", { exact: true }).filter({ visible: true }).first().click({ force: true });
+    await p.waitForTimeout(1900);
+    if (state === "entry_row") {
+      const row = p.getByText("Weekly product sync - Q2 roadmap", { exact: false }).filter({ visible: true }).first();
+      await row.scrollIntoViewIfNeeded();
+      const box = await row.boundingBox();
+      if (box) { await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.waitForTimeout(700); }
+    }
+    if (state === "entry_folder_side") {
+      const f = p.getByText("Client Calls", { exact: true }).filter({ visible: true }).first();
+      const box = await f.boundingBox();
+      if (box) { await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.waitForTimeout(700); }
+    }
+    if (state === "entry_folder_card") {
+      const card = p.locator('div[class*="rounded-[14px]"]').filter({ hasText: "Client Calls" }).first();
+      if (await card.count()) { await card.hover().catch(() => {}); await p.waitForTimeout(600); }
+    }
+  }
+} else if (state === "sharedpage_filter") {
+  await set("ttt_plan", "pro");
+  await p.getByText("Shared with me", { exact: true }).filter({ visible: true }).first().click({ force: true });
+  await p.waitForTimeout(1800);
+  const owner = p.getByText("OWNER", { exact: true }).filter({ visible: true }).first();
+  if (await owner.count()) { await owner.click({ force: true }); await p.waitForTimeout(700); }
 } else if (state.startsWith("mail_")) {
   /* The four letters, each in a mail client's own chrome. */
   await p.goto(`${BASE}/email-preview?tpl=${state.slice(5)}`, { waitUntil: "networkidle" });
@@ -1020,6 +1051,20 @@ if (process.env.TTT_DBG) {
 
 /* Last of all: the respacing pass above rewrites text nodes, and a stationary
    cursor over shifting text fires mouseleave, which drops the row's hover. */
+/* The pointer was parked in the corner before the capture, which drops any
+   hover the staging set. States whose whole point is a hover put it back here,
+   at the very end. */
+if (state === "entry_row" || state === "entry_folder_side" || state === "entry_folder_card") {
+  const label =
+    state === "entry_row" ? "Weekly product sync - Q2 roadmap" : "Client Calls";
+  const target = p.getByText(label, { exact: false }).filter({ visible: true }).first();
+  if (await target.count()) {
+    await target.scrollIntoViewIfNeeded().catch(() => {});
+    const box = await target.boundingBox();
+    if (box) { await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.waitForTimeout(800); }
+  }
+}
+
 if (state === "recfolder_hover" || state === "recfolder_hover_btn") {
   // "All-hands - March highlights" is one of the records that sits in no folder,
   // so its folder cell is the empty one that offers to file it.

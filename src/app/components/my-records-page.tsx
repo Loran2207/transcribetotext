@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useFolders, type FolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
-import { RecordsTable, records as mockRecords, type RecordRow } from "./records-table";
+import { RecordsTable, records as mockRecords, type RecordRow, SharedBadge, SHARED_FOLDER_IDS } from "./records-table";
 import { ExportFormatSubMenu } from "./export-format-menu";
 import { ScrollFade } from "./scroll-fade";
 import { Drawer, DrawerContent, DrawerTitle } from "./ui/drawer";
@@ -644,6 +644,11 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                         <FolderGlyph color={folder.color} size={22} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[14px] font-semibold text-foreground leading-tight">{folder.name}</p>
+                          {SHARED_FOLDER_IDS.has(folder.id) && (
+                            /* The same mark a record row carries: this one is
+                               open to more than you. */
+                            <span className="mt-[3px] inline-flex"><SharedBadge /></span>
+                          )}
                           <p className="text-[12px] text-muted-foreground leading-tight mt-[2px]">
                             {recordsCount} {recordsLabel}
                           </p>
