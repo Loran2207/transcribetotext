@@ -230,8 +230,18 @@ if (state.startsWith("planstatus_")) {
   await set("ttt_plan", "pro");
   await p.getByText("Shared with me", { exact: true }).filter({ visible: true }).first().click({ force: true });
   await p.waitForTimeout(1800);
-  const owner = p.getByText("OWNER", { exact: true }).filter({ visible: true }).first();
-  if (await owner.count()) { await owner.click({ force: true }); await p.waitForTimeout(700); }
+  /* The column header reads OWNER on screen only because CSS shouts it - the
+     DOM says "Owner", so a selector copied off the picture matches nothing.
+     Below lg there is no table header at all and the same filters live in the
+     Sort & filter sheet. Either way, not finding the control is a failed
+     capture, not a frame to keep. */
+  if (width >= 1024) {
+    const owner = p.getByText(/^owner$/i).filter({ visible: true }).first();
+    await owner.click({ force: true, timeout: 8000 });
+  } else {
+    await p.getByRole("button", { name: /sort & filter/i }).filter({ visible: true }).first().click({ force: true, timeout: 8000 });
+  }
+  await p.waitForTimeout(900);
 } else if (state.startsWith("mail_")) {
   /* The four letters, each in a mail client's own chrome. */
   await p.goto(`${BASE}/email-preview?tpl=${state.slice(5)}`, { waitUntil: "networkidle" });

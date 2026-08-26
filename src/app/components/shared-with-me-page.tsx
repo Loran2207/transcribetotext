@@ -19,6 +19,7 @@ import {
   records as allRecords,
   type RecordRow,
 } from "@/app/components/records-table";
+import { MobileSortFilter } from "@/app/components/records-mobile-sort";
 import { useLanguage } from "@/app/components/language-context";
 import { useStarred } from "@/app/components/starred-context";
 import { getInitials } from "@/lib/format";
@@ -137,6 +138,29 @@ export function SharedWithMePage() {
           <div className="w-[220px] max-lg:w-[150px]">
             <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder={t("shared.searchPlaceholder")} />
           </div>
+          {/* Below lg there is no table header, so the owner and type filters
+              would simply vanish. They collapse into the same bottom sheet My
+              Records uses, with this page's own two columns in it. Nothing
+              shared with you yet means nothing to filter, so the control is
+              not there either - but a filter that returns nothing keeps it,
+              because that is the only way back. */}
+          {!loading && (items.length > 0 || folders.length > 0) && (
+          <div className="lg:hidden">
+            <MobileSortFilter
+              sortValue={dateSort}
+              onSort={setDateSort}
+              onClearAll={clearFilters}
+              sortOptions={[
+                { id: "newest", label: t("table.newestFirst") },
+                { id: "oldest", label: t("table.oldestFirst") },
+              ]}
+              groups={[
+                { label: t("table.type"), options: typeOptions, selected: typeFilter, onToggle: (id) => { setTypeFilter((s) => toggle(s, id)); setPage(1); } },
+                { label: t("shared.owner"), options: ownerOptions, selected: ownerFilter, onToggle: (id) => { setOwnerFilter((s) => toggle(s, id)); setPage(1); } },
+              ]}
+            />
+          </div>
+          )}
         </div>
 
         {loading ? (

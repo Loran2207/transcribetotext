@@ -3,12 +3,21 @@ import { SourceIcon, type SourceType } from "./source-icons";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "./ui/sheet";
 import { Button } from "./ui/button";
 
-/* Mobile / tablet "Sort & filter" control for the records list. There is no
-   table header below lg, so the per-column controls from the desktop table
-   (Type / Template / Language filters + Date/Name sort) collapse into one
-   bottom sheet. Reuses the exact same filter state as the desktop table. */
+/* Mobile / tablet "Sort & filter" control. There is no table header below lg,
+   so the per-column controls from a desktop table collapse into one bottom
+   sheet. The sheet itself knows nothing about which columns it is showing -
+   it takes the groups it should render - so every list that has desktop
+   column filters can offer the same thing on a phone instead of losing its
+   filters at 1023px. */
 
 type FilterOpt = { id: string; label: string; sourceIcon?: SourceType; icon?: string };
+
+export type MobileFilterGroup = {
+  label: string;
+  options: FilterOpt[];
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+};
 
 const SORT_OPTS = [
   { id: "newest", label: "Newest first" },
@@ -47,26 +56,29 @@ function FilterGroup({ label, options, selected, onToggle }: { label: string; op
   );
 }
 
-export function RecordsMobileSort({
-  dateSort, setDateSort,
-  typeFilter, setTypeFilter, typeOptions,
-  templateFilter, setTemplateFilter, templateOptions,
-  langFilter, setLangFilter, langOptions,
+export function MobileSortFilter({
+  sortOptions = SORT_OPTS,
+  sortValue,
+  onSort,
+  groups,
   onClearAll,
 }: {
-  dateSort: string; setDateSort: (v: string) => void;
-  typeFilter: Set<string>; setTypeFilter: (fn: (s: Set<string>) => Set<string>) => void; typeOptions: FilterOpt[];
-  templateFilter: Set<string>; setTemplateFilter: (fn: (s: Set<string>) => Set<string>) => void; templateOptions: FilterOpt[];
-  langFilter: Set<string>; setLangFilter: (fn: (s: Set<string>) => Set<string>) => void; langOptions: FilterOpt[];
+  sortOptions?: { id: string; label: string }[];
+  sortValue: string;
+  onSort: (v: string) => void;
+  groups: MobileFilterGroup[];
   onClearAll: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const filterCount = typeFilter.size + templateFilter.size + langFilter.size;
+  const filterCount = groups.reduce((n, g) => n + g.selected.size, 0);
 
   return (
     <>
+      {/* Below md the words are hidden and only the glyph is left, so the name
+          has to be carried by the label or the control is nameless. */}
       <button
         type="button"
+        aria-label="Sort &amp; filter"
         onClick={() => setOpen(true)}
         className="relative flex items-center justify-center gap-[7px] size-9 md:w-auto md:px-[14px] rounded-full border border-border bg-card text-[13px] font-medium text-foreground active:bg-muted/50 transition-colors"
       >
@@ -85,10 +97,10 @@ export function RecordsMobileSort({
             <section className="flex flex-col gap-[8px]">
               <p className="text-[12px] font-semibold text-muted-foreground">Sort by</p>
               <div className="flex flex-col">
-                {SORT_OPTS.map((o) => {
-                  const on = dateSort === o.id;
+                {sortOptions.map((o) => {
+                  const on = sortValue === o.id;
                   return (
-                    <button key={o.id} type="button" onClick={() => setDateSort(o.id)} className="flex items-center justify-between h-[44px] text-[14px] text-foreground active:bg-muted/40 transition-colors">
+                    <button key={o.id} type="button" onClick={() => onSort(o.id)} className="flex items-center justify-between h-[44px] text-[14px] text-foreground active:bg-muted/40 transition-colors">
                       <span className={on ? "font-medium text-primary" : ""}>{o.label}</span>
                       {on && <svg className="size-[17px] text-primary" fill="none" viewBox="0 0 16 16"><path d="M13 4.5L6.5 11.5 3 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                     </button>
@@ -97,9 +109,9 @@ export function RecordsMobileSort({
               </div>
             </section>
 
-            <FilterGroup label="Type" options={typeOptions} selected={typeFilter} onToggle={(id) => setTypeFilter((s) => toggle(s, id))} />
-            <FilterGroup label="Template" options={templateOptions} selected={templateFilter} onToggle={(id) => setTemplateFilter((s) => toggle(s, id))} />
-            <FilterGroup label="Language" options={langOptions} selected={langFilter} onToggle={(id) => setLangFilter((s) => toggle(s, id))} />
+            {groups.map((g) => (
+              <FilterGroup key={g.label} label={g.label} options={g.options} selected={g.selected} onToggle={g.onToggle} />
+            ))}
           </div>
 
           <div className="flex items-center gap-[10px] px-[20px] py-[14px] border-t border-border">
@@ -109,5 +121,33 @@ export function RecordsMobileSort({
         </SheetContent>
       </Sheet>
     </>
+  );
+}
+
+/* My Records keeps its own three columns, so it keeps its own signature. */
+export function RecordsMobileSort({
+  dateSort, setDateSort,
+  typeFilter, setTypeFilter, typeOptions,
+  templateFilter, setTemplateFilter, templateOptions,
+  langFilter, setLangFilter, langOptions,
+  onClearAll,
+}: {
+  dateSort: string; setDateSort: (v: string) => void;
+  typeFilter: Set<string>; setTypeFilter: (fn: (s: Set<string>) => Set<string>) => void; typeOptions: FilterOpt[];
+  templateFilter: Set<string>; setTemplateFilter: (fn: (s: Set<string>) => Set<string>) => void; templateOptions: FilterOpt[];
+  langFilter: Set<string>; setLangFilter: (fn: (s: Set<string>) => Set<string>) => void; langOptions: FilterOpt[];
+  onClearAll: () => void;
+}) {
+  return (
+    <MobileSortFilter
+      sortValue={dateSort}
+      onSort={setDateSort}
+      onClearAll={onClearAll}
+      groups={[
+        { label: "Type", options: typeOptions, selected: typeFilter, onToggle: (id) => setTypeFilter((s) => toggle(s, id)) },
+        { label: "Template", options: templateOptions, selected: templateFilter, onToggle: (id) => setTemplateFilter((s) => toggle(s, id)) },
+        { label: "Language", options: langOptions, selected: langFilter, onToggle: (id) => setLangFilter((s) => toggle(s, id)) },
+      ]}
+    />
   );
 }
