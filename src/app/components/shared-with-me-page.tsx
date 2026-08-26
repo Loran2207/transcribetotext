@@ -133,9 +133,13 @@ export function SharedWithMePage() {
       <div className="px-4 pb-[40px] lg:px-8">
         {/* Header: the page's name, and the one control that finds things in it */}
         <div className="flex items-center gap-[12px] pt-[28px] pb-[16px]">
-          <span className="font-semibold text-[18px] text-foreground">{t("shared.title")}</span>
-          <div className="flex-1" />
-          <div className="w-[220px] max-lg:w-[150px]">
+          <span className="shrink-0 font-semibold text-[18px] text-foreground">{t("shared.title")}</span>
+          {/* The controls sit at the right, and the field takes what the row
+              has left up to 220 rather than a fixed 150, which was narrow
+              enough to break its own placeholder over two lines once the
+              filter button joined the row. */}
+          <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-[12px]">
+          <div className="min-w-0 w-[220px] max-w-full">
             <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder={t("shared.searchPlaceholder")} />
           </div>
           {/* Below lg there is no table header, so the owner and type filters
@@ -145,7 +149,7 @@ export function SharedWithMePage() {
               not there either - but a filter that returns nothing keeps it,
               because that is the only way back. */}
           {!loading && (items.length > 0 || folders.length > 0) && (
-          <div className="lg:hidden">
+          <div className="shrink-0 lg:hidden">
             <MobileSortFilter
               sortValue={dateSort}
               onSort={setDateSort}
@@ -161,6 +165,7 @@ export function SharedWithMePage() {
             />
           </div>
           )}
+          </div>
         </div>
 
         {loading ? (
@@ -211,6 +216,18 @@ export function SharedWithMePage() {
 
             {/* ── Phone and tablet: the same cards My Records uses ── */}
             <div className="lg:hidden">
+              {/* Selecting cards has to lead somewhere here too, or the
+                  checkboxes are a gesture with no outcome. */}
+              {selected.size > 0 && (
+                <div className="mb-[10px] rounded-[10px] px-[6px]">
+                  <SharedBulkBar
+                    count={selected.size}
+                    onCancel={() => setSelected(new Set())}
+                    onExport={() => setSelected(new Set())}
+                    onRemove={() => setSelected(new Set())}
+                  />
+                </div>
+              )}
               {filtered.length === 0 ? (
                 hasFilters ? <NothingFound query={search} onClear={clearFilters} /> : <EmptyShared />
               ) : (
@@ -405,8 +422,10 @@ function SharedBulkBar({ count, onCancel, onExport, onRemove }: {
   count: number; onCancel: () => void; onExport: () => void; onRemove: () => void;
 }) {
   const { t } = useLanguage();
+  /* One line where it fits, two where it does not: on a phone the two actions
+     are what the bar is for, so they wrap rather than truncate. */
   return (
-    <div className="flex h-[36px] items-center gap-[4px] bg-primary/5" style={{ borderBottom: "1px solid hsl(var(--primary) / 0.2)" }}>
+    <div className="flex min-h-[36px] flex-wrap items-center gap-x-[4px] gap-y-[2px] py-[3px] lg:flex-nowrap lg:py-0 bg-primary/5" style={{ borderBottom: "1px solid hsl(var(--primary) / 0.2)" }}>
       <div className="flex w-[40px] shrink-0 items-center justify-center">
         <FigmaCheckbox checked onChange={onCancel} />
       </div>

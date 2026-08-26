@@ -239,6 +239,11 @@ if (state.startsWith("planstatus_")) {
     const owner = p.getByText(/^owner$/i).filter({ visible: true }).first();
     await owner.click({ force: true, timeout: 8000 });
   } else {
+    /* Everything above ran at 1440, because that is the width at which the
+       sidebar shows its items. The sheet only exists at the real width, so
+       shrink first and let the layout settle. */
+    await p.setViewportSize({ width, height: DEVICE_H });
+    await p.waitForTimeout(900);
     await p.getByRole("button", { name: /sort & filter/i }).filter({ visible: true }).first().click({ force: true, timeout: 8000 });
   }
   await p.waitForTimeout(900);
