@@ -25,7 +25,7 @@ import { router } from "../routes";
 // height hugs the content: this dialog stands alone, so there is no next step
 // for it to jump against.
 
-export type UpgradeGateVariant = "limit" | "done";
+export type UpgradeGateVariant = "limit" | "done" | "share";
 
 interface BenefitChip {
   icon: IconSvgElement;
@@ -46,8 +46,19 @@ interface UpgradeGateModalProps {
 }
 
 export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateModalProps) {
+  /* Sharing is not a limit that was reached, it is a door that was never open,
+     so the line says that instead of borrowing the limit copy. Same shell, same
+     hero, same chips, same action - one sentence is the whole difference. */
   const title =
-    variant === "done" ? "Done! You've hit the free limit" : "You've reached the free limit";
+    variant === "share"
+      ? "Sharing is on the paid plan"
+      : variant === "done"
+        ? "Done! You've hit the free limit"
+        : "You've reached the free limit";
+  const lead =
+    variant === "share"
+      ? "Upgrade to share records and folders, by link or by email."
+      : "Upgrade to unlock full transcripts, summaries and every AI feature.";
 
   function handleUpgrade() {
     onOpenChange(false);
@@ -64,7 +75,7 @@ export function UpgradeGateModal({ open, onOpenChange, variant }: UpgradeGateMod
         <StepBody>
           <DialogHero src="/images/gate-crown.png" alt="Premium crown" />
           <StepTitle>{title}</StepTitle>
-          <StepLead>Upgrade to unlock full transcripts, summaries and every AI feature.</StepLead>
+          <StepLead>{lead}</StepLead>
           <div className="grid grid-cols-2 gap-2.5">
             {BENEFIT_CHIPS.map((chip) => (
               <div

@@ -71,6 +71,12 @@ if (state.startsWith("tpl_")) {
   await p.evaluate((v) => localStorage.setItem("ttt_plan", v), state === "tpl_pro" ? "pro" : "free");
   await p.goto(`${BASE}/login`, { waitUntil: "networkidle" });
 }
+/* Sharing is about people, so the demo account carries a person's name for
+   these frames. Read once when the app boots, so it goes in before the login. */
+if (state.startsWith("share")) {
+  await p.evaluate(() => localStorage.setItem("ttt_demo_identity", "1"));
+  await p.goto(`${BASE}/login`, { waitUntil: "networkidle" });
+}
 if (PRESEED[state]) {
   await p.evaluate(([a, b, c]) => {
     if (a) localStorage.setItem("ttt_demo_jobs", a);
@@ -184,6 +190,37 @@ if (state.startsWith("planstatus_")) {
   if (state === "widget_confirm_all") {
     await p.getByRole("button", { name: /delete all/i }).first().click({ force: true });
     await p.waitForTimeout(900);
+  }
+} else if (state.startsWith("share_") || state.startsWith("sharefolder_")) {
+  /* share_<scene>       the record dialog, scene named in src/lib/share-demo.ts
+     sharefolder_<scene> the same component opened from a folder
+     share_free          a free account pressing Share */
+  const free = state === "share_free";
+  const scene = state.replace(/^sharefolder_/, "").replace(/^share_/, "");
+  await set("ttt_plan", free ? "free" : "pro");
+  await set("ttt_demo_share", free ? "list" : scene);
+
+  if (state.startsWith("sharefolder_")) {
+    await p.getByText("My Records", { exact: true }).filter({ visible: true }).first().click({ force: true });
+    await p.waitForTimeout(1600);
+    const card = p.locator('[data-qa-label="folder-card"]').first();
+    if (await card.count()) {
+      await card.hover();
+      await p.waitForTimeout(300);
+      await card.locator("button").last().click({ force: true });
+      await p.waitForTimeout(600);
+      await p.getByRole("menuitem", { name: /^share$/i }).first().click({ force: true });
+    }
+    await p.waitForTimeout(1000);
+  } else {
+    await p.evaluate(() => {
+      history.pushState({}, "", "/transcriptions/2");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await p.waitForTimeout(2400);
+    const btn = p.locator('[data-qa-label="Share"]').filter({ visible: true }).first();
+    await btn.click({ force: true });
+    await p.waitForTimeout(1000);
   }
 } else if (state.startsWith("transcript_")) {
   // There is one way to mark the spoken line now, so a state only picks which
@@ -854,9 +891,15 @@ await p.waitForTimeout(200);
 /* The project writes languages with a flag emoji. Windows has no colour flag
    font, so the pair of regional indicators lands in the frame as two letters. */
 {
-  const flags = readFileSync("sl-flags.js", "utf8");
-  const report = await p.evaluate((src) => eval(src), flags);
-  console.log("flags", JSON.stringify(report));
+  /* The helper is not in the repository. Say so out loud rather than dying, and
+     read the flags in the frame afterwards: on this machine the page already
+     loads Noto Color Emoji, which is the family Figma has. */
+  let flags = null;
+  try { flags = readFileSync("sl-flags.js", "utf8"); } catch { console.log("flags SKIPPED - sl-flags.js is missing"); }
+  if (flags) {
+    const report = await p.evaluate((src) => eval(src), flags);
+    console.log("flags", JSON.stringify(report));
+  }
   await p.waitForTimeout(150);
 }
 

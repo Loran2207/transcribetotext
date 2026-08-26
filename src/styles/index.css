@@ -159,8 +159,16 @@
 
 /* A card centred with translate(-50%, -50%) carries that translate inside the
    keyframe, or it jumps to the corner for the length of the animation. */
-@keyframes ttt-card-move     { from { transform: translate(-50%, calc(-50% + 12px)) scale(0.96); } to { transform: translate(-50%, -50%) scale(1); } }
-@keyframes ttt-card-move-out { from { transform: translate(-50%, -50%) scale(1); } to { transform: translate(-50%, calc(-50% + 4px)) scale(0.99); } }
+/* The card is centred by Tailwind's translate-x-[-50%] translate-y-[-50%], and
+   in Tailwind v4 those compile to the CSS `translate` property, not `transform`.
+   The two are separate steps of the same transform pipeline, so a keyframe that
+   also said translate(-50%, -50%) moved the card half its own width and half its
+   own height a SECOND time: at 1440 the dialog sat with its right edge on the
+   screen's centre line, and the animation's `both` fill made it stay there.
+   These keyframes now carry only the movement that is theirs - the rise and the
+   scale - and leave the centring to the property that owns it. */
+@keyframes ttt-card-move     { from { transform: translateY(12px) scale(0.96); } to { transform: none; } }
+@keyframes ttt-card-move-out { from { transform: none; } to { transform: translateY(4px) scale(0.99); } }
 
 /* The same movement for a card its flex parent centres. */
 @keyframes ttt-rise-move     { from { transform: translateY(12px) scale(0.96); } to { transform: translateY(0) scale(1); } }

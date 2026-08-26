@@ -1661,6 +1661,19 @@ function PageHeader({
               <span className="font-medium text-[13px]">Apply template</span>
             </Button>
           )}
+          {/* 1. The first entry point in the spec, and it was the one missing:
+              the result page carried a Share handler with nothing to press. It
+              sits beside Copy rather than in the overflow, because a record is
+              shared far more often than it is exported. */}
+          <Button
+            variant="pill-outline"
+            data-qa-label="Share"
+            className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden"
+            onClick={onShare}
+          >
+            <Icon icon={Share} className="size-[14px]" strokeWidth={1.7} />
+            <span className="font-medium text-[13px]">Share</span>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden">
@@ -3484,6 +3497,9 @@ export function TranscriptionDetailPage() {
           <DrawerContent className="lg:hidden [&>div:first-child]:hidden">
             <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Actions</DrawerTitle><button type="button" onClick={() => setMoreSheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
             <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
+              <button type="button" data-qa-label="Share" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); setShareDialogOpen(true); }}>
+                <Icon icon={Share} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Share
+              </button>
               <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
                 <Icon icon={Edit} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Edit transcript
               </button>

@@ -132,3 +132,36 @@ export function toastFailed(name: string, onOpenQueue: () => void) {
     { duration: DURATION + 2000 }
   );
 }
+
+/* Access was taken away. There is no confirmation dialog in front of this - the
+   spec is explicit that the action applies at once - so the way back is here,
+   and it stays a second longer than the others because it is the only chance to
+   change your mind. */
+export function toastAccessRemoved(name: string, onUndo?: () => void) {
+  toast.custom(
+    (id) => (
+      <ToastCard
+        title="Access removed"
+        meta={name}
+        action={{ label: "Undo", onClick: () => { toast.dismiss(id); onUndo?.(); } }}
+      />
+    ),
+    { duration: 5000 }
+  );
+}
+
+/* The other side of the same act, seen by the person it was taken from while
+   they still had the record open. No action: the record is gone, and the app is
+   already carrying them back to Shared with me. */
+export function toastAccessRevoked(what: "record" | "folder" = "record") {
+  toast.custom(
+    () => (
+      <ToastCard
+        tone="error"
+        title={"Access to this " + what + " was removed"}
+        meta="Taking you back to Shared with me"
+      />
+    ),
+    { duration: 5000 }
+  );
+}

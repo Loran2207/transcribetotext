@@ -36,7 +36,11 @@ export function UserProfileProvider({ children }: { children: React.ReactNode })
 
   // Demo: ttt_demo_no_name=1 clears the name so the greeting drops it (new-user state)
   const noNameDemo = (() => { try { return localStorage.getItem("ttt_demo_no_name") === "1"; } catch { return false; } })();
-  const effName = noNameDemo ? "" : authName;
+  // Demo: ttt_demo_identity=1 gives the demo account a person's name. Sharing is
+  // about people, and "Admin (Demo)" beside the word Owner reads as a placeholder
+  // rather than as the account the record belongs to.
+  const identityDemo = (() => { try { return localStorage.getItem("ttt_demo_identity") === "1"; } catch { return false; } })();
+  const effName = noNameDemo ? "" : identityDemo ? "Daniel Ruiz" : authName;
   const [displayName, setDisplayName] = useState(effName);
   const [avatarSrc, setAvatarSrc] = useState(authAvatar);
 
