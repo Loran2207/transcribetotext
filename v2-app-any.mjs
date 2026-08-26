@@ -1063,6 +1063,15 @@ if (state === "entry_row" || state === "entry_folder_side" || state === "entry_f
     const box = await target.boundingBox();
     if (box) { await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await p.waitForTimeout(800); }
   }
+  /* Resting on a row long enough also raises its summary card, which lands over
+     the folder strip. The frame is about where the control is, so the card goes. */
+  await p.evaluate(() => {
+    document.querySelectorAll("div").forEach((d) => {
+      const cls = typeof d.className === "string" ? d.className : "";
+      if (cls.indexOf("z-[60]") >= 0 && /SUMMARY/i.test(d.textContent || "")) d.remove();
+    });
+  });
+  await p.waitForTimeout(150);
 }
 
 if (state === "recfolder_hover" || state === "recfolder_hover_btn") {

@@ -1961,7 +1961,7 @@ function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected
         ) : (
           <div className="flex items-center gap-[6px] min-w-0 flex-1">
             <p className="truncate min-w-0 leading-[20px] font-medium text-[14px] text-foreground tracking-[-0.154px]">{record.name}</p>
-            {!isTrash && (SHARED_BY[record.id] ? <SharedBadge owner={SHARED_BY[record.id]} /> : isShared ? <SharedBadge /> : null)}
+            {!isTrash && !isHovered && (SHARED_BY[record.id] ? <SharedBadge owner={SHARED_BY[record.id]} /> : isShared ? <SharedBadge /> : null)}
           </div>
         )}
         {/* Actions overlay - appears at right edge of name cell on hover */}
