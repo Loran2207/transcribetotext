@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { Puzzle } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { SharedWithMePage } from "./shared-with-me-page";
 import { AppSidebar } from "./app-sidebar";
 import { DashboardPage } from "./dashboard-page";
 import { CalendarPage } from "./calendar-page";
@@ -70,7 +71,7 @@ export function AppLayout() {
                 )}
                 {!isSettings && activePage === "dashboard" && <DashboardPage onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />}
                 {!isSettings && activePage === "records" && <MyRecordsPage initialFolderId={initialFolderId} onFolderConsumed={() => setInitialFolderId(null)} />}
-                {!isSettings && activePage === "shared" && <PagePlaceholder activePage="shared with me" />}
+                {!isSettings && activePage === "shared" && <SharedWithMePage />}
                 {!isSettings && activePage === "calendar" && <CalendarPage />}
                 {!isSettings && activePage === "templates" && <TemplatesPage />}
                 {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && (

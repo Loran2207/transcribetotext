@@ -243,3 +243,17 @@ export function readSharedScene(): SharedScene {
   }
   return "full";
 }
+
+/* The record page has two states: your own record, and one that arrived from
+ * somebody else. This says which, and who it came from. */
+export function readSharedRecordOwner(): SharedOwner | null {
+  let key = "";
+  try {
+    key = localStorage.getItem("ttt_demo_shared_record") ?? "";
+  } catch {
+    return null;
+  }
+  if (!key) return null;
+  const found = (SHARED_OWNERS as Record<string, SharedOwner>)[key];
+  return found ?? SHARED_OWNERS.emma;
+}

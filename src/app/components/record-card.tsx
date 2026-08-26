@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { SourceIcon } from "./source-icons";
+import { getInitials } from "@/lib/format";
 import { useStarred } from "./starred-context";
 import { useFolders } from "./folder-context";
 import { useLanguage } from "./language-context";
@@ -71,7 +72,12 @@ function RenameForm({ initial, onSave, onCancel }: { initial: string; onSave: (n
   );
 }
 
-export function RecordCard({ record, isTrash = false, selected = false, selectionMode = false, onToggleSelect }: { record: RecordRow; isTrash?: boolean; selected?: boolean; selectionMode?: boolean; onToggleSelect?: () => void }) {
+export interface CardOwner { name: string; tint: string; ink: string; avatar?: string }
+
+/* `owner` marks the card as somebody else's. It shows who it came from and takes
+   away every action that would change their record: sharing it on, renaming it,
+   throwing it away. What is left is what a reader is allowed to do. */
+export function RecordCard({ record, isTrash = false, selected = false, selectionMode = false, onToggleSelect, owner, onRemoveShared }: { record: RecordRow; isTrash?: boolean; selected?: boolean; selectionMode?: boolean; onToggleSelect?: () => void; owner?: CardOwner; onRemoveShared?: () => void }) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { t } = useLanguage();
@@ -150,7 +156,15 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
           <span className="shrink-0 leading-none">
             <LanguageBadge lang={record.language} />
           </span>
-          {cardFolder && (
+          {owner && (
+            <span className="flex min-w-0 shrink-0 items-center gap-[5px]" title={owner.name}>
+              <span className="flex size-[16px] shrink-0 items-center justify-center overflow-hidden rounded-full text-[8px] font-medium" style={{ background: owner.tint, color: owner.ink }}>
+                {owner.avatar ? <img src={owner.avatar} alt="" className="size-full object-cover" /> : getInitials(owner.name)}
+              </span>
+              <span className="truncate text-[12px]">{owner.name}</span>
+            </span>
+          )}
+          {!owner && cardFolder && (
             <span className="flex min-w-0 shrink-0 items-center gap-[5px]" title={cardFolder.name}>
               <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={cardFolder.color} /></svg>
               <span className="hidden truncate text-[12px] md:inline">{cardFolder.name}</span>
@@ -210,24 +224,35 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
                 <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.5} />
                 {t("common.export")}
               </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2" onSelect={() => setShareOpen(true)}>
-                <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                {t("common.share")}
-              </DropdownMenuItem>
+              {!owner && (
+                <DropdownMenuItem className="gap-2" onSelect={() => setShareOpen(true)}>
+                  <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  {t("common.share")}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2" onSelect={() => setRenameOpen(true)}>
-                <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                {t("common.rename")}
-              </DropdownMenuItem>
+              {!owner && (
+                <DropdownMenuItem className="gap-2" onSelect={() => setRenameOpen(true)}>
+                  <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  {t("common.rename")}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem className="gap-2" onSelect={doStar}>
                 <Icon icon={StarIcon} className={`size-4 ${starIconClass}`} fill={isStarred ? "currentColor" : "none"} strokeWidth={1.6} />
                 {starLabel}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" className="gap-2" onSelect={() => setConfirmDelete(true)}>
-                <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
-                {t("table.moveToTrash")}
-              </DropdownMenuItem>
+              {owner ? (
+                <DropdownMenuItem className="gap-2" onSelect={() => onRemoveShared?.()}>
+                  <Icon icon={X} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  {t("shared.removeFromShared")}
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem variant="destructive" className="gap-2" onSelect={() => setConfirmDelete(true)}>
+                  <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
+                  {t("table.moveToTrash")}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
@@ -251,7 +276,7 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
                 { key: "copy", icon: Copy, label: t("sheet.copy"), run: doCopy },
                 { key: "move", icon: FolderOpen, label: t("sheet.moveTo"), run: () => setMoveOpen(true) },
                 { key: "export", icon: Upload, label: t("common.export"), run: () => setExportOpen(true) },
-                { key: "share", icon: Share, label: t("common.share"), run: () => setShareOpen(true) },
+                ...(owner ? [] : [{ key: "share", icon: Share, label: t("common.share"), run: () => setShareOpen(true) }]),
               ].map(({ key, icon, label, run }) => (
                 <button
                   key={key}
@@ -267,18 +292,27 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
             <div className="h-px mx-[16px] bg-border" />
 
             <div className="px-[10px] py-[8px] flex flex-col" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
-              <button onClick={() => { setSheetOpen(false); setRenameOpen(true); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
-                <Icon icon={Edit} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
-                <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>{t("common.rename")}</span>
-              </button>
+              {!owner && (
+                <button onClick={() => { setSheetOpen(false); setRenameOpen(true); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
+                  <Icon icon={Edit} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
+                  <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>{t("common.rename")}</span>
+                </button>
+              )}
               <button onClick={() => { setSheetOpen(false); doStar(); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
                 <Icon icon={StarIcon} className={`size-[19px] ${starIconClass}`} fill={isStarred ? "currentColor" : "none"} strokeWidth={1.7} />
                 <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>{starLabel}</span>
               </button>
-              <button onClick={() => { setSheetOpen(false); setConfirmDelete(true); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-destructive/10 transition-colors text-left">
-                <Icon icon={Trash} className="size-[19px] text-destructive" strokeWidth={1.7} />
-                <span className="flex-1 text-destructive" style={{ fontSize: 14, fontWeight: 500 }}>{t("table.moveToTrash")}</span>
-              </button>
+              {owner ? (
+                <button onClick={() => { setSheetOpen(false); onRemoveShared?.(); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
+                  <Icon icon={X} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
+                  <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>{t("shared.removeFromShared")}</span>
+                </button>
+              ) : (
+                <button onClick={() => { setSheetOpen(false); setConfirmDelete(true); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-destructive/10 transition-colors text-left">
+                  <Icon icon={Trash} className="size-[19px] text-destructive" strokeWidth={1.7} />
+                  <span className="flex-1 text-destructive" style={{ fontSize: 14, fontWeight: 500 }}>{t("table.moveToTrash")}</span>
+                </button>
+              )}
             </div>
           </DrawerContent>
         </Drawer>

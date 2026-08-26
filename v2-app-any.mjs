@@ -75,6 +75,13 @@ if (state.startsWith("tpl_")) {
    these frames. Read once when the app boots, so it goes in before the login. */
 if (state.startsWith("share")) {
   await p.evaluate(() => localStorage.setItem("ttt_demo_identity", "1"));
+  if (state.startsWith("sharedpage_") || state.startsWith("sharedfolder_")) {
+    const sc = state.replace(/^sharedpage_/, "").replace(/^sharedfolder_/, "");
+    await p.evaluate((v) => localStorage.setItem("ttt_demo_shared", v), sc);
+  }
+  if (state.startsWith("sharedrec_")) {
+    await p.evaluate(() => localStorage.setItem("ttt_demo_shared_record", "emma"));
+  }
   await p.goto(`${BASE}/login`, { waitUntil: "networkidle" });
 }
 if (PRESEED[state]) {
@@ -190,6 +197,37 @@ if (state.startsWith("planstatus_")) {
   if (state === "widget_confirm_all") {
     await p.getByRole("button", { name: /delete all/i }).first().click({ force: true });
     await p.waitForTimeout(900);
+  }
+} else if (state.startsWith("sharedrec_")) {
+  /* The record page in its second state: it belongs to somebody else. */
+  await set("ttt_plan", "pro");
+  await p.evaluate(() => {
+    history.pushState({}, "", "/transcriptions/2");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await p.waitForTimeout(2600);
+  if (state === "sharedrec_menu") {
+    await p.getByRole("button", { name: /more actions/i }).filter({ visible: true }).last().click({ force: true });
+    await p.waitForTimeout(900);
+  }
+} else if (state.startsWith("sharedpage_") || state.startsWith("sharedfolder_")) {
+  /* The recipient's own side of the feature: the Shared with me list, and a
+     folder somebody handed over. */
+  await set("ttt_plan", "pro");
+  await p.getByText("Shared with me", { exact: true }).filter({ visible: true }).first().click({ force: true });
+  await p.waitForTimeout(1800);
+  if (state.startsWith("sharedfolder_")) {
+    const card = p.locator('[data-qa-label="shared-folder-card"]').first();
+    if (await card.count()) { await card.click({ force: true }); await p.waitForTimeout(1200); }
+  }
+  if (state === "sharedpage_bulk") {
+    const boxes = p.locator('[data-slot="dialog-content"]').first();
+    void boxes;
+    await p.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll("div")).filter((d) => d.className && String(d.className).includes("h-[40px]") && String(d.className).includes("border-b"));
+      rows.slice(1, 4).forEach((r) => { const b = r.querySelector("button, [role=checkbox], span"); if (b) (b).dispatchEvent(new MouseEvent("click", { bubbles: true })); });
+    });
+    await p.waitForTimeout(800);
   }
 } else if (state.startsWith("share_") || state.startsWith("sharefolder_")) {
   /* share_<scene>       the record dialog, scene named in src/lib/share-demo.ts
@@ -821,6 +859,15 @@ if (width < 640 && SHEET_STATES.has(state)) {
   });
   await p.waitForTimeout(300);
 }
+
+/* The demo has no backend, so a "Failed to load templates" toast fires on every
+   page load and parks itself over the header. It is an artifact of the stub, not
+   a state of the product, so it does not belong in a frame. */
+await p.evaluate(() => {
+  document.querySelectorAll("[data-sonner-toast]").forEach((el) => {
+    if (/failed to load templates/i.test(el.textContent || "")) el.remove();
+  });
+});
 
 /* Sonner keeps the stack collapsed until a pointer enters it. The frame that
    documents the expanded stack hovers it; every other frame parks the pointer

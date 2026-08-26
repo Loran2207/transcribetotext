@@ -2,7 +2,8 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -1634,6 +1635,8 @@ function PageHeader({
   const [editingTitle, setEditingTitle] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { displayName, avatarSrc } = useUserProfile();
+  /* The second state of this page: the record belongs to somebody else. */
+  const sharedOwner = useMemo(() => readSharedRecordOwner(), []);
 
   useEffect(() => {
     if (editingTitle && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); }
@@ -1644,19 +1647,19 @@ function PageHeader({
       <div className="mb-2 flex items-start justify-between gap-4">
         <div
           className={`min-w-0 flex-1 rounded-xl py-2 pr-2 pl-0 transition-colors ${
-            editingTitle ? "bg-muted/55" : "cursor-text hover:bg-muted/45"
+            sharedOwner ? "" : editingTitle ? "bg-muted/55" : "cursor-text hover:bg-muted/45"
           }`}
-          onClick={() => { if (!editingTitle) setEditingTitle(true); }}
+          onClick={() => { if (!sharedOwner && !editingTitle) setEditingTitle(true); }}
         >
-          {editingTitle ? (
+          {editingTitle && !sharedOwner ? (
             <Input ref={inputRef} value={title} onChange={(e) => onTitleChange(e.target.value)} onBlur={() => setEditingTitle(false)} onKeyDown={(e) => { if (e.key === "Enter") setEditingTitle(false); }} className="h-auto border-none bg-transparent p-0 text-2xl font-bold shadow-none focus-visible:ring-0" style={{ fontSize: "24px", lineHeight: "1.3" }} />
           ) : (
             <h1 className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal">{title}</h1>
           )}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>
-          {!hasSummary && (
+          {!sharedOwner && <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>}
+          {!hasSummary && !sharedOwner && (
             <Button className="order-first flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
               <span className="font-medium text-[13px]">Apply template</span>
             </Button>
@@ -1665,15 +1668,17 @@ function PageHeader({
               the result page carried a Share handler with nothing to press. It
               sits beside Copy rather than in the overflow, because a record is
               shared far more often than it is exported. */}
-          <Button
-            variant="pill-outline"
-            data-qa-label="Share"
-            className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden"
-            onClick={onShare}
-          >
-            <Icon icon={Share} className="size-[14px]" strokeWidth={1.7} />
-            <span className="font-medium text-[13px]">Share</span>
-          </Button>
+          {!sharedOwner && (
+            <Button
+              variant="pill-outline"
+              data-qa-label="Share"
+              className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden"
+              onClick={onShare}
+            >
+              <Icon icon={Share} className="size-[14px]" strokeWidth={1.7} />
+              <span className="font-medium text-[13px]">Share</span>
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden">
@@ -1791,6 +1796,7 @@ function PageHeader({
                 <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                 Copy link
               </DropdownMenuItem>
+              {!sharedOwner && (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="gap-2 max-md:hidden lg:hidden">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-4 text-muted-foreground"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
@@ -1813,6 +1819,7 @@ function PageHeader({
                   ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
+              )}
               <DropdownMenuSeparator className="max-md:hidden lg:hidden" />
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="gap-2">
@@ -1839,23 +1846,48 @@ function PageHeader({
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuItem className="gap-2" onClick={onRegenerateSummary}>
-                <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                Regenerate summary
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" className="gap-2" onClick={onDelete}>
-                <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
-                Delete
-              </DropdownMenuItem>
+              {sharedOwner ? (
+                /* The only thing a reader may do to somebody else's record: stop
+                   keeping it on their own list. It does not touch the original. */
+                <DropdownMenuItem className="gap-2" data-qa-label="remove-shared">
+                  <Icon icon={Cancel01Icon} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  Remove from Shared with me
+                </DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuItem className="gap-2" onClick={onRegenerateSummary}>
+                    <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                    Regenerate summary
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" className="gap-2" onClick={onDelete}>
+                    <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
       <div className="flex items-center gap-3 text-xs text-muted-foreground max-lg:flex-wrap">
         <div className="flex items-center gap-1.5 max-md:hidden">
-          <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
-          <span>{displayName}</span>
+          {sharedOwner ? (
+            <>
+              <Avatar className="size-5">
+                <AvatarFallback className="text-[10px]" style={{ background: sharedOwner.tint, color: sharedOwner.ink }}>
+                  {sharedOwner.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-foreground">{sharedOwner.name}</span>
+              <span>shared this with you</span>
+            </>
+          ) : (
+            <>
+              <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
+              <span>{displayName}</span>
+            </>
+          )}
         </div>
         {source && (
           <>
@@ -1883,6 +1915,9 @@ function PageHeader({
 
 export function TranscriptionDetailPage() {
   const navigate = useNavigate();
+  /* Somebody else's record: the page still reads and exports, but every control
+     that would change the owner's copy is not on it. */
+  const sharedOwner = useMemo(() => readSharedRecordOwner(), []);
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const { folders, folderAssignments, addFolder, assignToFolder } = useFolders();
@@ -1951,8 +1986,8 @@ export function TranscriptionDetailPage() {
   useEffect(() => {
     setInnerScreen({
       back: () => (fromMeetings ? navigate("/", { state: { page: "calendar" } }) : navigate("/")),
-      parent: fromMeetings || !selectedFolder ? undefined : "My records",
-      title: fromMeetings ? "Meetings" : (selectedFolder ? selectedFolder.name : "My records"),
+      parent: sharedOwner ? undefined : fromMeetings || !selectedFolder ? undefined : "My records",
+      title: sharedOwner ? "Shared with me" : fromMeetings ? "Meetings" : (selectedFolder ? selectedFolder.name : "My records"),
     });
     return () => setInnerScreen(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3062,7 +3097,7 @@ export function TranscriptionDetailPage() {
                 <span className="text-muted-foreground/50 max-lg:hidden">/</span>
                 <span className="truncate text-xs text-muted-foreground max-lg:hidden">{title}</span>
               </div>
-            ) : selectedFolder ? (
+            ) : selectedFolder && !sharedOwner ? (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <button
                   type="button"
@@ -3080,11 +3115,20 @@ export function TranscriptionDetailPage() {
                 <span className="text-muted-foreground/50 max-lg:hidden">/</span>
                 <span className="truncate text-xs text-muted-foreground max-lg:hidden">{title}</span>
               </div>
+            ) : sharedOwner ? (
+              /* The trail says where the record came from. A record somebody
+                 shared did not come from your records, and pretending it did
+                 sends the reader back to a list it is not in. */
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="rounded-full px-1.5 py-0.5">Shared with me</span>
+                <span className="text-muted-foreground/50 max-lg:hidden">/</span>
+                <span className="truncate text-xs text-muted-foreground max-lg:hidden">{title}</span>
+              </div>
             ) : (
               <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
             )}
           </div>
-          <div className="max-lg:hidden inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
+          <div className={"max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
             <Select
               value={selectedTranslationLang || undefined}
               onValueChange={setSelectedTranslationLang}
@@ -3239,10 +3283,12 @@ export function TranscriptionDetailPage() {
                     <Button size="sm" className="h-9 rounded-full px-4 text-[13px] lg:h-7 lg:px-3 lg:text-xs" onClick={handleSave}>Save</Button>
                   </>
                 ) : (
+                  sharedOwner ? null : (
                   <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
                     <Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />
                     Edit transcript
                   </Button>
+                  )
                 )
               ) : (
                 <TemplateSelectorButton
@@ -3497,12 +3543,20 @@ export function TranscriptionDetailPage() {
           <DrawerContent className="lg:hidden [&>div:first-child]:hidden">
             <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Actions</DrawerTitle><button type="button" onClick={() => setMoreSheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
             <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
-              <button type="button" data-qa-label="Share" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); setShareDialogOpen(true); }}>
-                <Icon icon={Share} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Share
-              </button>
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
-                <Icon icon={Edit} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Edit transcript
-              </button>
+              {sharedOwner ? (
+                <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60">
+                  <Icon icon={Cancel01Icon} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Remove from Shared with me
+                </button>
+              ) : (
+                <button type="button" data-qa-label="Share" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); setShareDialogOpen(true); }}>
+                  <Icon icon={Share} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Share
+                </button>
+              )}
+              {!sharedOwner && (
+                <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
+                  <Icon icon={Edit} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Edit transcript
+                </button>
+              )}
               <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscriptLink(); setMoreSheetOpen(false); }}>
                 <Icon icon={Link} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy link
               </button>

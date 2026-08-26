@@ -196,7 +196,7 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
    Multi-select Column Header Dropdown
    ══════════════════════════════════════════════ */
 
-function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "left", compactIcon }: {
+export function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "left", compactIcon }: {
   label: string;
   options: { id: string; label: string; icon?: string; sourceIcon?: SourceType; color?: string }[];
   selected: Set<string>;
@@ -261,7 +261,7 @@ function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "lef
 }
 
 /* Sort header (Date column) */
-function SortHeaderDropdown({ label, options, selected, onSelect, align = "left" }: {
+export function SortHeaderDropdown({ label, options, selected, onSelect, align = "left" }: {
   label: string; options: { id: string; label: string }[]; selected: string; onSelect: (id: string) => void; align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
@@ -292,7 +292,7 @@ function SortHeaderDropdown({ label, options, selected, onSelect, align = "left"
    Search
    ══════════════════════════════════════════════ */
 
-function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+export function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { function h(e: KeyboardEvent) { if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); inputRef.current?.focus(); } } document.addEventListener("keydown", h); return () => document.removeEventListener("keydown", h); }, []);
   return (
@@ -340,7 +340,7 @@ function MultiSelectTextBtn({ icon, label, onClick, variant = "primary" }: { ico
   );
 }
 
-function MSActionBtn({ icon, label, onClick, destructive = false }: { icon: React.ComponentProps<typeof Icon>["icon"]; label: string; onClick: () => void; destructive?: boolean }) {
+export function MSActionBtn({ icon, label, onClick, destructive = false }: { icon: React.ComponentProps<typeof Icon>["icon"]; label: string; onClick: () => void; destructive?: boolean }) {
   return (
     <button type="button" onClick={onClick} className="flex flex-col items-center justify-center gap-[3px] min-w-[46px] h-[46px] rounded-[12px] active:bg-muted transition-colors">
       <Icon icon={icon} className={"size-[18px] " + (destructive ? "text-destructive" : "text-foreground")} strokeWidth={1.6} />
@@ -608,7 +608,7 @@ function StatBadge({ icon, count }: { icon: "tasks" | "screenshots"; count: numb
 }
 
 /* Shared badge - outline pill matching screenshot */
-function SharedBadge() {
+export function SharedBadge() {
   return (
     <span className="inline-flex items-center shrink-0 h-[17px] px-[6px] rounded-full border border-border">
       <span className="font-medium text-[11px] text-primary">Shared</span>
@@ -1022,7 +1022,7 @@ function mapJobToRecord(job: TranscriptionJob): RecordRow {
 
 /* cellTextStyle is computed inside TableRow */
 
-const typeFilterOptions: { id: string; label: string; sourceIcon?: SourceType }[] = [
+export const typeFilterOptions: { id: string; label: string; sourceIcon?: SourceType }[] = [
   { id: "google-meet", label: "Google Meet", sourceIcon: "google-meet" }, { id: "zoom", label: "Zoom", sourceIcon: "zoom" },
   { id: "teams", label: "Teams", sourceIcon: "teams" }, { id: "microphone", label: "Microphone", sourceIcon: "microphone" },
   { id: "mp4", label: "MP4 File", sourceIcon: "mp4" }, { id: "mp3", label: "MP3 File", sourceIcon: "mp3" },
