@@ -1212,6 +1212,32 @@ if (preview) {
   await p.screenshot({ path: target });
   console.log("saved", target);
 } else {
+  /* A frame can come back with a 200 and nothing in it. The status says the
+     POST was accepted, not that there was anything to send, so count the page
+     first and refuse rather than file an empty frame. */
+  /* The converter names the frame after the page title, so the frame arrives
+     saying what it is. Without this every capture lands called
+     "TranscribeToText.AI" and which frame is which has to be reconstructed
+     from the order they were submitted in - which breaks the moment one of
+     them fails and is re-shot later. */
+  await p.evaluate((t) => { document.title = t; }, `${state} :: ${width}`);
+  /* A blank capture is a served 500 or a crashed render, and it reads as a
+     perfectly good frame once it is in Figma. Guard on the app actually having
+     mounted, not on a node count - an empty state at 390 legitimately carries
+     about a hundred nodes because the sidebar is not rendered below 1024. */
+  const shell = await p.evaluate(() => {
+    const root = document.getElementById("root");
+    return {
+      mounted: !!root && root.children.length > 0,
+      nodes: document.querySelectorAll("*").length,
+      text: (document.body.innerText || "").trim().length,
+    };
+  });
+  if (!shell.mounted || shell.nodes < 15) {
+    console.log("blank page:", JSON.stringify(shell), "- refusing to capture");
+    await b.close();
+    process.exit(1);
+  }
   const src = await p.evaluate(async (u) => (await fetch(u)).text(), CAP);
   await p.evaluate(src);
   /* captureForDesign posts the frame and then never settles its promise, so

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useAuth } from '@/app/components/auth-context';
 import {
   type Template,
   type CreateTemplateData,
@@ -23,11 +24,22 @@ interface UseTemplatesReturn {
 }
 
 export function useTemplates(): UseTemplatesReturn {
+  const { user } = useAuth();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  /* The modals provider wraps every route, so this hook also runs on the
+     public pages a share link opens. Templates belong to an account, so
+     without one there is nothing to fetch - and a stranger opening a link
+     must never be shown an internal error about a feature they cannot see. */
   const refresh = useCallback(async () => {
+    if (!user) {
+      setTemplates([]);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       setError(null);
@@ -40,7 +52,7 @@ export function useTemplates(): UseTemplatesReturn {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     refresh();
