@@ -37,7 +37,8 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Icon } from "./ui/icon";
-import { FolderOpen, Edit, Trash, MoreHorizontal, Upload, ChevronDown, ChevronUp, Microphone, Link, Video, CloudUpload, FolderPlus } from "@hugeicons/core-free-icons";
+import { FolderOpen, Edit, Trash, MoreHorizontal, Upload, ChevronDown, ChevronUp, Microphone, Link, Video, CloudUpload, FolderPlus, Share } from "@hugeicons/core-free-icons";
+import { ShareDialog } from "./share-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -291,6 +292,10 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   // Move folder dialog
   const [movingFolder, setMovingFolder] = useState<FolderItem | null>(null);
+
+  /* A folder can be shared, so every place that lists a folder's actions has to
+     offer it - the card, the folder you have open, and the phone sheet. */
+  const [sharingFolder, setSharingFolder] = useState<FolderItem | null>(null);
 
   // Drag & drop state
   const [dragOver, setDragOver] = useState(false);
@@ -586,6 +591,10 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                     triggerLabel={`Export files (${folderRecordCounts.get(activeFolder.id) ?? 0})`}
                     onSelect={(format) => exportFolder(activeFolder.id, format)}
                   />
+                  <DropdownMenuItem className="gap-2" onClick={() => setSharingFolder(activeFolder)}>
+                    <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                    Share folder
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => setDeletingFolderId(activeFolder.id)}>
                     <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
@@ -699,6 +708,10 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                               </DropdownMenuItem>
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
+                          <DropdownMenuItem className="gap-2" onClick={() => setSharingFolder(folder)}>
+                            <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                            Share folder
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => setDeletingFolderId(folder.id)}>
                             <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
@@ -736,6 +749,14 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
         }}
       />
 
+      <ShareDialog
+        open={!!sharingFolder}
+        onOpenChange={(open) => { if (!open) setSharingFolder(null); }}
+        resourceType="folder"
+        resourceId={sharingFolder?.id ?? ""}
+        resourceName={sharingFolder?.name ?? ""}
+      />
+
       {/* Folder actions sheet (opened from the "..." in the bottom bar) - acts on the whole folder */}
       <Drawer open={folderActionsOpen} onOpenChange={setFolderActionsOpen}>
         <DrawerContent className="[&>div:first-child]:hidden">
@@ -747,6 +768,10 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             <button onClick={() => { setFolderActionsOpen(false); if (activeFolder) setEditingFolder(activeFolder); }} className="flex items-center gap-[13px] h-[52px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
               <Icon icon={Edit} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
               <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Edit folder</span>
+            </button>
+            <button onClick={() => { setFolderActionsOpen(false); if (activeFolder) setSharingFolder(activeFolder); }} className="flex items-center gap-[13px] h-[52px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
+              <Icon icon={Share} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
+              <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Share folder</span>
             </button>
             <button onClick={() => { setFolderActionsOpen(false); if (activeFolder) setDeletingFolderId(activeFolder.id); }} className="flex items-center gap-[13px] h-[52px] px-[12px] rounded-[12px] active:bg-destructive/10 transition-colors text-left">
               <Icon icon={Trash} className="size-[19px] text-destructive" strokeWidth={1.7} />

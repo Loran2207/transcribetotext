@@ -11,8 +11,10 @@ import { useFolders, type FolderItem as CtxFolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
 import { setFabHidden } from "./fab-visibility";
-import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit, X } from "@hugeicons/core-free-icons";
+import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit, X, MoreHorizontal } from "@hugeicons/core-free-icons";
 import { ShareDialog } from "./share-dialog";
+import { Drawer, DrawerContent, DrawerTitle } from "./ui/drawer";
+import { useIsMobile } from "./ui/use-mobile";
 import { Icon } from "./ui/icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
@@ -145,12 +147,9 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M11.333 2a1.886 1.886 0 012.667 2.667L5.333 13.333 2 14l.667-3.333L11.333 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground" /></svg>
       </Button>
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="Share" onClick={(e) => { e.stopPropagation(); onShare(); }}>
-        <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
-          <circle cx="12" cy="2.667" r="1.667" stroke="currentColor" strokeWidth="1.2"/>
-          <circle cx="4" cy="8" r="1.667" stroke="currentColor" strokeWidth="1.2"/>
-          <circle cx="12" cy="13.333" r="1.667" stroke="currentColor" strokeWidth="1.2"/>
-          <path d="M5.58 6.94l4.84-2.82M10.42 11.88L5.58 9.06" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-        </svg>
+        {/* The same glyph the result page's Share button carries. This row used
+            to draw its own three-node icon, so one action had two faces. */}
+        <Icon icon={Share} className="size-[15px] text-muted-foreground" strokeWidth={1.2} />
       </Button>
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title={isStarred ? "Unstar" : "Star"} onClick={(e) => { e.stopPropagation(); onStar(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={isStarred ? "" : "text-muted-foreground"} /></svg>
@@ -608,10 +607,11 @@ function StatBadge({ icon, count }: { icon: "tasks" | "screenshots"; count: numb
 }
 
 /* Shared badge - outline pill matching screenshot */
-/* One mark for "more than one person can see this", used wherever an object is
-   listed: on a record row, and on a folder. With an owner it says the other
-   direction - this one came from them. */
-export function SharedBadge({ owner }: { owner?: string } = {}) {
+/* One mark, one meaning: more than one person can see this. It says nothing
+   about who shared what with whom - that question belongs to Shared with me,
+   which answers it with a whole Owner column. Used wherever an object is
+   listed: a record row, a record card, a folder. */
+export function SharedBadge() {
   return (
     <span className="inline-flex h-[18px] shrink-0 items-center gap-[4px] rounded-full border border-border pl-[5px] pr-[7px]">
       <svg className="size-[11px] shrink-0 text-primary" viewBox="0 0 16 16" fill="none">
@@ -619,15 +619,10 @@ export function SharedBadge({ owner }: { owner?: string } = {}) {
         <path d="M1.9 12.4c0-1.8 1.8-3.1 4.1-3.1s4.1 1.3 4.1 3.1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
         <path d="M10.6 3.6a2 2 0 010 3.7M11.4 9.6c1.6.3 2.7 1.4 2.7 2.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
       </svg>
-      <span className="whitespace-nowrap text-[11px] font-medium text-primary">
-        {owner ? "Shared by " + owner : "Shared"}
-      </span>
+      <span className="whitespace-nowrap text-[11px] font-medium text-primary">Shared</span>
     </span>
   );
 }
-
-/* Which records in the demo world arrived from somebody else, and from whom. */
-export const SHARED_BY: Record<string, string> = { "7": "Sofia Marchetti", "11": "Emma Larsen" };
 
 /** Folders of yours that other people can see. */
 export const SHARED_FOLDER_IDS = new Set(["f1", "f3"]);
@@ -1140,6 +1135,11 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder, deleteFolder, renameFolder, changeFolderColor, moveFolder } = useFolders();
   const [deletingInlineFolderId, setDeletingInlineFolderId] = useState<string | null>(null);
   const [editingInlineFolder, setEditingInlineFolder] = useState<FolderItem | null>(null);
+  /* Below lg a folder card carries its own actions, so it needs somewhere to
+     put them: a menu on a tablet, the product's bottom sheet on a phone. */
+  const [sharingInlineFolder, setSharingInlineFolder] = useState<FolderItem | null>(null);
+  const [folderSheet, setFolderSheet] = useState<FolderItem | null>(null);
+  const isPhone = useIsMobile();
   const [renamingInlineFolderId, setRenamingInlineFolderId] = useState<string | null>(null);
   const [dragRecordId, setDragRecordId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
@@ -1503,6 +1503,50 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         resourceName={displayRecords.find(r => r.id === shareDialogRecord)?.name ?? ""}
       />
 
+      <ShareDialog
+        open={!!sharingInlineFolder}
+        onOpenChange={(open) => { if (!open) setSharingInlineFolder(null); }}
+        resourceType="folder"
+        resourceId={sharingInlineFolder?.id ?? ""}
+        resourceName={sharingInlineFolder?.name ?? ""}
+      />
+
+      {/* A folder's actions on a phone, in the product's own bottom sheet -
+          the same shape a record card opens. */}
+      <Drawer open={!!folderSheet} onOpenChange={(open) => { if (!open) setFolderSheet(null); }}>
+        <DrawerContent className="[&>div:first-child]:hidden">
+          <div className="flex items-center gap-[10px] px-[18px] pt-[18px] pb-[10px]">
+            {folderSheet && (
+              <span className="shrink-0 flex items-center justify-center size-[36px] rounded-[10px] bg-muted">
+                <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folderSheet.color} /></svg>
+              </span>
+            )}
+            <DrawerTitle className="flex-1 min-w-0 truncate" style={{ fontSize: 15, fontWeight: 600 }}>{folderSheet?.name}</DrawerTitle>
+            <button onClick={() => setFolderSheet(null)} aria-label="Close" className="-mr-[4px] size-[32px] rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
+              <Icon icon={X} className="size-[18px]" strokeWidth={2} />
+            </button>
+          </div>
+          <div className="px-[10px] pt-[4px] flex flex-col" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
+            <button onClick={() => { const f = folderSheet; setFolderSheet(null); if (f) onOpenFolder?.(f.id); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
+              <Icon icon={FolderOpen} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
+              <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Open folder</span>
+            </button>
+            <button onClick={() => { const f = folderSheet; setFolderSheet(null); setSharingInlineFolder(f); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
+              <Icon icon={Share} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
+              <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Share folder</span>
+            </button>
+            <button onClick={() => { const f = folderSheet; setFolderSheet(null); setEditingInlineFolder(f); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
+              <Icon icon={Edit} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
+              <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Rename</span>
+            </button>
+            <button onClick={() => { const f = folderSheet; setFolderSheet(null); if (f) setDeletingInlineFolderId(f.id); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-destructive/10 transition-colors text-left">
+              <Icon icon={Trash} className="size-[19px] text-destructive" strokeWidth={1.7} />
+              <span className="flex-1 text-destructive" style={{ fontSize: 14, fontWeight: 500 }}>Delete</span>
+            </button>
+          </div>
+        </DrawerContent>
+      </Drawer>
+
       {/* Mobile / tablet folder block (below lg): Google Drive pattern - a horizontally
           scrollable row of compact folder chips ABOVE the tab strip. */}
       <div className="lg:hidden">
@@ -1585,19 +1629,77 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             {inlineFolders.map((folder) => {
               const fcount = mobileFolderCounts.get(folder.id) ?? 0;
               return (
-                <button key={"mf-" + folder.id} type="button" onClick={() => onOpenFolder?.(folder.id)} className="group flex w-full items-center gap-[12px] px-[14px] py-[12px] rounded-[14px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left">
-                  <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
-                    <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
-                  </span>
-                  <span className="min-w-0 flex flex-1 flex-col gap-[3px]">
-                    <span className="flex min-w-0 items-center gap-[6px]">
-                      <span className="truncate font-medium text-[14px] leading-[19px] text-foreground">{folder.name}</span>
-                      {SHARED_FOLDER_IDS.has(folder.id) && <SharedBadge />}
+                <div
+                  key={"mf-" + folder.id}
+                  className="group flex w-full items-center gap-[12px] px-[14px] py-[12px] rounded-[14px] bg-card border border-border/60 transition-colors"
+                >
+                  {/* Opening the folder and acting on it are two buttons side by
+                      side, not a button inside a button: nesting them made the
+                      card answer to the menu's own name. */}
+                  <button
+                    type="button"
+                    onClick={() => onOpenFolder?.(folder.id)}
+                    className="flex min-w-0 flex-1 items-center gap-[12px] rounded-[10px] text-left active:opacity-70 transition-opacity"
+                  >
+                    <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
+                      <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
                     </span>
-                    <span className="text-[11px] leading-[14px] text-muted-foreground">{t(fcount === 1 ? "folder.fileOne" : "folder.fileOther", fcount)}</span>
-                  </span>
-                  <Icon icon={ChevronRight} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={2} />
-                </button>
+                    <span className="min-w-0 flex flex-1 flex-col gap-[3px]">
+                      <span className="flex min-w-0 items-center gap-[6px]">
+                        <span className="truncate font-medium text-[14px] leading-[19px] text-foreground">{folder.name}</span>
+                        {SHARED_FOLDER_IDS.has(folder.id) && <SharedBadge />}
+                      </span>
+                      <span className="text-[11px] leading-[14px] text-muted-foreground">{t(fcount === 1 ? "folder.fileOne" : "folder.fileOther", fcount)}</span>
+                    </span>
+                  </button>
+                  {/* A folder's actions sit behind the same three dots a record
+                      card carries, so both kinds of card answer "what can I do
+                      with this" the same way. The chevron said only "it opens",
+                      which left sharing a folder with no visible way in. */}
+                  {isPhone ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Folder actions"
+                      onClick={() => setFolderSheet(folder)}
+                      className="size-[32px] shrink-0 text-muted-foreground"
+                    >
+                      <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={1.8} />
+                    </Button>
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Folder actions"
+                          className="size-[32px] shrink-0 text-muted-foreground"
+                        >
+                          <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={1.8} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[190px]">
+                        <DropdownMenuItem className="gap-2" onSelect={() => onOpenFolder?.(folder.id)}>
+                          <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                          Open folder
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2" onSelect={() => setSharingInlineFolder(folder)}>
+                          <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                          Share folder
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2" onSelect={() => setEditingInlineFolder(folder)}>
+                          <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive" className="gap-2" onSelect={() => setDeletingInlineFolderId(folder.id)}>
+                          <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -1611,7 +1713,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
           <>
             <div className="grid grid-cols-1 gap-[10px]">
               {pagedRecords.map((record) => (
-                <RecordCardMobile key={record.id} record={record} isTrash={activeTab === "Trash"} selected={selectedRows.has(record.id)} selectionMode={hasSelection} onToggleSelect={() => toggleRow(record.id)} />
+                <RecordCardMobile key={record.id} record={record} isTrash={activeTab === "Trash"} selected={selectedRows.has(record.id)} selectionMode={hasSelection} isShared={sharedIds.has(record.id)} onToggleSelect={() => toggleRow(record.id)} />
               ))}
             </div>
             <PaginationBar compact total={filteredRecords.length} page={safePage} pageSize={pageSize} onPage={setPage} onPageSize={(n) => { setPageSize(n); setPage(1); }} />
@@ -1932,14 +2034,17 @@ function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected
   const dateVisible = visibleColumns.includes("date");
   const rowBg = isSelected && !isTrash ? "bg-primary/5" : "";
   const hoverBg = "var(--accent)";
-  // Color for the actions overlay background - matches the current row state
-  const actionsBg = isSelected ? "#f0f4ff" : hoverBg;
+  /* Hovering a row shows its actions; it no longer tints the row, and the fade
+     that keeps a long title from running under those actions is white to match.
+     The two have to agree - a white fade over a tinted row is a white patch,
+     and a tinted fade over a white row is the grey block this replaces. */
+  const actionsBg = isSelected ? "#f0f4ff" : "var(--card)";
   const [showSummary, setShowSummary] = useState(false);
   const summaryTimer = useRef<ReturnType<typeof setTimeout>>();
   const shortSummary = record.summary.length > 120 ? record.summary.slice(0, 120) + "\u2026" : record.summary;
 
   return (
-    <div draggable={!!onRowDragStart} onDragStart={onRowDragStart} onDragEnd={onRowDragEnd} className={`flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer relative border-b border-border ${isTrash ? "opacity-60 hover:opacity-80" : "hover:bg-accent"} ${rowBg} ${rowDragging ? "opacity-40" : ""}`} onMouseEnter={(e) => { onMouseEnter(); summaryTimer.current = setTimeout(() => setShowSummary(true), 600); }} onMouseLeave={(e) => { onMouseLeave(); clearTimeout(summaryTimer.current); setShowSummary(false); }} onDoubleClick={onDoubleClick}>
+    <div draggable={!!onRowDragStart} onDragStart={onRowDragStart} onDragEnd={onRowDragEnd} className={`flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer relative border-b border-border ${isTrash ? "opacity-60 hover:opacity-80" : ""} ${rowBg} ${rowDragging ? "opacity-40" : ""}`} onMouseEnter={(e) => { onMouseEnter(); summaryTimer.current = setTimeout(() => setShowSummary(true), 600); }} onMouseLeave={(e) => { onMouseLeave(); clearTimeout(summaryTimer.current); setShowSummary(false); }} onDoubleClick={onDoubleClick}>
       {/* Summary hover card */}
       {showSummary && record.summary && !isEditing && (
         <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+6px)] z-[60] pointer-events-none" style={{ animation: "fadeInUp 0.2s ease" }}>
@@ -1961,7 +2066,10 @@ function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected
         ) : (
           <div className="flex items-center gap-[6px] min-w-0 flex-1">
             <p className="truncate min-w-0 leading-[20px] font-medium text-[14px] text-foreground tracking-[-0.154px]">{record.name}</p>
-            {!isTrash && !isHovered && (SHARED_BY[record.id] ? <SharedBadge owner={SHARED_BY[record.id]} /> : isShared ? <SharedBadge /> : null)}
+            {/* One mark, one meaning: other people can see this. Who shared
+                something WITH you is answered by the Owner column on Shared
+                with me, not by a second pill of the same shape here. */}
+            {!isTrash && !isHovered && isShared && <SharedBadge />}
           </div>
         )}
         {/* Actions overlay - appears at right edge of name cell on hover */}

@@ -19,6 +19,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/app/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerTitle,
+} from "@/app/components/ui/drawer";
 import { Button } from "@/app/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { ScrollArea } from "@/app/components/ui/scroll-area";
@@ -304,18 +310,10 @@ export function ShareDialog({
     return <UpgradeGateModal open={open} onOpenChange={onOpenChange} variant="share" />;
   }
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={isMobile ? "max-w-[calc(100%-1rem)] gap-4" : "sm:max-w-[520px] gap-4"}
-      >
-        <DialogHeader>
-          <DialogTitle className="pr-6 text-left">{dialogTitle}</DialogTitle>
-          <DialogDescription className="sr-only">
-            {t(isFolder ? "share.folderDesc" : "share.recordDesc")}
-          </DialogDescription>
-        </DialogHeader>
-
+  /* Everything under the title, so the phone and the desktop show the same
+     dialog in the shell each platform actually uses. */
+  const body = (
+    <>
         {/* 2. Who this is open to. The default is the closed one, so nothing
             leaves the account until the owner says so. */}
         <Tabs value={mode} onValueChange={handleModeChange}>
@@ -359,14 +357,13 @@ export function ShareDialog({
             {t("share.peopleWithAccess")}
           </p>
 
+          {/* The owner row is always here, so the list is never empty and the
+              account reading the dialog is always named in it. There is no
+              separate "only you have access" line: the list already says it. */}
           {loading ? (
             <ListSkeleton />
           ) : listError ? (
             <ListError />
-          ) : people.length === 0 ? (
-            <p className="px-1 py-3 text-[13px] text-muted-foreground">
-              {t("share.onlyYouHaveAccess")}
-            </p>
           ) : (
             <ScrollArea
               /* The bar stays out rather than appearing on hover: a list that is
@@ -406,6 +403,53 @@ export function ShareDialog({
             </ScrollArea>
           )}
         </div>
+    </>
+  );
+
+  /* On a phone this is a sheet pinned to the bottom edge, the full width of the
+     screen - the shape every other sheet in the product already has. A centred
+     card floating in the middle of a phone is not how this app talks. */
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="[&>div:first-child]:hidden">
+          <div className="flex items-start gap-2 px-5 pt-5 pb-1">
+            <DrawerTitle className="flex-1 text-left text-[16px] font-semibold leading-[22px]">
+              {dialogTitle}
+            </DrawerTitle>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              aria-label="Close"
+              className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+            >
+              <Icon icon={Cancel01Icon} size={18} />
+            </button>
+          </div>
+          <DrawerDescription className="sr-only">
+            {t(isFolder ? "share.folderDesc" : "share.recordDesc")}
+          </DrawerDescription>
+          <div
+            className="flex flex-col gap-4 px-5 pt-3"
+            style={{ paddingBottom: "calc(20px + env(safe-area-inset-bottom))" }}
+          >
+            {body}
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[520px] gap-4">
+        <DialogHeader>
+          <DialogTitle className="pr-6 text-left">{dialogTitle}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {t(isFolder ? "share.folderDesc" : "share.recordDesc")}
+          </DialogDescription>
+        </DialogHeader>
+        {body}
       </DialogContent>
     </Dialog>
   );
@@ -610,7 +654,12 @@ function PersonRow({
       </Avatar>
 
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="min-w-0 truncate text-[13px] text-foreground">{label}</span>
+        {/* The account reading the dialog is named, so the first row is never a
+            stranger with the same face as everyone else. */}
+        <span className="min-w-0 truncate text-[13px] text-foreground">
+          {label}
+          {owner && <span className="text-muted-foreground"> (you)</span>}
+        </span>
         {badge && (
           <span
             className={`shrink-0 rounded-full px-2 py-[2px] text-[11px] leading-[16px] ${
@@ -625,24 +674,28 @@ function PersonRow({
       </div>
 
       {owner ? (
-        <span className="shrink-0 pr-1 text-[12px] text-muted-foreground">
+        <span className="shrink-0 pr-[7px] text-[12px] text-muted-foreground">
           {t("share.owner")}
         </span>
       ) : (
+        /* Two slots on every row, both always reserved: remove is the last one,
+           so it is at the same x whatever else the row carries, and resend
+           always lands immediately to its left rather than sliding into the
+           remove column on the one row that has it. */
         <div className="flex shrink-0 items-center gap-0.5">
-          {person.state === "failed" && (
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={t("share.resend")}
-              title={t("share.resend")}
-              /* A bounced letter is the one row that carries a way out, so the
-                 way out is not hidden behind a hover. */
-              className="size-7 rounded-full text-muted-foreground hover:text-foreground"
-            >
-              <Icon icon={ArrowReloadHorizontalIcon} size={14} />
-            </Button>
-          )}
+          <span className="inline-flex size-7 shrink-0 items-center justify-center">
+            {person.state === "failed" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={t("share.resend")}
+                title={t("share.resend")}
+                className="size-7 rounded-full text-muted-foreground hover:text-foreground"
+              >
+                <Icon icon={ArrowReloadHorizontalIcon} size={14} />
+              </Button>
+            )}
+          </span>
           <Button
             variant="ghost"
             size="icon"
@@ -650,8 +703,10 @@ function PersonRow({
             title={t("share.removeAccess")}
             disabled={busy}
             onClick={onRemove}
+            /* A bounced invite is the one row that carries a way out, so both
+               of its controls stand without waiting to be hovered. */
             className={`size-7 rounded-full text-muted-foreground hover:text-destructive ${
-              revealed || busy ? "" : "opacity-0 group-hover:opacity-100"
+              revealed || busy || person.state === "failed" ? "" : "opacity-0 group-hover:opacity-100"
             }`}
           >
             <Icon

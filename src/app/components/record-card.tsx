@@ -38,7 +38,7 @@ import { useFolders } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { ShareDialog } from "./share-dialog";
 import { ExportDialog } from "./export-dialog";
-import { LanguageBadge, MoveToFolderDialog, recordRowToExportable, type RecordRow, FigmaCheckbox, INLINE_FOLDER_PATH } from "./records-table";
+import { LanguageBadge, MoveToFolderDialog, recordRowToExportable, type RecordRow, FigmaCheckbox, INLINE_FOLDER_PATH, SharedBadge } from "./records-table";
 
 /* A single recording rendered as a card (mobile + tablet replacement for the
    desktop records table). The whole card opens the transcript; the kebab
@@ -77,7 +77,7 @@ export interface CardOwner { name: string; tint: string; ink: string; avatar?: s
 /* `owner` marks the card as somebody else's. It shows who it came from and takes
    away every action that would change their record: sharing it on, renaming it,
    throwing it away. What is left is what a reader is allowed to do. */
-export function RecordCard({ record, isTrash = false, selected = false, selectionMode = false, onToggleSelect, owner, onRemoveShared }: { record: RecordRow; isTrash?: boolean; selected?: boolean; selectionMode?: boolean; onToggleSelect?: () => void; owner?: CardOwner; onRemoveShared?: () => void }) {
+export function RecordCard({ record, isTrash = false, selected = false, selectionMode = false, isShared = false, onToggleSelect, owner, onRemoveShared }: { record: RecordRow; isTrash?: boolean; selected?: boolean; selectionMode?: boolean; isShared?: boolean; onToggleSelect?: () => void; owner?: CardOwner; onRemoveShared?: () => void }) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { t } = useLanguage();
@@ -144,7 +144,14 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
-        <p className="truncate text-foreground" style={{ fontWeight: 500, fontSize: 14, lineHeight: "19px" }}>{displayName}</p>
+        {/* The same mark the desktop row carries. A card that drops it makes
+            the phone say less about the object than the table does. It never
+            shows on Shared with me, where the owner line already says who can
+            see this and the mark would be a second answer to one question. */}
+        <div className="flex min-w-0 items-center gap-[6px]">
+          <p className="truncate text-foreground" style={{ fontWeight: 500, fontSize: 14, lineHeight: "19px" }}>{displayName}</p>
+          {isShared && !owner && !isTrash && <SharedBadge />}
+        </div>
         <div className="flex items-center gap-[8px] mt-[3px] text-muted-foreground" style={{ fontSize: 12, lineHeight: "16px" }}>
           <span className="inline-flex items-center gap-[4px] shrink-0 whitespace-nowrap">
             <Icon icon={Clock} className="size-[12px]" strokeWidth={1.7} />

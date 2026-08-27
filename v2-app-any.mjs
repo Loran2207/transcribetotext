@@ -201,6 +201,26 @@ if (state.startsWith("planstatus_")) {
     await p.getByRole("button", { name: /delete all/i }).first().click({ force: true });
     await p.waitForTimeout(900);
   }
+} else if (state === "entry_result_menu") {
+  /* On a phone the header has no room for Share, so it sits in the actions
+     sheet. The sheet only exists at the real width, so shrink first. */
+  await set("ttt_plan", "pro");
+  await p.evaluate(() => { history.pushState({}, "", "/transcriptions/2"); window.dispatchEvent(new PopStateEvent("popstate")); });
+  await p.waitForTimeout(2600);
+  await p.setViewportSize({ width, height: DEVICE_H });
+  await p.waitForTimeout(900);
+  await p.getByRole("button", { name: /more actions/i }).filter({ visible: true }).last().click({ force: true, timeout: 8000 });
+  await p.waitForTimeout(900);
+} else if (state === "entry_folder_menu") {
+  /* Below lg a folder is a card with its own three dots: a menu on a tablet,
+     the product's bottom sheet on a phone. Same click for both. */
+  await set("ttt_plan", "pro");
+  await p.getByText("My Records", { exact: true }).filter({ visible: true }).first().click({ force: true });
+  await p.waitForTimeout(1800);
+  await p.setViewportSize({ width, height: DEVICE_H });
+  await p.waitForTimeout(900);
+  await p.getByRole("button", { name: /folder actions/i }).filter({ visible: true }).first().click({ force: true, timeout: 8000 });
+  await p.waitForTimeout(900);
 } else if (state.startsWith("entry_")) {
   /* Where the Share control lives, shown in the context it lives in. */
   await set("ttt_plan", "pro");
@@ -303,16 +323,15 @@ if (state.startsWith("planstatus_")) {
 
   if (state.startsWith("sharefolder_")) {
     await p.getByText("My Records", { exact: true }).filter({ visible: true }).first().click({ force: true });
-    await p.waitForTimeout(1600);
-    const card = p.locator('[data-qa-label="folder-card"]').first();
-    if (await card.count()) {
-      await card.hover();
-      await p.waitForTimeout(300);
-      await card.locator("button").last().click({ force: true });
-      await p.waitForTimeout(600);
-      await p.getByRole("menuitem", { name: /^share$/i }).first().click({ force: true });
-    }
-    await p.waitForTimeout(1000);
+    await p.waitForTimeout(1800);
+    /* The folder card's own menu. The old version looked for a data attribute
+       that does not exist and guarded the miss with `if (count())`, so every
+       folder frame came out as the plain My Records page with no dialog on it
+       at all. Not finding the control is a failed capture, not a frame to keep. */
+    await p.getByRole("button", { name: /folder actions/i }).filter({ visible: true }).first().click({ force: true, timeout: 8000 });
+    await p.waitForTimeout(700);
+    await p.getByRole("menuitem", { name: /share folder/i }).first().click({ force: true, timeout: 8000 });
+    await p.waitForTimeout(1300);
   } else {
     await p.evaluate(() => {
       history.pushState({}, "", "/transcriptions/2");
