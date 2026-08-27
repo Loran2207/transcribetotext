@@ -3542,7 +3542,7 @@ export function TranscriptionDetailPage() {
         <Drawer open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
           <DrawerContent className="lg:hidden [&>div:first-child]:hidden">
             <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Actions</DrawerTitle><button type="button" onClick={() => setMoreSheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
-            <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
+            <div className="px-1 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
               {sharedOwner ? (
                 <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60">
                   <Icon icon={Cancel01Icon} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Remove from Shared with me

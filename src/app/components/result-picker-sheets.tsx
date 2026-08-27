@@ -56,7 +56,7 @@ export function LanguageSheet({
           <DrawerTitle>Translate to</DrawerTitle>
           <CloseButton onClick={() => onOpenChange(false)} />
         </DrawerHeader>
-        <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
+        <div className="px-1 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
           {languages.map((l) => {
             const isActive = activeLang === l.code;
             return (
@@ -168,7 +168,7 @@ export function TemplateSheet({
               />
             </div>
           </div>
-          <div className="px-2 flex-1 overflow-y-auto">
+          <div className="px-1 flex-1 overflow-y-auto">
             <button
               type="button"
               onClick={() => { onSelect(null); setOpen(false); }}

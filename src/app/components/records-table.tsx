@@ -149,7 +149,10 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="Share" onClick={(e) => { e.stopPropagation(); onShare(); }}>
         {/* The same glyph the result page's Share button carries. This row used
             to draw its own three-node icon, so one action had two faces. */}
-        <Icon icon={Share} className="size-[15px] text-muted-foreground" strokeWidth={1.2} />
+        {/* Its neighbours in this row are hand-drawn on a 16 grid, this one comes
+            from the icon pack on a 24 grid: the same number renders a third
+            thinner. 1.8 on 24 is the 1.2 the others draw on 16. */}
+        <Icon icon={Share} className="size-[15px] text-muted-foreground" strokeWidth={1.8} />
       </Button>
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title={isStarred ? "Unstar" : "Star"} onClick={(e) => { e.stopPropagation(); onStar(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={isStarred ? "" : "text-muted-foreground"} /></svg>
@@ -1526,7 +1529,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
               <Icon icon={X} className="size-[18px]" strokeWidth={2} />
             </button>
           </div>
-          <div className="px-[10px] pt-[4px] flex flex-col" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
+          <div className="px-[14px] pt-[4px] flex flex-col" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
             <button onClick={() => { const f = folderSheet; setFolderSheet(null); if (f) onOpenFolder?.(f.id); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
               <Icon icon={FolderOpen} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
               <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Open folder</span>

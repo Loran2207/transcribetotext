@@ -764,7 +764,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             {activeFolder && <svg className="size-[22px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={FOLDER_PATH} fill={activeFolder.color} /></svg>}
             <DrawerTitle className="flex-1 min-w-0 truncate" style={{ fontSize: 15, fontWeight: 600 }}>{activeFolder?.name}</DrawerTitle>
           </div>
-          <div className="px-[10px] pb-[calc(16px+env(safe-area-inset-bottom))] pt-[4px] flex flex-col">
+          <div className="px-[14px] pb-[calc(16px+env(safe-area-inset-bottom))] pt-[4px] flex flex-col">
             <button onClick={() => { setFolderActionsOpen(false); if (activeFolder) setEditingFolder(activeFolder); }} className="flex items-center gap-[13px] h-[52px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
               <Icon icon={Edit} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
               <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Edit folder</span>
@@ -787,7 +787,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
           <div className="px-[18px] pt-[18px] pb-[10px]">
             <DrawerTitle style={{ fontSize: 18, fontWeight: 600 }}>Add file to folder</DrawerTitle>
           </div>
-          <div className="px-[16px] pb-[24px] flex flex-col gap-[8px]">
+          <div className="px-[18px] pb-[24px] flex flex-col gap-[8px]">
             <button key="upload" onClick={() => { setFolderAddOpen(false); openModalInFolder("upload"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
               <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#ECEAFE", color: "#7C3AED" }}>
                 <Icon icon={Upload} className="size-[20px]" strokeWidth={1.9} />
