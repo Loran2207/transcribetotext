@@ -278,7 +278,10 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
             </div>
 
             {/* Action tiles - same bordered style as the result-page tiles (one component look) */}
-            <div className="grid grid-cols-4 gap-[8px] px-[16px] pt-[4px] pb-[10px]">
+            {/* 18 is this sheet's one left edge: the title's own padding. The
+                header starts with a filled tile whose ink fills its box, so
+                everything below aligns box to box, not ink to ink. */}
+            <div className="grid grid-cols-4 gap-[8px] px-[18px] pt-[4px] pb-[10px]">
               {[
                 { key: "copy", icon: Copy, label: t("sheet.copy"), run: doCopy },
                 { key: "move", icon: FolderOpen, label: t("sheet.moveTo"), run: () => setMoveOpen(true) },
@@ -296,9 +299,9 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
               ))}
             </div>
 
-            <div className="h-px mx-[16px] bg-border" />
+            <div className="h-px mx-[18px] bg-border" />
 
-            <div className="px-[10px] py-[8px] flex flex-col" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
+            <div className="px-[6px] py-[8px] flex flex-col" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
               {!owner && (
                 <button onClick={() => { setSheetOpen(false); setRenameOpen(true); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
                   <Icon icon={Edit} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />

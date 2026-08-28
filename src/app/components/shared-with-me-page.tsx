@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { ChevronRight, StarIcon, Upload, X } from "@hugeicons/core-free-icons";
 
@@ -14,11 +14,14 @@ import {
   LanguageBadge,
   PaginationBar,
   EmptyFilterState,
+  MobileBulkBar,
+  MSActionBtn,
   INLINE_FOLDER_PATH,
   typeFilterOptions,
   records as allRecords,
   type RecordRow,
 } from "@/app/components/records-table";
+import { setFabHidden } from "@/app/components/fab-visibility";
 import { MobileSortFilter } from "@/app/components/records-mobile-sort";
 import { useLanguage } from "@/app/components/language-context";
 import { useStarred } from "@/app/components/starred-context";
@@ -118,6 +121,11 @@ export function SharedWithMePage() {
   const allSelected = paged.length > 0 && paged.every((i) => selected.has(i.record.id));
   const loading = scene === "loading";
 
+  /* The bar takes the bottom edge, so the "+" steps aside while it is there -
+     the same trade My Records already makes. */
+  const hasSelection = selected.size > 0;
+  useEffect(() => { setFabHidden(hasSelection, "select"); return () => setFabHidden(false, "select"); }, [hasSelection]);
+
   function clearFilters() {
     setSearch("");
     setOwnerFilter(new Set());
@@ -216,18 +224,6 @@ export function SharedWithMePage() {
 
             {/* ── Phone and tablet: the same cards My Records uses ── */}
             <div className="lg:hidden">
-              {/* Selecting cards has to lead somewhere here too, or the
-                  checkboxes are a gesture with no outcome. */}
-              {selected.size > 0 && (
-                <div className="mb-[10px] rounded-[10px] px-[6px]">
-                  <SharedBulkBar
-                    count={selected.size}
-                    onCancel={() => setSelected(new Set())}
-                    onExport={() => setSelected(new Set())}
-                    onRemove={() => setSelected(new Set())}
-                  />
-                </div>
-              )}
               {filtered.length === 0 ? (
                 hasFilters ? <NothingFound query={search} onClear={clearFilters} /> : <EmptyShared />
               ) : (
@@ -252,7 +248,11 @@ export function SharedWithMePage() {
 
             {/* ── Desktop table ── */}
             <div className="hidden lg:block">
-              <div className="w-full border-b border-border bg-card">
+              {/* The table draws both of its own outer edges. On My Records the
+                  tab strip's underline is the line above the column headings;
+                  this page has no tabs, so without a top border the headings
+                  float with nothing over them. */}
+              <div className="w-full border-y border-border bg-card">
                 {selected.size > 0 ? (
                   <SharedBulkBar
                     count={selected.size}
@@ -317,6 +317,19 @@ export function SharedWithMePage() {
           </>
         )}
       </div>
+
+      {/* Below 1024 the selection is answered by the floating bar the product
+          already uses on My Records - same shell, same close cross, same count,
+          only the actions differ, because a reader may take the text away or
+          take the row off their own list and nothing more. */}
+      {hasSelection && (
+        <MobileBulkBar count={selected.size} onCancel={() => setSelected(new Set())}>
+          <MSActionBtn icon={Upload} label={t("shared.exportText")} onClick={() => setSelected(new Set())} />
+          {/* The compact form of the row's own "Remove from Shared with me",
+              in the words the folder header already uses: from MY list. */}
+          <MSActionBtn icon={X} label={t("shared.removeFromMyList")} onClick={() => setSelected(new Set())} />
+        </MobileBulkBar>
+      )}
     </div>
   );
 }
@@ -422,10 +435,9 @@ function SharedBulkBar({ count, onCancel, onExport, onRemove }: {
   count: number; onCancel: () => void; onExport: () => void; onRemove: () => void;
 }) {
   const { t } = useLanguage();
-  /* One line where it fits, two where it does not: on a phone the two actions
-     are what the bar is for, so they wrap rather than truncate. */
+  /* Desktop only: below 1024 the same selection is answered by MobileBulkBar. */
   return (
-    <div className="flex min-h-[36px] flex-wrap items-center gap-x-[4px] gap-y-[2px] py-[3px] lg:flex-nowrap lg:py-0 bg-primary/5" style={{ borderBottom: "1px solid hsl(var(--primary) / 0.2)" }}>
+    <div className="flex h-[36px] items-center gap-[4px] bg-primary/5" style={{ borderBottom: "1px solid hsl(var(--primary) / 0.2)" }}>
       <div className="flex w-[40px] shrink-0 items-center justify-center">
         <FigmaCheckbox checked onChange={onCancel} />
       </div>
@@ -576,7 +588,7 @@ function SharedFolderView({ folder, onBack }: { folder: SharedFolderItem; onBack
               </div>
             </div>
             <div className="hidden lg:block">
-              <div className="w-full border-b border-border bg-card">
+              <div className="w-full border-y border-border bg-card">
                 <div className="flex h-[36px] items-center border-b border-border">
                   <div className="w-[40px] shrink-0" />
                   <div className="flex min-w-0 flex-[2.2] items-center px-[12px]">

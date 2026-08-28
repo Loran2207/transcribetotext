@@ -37,7 +37,7 @@ import { UpgradeGateModal } from "@/app/components/upgrade-gate-modal";
 import { useLanguage } from "@/app/components/language-context";
 import { useUserProfile } from "@/app/components/user-profile-context";
 import { useShares } from "@/hooks/use-shares";
-import { useIsMobile } from "@/app/components/ui/use-mobile";
+import { useIsMobile, useIsPhone } from "@/app/components/ui/use-mobile";
 import { getInitials } from "@/lib/format";
 import { sendShareInvitationEmails, getShareStatus } from "@/lib/shares";
 import type { ResourceType, Share } from "@/lib/shares";
@@ -96,7 +96,12 @@ export function ShareDialog({
   const plan = usePlan();
   const { t } = useLanguage();
   const { displayName, avatarSrc } = useUserProfile();
-  const isMobile = useIsMobile();
+  /* Sharing is a form, and the product already settled what a form does at each
+     width: a tablet gets the centred card (its Delete forever confirmation is
+     one), a phone gets the bottom sheet. Menus and pickers are the other case -
+     they stay sheets on a tablet too - so this asks the phone question, not the
+     layout one. */
+  const isPhone = useIsPhone();
   const prefersReducedMotion = useReducedMotion();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -329,7 +334,7 @@ export function ShareDialog({
             value={chipInputValue}
             error={emailError}
             sending={isSending}
-            stacked={isMobile}
+            stacked={isPhone}
             inputRef={inputRef}
             reduced={Boolean(prefersReducedMotion)}
             onChange={(v) => {
@@ -345,7 +350,7 @@ export function ShareDialog({
         ) : (
           <LinkField
             url={linkUrl}
-            stacked={isMobile}
+            stacked={isPhone}
             error={linkError}
             onCopy={handleCopyLink}
           />
@@ -409,7 +414,7 @@ export function ShareDialog({
   /* On a phone this is a sheet pinned to the bottom edge, the full width of the
      screen - the shape every other sheet in the product already has. A centred
      card floating in the middle of a phone is not how this app talks. */
-  if (isMobile) {
+  if (isPhone) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="[&>div:first-child]:hidden">
@@ -480,11 +485,12 @@ function InviteField({
   const { t } = useLanguage();
   const empty = chips.length === 0 && value.trim().length === 0;
 
-  /* The field grows with the addresses put into it and then stops: past three
-     rows it scrolls, so the list of people underneath keeps its place instead
-     of being pushed off the bottom of the dialog. */
+  /* The field grows with the addresses put into it. A phone has the height to
+     spare, so a handful of people are all on screen at once rather than behind
+     a scrollbar three rows down; the ceiling is six rows, and only past that
+     does it scroll so the list of people underneath keeps its place. */
   const fieldClass =
-    "flex-1 flex flex-wrap content-start items-center gap-1.5 overflow-y-auto rounded-[12px] border border-input bg-input-background min-h-[42px] max-h-[100px] px-2.5 py-2 cursor-text";
+    "flex-1 flex flex-wrap content-start items-center gap-1.5 overflow-y-auto rounded-[12px] border border-input bg-input-background min-h-[42px] max-h-[204px] px-2.5 py-2 cursor-text";
 
   return (
     <div className="space-y-1.5">

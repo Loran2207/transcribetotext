@@ -15,6 +15,7 @@
 const INK = "#09090b";
 const MUTED = "#71717b";
 const BORDER = "#e4e4e7";
+const SOFT = "#fafafa";
 const PRIMARY = "#1447e6";
 const PRIMARY_INK = "#eff6ff";
 const FONT =
@@ -56,13 +57,19 @@ export function buildShareEmail(i: ShareEmailInput): string {
   const logo = i.logoUrl ?? "/images/logo-full.svg";
 
   /* The one line that differs between a person who has an account and a person
-     who does not. It is placed under the name, where the reader is already
-     looking, rather than in the footer where nobody reads. */
+     who does not. It sits under the button, so the reader meets the way in
+     first and the condition second. */
   const gate = i.registered
     ? ""
-    : `<tr><td style="padding:0 0 4px 0;font:400 14px/21px ${FONT};color:${MUTED};">
+    : `<tr><td style="padding:12px 0 0 0;font:400 13px/20px ${FONT};color:${MUTED};">
          You will need a free account to open it. It takes a minute.
        </td></tr>`;
+
+  /* What the reader is actually being handed, drawn as an object rather than
+     printed as a headline: a quiet card carrying the kind and the name. The
+     letter still says nothing about what is inside - no transcript, no summary,
+     no speakers, no duration - so a mailbox stays a mailbox. */
+  const kindLabel = i.kind === "folder" ? "Folder" : "Record";
 
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -73,52 +80,60 @@ export function buildShareEmail(i: ShareEmailInput): string {
   <!--[if mso]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
          style="width:100%;max-width:600px;background:#ffffff;border:1px solid ${BORDER};border-radius:16px;">
-   <tr><td style="padding:28px 32px 0 32px;">
-     <img src="${esc(logo)}" alt="Transcribe To Text" width="150" style="display:block;height:20px;width:auto;border:0;">
+   <!-- Top band: the letter has a head, so the body reads as a body. -->
+   <tr><td style="padding:22px 32px 20px 32px;border-bottom:1px solid ${BORDER};">
+     <img src="${esc(logo)}" alt="Transcribe To Text" width="150" style="display:block;height:19px;width:auto;border:0;">
    </td></tr>
 
-   <tr><td style="padding:24px 32px 0 32px;">
+   <!-- Who, and what they did, as one block: the sentence belongs under the
+        name it is about, not floating between two other things. -->
+   <tr><td style="padding:30px 32px 0 32px;">
      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
       <tr>
-       <td width="40" style="width:40px;">
+       <td width="44" valign="top" style="width:44px;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0"
-               style="width:40px;height:40px;background:${i.senderTint};border-radius:20px;">
-         <tr><td align="center" style="font:500 14px/40px ${FONT};color:${i.senderInk};height:40px;">
+               style="width:44px;height:44px;background:${i.senderTint};border-radius:22px;">
+         <tr><td align="center" style="font:600 15px/44px ${FONT};color:${i.senderInk};height:44px;">
            ${esc(i.senderInitials)}
          </td></tr>
         </table>
        </td>
-       <td style="padding-left:12px;font:600 15px/20px ${FONT};color:${INK};">
-        ${esc(i.senderName)}
+       <td valign="top" style="padding-left:14px;">
+        <div style="font:600 16px/22px ${FONT};color:${INK};">${esc(i.senderName)}</div>
+        <div style="padding-top:2px;font:400 14px/20px ${FONT};color:${MUTED};">shared ${what} with you</div>
        </td>
       </tr>
      </table>
    </td></tr>
 
-   <tr><td style="padding:14px 32px 0 32px;font:400 14px/21px ${FONT};color:${MUTED};">
-     shared ${what} with you
+   <!-- The thing itself, as an object you could pick up. -->
+   <tr><td style="padding:22px 32px 0 32px;">
+     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+            style="width:100%;background:${SOFT};border:1px solid ${BORDER};border-radius:12px;">
+      <tr><td style="padding:16px 18px;">
+        <div style="font:500 12px/16px ${FONT};color:${MUTED};">${kindLabel}</div>
+        <div style="padding-top:4px;font:600 18px/25px ${FONT};color:${INK};letter-spacing:-0.2px;">
+          ${esc(i.resourceName)}
+        </div>
+      </td></tr>
+     </table>
    </td></tr>
 
-   <tr><td style="padding:4px 32px 0 32px;font:700 22px/30px ${FONT};color:${INK};letter-spacing:-0.3px;">
-     ${esc(i.resourceName)}
-   </td></tr>
-
-   <tr><td style="padding:18px 32px 0 32px;">
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0">${gate}
+   <tr><td style="padding:22px 32px 30px 32px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
      <tr><td>
       <a href="${esc(i.url)}"
          style="display:inline-block;background:${PRIMARY};color:${PRIMARY_INK};text-decoration:none;
-                padding:12px 24px;border-radius:999px;font:600 14px/18px ${FONT};">${cta}</a>
-     </td></tr>
+                padding:13px 26px;border-radius:999px;font:600 15px/19px ${FONT};">${cta}</a>
+     </td></tr>${gate}
     </table>
    </td></tr>
 
-   <tr><td style="padding:26px 32px 28px 32px;">
-     <div style="height:1px;background:${BORDER};line-height:1px;font-size:0;">&nbsp;</div>
-     <div style="padding-top:14px;font:400 12px/18px ${FONT};color:${MUTED};">
-       You are getting this because ${esc(i.senderName)} shared ${what} with this address.
-       Only people who have been given access can open it.
-     </div>
+   <!-- Bottom band: one sentence, in the words the dialog itself uses. -->
+   <tr><td style="padding:18px 32px;background:${SOFT};border-top:1px solid ${BORDER};
+                  border-radius:0 0 16px 16px;font:400 12px/18px ${FONT};color:${MUTED};">
+     You are getting this because ${esc(i.senderName)} shared it with this address.
+     Only invited people can open it.
    </td></tr>
   </table>
   <!--[if mso]></td></tr></table><![endif]-->

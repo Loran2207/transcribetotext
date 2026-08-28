@@ -343,15 +343,21 @@ function MultiSelectTextBtn({ icon, label, onClick, variant = "primary" }: { ico
 }
 
 export function MSActionBtn({ icon, label, onClick, destructive = false }: { icon: React.ComponentProps<typeof Icon>["icon"]; label: string; onClick: () => void; destructive?: boolean }) {
+  /* The box grows with its own word rather than clipping it or letting two
+     labels run into each other - min-w only sets the floor for short ones. */
   return (
-    <button type="button" onClick={onClick} className="flex flex-col items-center justify-center gap-[3px] min-w-[46px] h-[46px] rounded-[12px] active:bg-muted transition-colors">
+    <button type="button" onClick={onClick} className="flex flex-col items-center justify-center gap-[3px] min-w-[46px] h-[46px] px-[8px] rounded-[12px] active:bg-muted transition-colors">
       <Icon icon={icon} className={"size-[18px] " + (destructive ? "text-destructive" : "text-foreground")} strokeWidth={1.6} />
-      <span className={"text-[10px] leading-none font-medium " + (destructive ? "text-destructive" : "text-muted-foreground")}>{label}</span>
+      <span className={"whitespace-nowrap text-[10px] leading-none font-medium " + (destructive ? "text-destructive" : "text-muted-foreground")}>{label}</span>
     </button>
   );
 }
 
-function MobileMultiSelectBar({ count, onCancel, onCopySummary, onShare, onMoveFolder, onTrash }: { count: number; onCancel: () => void; onCopySummary: () => void; onShare: () => void; onMoveFolder: () => void; onTrash: () => void }) {
+/* The one bar a touch screen gets when rows are selected: it floats above the
+   list at the bottom edge, close cross and count on the left, the actions on
+   the right. Every list in the product mounts this same shell and names its own
+   actions inside it, so selecting rows feels identical wherever it happens. */
+export function MobileBulkBar({ count, onCancel, children }: { count: number; onCancel: () => void; children: React.ReactNode }) {
   return (
     <div className="lg:hidden fixed left-[12px] z-40" style={{ right: 12, bottom: "calc(16px + env(safe-area-inset-bottom))" }}>
       <div className="rounded-[18px] bg-card border border-border px-[8px] py-[7px] flex items-center gap-[2px]" style={{ boxShadow: "0 10px 30px -6px rgba(16,24,40,0.22), 0 2px 8px -2px rgba(16,24,40,0.12)" }}>
@@ -360,10 +366,7 @@ function MobileMultiSelectBar({ count, onCancel, onCopySummary, onShare, onMoveF
         </button>
         <span className="mr-[2px] min-w-[18px] text-center text-[14px] font-bold text-foreground tabular-nums">{count}</span>
         <div className="flex-1" />
-        <MSActionBtn icon={Copy} label="Summary" onClick={onCopySummary} />
-        <MSActionBtn icon={Share} label="Share" onClick={onShare} />
-        <MSActionBtn icon={FolderOpen} label="Folder" onClick={onMoveFolder} />
-        <MSActionBtn icon={Trash} label="Trash" onClick={onTrash} destructive />
+        {children}
       </div>
     </div>
   );
@@ -1139,10 +1142,12 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [deletingInlineFolderId, setDeletingInlineFolderId] = useState<string | null>(null);
   const [editingInlineFolder, setEditingInlineFolder] = useState<FolderItem | null>(null);
   /* Below lg a folder card carries its own actions, so it needs somewhere to
-     put them: a menu on a tablet, the product's bottom sheet on a phone. */
+     put them. A menu is a menu at every touch width - the product opens More
+     actions, Template, Copy and Sort and filter as bottom sheets on a tablet
+     too - so this is the layout question (1024), not the phone one. */
   const [sharingInlineFolder, setSharingInlineFolder] = useState<FolderItem | null>(null);
   const [folderSheet, setFolderSheet] = useState<FolderItem | null>(null);
-  const isPhone = useIsMobile();
+  const menuIsSheet = useIsMobile();
   const [renamingInlineFolderId, setRenamingInlineFolderId] = useState<string | null>(null);
   const [dragRecordId, setDragRecordId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
@@ -1443,7 +1448,14 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       <CreateFolderModal open={folderModalOpen} onClose={() => setFolderModalOpen(false)} onCreate={(name, color) => { addFolderToContext(name, color); }} />
       <ExportDialog open={!!exportDialogIds} onClose={() => setExportDialogIds(null)} records={(exportDialogIds ?? []).map((id) => displayRecords.find((r) => r.id === id)).filter((r): r is typeof displayRecords[number] => !!r).map(recordToExportable)} availableRecords={displayRecords.map(recordToExportable)} />
       <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={selectedRows.size} onMove={(folderId) => { assignToFolder(Array.from(selectedRows), folderId); clearSelection(); }} onCreateFolder={() => { setMoveDialogOpen(false); setFolderModalOpen(true); }} folders={userFolders} />
-      {hasSelection && (<MobileMultiSelectBar count={selectedRows.size} onCancel={clearSelection} onCopySummary={() => { const sep = String.fromCharCode(10, 10); const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => r.name + ": " + r.summary).join(sep); navigator.clipboard.writeText(texts); }} onShare={() => { const ids = Array.from(selectedRows); if (ids.length) setShareDialogRecord(ids[0]); }} onMoveFolder={() => setMoveDialogOpen(true)} onTrash={trashSelected} />)}
+      {hasSelection && (
+        <MobileBulkBar count={selectedRows.size} onCancel={clearSelection}>
+          <MSActionBtn icon={Copy} label="Summary" onClick={() => { const sep = String.fromCharCode(10, 10); const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => r.name + ": " + r.summary).join(sep); navigator.clipboard.writeText(texts); }} />
+          <MSActionBtn icon={Share} label="Share" onClick={() => { const ids = Array.from(selectedRows); if (ids.length) setShareDialogRecord(ids[0]); }} />
+          <MSActionBtn icon={FolderOpen} label="Folder" onClick={() => setMoveDialogOpen(true)} />
+          <MSActionBtn icon={Trash} label="Trash" onClick={trashSelected} destructive />
+        </MobileBulkBar>
+      )}
 
       {/* Hard-delete confirmation (permanent, bypasses Trash) */}
       <AlertDialog open={!!confirmDeleteIds} onOpenChange={(open) => { if (!open) setConfirmDeleteIds(null); }}>
@@ -1659,7 +1671,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                       card carries, so both kinds of card answer "what can I do
                       with this" the same way. The chevron said only "it opens",
                       which left sharing a folder with no visible way in. */}
-                  {isPhone ? (
+                  {menuIsSheet ? (
                     <Button
                       variant="ghost"
                       size="icon"

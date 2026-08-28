@@ -315,6 +315,7 @@ const dict: Record<string, Record<LangCode, string>> = {
   "shared.filterDate": { en: "Date", ru: "Дата", es: "Fecha", de: "Datum", fr: "Date", ja: "日付" },
   "shared.removeFromShared": { en: "Remove from Shared with me", ru: "Убрать из «Поделились со мной»", es: "Quitar de Compartido conmigo", de: "Aus Mit mir geteilt entfernen", fr: "Retirer de Partagé avec moi", ja: "共有されたアイテムから削除" },
   "shared.removeFolderFromShared": { en: "Remove folder from my list", ru: "Убрать папку у себя", es: "Quitar la carpeta de mi lista", de: "Ordner aus meiner Liste entfernen", fr: "Retirer le dossier de ma liste", ja: "フォルダを自分のリストから削除" },
+  "shared.removeFromMyList": { en: "Remove from my list", ru: "Убрать у себя", es: "Quitar de mi lista", de: "Aus meiner Liste entfernen", fr: "Retirer de ma liste", ja: "自分のリストから削除" },
   "shared.exportText": { en: "Export text", ru: "Экспорт текста", es: "Exportar texto", de: "Text exportieren", fr: "Exporter le texte", ja: "テキストを書き出す" },
   "shared.noRecordsFound": { en: "No records found", ru: "Ничего не найдено", es: "No se encontraron grabaciones", de: "Keine Aufnahmen gefunden", fr: "Aucun enregistrement trouvé", ja: "記録が見つかりません" },
   "shared.willAppearHere": { en: "Records shared with you will appear here", ru: "Записи, которыми с вами поделились, появятся здесь", es: "Las grabaciones compartidas contigo aparecerán aquí", de: "Mit Ihnen geteilte Aufnahmen erscheinen hier", fr: "Les enregistrements partagés avec vous apparaîtront ici", ja: "共有された記録がここに表示されます" },

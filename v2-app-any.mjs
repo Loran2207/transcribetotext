@@ -212,14 +212,44 @@ if (state.startsWith("planstatus_")) {
   await p.getByRole("button", { name: /more actions/i }).filter({ visible: true }).last().click({ force: true, timeout: 8000 });
   await p.waitForTimeout(900);
 } else if (state === "entry_folder_menu") {
-  /* Below lg a folder is a card with its own three dots: a menu on a tablet,
-     the product's bottom sheet on a phone. Same click for both. */
+  /* Below lg a folder is a card with its own three dots, and a menu is a bottom
+     sheet at every touch width. Same click for tablet and phone. */
   await set("ttt_plan", "pro");
   await p.getByText("My Records", { exact: true }).filter({ visible: true }).first().click({ force: true });
   await p.waitForTimeout(1800);
   await p.setViewportSize({ width, height: DEVICE_H });
   await p.waitForTimeout(900);
   await p.getByRole("button", { name: /folder actions/i }).filter({ visible: true }).first().click({ force: true, timeout: 8000 });
+  await p.waitForTimeout(900);
+} else if (state === "records_bulk") {
+  /* My Records with rows picked: the busiest mount of the shared floating bar,
+     four actions at once. Kept so a change to that bar can be checked here. */
+  await set("ttt_plan", "pro");
+  await p.getByText("My Records", { exact: true }).filter({ visible: true }).first().click({ force: true });
+  await p.waitForTimeout(1800);
+  await p.setViewportSize({ width, height: DEVICE_H });
+  await p.waitForTimeout(900);
+  await p.evaluate(() => {
+    const boxes = Array.from(document.querySelectorAll("button")).filter((b) => String(b.className).includes("size-[16px]"));
+    boxes.slice(0, 3).forEach((b) => b.click());
+  });
+  await p.waitForTimeout(900);
+} else if (state === "entry_row_menu") {
+  /* The way a touch screen reaches Share on a RECORD: the card's own three
+     dots. A pointer has the hover icon on the row instead, so this frame only
+     exists at the touch widths. */
+  await set("ttt_plan", "pro");
+  await p.getByText("My Records", { exact: true }).filter({ visible: true }).first().click({ force: true });
+  await p.waitForTimeout(1800);
+  await p.setViewportSize({ width, height: DEVICE_H });
+  await p.waitForTimeout(900);
+  const recBtn = p.getByRole("button", { name: /record actions/i }).filter({ visible: true }).first();
+  /* Scroll the card to the top so it is still readable above the sheet, and
+     press it through the DOM: a real click at those coordinates lands on the
+     floating "+" instead, which opens a different sheet entirely. */
+  await recBtn.evaluate((el) => el.scrollIntoView({ block: "start" }));
+  await p.waitForTimeout(700);
+  await recBtn.evaluate((el) => el.click());
   await p.waitForTimeout(900);
 } else if (state.startsWith("entry_")) {
   /* Where the Share control lives, shown in the context it lives in. */
