@@ -485,6 +485,37 @@ function EmptyShared() {
 
 /* ------------------------------------------------------------------ */
 
+/* What waiting looks like. The shape has to be the shape that arrives: below lg
+   the page fills with cards, so a row of table-column bars there was both the
+   wrong picture and wider than the phone it was drawn on. */
+function SharedSkeleton() {
+  return (
+    <div className="animate-in fade-in duration-200">
+      <div className="mb-[22px] grid grid-cols-1 gap-[10px] md:grid-cols-2 xl:grid-cols-3">
+        {[0, 1].map((i) => <div key={i} className="h-[64px] animate-pulse rounded-[14px] border border-border/60 bg-card" />)}
+      </div>
+      <div className="grid grid-cols-1 gap-[10px] lg:hidden">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="h-[80px] animate-pulse rounded-[16px] border border-border/60 bg-card" />
+        ))}
+      </div>
+      <div className="hidden lg:block">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="flex h-[40px] items-center gap-[12px] border-b border-border px-[12px]">
+            <div className="size-[18px] shrink-0 animate-pulse rounded-[5px] bg-muted" />
+            <div className="h-[12px] min-w-0 animate-pulse rounded-full bg-muted" style={{ width: 170 + (i % 4) * 46 }} />
+            <div className="ml-auto h-[11px] w-[88px] shrink-0 animate-pulse rounded-full bg-muted" />
+            <div className="h-[11px] w-[44px] shrink-0 animate-pulse rounded-full bg-muted" />
+            <div className="h-[11px] w-[64px] shrink-0 animate-pulse rounded-full bg-muted" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+
 /* A folder somebody shared. You are inside their place, so the breadcrumb says
    whose place it is, and the only thing the menu offers is to stop keeping it. */
 function SharedFolderView({ folder, onBack }: { folder: SharedFolderItem; onBack: () => void }) {

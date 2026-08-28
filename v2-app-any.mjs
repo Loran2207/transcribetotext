@@ -1292,10 +1292,25 @@ if (preview) {
       mounted: !!root && root.children.length > 0,
       nodes: document.querySelectorAll("*").length,
       text: (document.body.innerText || "").trim().length,
+      /* A crashed render is not a blank page - Vite draws an error overlay with
+         plenty of nodes, and this project has no working typecheck to catch a
+         call to a component that does not exist, so the overlay IS the check.
+         One of those went to Figma as a frame 1164px wide before this line
+         existed. */
+      overlay: document.querySelectorAll("vite-error-overlay").length,
     };
   });
-  if (!shell.mounted || shell.nodes < 15) {
-    console.log("blank page:", JSON.stringify(shell), "- refusing to capture");
+  if (!shell.mounted || shell.nodes < 15 || shell.overlay > 0) {
+    console.log("bad page:", JSON.stringify(shell), "- refusing to capture");
+    await b.close();
+    process.exit(1);
+  }
+  /* The frame has to be the width it was asked for. A page that overflows its
+     viewport serializes wider than the screenshot, and the frame lands the
+     wrong size in a laid-out section. */
+  const bodyW = await p.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth));
+  if (bodyW > width + 1) {
+    console.log("page is", bodyW, "wide at viewport", width, "- refusing to capture");
     await b.close();
     process.exit(1);
   }
