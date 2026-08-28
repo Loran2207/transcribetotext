@@ -29,7 +29,8 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./ui/collap
 import { useUserProfile } from "./user-profile-context";
 import { useFolders } from "./folder-context";
 import { useStarred } from "./starred-context";
-import { SourceIcon, type SourceType } from "./source-icons";
+import { SourceIcon, getSourceLabel, type SourceType } from "./source-icons";
+import { ActionSheet, ActionSheetItem } from "./action-sheet";
 import { records, type RecordRow } from "./records-table";
 import { TemplatePicker } from "./template-picker";
 import { TemplateSheet, LanguageSheet } from "./result-picker-sheets";
@@ -1569,14 +1570,6 @@ interface PageHeaderMeta {
   screenshotsCount: number;
 }
 
-function getSourceLabel(source: SourceType | undefined) {
-  if (!source) return "Source";
-  if (source === "google-meet") return "Google Meet";
-  if (source === "google-sheets") return "Google Sheets";
-  if (source === "microphone") return "Microphone";
-  return source.toUpperCase().replace("-", " ");
-}
-
 interface PageHeaderProps {
   title: string;
   onTitleChange: (t: string) => void;
@@ -1871,24 +1864,25 @@ function PageHeader({
         </div>
       </div>
       <div className="flex items-center gap-3 text-xs text-muted-foreground max-lg:flex-wrap">
-        <div className="flex items-center gap-1.5 max-md:hidden">
-          {sharedOwner ? (
-            <>
-              <Avatar className="size-5">
-                <AvatarFallback className="text-[10px]" style={{ background: sharedOwner.tint, color: sharedOwner.ink }}>
-                  {sharedOwner.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-foreground">{sharedOwner.name}</span>
-              <span>shared this with you</span>
-            </>
-          ) : (
-            <>
-              <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
-              <span>{displayName}</span>
-            </>
-          )}
-        </div>
+        {/* Whose record this is survives on a phone: it is the first thing a
+            reader needs and it used to be the first thing hidden. On a narrow
+            screen it takes the whole line rather than wrapping mid-sentence. */}
+        {sharedOwner ? (
+          <div className="flex items-center gap-1.5 max-md:w-full">
+            <Avatar className="size-5">
+              <AvatarFallback className="text-[10px]" style={{ background: sharedOwner.tint, color: sharedOwner.ink }}>
+                {sharedOwner.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-foreground">{sharedOwner.name}</span>
+            <span>shared this with you</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 max-md:hidden">
+            <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
+            <span>{displayName}</span>
+          </div>
+        )}
         {source && (
           <>
             <span className="text-border max-md:hidden">{"\u2022"}</span>
@@ -3539,40 +3533,37 @@ export function TranscriptionDetailPage() {
             </div>
           </DrawerContent>
         </Drawer>
-        <Drawer open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
-          <DrawerContent className="lg:hidden [&>div:first-child]:hidden">
-            <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Actions</DrawerTitle><button type="button" onClick={() => setMoreSheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
-            <div className="px-1 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
-              {sharedOwner ? (
-                <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60">
-                  <Icon icon={Cancel01Icon} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Remove from Shared with me
-                </button>
-              ) : (
-                <button type="button" data-qa-label="Share" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); setShareDialogOpen(true); }}>
-                  <Icon icon={Share} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Share
-                </button>
-              )}
-              {!sharedOwner && (
-                <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }}>
-                  <Icon icon={Edit} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Edit transcript
-                </button>
-              )}
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscriptLink(); setMoreSheetOpen(false); }}>
-                <Icon icon={Link} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy link
-              </button>
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); regenerateSummary(); }}>
-                <Icon icon={Zap} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Regenerate summary
-              </button>
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { setMoreSheetOpen(false); setMoveDialogOpen(true); }}>
-                <Icon icon={FolderOpen} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Move to folder
-              </button>
-              <div className="h-px bg-border my-1.5" />
-              <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] text-destructive active:bg-destructive/5" onClick={() => { setMoreSheetOpen(false); deleteTranscript(); }}>
-                <Icon icon={Trash} className="size-[18px]" strokeWidth={1.6} /> Delete
-              </button>
-            </div>
-          </DrawerContent>
-        </Drawer>
+        {/* The record's own actions, in the sheet every object in the product
+            opens: the record at the top with its name and where it came from,
+            then one plain list. */}
+        <ActionSheet
+          open={moreSheetOpen && belowLg}
+          onOpenChange={setMoreSheetOpen}
+          mark={selectedRecord?.source ? <SourceIcon source={selectedRecord.source} /> : null}
+          title={title}
+          kind={getSourceLabel(selectedRecord?.source)}
+        >
+          {!sharedOwner && (
+            <ActionSheetItem icon={Share} label="Share" onClick={() => { setMoreSheetOpen(false); setShareDialogOpen(true); }} />
+          )}
+          {!sharedOwner && (
+            <ActionSheetItem icon={Edit} label="Edit transcript" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }} />
+          )}
+          <ActionSheetItem icon={Link} label="Copy link" onClick={() => { copyTranscriptLink(); setMoreSheetOpen(false); }} />
+          {/* Regenerating and deleting change the owner's copy, so a reader of
+              somebody else's record does not get them - the same line the
+              desktop menu already draws. */}
+          {!sharedOwner && (
+            <ActionSheetItem icon={Zap} label="Regenerate summary" onClick={() => { setMoreSheetOpen(false); regenerateSummary(); }} />
+          )}
+          <ActionSheetItem icon={FolderOpen} label="Move to folder" onClick={() => { setMoreSheetOpen(false); setMoveDialogOpen(true); }} />
+          {/* Leaving the object comes last, wherever the sheet is opened. */}
+          {sharedOwner ? (
+            <ActionSheetItem icon={Cancel01Icon} label="Remove from Shared with me" onClick={() => setMoreSheetOpen(false)} />
+          ) : (
+            <ActionSheetItem icon={Trash} label="Delete" destructive onClick={() => { setMoreSheetOpen(false); deleteTranscript(); }} />
+          )}
+        </ActionSheet>
         <TemplateSheet open={templatePickerOpen && belowMd} onOpenChange={setTemplatePickerOpen} value={activeTemplateId} onSelect={handleTemplateSelect} />
         <LanguageSheet open={langSheetOpen && belowLg} onOpenChange={setLangSheetOpen} languages={TRANSLATION_LANGUAGES} activeLang={activeTranslationLang} disabled={isTranslationLoading || isJobTranscribing} onPick={(code) => { void handleTranslate(code); }} />
         <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={1} onMove={(id) => moveToFolder(id)} onCreateFolder={() => { setMoveDialogOpen(false); createFolderAndMove(); }} folders={folders} />

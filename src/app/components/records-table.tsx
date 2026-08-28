@@ -11,6 +11,7 @@ import { useFolders, type FolderItem as CtxFolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
 import { setFabHidden } from "./fab-visibility";
+import { ActionSheet, ActionSheetItem } from "./action-sheet";
 import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit, X, MoreHorizontal } from "@hugeicons/core-free-icons";
 import { ShareDialog } from "./share-dialog";
 import { Drawer, DrawerContent, DrawerTitle } from "./ui/drawer";
@@ -1526,41 +1527,20 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         resourceName={sharingInlineFolder?.name ?? ""}
       />
 
-      {/* A folder's actions on a phone, in the product's own bottom sheet -
-          the same shape a record card opens. */}
-      <Drawer open={!!folderSheet} onOpenChange={(open) => { if (!open) setFolderSheet(null); }}>
-        <DrawerContent className="[&>div:first-child]:hidden">
-          <div className="flex items-center gap-[10px] px-[18px] pt-[18px] pb-[10px]">
-            {folderSheet && (
-              <span className="shrink-0 flex items-center justify-center size-[36px] rounded-[10px] bg-muted">
-                <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folderSheet.color} /></svg>
-              </span>
-            )}
-            <DrawerTitle className="flex-1 min-w-0 truncate" style={{ fontSize: 15, fontWeight: 600 }}>{folderSheet?.name}</DrawerTitle>
-            <button onClick={() => setFolderSheet(null)} aria-label="Close" className="-mr-[4px] size-[32px] rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
-              <Icon icon={X} className="size-[18px]" strokeWidth={2} />
-            </button>
-          </div>
-          <div className="px-[14px] pt-[4px] flex flex-col" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
-            <button onClick={() => { const f = folderSheet; setFolderSheet(null); if (f) onOpenFolder?.(f.id); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
-              <Icon icon={FolderOpen} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
-              <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Open folder</span>
-            </button>
-            <button onClick={() => { const f = folderSheet; setFolderSheet(null); setSharingInlineFolder(f); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
-              <Icon icon={Share} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
-              <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Share folder</span>
-            </button>
-            <button onClick={() => { const f = folderSheet; setFolderSheet(null); setEditingInlineFolder(f); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
-              <Icon icon={Edit} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
-              <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Rename</span>
-            </button>
-            <button onClick={() => { const f = folderSheet; setFolderSheet(null); if (f) setDeletingInlineFolderId(f.id); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-destructive/10 transition-colors text-left">
-              <Icon icon={Trash} className="size-[19px] text-destructive" strokeWidth={1.7} />
-              <span className="flex-1 text-destructive" style={{ fontSize: 14, fontWeight: 500 }}>Delete</span>
-            </button>
-          </div>
-        </DrawerContent>
-      </Drawer>
+      {/* A folder's actions, in the product's one action sheet - the same shape
+          a record and the record page open. */}
+      <ActionSheet
+        open={!!folderSheet}
+        onOpenChange={(open) => { if (!open) setFolderSheet(null); }}
+        mark={folderSheet ? <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folderSheet.color} /></svg> : null}
+        title={folderSheet?.name ?? ""}
+        kind={folderSheet ? t((mobileFolderCounts.get(folderSheet.id) ?? 0) === 1 ? "folder.fileOne" : "folder.fileOther", mobileFolderCounts.get(folderSheet.id) ?? 0) : undefined}
+      >
+        <ActionSheetItem icon={FolderOpen} label="Open folder" onClick={() => { const f = folderSheet; setFolderSheet(null); if (f) onOpenFolder?.(f.id); }} />
+        <ActionSheetItem icon={Share} label="Share folder" onClick={() => { const f = folderSheet; setFolderSheet(null); setSharingInlineFolder(f); }} />
+        <ActionSheetItem icon={Edit} label="Rename" onClick={() => { const f = folderSheet; setFolderSheet(null); setEditingInlineFolder(f); }} />
+        <ActionSheetItem icon={Trash} label="Delete" destructive onClick={() => { const f = folderSheet; setFolderSheet(null); if (f) setDeletingInlineFolderId(f.id); }} />
+      </ActionSheet>
 
       {/* Mobile / tablet folder block (below lg): Google Drive pattern - a horizontally
           scrollable row of compact folder chips ABOVE the tab strip. */}

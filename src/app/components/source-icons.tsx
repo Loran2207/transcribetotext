@@ -228,6 +228,29 @@ function InstagramSourceIcon() {
   );
 }
 
+/* What a source is called, in words a person would say. It lives beside the
+   icons because every screen that draws one eventually has to name it, and the
+   old version shouted half of them back in capitals. */
+const SOURCE_LABELS: Record<SourceType, string> = {
+  "google-sheets": "Google Sheets",
+  "google-meet": "Google Meet",
+  zoom: "Zoom",
+  teams: "Microsoft Teams",
+  dropbox: "Dropbox",
+  youtube: "YouTube",
+  instagram: "Instagram",
+  microphone: "Microphone",
+  folder: "Folder",
+  meeting: "Meeting",
+  file: "File",
+  mp4: "MP4 file",
+  mp3: "MP3 file",
+};
+
+export function getSourceLabel(source: SourceType | undefined): string {
+  return source ? SOURCE_LABELS[source] : "Source";
+}
+
 /** Universal source icon component */
 export function SourceIcon({ source }: { source: SourceType }) {
   switch (source) {

@@ -9,7 +9,6 @@ import { RecordCard } from "@/app/components/record-card";
 import {
   ColumnHeaderDropdown,
   SortHeaderDropdown,
-  SearchInput,
   FigmaCheckbox,
   LanguageBadge,
   PaginationBar,
@@ -38,7 +37,7 @@ import {
 /* Shared with me.
  *
  * Everything a person already learned on My Records holds here: the same
- * columns, the same header dropdowns, the same search, the same pagination.
+ * columns, the same header dropdowns, the same filters, the same pagination.
  * What changes is what the page is FOR - these are other people's records - so
  * the folder column becomes the owner, and every action that would change
  * somebody else's work is gone.
@@ -75,9 +74,22 @@ export function SharedWithMePage() {
 
   const folders = scene === "empty" ? [] : SHARED_FOLDERS;
 
-  const [search, setSearch] = useState(scene === "search_empty" ? "quarterly budget" : "");
-  const [ownerFilter, setOwnerFilter] = useState<Set<string>>(new Set());
-  const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
+  /* The page has no search field of its own any more - the header already
+     searches the whole account - so a result set can only be emptied by the
+     filters. The "nothing found" scene picks a real owner and a type that owner
+     has nothing in, rather than pretending somebody typed a query. */
+  const emptyFilterSeed = useMemo(() => {
+    if (scene !== "search_empty") return null;
+    for (const email of new Set(items.map((i) => i.owner.email))) {
+      const theirs = new Set(items.filter((i) => i.owner.email === email).map((i) => i.record.source));
+      const other = items.map((i) => i.record.source).find((s) => !theirs.has(s));
+      if (other) return { owner: email, type: other };
+    }
+    return null;
+  }, [scene, items]);
+
+  const [ownerFilter, setOwnerFilter] = useState<Set<string>>(() => new Set(emptyFilterSeed ? [emptyFilterSeed.owner] : []));
+  const [typeFilter, setTypeFilter] = useState<Set<string>>(() => new Set(emptyFilterSeed ? [emptyFilterSeed.type] : []));
   const [dateSort, setDateSort] = useState("newest");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
@@ -99,14 +111,10 @@ export function SharedWithMePage() {
     return typeFilterOptions.filter((o) => present.has(o.id));
   }, [items]);
 
-  const hasFilters = search.length > 0 || ownerFilter.size > 0 || typeFilter.size > 0;
+  const hasFilters = ownerFilter.size > 0 || typeFilter.size > 0;
 
   const filtered = useMemo(() => {
     let out = items;
-    if (search) {
-      const q = search.toLowerCase();
-      out = out.filter((i) => i.record.name.toLowerCase().includes(q));
-    }
     if (ownerFilter.size) out = out.filter((i) => ownerFilter.has(i.owner.email));
     if (typeFilter.size) out = out.filter((i) => typeFilter.has(i.record.source));
     const sorted = [...out].sort((a, b) => {
@@ -115,7 +123,7 @@ export function SharedWithMePage() {
       return dateSort === "oldest" ? da - db : db - da;
     });
     return sorted;
-  }, [items, search, ownerFilter, typeFilter, dateSort]);
+  }, [items, ownerFilter, typeFilter, dateSort]);
 
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
   const allSelected = paged.length > 0 && paged.every((i) => selected.has(i.record.id));
@@ -127,7 +135,6 @@ export function SharedWithMePage() {
   useEffect(() => { setFabHidden(hasSelection, "select"); return () => setFabHidden(false, "select"); }, [hasSelection]);
 
   function clearFilters() {
-    setSearch("");
     setOwnerFilter(new Set());
     setTypeFilter(new Set());
   }
@@ -139,17 +146,13 @@ export function SharedWithMePage() {
   return (
     <div className="flex-1 overflow-auto">
       <div className="px-4 pb-[40px] lg:px-8">
-        {/* Header: the page's name, and the one control that finds things in it */}
+        {/* Header: the page's name, and the controls that narrow it down */}
         <div className="flex items-center gap-[12px] pt-[28px] pb-[16px]">
           <span className="shrink-0 font-semibold text-[18px] text-foreground">{t("shared.title")}</span>
-          {/* The controls sit at the right, and the field takes what the row
-              has left up to 220 rather than a fixed 150, which was narrow
-              enough to break its own placeholder over two lines once the
-              filter button joined the row. */}
+          {/* No search field here: the header already searches the whole
+              account, and a second one that only looks at this page taught the
+              reader there were two kinds of search. */}
           <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-[12px]">
-          <div className="min-w-0 w-[220px] max-w-full">
-            <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder={t("shared.searchPlaceholder")} />
-          </div>
           {/* Below lg there is no table header, so the owner and type filters
               would simply vanish. They collapse into the same bottom sheet My
               Records uses, with this page's own two columns in it. Nothing
@@ -225,7 +228,7 @@ export function SharedWithMePage() {
             {/* ── Phone and tablet: the same cards My Records uses ── */}
             <div className="lg:hidden">
               {filtered.length === 0 ? (
-                hasFilters ? <NothingFound query={search} onClear={clearFilters} /> : <EmptyShared />
+                hasFilters ? <EmptyFilterState onClear={clearFilters} /> : <EmptyShared />
               ) : (
                 <>
                   <div className="grid grid-cols-1 gap-[10px]">
@@ -297,7 +300,7 @@ export function SharedWithMePage() {
                 )}
 
                 {filtered.length === 0 ? (
-                  hasFilters ? <NothingFound query={search} onClear={clearFilters} /> : <EmptyShared />
+                  hasFilters ? <EmptyFilterState onClear={clearFilters} /> : <EmptyShared />
                 ) : (
                   paged.map((i) => (
                     <SharedTableRow
@@ -480,51 +483,6 @@ function EmptyShared() {
   );
 }
 
-/* A search that found nothing is not the same thing as a page with nothing on
-   it: one of them still has records, they just are not these. */
-function NothingFound({ query, onClear }: { query: string; onClear: () => void }) {
-  const { t } = useLanguage();
-  if (!query) return <EmptyFilterState onClear={onClear} />;
-  return (
-    <div className="flex flex-col items-center justify-center px-[24px] py-[56px]">
-      <div className="mb-[16px] flex size-[56px] items-center justify-center rounded-full bg-muted">
-        <svg className="size-[24px] text-muted-foreground" fill="none" viewBox="0 0 24 24">
-          <path d="M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.35-4.35" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-      <p className="mb-[6px] text-[15px] font-semibold text-foreground">
-        {t("shared.nothingMatches").replace("{query}", query)}
-      </p>
-      <p className="max-w-[300px] text-center text-[13px] leading-[20px] text-muted-foreground">
-        {t("shared.tryAnotherName")}
-      </p>
-      <Button variant="outline" onClick={onClear} className="mt-[16px] h-[34px] gap-[6px] rounded-full bg-background px-[16px] text-[13px] font-medium">
-        <svg className="size-[13px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M12.5 3.5l-9 9M3.5 3.5l9 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
-        {t("table.clearAllFilters")}
-      </Button>
-    </div>
-  );
-}
-
-function SharedSkeleton() {
-  return (
-    <div className="animate-in fade-in duration-200">
-      <div className="mb-[22px] grid grid-cols-1 gap-[10px] md:grid-cols-2 xl:grid-cols-3">
-        {[0, 1].map((i) => <div key={i} className="h-[64px] animate-pulse rounded-[14px] border border-border/60 bg-card" />)}
-      </div>
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="flex h-[40px] items-center gap-[12px] border-b border-border px-[12px]">
-          <div className="size-[18px] shrink-0 animate-pulse rounded-[5px] bg-muted" />
-          <div className="h-[12px] animate-pulse rounded-full bg-muted" style={{ width: 170 + (i % 4) * 46 }} />
-          <div className="ml-auto h-[11px] w-[88px] animate-pulse rounded-full bg-muted" />
-          <div className="h-[11px] w-[44px] animate-pulse rounded-full bg-muted" />
-          <div className="h-[11px] w-[64px] animate-pulse rounded-full bg-muted" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 
 /* A folder somebody shared. You are inside their place, so the breadcrumb says
@@ -554,15 +512,22 @@ function SharedFolderView({ folder, onBack }: { folder: SharedFolderItem; onBack
           <span className="font-medium text-foreground">{folder.name}</span>
         </div>
 
-        <div className="flex items-center gap-[10px] pb-[18px]">
-          <svg className="size-[22px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
-          <span className="font-semibold text-[18px] text-foreground">{folder.name}</span>
-          <span className="flex items-center gap-[6px] text-[13px] text-muted-foreground">
-            <OwnerChip owner={folder.owner} size={18} />
-            {t("shared.sharedByOwner").replace("{owner}", folder.owner.name)}
-          </span>
-          <div className="flex-1" />
-          <Button variant="pill-outline" className="h-9 gap-[6px] px-[14px] text-[13px] font-medium">
+        {/* Whose folder this is reads as the title's own second line rather than
+            a third thing on the title row: at 390 the three of them fought over
+            350px, the name broke across three lines and the button walked off
+            the edge of the screen. */}
+        <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[10px] pb-[18px]">
+          <div className="flex min-w-0 flex-1 items-center gap-[10px] max-sm:w-full max-sm:flex-none">
+            <svg className="size-[22px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-[18px] leading-[24px] text-foreground">{folder.name}</p>
+              <span className="mt-[2px] flex items-center gap-[6px] text-[13px] text-muted-foreground">
+                <OwnerChip owner={folder.owner} size={16} />
+                <span className="truncate">{t("shared.sharedByOwner").replace("{owner}", folder.owner.name)}</span>
+              </span>
+            </div>
+          </div>
+          <Button variant="pill-outline" className="h-9 shrink-0 gap-[6px] px-[14px] text-[13px] font-medium">
             <Icon icon={X} className="size-[14px]" strokeWidth={1.7} />
             {t("shared.removeFolderFromShared")}
           </Button>
@@ -582,8 +547,13 @@ function SharedFolderView({ folder, onBack }: { folder: SharedFolderItem; onBack
           <>
             <div className="lg:hidden">
               <div className="grid grid-cols-1 gap-[10px]">
+                {/* The card still knows it belongs to somebody else - that is
+                    what keeps your own folder colours off it - but it does not
+                    print the name: the header two rows up already says whose
+                    folder this is, and six cards repeating it is one fact said
+                    seven times. */}
                 {items.map((i) => (
-                  <RecordCard key={i.record.id} record={i.record} owner={i.owner} />
+                  <RecordCard key={i.record.id} record={i.record} owner={i.owner} showOwner={false} />
                 ))}
               </div>
             </div>

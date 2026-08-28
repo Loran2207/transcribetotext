@@ -320,7 +320,38 @@ if (state.startsWith("planstatus_")) {
   });
   await p.waitForTimeout(2600);
   if (state === "sharedrec_menu") {
-    await p.getByRole("button", { name: /more actions/i }).filter({ visible: true }).last().click({ force: true });
+    /* Shrink FIRST. The control lives in the bottom bar that only exists at the
+       real width; clicking at 1440 and resizing afterwards produced a frame
+       identical to sharedrec_open - the menu was never on it. */
+    await p.setViewportSize({ width, height: DEVICE_H });
+    await p.waitForTimeout(900);
+    /* Two things bite here. Every transcript segment carries its own hover
+       "More actions", and Playwright counts an opacity-0 element as visible, so
+       picking by document order reached deep into the transcript. Pick by where
+       the control actually sits instead: the page header at the top, or the
+       bottom bar a phone presses. And the desktop trigger is a Radix dropdown,
+       which opens on pointerdown - a synthesized click leaves it shut and
+       reports success, so the open is verified rather than assumed. */
+    const all = await p.getByRole("button", { name: /more actions/i }).filter({ visible: true }).all();
+    let trigger = null;
+    for (const cand of all) {
+      const box = await cand.boundingBox();
+      if (box && (box.y < 220 || box.y > DEVICE_H - 160)) { trigger = cand; break; }
+    }
+    if (!trigger) throw new Error("sharedrec_menu: no More actions control in the header or the bottom bar");
+    const opened = async () =>
+      (await p.locator('[role="menu"]').count()) + (await p.locator('[data-slot="drawer-content"]').count()) > 0;
+    /* Three ways in, because the two surfaces answer to different events: the
+       tablet and phone sheets are plain onClick buttons, the desktop one is a
+       Radix trigger that opens on pointerdown and ignores a synthesized click.
+       Whichever fires, the open is verified rather than assumed. */
+    for (const attempt of ["click", "domclick", "pointerdown"]) {
+      if (attempt === "click") await trigger.click({ force: true, timeout: 8000 });
+      else await trigger.dispatchEvent(attempt === "domclick" ? "click" : "pointerdown");
+      await p.waitForTimeout(600);
+      if (await opened()) break;
+    }
+    if (!(await opened())) throw new Error("sharedrec_menu: the actions menu never opened");
     await p.waitForTimeout(900);
   }
 } else if (state.startsWith("sharedpage_") || state.startsWith("sharedfolder_")) {
