@@ -313,7 +313,7 @@ const dict: Record<string, Record<LangCode, string>> = {
   "shared.filterOwner": { en: "Owner", ru: "Владелец", es: "Propietario", de: "Eigentümer", fr: "Propriétaire", ja: "オーナー" },
   "shared.filterType": { en: "Type", ru: "Тип", es: "Tipo", de: "Typ", fr: "Type", ja: "種類" },
   "shared.filterDate": { en: "Date", ru: "Дата", es: "Fecha", de: "Datum", fr: "Date", ja: "日付" },
-  "shared.removeFromShared": { en: "Remove from Shared with me", ru: "Убрать из «Поделились со мной»", es: "Quitar de Compartido conmigo", de: "Aus Mit mir geteilt entfernen", fr: "Retirer de Partagé avec moi", ja: "共有されたアイテムから削除" },
+  "shared.removeFromShared": { en: "Remove from Shared", ru: "Убрать из «Поделились»", es: "Quitar de Compartido", de: "Aus Geteilt entfernen", fr: "Retirer de Partagé", ja: "共有から削除" },
   "shared.removeFolderFromShared": { en: "Remove folder from my list", ru: "Убрать папку у себя", es: "Quitar la carpeta de mi lista", de: "Ordner aus meiner Liste entfernen", fr: "Retirer le dossier de ma liste", ja: "フォルダを自分のリストから削除" },
   "shared.removeFromMyList": { en: "Remove from my list", ru: "Убрать у себя", es: "Quitar de mi lista", de: "Aus meiner Liste entfernen", fr: "Retirer de ma liste", ja: "自分のリストから削除" },
   "shared.exportText": { en: "Export text", ru: "Экспорт текста", es: "Exportar texto", de: "Text exportieren", fr: "Exporter le texte", ja: "テキストを書き出す" },

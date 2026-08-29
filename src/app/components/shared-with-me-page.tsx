@@ -328,9 +328,10 @@ export function SharedWithMePage() {
       {hasSelection && (
         <MobileBulkBar count={selected.size} onCancel={() => setSelected(new Set())}>
           <MSActionBtn icon={Upload} label={t("shared.exportText")} onClick={() => setSelected(new Set())} />
-          {/* The compact form of the row's own "Remove from Shared with me",
-              in the words the folder header already uses: from MY list. */}
-          <MSActionBtn icon={X} label={t("shared.removeFromMyList")} onClick={() => setSelected(new Set())} />
+          {/* The row's own words, not a second phrase for the same action: the
+              short label fits the compact bar, so the shorter paraphrase that
+              used to live here is gone. */}
+          <MSActionBtn icon={X} label={t("shared.removeFromShared")} onClick={() => setSelected(new Set())} />
         </MobileBulkBar>
       )}
     </div>

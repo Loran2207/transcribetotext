@@ -1844,7 +1844,7 @@ function PageHeader({
                    keeping it on their own list. It does not touch the original. */
                 <DropdownMenuItem className="gap-2" data-qa-label="remove-shared">
                   <Icon icon={Cancel01Icon} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                  Remove from Shared with me
+                  Remove from Shared
                 </DropdownMenuItem>
               ) : (
                 <>
@@ -3193,7 +3193,9 @@ export function TranscriptionDetailPage() {
           activeTranslationLang={activeTranslationLang}
           translationDisabled={isTranslationLoading || isJobTranscribing}
         />
-        {!isJobTranscribing && (
+        {/* Translating somebody else's record is not one of the things a reader
+            may do - the spec hides it, and the desktop row already did. */}
+        {!isJobTranscribing && !sharedOwner && (
           <div className="md:hidden flex items-center gap-2 px-4 pt-3">
             <Button variant="pill-outline" onClick={() => setLangSheetOpen(true)} disabled={isTranslationLoading || isJobTranscribing} className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0">
               <span className="flex items-center gap-1.5 min-w-0">
@@ -3243,7 +3245,7 @@ export function TranscriptionDetailPage() {
 
             {/* Right side of tab row: context-dependent */}
             <div className="mb-1 flex items-center gap-2 max-md:hidden md:max-lg:mb-2">
-              <div className="lg:hidden inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
+              <div className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
                 <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing}>
                   <SelectTrigger size="sm" className="h-8 w-[168px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
                     <SelectValue placeholder="Translate to..." />
@@ -3559,7 +3561,7 @@ export function TranscriptionDetailPage() {
           <ActionSheetItem icon={FolderOpen} label="Move to folder" onClick={() => { setMoreSheetOpen(false); setMoveDialogOpen(true); }} />
           {/* Leaving the object comes last, wherever the sheet is opened. */}
           {sharedOwner ? (
-            <ActionSheetItem icon={Cancel01Icon} label="Remove from Shared with me" onClick={() => setMoreSheetOpen(false)} />
+            <ActionSheetItem icon={Cancel01Icon} label="Remove from Shared" onClick={() => setMoreSheetOpen(false)} />
           ) : (
             <ActionSheetItem icon={Trash} label="Delete" destructive onClick={() => { setMoreSheetOpen(false); deleteTranscript(); }} />
           )}
