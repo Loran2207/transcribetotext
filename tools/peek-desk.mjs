@@ -16,7 +16,6 @@ async function login(url) {
 }
 // WEB
 await login("http://localhost:5173/login?shell=web");
-const hide = () => p.addStyleTag({ content: "[data-sonner-toaster]{display:none!important}" });
-await login("http://localhost:5173/login?shell=desktop&os=mac"); await p.waitForTimeout(600); await p.locator("p:has-text('Record a call') >> visible=true").first().click(); await p.waitForTimeout(2500);
-await p.click("button:has-text('Pause')"); await p.waitForTimeout(500); await p.click("button:has-text('Generate notes')"); await p.waitForTimeout(16000); await hide(); await p.screenshot({ path: `${out}/s3-after-gen.png`, clip: { x: 256, y: 60, width: 1184, height: 520 } });
+await login("http://localhost:5173/login?shell=desktop&os=mac"); await p.waitForTimeout(500); await p.locator("p:has-text('Record a call') >> visible=true").first().click(); await p.waitForTimeout(2500); await p.screenshot({ path: `${out}/t3-live.png`, clip: { x: 256, y: 200, width: 1184, height: 700 } });
+await p.click("button:has-text('Pause')"); await p.waitForTimeout(400); await p.click("button:has-text('Generate notes')"); await p.waitForTimeout(16000); await p.screenshot({ path: `${out}/t4-after.png`, clip: { x: 256, y: 660, width: 864, height: 240 } });
 await b.close(); console.log("peek-done");

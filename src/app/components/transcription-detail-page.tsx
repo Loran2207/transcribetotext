@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon } from "@hugeicons/core-free-icons";
 import { useShell } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
@@ -954,7 +954,14 @@ function SummaryErrorState({ onRegenerate }: { onRegenerate: () => void }) {
   );
 }
 
-function SummaryTab({ summaryText, template }: { summaryText: string; template?: Template | null }) {
+function SummaryTab({ summaryText, template, highlight = "" }: { summaryText: string; template?: Template | null; highlight?: string }) {
+  /* a search term lights up in place; the text itself never moves */
+  const q = highlight.trim();
+  const hl = (t: string): React.ReactNode => {
+    if (!q) return t;
+    const parts = t.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig"));
+    return parts.map((part, i) => (part.toLowerCase() === q.toLowerCase() ? <mark key={i} className="rounded-[3px] bg-primary/15 px-[2px] text-foreground">{part}</mark> : part));
+  };
   // If a template is selected, use its sections for headings with icons
   const sectionIcons: Record<string, string | undefined> = {};
   if (template?.sections) {
@@ -983,16 +990,16 @@ function SummaryTab({ summaryText, template }: { summaryText: string; template?:
               return (
                 <div key={i} className="flex gap-2 py-1 pl-4 text-sm text-foreground/90">
                   <span className="shrink-0 text-muted-foreground">{"\u2022"}</span>
-                  <span><strong className="font-medium text-foreground">{match[1]}</strong>{match[2] ? `: ${match[2]}` : ""}</span>
+                  <span><strong className="font-medium text-foreground">{hl(match[1])}</strong>{match[2] ? <>: {hl(match[2])}</> : ""}</span>
                 </div>
               );
             }
           }
           if (line.startsWith("- ")) {
-            return <div key={i} className="flex gap-2 py-1 pl-4 text-sm text-foreground/90"><span className="shrink-0 text-muted-foreground">{"\u2022"}</span><span>{line.replace("- ", "")}</span></div>;
+            return <div key={i} className="flex gap-2 py-1 pl-4 text-sm text-foreground/90"><span className="shrink-0 text-muted-foreground">{"\u2022"}</span><span>{hl(line.replace("- ", ""))}</span></div>;
           }
           if (line.trim() === "") return <div key={i} className="h-2" />;
-          return <p key={i} className="text-sm text-foreground/90">{line}</p>;
+          return <p key={i} className="text-sm text-foreground/90">{hl(line)}</p>;
         })}
       </div>
     </div>
@@ -1477,8 +1484,13 @@ function LiveRecordingBar({
   onSwitchMicrophone,
   isSwitchingMicrophone,
   generate = false,
+  showGenerate = true,
+  showDevices = true,
 }: {
   isPaused: boolean;
+  /* after the note is written the bar only offers Resume; nothing new to generate yet */
+  showGenerate?: boolean;
+  showDevices?: boolean;
   elapsedSeconds: number;
   onPauseResume: () => void;
   onStop: () => void;
@@ -1508,7 +1520,7 @@ function LiveRecordingBar({
 
   return (
     <div className="relative shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-[2px]">
-      {generate && isPaused && (
+      {generate && isPaused && showGenerate && (
         /* Granola's grammar: the call is on hold, and only now the note can be
            written. One glowing verb above the bar, nothing else changes. */
         <button type="button" onClick={onStop} className="ttt-glow absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+10px)] items-center gap-1.5 rounded-full bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]" title="End the call here and write the note">
@@ -1529,8 +1541,8 @@ function LiveRecordingBar({
           </span>
           <span className="font-semibold text-[14px] text-foreground tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
           <LiveRecordingWaveform active={!isPaused} />
-          <span className="hidden text-xs text-muted-foreground md:inline">
-            {isPaused ? (generate ? "On hold. Resume, or generate the notes" : "Recording on hold") : "Live transcript is running"}
+          <span className="hidden whitespace-nowrap text-xs text-muted-foreground md:inline">
+            {isPaused ? (generate ? (showGenerate ? "On hold. Resume, or generate the notes" : "Resume to add more") : "Recording on hold") : "Live transcript is running"}
           </span>
         </div>
 
@@ -1557,7 +1569,7 @@ function LiveRecordingBar({
           )}
         </div>
 
-        <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? "flex gap-2 md:max-w-[520px]" : "md:min-w-[260px] md:max-w-[320px]"}`}>
+        {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? "flex gap-2 md:max-w-[520px]" : "md:min-w-[260px] md:max-w-[320px]"}`}>
           {generate && (
             <Select value={outputId || outputs[0]?.id} onValueChange={(v) => { setOutputId(v); window.sessionStorage.setItem("ttt_output_device", v); }} disabled={!outputs.length}>
               <SelectTrigger className="h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] md:w-[240px]" title="Where the call's sound plays">
@@ -1595,7 +1607,7 @@ function LiveRecordingBar({
               ))}
             </SelectContent>
           </Select>
-        </div>
+        </div>}
       </div>
     </div>
   );
@@ -2058,6 +2070,7 @@ export function TranscriptionDetailPage() {
     selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null,
   );
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [summaryQuery, setSummaryQuery] = useState("");
   const [summaryStage, setSummaryStage] = useState("");
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [langSheetOpen, setLangSheetOpen] = useState(false);
@@ -3053,7 +3066,7 @@ export function TranscriptionDetailPage() {
             <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript")} className="mt-2 lg:mt-4">
               <div className="flex items-end border-b border-border px-4 lg:px-8">
                 <TabsList variant="line" className="border-b-0">
-                  <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">Notes</TabsTrigger>
+                  <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">My thoughts</TabsTrigger>
                   <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">Transcript</TabsTrigger>
                 </TabsList>
               </div>
@@ -3062,7 +3075,7 @@ export function TranscriptionDetailPage() {
 
           <div className="flex-1 overflow-auto">
             {desktopShell && liveTab === "notes" ? (
-              <div className="mx-auto w-full max-w-[980px] px-4 py-6 lg:px-8">
+              <div className="mx-auto flex min-h-full w-full max-w-[980px] flex-col px-4 py-6 lg:px-8">
                 <NotesPad
                   lines={pad}
                   onChange={setPad}
@@ -3071,6 +3084,7 @@ export function TranscriptionDetailPage() {
                   autoFocus
                   hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
                 />
+              <p className="sticky bottom-0 -mx-4 mt-auto border-t border-border bg-background/95 px-4 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px] lg:-mx-8 lg:px-8">My thoughts won't be included when you share this note.</p>
               </div>
             ) : (
             <div className="mx-auto w-full max-w-[980px] px-8 py-6">
@@ -3241,10 +3255,9 @@ export function TranscriptionDetailPage() {
           </div>
           {desktopShell && (
             /* leaf through the notes without going back to the list */
-            <div className="ml-auto mr-2 max-lg:hidden inline-flex h-8 items-center gap-[2px] rounded-[12px] border border-border/70 bg-muted/20 px-[2px]">
-              <button type="button" aria-label="Previous note" disabled={recIdx === 0} onClick={() => navigate(`/transcriptions/${records[recIdx > 0 ? recIdx - 1 : 0].id}`)} className="flex size-7 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"><Icon icon={ArrowLeft01Icon} className="size-[15px]" strokeWidth={2} /></button>
-              <span className="min-w-[44px] text-center text-[11.5px] tabular-nums text-muted-foreground">{recIdx >= 0 ? `${recIdx + 1} of ${records.length}` : "New"}</span>
-              <button type="button" aria-label="Next note" disabled={recIdx < 0 || recIdx >= records.length - 1} onClick={() => recIdx < records.length - 1 && navigate(`/transcriptions/${records[recIdx + 1].id}`)} className="flex size-7 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"><Icon icon={ArrowRight01Icon} className="size-[15px]" strokeWidth={2} /></button>
+            <div className="ml-auto mr-1 max-lg:hidden flex items-center">
+              <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Previous note" disabled={recIdx === 0} onClick={() => navigate(`/transcriptions/${records[recIdx > 0 ? recIdx - 1 : 0].id}`)}><Icon icon={ArrowLeft01Icon} className="size-[16px]" strokeWidth={2} /></Button>
+              <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled={recIdx < 0 || recIdx >= records.length - 1} onClick={() => navigate(`/transcriptions/${records[recIdx + 1].id}`)}><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button>
             </div>
           )}
           <div className={"max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
@@ -3346,7 +3359,7 @@ export function TranscriptionDetailPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
           <div className="flex items-end justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
             <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
-              {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Notes</TabsTrigger>}
+              {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
               <TabsTrigger value="outline" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Outline</TabsTrigger>
@@ -3413,6 +3426,16 @@ export function TranscriptionDetailPage() {
                   )
                 )
               ) : (
+                <div className="flex items-center gap-2">
+                  {activeTab === "summary" && activeTemplateId && !isSummaryLoading && (
+                    <>
+                      <span className="hidden rounded-full border border-border px-[9px] py-[3px] text-[11.5px] text-muted-foreground lg:inline">{Math.max(1, Math.round(contentSummary.split(/\s+/).filter(Boolean).length / 200))} min read</span>
+                      <label className="hidden h-7 items-center gap-1.5 rounded-full border border-border px-2.5 text-xs text-muted-foreground focus-within:border-primary/50 lg:flex">
+                        <Icon icon={Search01Icon} className="size-[13px]" strokeWidth={2} />
+                        <input value={summaryQuery} onChange={(e) => setSummaryQuery(e.target.value)} placeholder="Search the summary" className="w-[130px] bg-transparent text-foreground outline-none placeholder:text-muted-foreground" />
+                      </label>
+                    </>
+                  )}
                 <TemplateSelectorButton
                   activeTemplateId={activeTemplateId}
                   templates={templates}
@@ -3421,6 +3444,7 @@ export function TranscriptionDetailPage() {
                   onSelect={handleTemplateSelect}
                   onNavigateToTemplates={() => navigate("/")}
                 />
+                </div>
               )}
             </div>
           </div>
@@ -3448,7 +3472,7 @@ export function TranscriptionDetailPage() {
           </TabsContent>
           {desktopShell && (
             <TabsContent value="notes" className="flex-1 overflow-auto">
-              <div className="mx-auto w-full max-w-[980px] px-4 py-6 lg:px-8">
+              <div className="mx-auto flex min-h-full w-full max-w-[980px] flex-col px-4 py-6 lg:px-8">
                 <NotesPad
                   lines={pad}
                   onChange={setPad}
@@ -3456,6 +3480,7 @@ export function TranscriptionDetailPage() {
                   onTemplate={(tid) => { if (tid === "all") setTemplatePickerOpen(true); else handleTemplateSelect(tid); }}
                   hint="Your own notes from the call. Nothing here is rewritten."
                 />
+              <p className="sticky bottom-0 -mx-4 mt-auto border-t border-border bg-background/95 px-4 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px] lg:-mx-8 lg:px-8">My thoughts won't be included when you share this note.</p>
               </div>
             </TabsContent>
           )}
@@ -3569,7 +3594,7 @@ export function TranscriptionDetailPage() {
                 </Button>
               </div>
             ) : (
-              <SummaryTab summaryText={contentSummary} template={activeTemplate} />
+              <SummaryTab summaryText={contentSummary} template={activeTemplate} highlight={summaryQuery} />
             )}
           </TabsContent>
           {(activeTranslationMeta || translationTranscriptStatus === "loading" || translationTranscriptStatus === "error") && !isJobTranscribing ? (
@@ -3626,7 +3651,7 @@ export function TranscriptionDetailPage() {
               ) : translationSummaryStatus === "error" ? (
                 <TranslationErrorState onRetry={() => { void handleTranslate(); }} />
               ) : (
-                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} />
+                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} highlight={summaryQuery} />
               )}
             </TabsContent>
           ) : null}
@@ -3735,14 +3760,24 @@ export function TranscriptionDetailPage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {isJobTranscribing ? null : (
+        {isJobTranscribing ? null : (<>
+          {desktopShell && (
+            /* the call is on hold, not over: Resume records more into this same note */
+            <LiveRecordingBar
+              isPaused
+              elapsedSeconds={effectiveDurationSeconds}
+              onPauseResume={() => { void continueRecording(); }}
+              onStop={() => {}}
+              generate
+              showGenerate={false}
+              showDevices={false}
+              microphoneDevices={microphoneDevices}
+              selectedMicrophoneId={selectedMicrophoneId}
+              onSwitchMicrophone={() => {}}
+              isSwitchingMicrophone={false}
+            />
+          )}
           <MediaPlayer
-            trailing={desktopShell && !isJobTranscribing ? (
-              <Button variant="pill-outline" className="h-7 gap-1.5 rounded-full px-3 text-xs font-medium" onClick={continueRecording} title="Record more into this note">
-                <Icon icon={Mic01Icon} className="size-[13px]" strokeWidth={1.8} />
-                Continue recording
-              </Button>
-            ) : undefined}
             duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
             progress={playerProgress}
             onProgressChange={handlePlayerProgressChange}
@@ -3753,7 +3788,7 @@ export function TranscriptionDetailPage() {
             currentTimeSeconds={effectiveCurrentSeconds}
             durationSeconds={effectiveDurationSeconds}
           />
-        )}
+        </>)}
         {/* Mobile bottom action bar: Copy + Export + More (md:hidden) */}
         {!isJobTranscribing && (
           <div className="md:hidden shrink-0 border-t border-border bg-background px-4 pt-[10px] pb-[calc(12px+env(safe-area-inset-bottom))]">

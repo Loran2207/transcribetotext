@@ -82,21 +82,22 @@ export function MiniRecorder({ mode: forced, peek = true }: { mode?: MiniMode; p
           {lines.map((l, i) => (<p key={i} className={i === lines.length - 1 ? "text-white" : "text-white/60"}>{l}</p>))}
         </div>
       )}
-      {(paused || ended) && (
-        <button type="button" onClick={generate} className="ttt-glow absolute left-1/2 top-0 flex h-[36px] -translate-x-1/2 -translate-y-[calc(100%+10px)] items-center gap-[6px] rounded-full bg-primary px-[14px] text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]">
-          <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.8} />
-          Generate notes
-        </button>
-      )}
-      <div className={`${row} ${ended ? "w-[380px]" : "w-[340px]"} pl-[14px] pr-[10px]`} style={ground}>
+      <div className={`${row} ${paused || ended ? "w-auto" : "w-[340px]"} pl-[14px] pr-[10px]`} style={ground}>
         <span className="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] bg-white"><SourceIcon source="zoom" /></span>
         <span className={ended ? "size-[8px] shrink-0 rounded-full bg-white/40" : paused ? "size-[8px] shrink-0 rounded-full bg-[#FEBC2E]" : "size-[8px] shrink-0 rounded-full bg-[#FF3B30] animate-pulse"} />
         <span className="shrink-0 text-[14px] font-semibold tabular-nums">{fmt(elapsed)}</span>
-        <span className="min-w-0 flex-1 truncate text-[13px] text-white/70">{ended ? "Call ended, 10s" : paused ? "On hold" : title}</span>
+        <span className={`min-w-0 truncate text-[13px] text-white/70 ${paused || ended ? "max-w-[120px]" : "flex-1"}`}>{ended ? "Call ended, 10s" : paused ? "On hold" : title}</span>
         <button type="button" onClick={toggle} className="flex h-[36px] shrink-0 items-center gap-[6px] rounded-full bg-white px-[14px] text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
           <Icon icon={paused || ended ? PlayIcon : PauseIcon} className="size-[14px]" strokeWidth={2} />
           {ended ? "Keep recording" : paused ? "Resume" : "Pause"}
         </button>
+        {(paused || ended) && (
+          /* the row grows by one verb; nothing floats */
+          <button type="button" onClick={generate} className="ttt-glow flex h-[36px] shrink-0 items-center gap-[6px] rounded-full bg-primary px-[14px] text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]">
+            <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.8} />
+            Generate notes
+          </button>
+        )}
       </div>
     </div>
   );
