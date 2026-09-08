@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Mic01Icon , PlayIcon, PauseIcon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon } from "@hugeicons/core-free-icons";
 import { useShell } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
@@ -1361,6 +1361,7 @@ function MediaPlayer({
   onSpeedChange,
   currentTimeSeconds,
   durationSeconds,
+  trailing,
 }: {
   duration: string;
   progress: number[];
@@ -1371,6 +1372,8 @@ function MediaPlayer({
   onSpeedChange: (rate: number) => void;
   currentTimeSeconds: number;
   durationSeconds: number;
+  /* the desktop puts Continue recording here, beside Play: the bar is where the recording lives */
+  trailing?: React.ReactNode;
 }) {
   const totalSeconds = Math.max(1, durationSeconds);
   const currentSeconds = Math.round(Math.max(0, currentTimeSeconds));
@@ -1409,6 +1412,7 @@ function MediaPlayer({
           </Button>
         </div>
         <div className="flex items-center justify-end gap-2">
+          {trailing}
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
@@ -2078,7 +2082,8 @@ export function TranscriptionDetailPage() {
   const { templates } = useTemplates();
 
   useEffect(() => {
-    setActiveTemplateId(selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null);
+    /* a note just written on the desktop keeps the template it was written with */
+    if (!(desktopShell && routeState?.fromRecordingStop && generatedRef.current)) setActiveTemplateId(selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null);
   }, [id, selectedJob?.templateId, routeStateRecord?.templateId, persistedRecord?.templateId]);
 
   // PRO "Apply template" deep-link: a record opened with a template to apply.
@@ -2566,7 +2571,8 @@ export function TranscriptionDetailPage() {
   }, [fallbackDurationSeconds, hasVideo, isFallbackPlaying]);
 
   useEffect(() => {
-    setActiveTab("transcript");
+    /* a note that was just written opens on what was written */
+    setActiveTab(desktopShell && routeState?.fromRecordingStop ? "summary" : "transcript");
     setIsFallbackPlaying(false);
     setIsVideoPlaying(false);
     setVideoCurrentTime(0);
@@ -3018,7 +3024,16 @@ export function TranscriptionDetailPage() {
       <div ref={pageRef} className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <div className={(desktopShell ? "" : "border-b border-border ") + "px-4 pt-6 pb-5 lg:px-8"}>
-            <div className="flex h-7 items-center text-xs text-muted-foreground">{desktopShell ? "Recording a call" : "My record"}</div>
+            <div className="flex h-7 items-center justify-between text-xs text-muted-foreground">
+              <span>{desktopShell ? "Recording a call" : "My record"}</span>
+              {desktopShell && (
+                /* the window docks beside the call: notes on one half, the meeting on the other */
+                <button type="button" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }} className="flex h-7 items-center gap-[6px] rounded-full border border-border px-[10px] text-[12px] font-medium text-foreground transition-colors hover:bg-muted" title="Put the notes beside the call">
+                  <Icon icon={LayoutRightIcon} className="size-[13px]" strokeWidth={1.9} />
+                  Side by side
+                </button>
+              )}
+            </div>
             <h1 className="mt-1 text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]">
               {title || (desktopShell ? liveTitle : "Live note")}
             </h1>
@@ -3138,6 +3153,8 @@ export function TranscriptionDetailPage() {
 
   /* a finished note is not a closed door: the next part of the same call goes
      into the same note, with the notes already written kept */
+  const recIdx = records.findIndex((r) => r.id === id);
+
   const continueRecording = async () => {
     const ok = await startInstantRecording();
     if (!ok) { toast.error("Microphone access is required to start recording."); return; }
@@ -3222,6 +3239,14 @@ export function TranscriptionDetailPage() {
               <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
             )}
           </div>
+          {desktopShell && (
+            /* leaf through the notes without going back to the list */
+            <div className="ml-auto mr-2 max-lg:hidden inline-flex h-8 items-center gap-[2px] rounded-[12px] border border-border/70 bg-muted/20 px-[2px]">
+              <button type="button" aria-label="Previous note" disabled={recIdx === 0} onClick={() => navigate(`/transcriptions/${records[recIdx > 0 ? recIdx - 1 : 0].id}`)} className="flex size-7 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"><Icon icon={ArrowLeft01Icon} className="size-[15px]" strokeWidth={2} /></button>
+              <span className="min-w-[44px] text-center text-[11.5px] tabular-nums text-muted-foreground">{recIdx >= 0 ? `${recIdx + 1} of ${records.length}` : "New"}</span>
+              <button type="button" aria-label="Next note" disabled={recIdx < 0 || recIdx >= records.length - 1} onClick={() => recIdx < records.length - 1 && navigate(`/transcriptions/${records[recIdx + 1].id}`)} className="flex size-7 items-center justify-center rounded-[10px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent"><Icon icon={ArrowRight01Icon} className="size-[15px]" strokeWidth={2} /></button>
+            </div>
+          )}
           <div className={"max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
             <Select
               value={selectedTranslationLang || undefined}
@@ -3343,12 +3368,6 @@ export function TranscriptionDetailPage() {
                 </>
               ) : null}
             </TabsList>
-            {desktopShell && !isJobTranscribing && (
-              <Button variant="pill-outline" className="mb-2 ml-auto mr-3 h-9 shrink-0 gap-1.5 rounded-full px-3.5" onClick={continueRecording} title="Record more into this note">
-                <Icon icon={Mic01Icon} className="size-[14px]" strokeWidth={1.8} />
-                <span className="text-[13px] font-medium">Continue recording</span>
-              </Button>
-            )}
 
             {/* Right side of tab row: context-dependent */}
             <div className="mb-1 flex items-center gap-2 max-md:hidden md:max-lg:mb-2">
@@ -3718,6 +3737,12 @@ export function TranscriptionDetailPage() {
 
         {isJobTranscribing ? null : (
           <MediaPlayer
+            trailing={desktopShell && !isJobTranscribing ? (
+              <Button variant="pill-outline" className="h-7 gap-1.5 rounded-full px-3 text-xs font-medium" onClick={continueRecording} title="Record more into this note">
+                <Icon icon={Mic01Icon} className="size-[13px]" strokeWidth={1.8} />
+                Continue recording
+              </Button>
+            ) : undefined}
             duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
             progress={playerProgress}
             onProgressChange={handlePlayerProgressChange}

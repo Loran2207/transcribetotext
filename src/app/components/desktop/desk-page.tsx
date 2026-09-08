@@ -1,11 +1,12 @@
 import { readDemo, useShell } from "./shell";
 import { MiniRecorder } from "./mini-recorder";
 import { NoticeCard } from "./desktop-notice";
+import { SplitNotetaker } from "./split-notetaker";
 
 /* The app with its window closed: only what floats over the desktop remains.
    A wallpaper and the system's own strip (menu bar on macOS, taskbar on
    Windows) give the eye a scale; nothing else on the desk is ours. The dev
-   server draws it at /desk with `?desk=widget|expanded|paused|ended|writing|done|call|ready`. */
+   server draws it at /desk with `?desk=widget|expanded|paused|ended|writing|done|call|ready|split`. */
 export function DeskPage() {
   const { os } = useShell();
   const state = readDemo("desk") ?? "widget";
@@ -28,6 +29,24 @@ export function DeskPage() {
       )}
       {(state === "widget" || state === "expanded" || state === "paused" || state === "ended" || state === "writing" || state === "done") && (
         <div className={`absolute right-[24px] ${mac ? "top-[104px]" : "bottom-[72px]"}`}><MiniRecorder /></div>
+      )}
+      {state === "split" && (
+        /* the meeting keeps the left half; ours is the right, with its own window controls */
+        <>
+          <div className={`absolute left-[16px] right-[calc(50%+8px)] ${mac ? "top-[44px]" : "top-[16px]"} ${mac ? "bottom-[16px]" : "bottom-[64px]"} flex flex-col overflow-hidden rounded-[12px] bg-[#1B1B1F]`} style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.35)" }}>
+            <div className="flex h-[36px] items-center px-[14px] text-[12px] text-white/60">{mac ? <span className="mr-[12px] flex gap-[7px]"><span className="size-[11px] rounded-full bg-[#FF5F57]" /><span className="size-[11px] rounded-full bg-[#FEBC2E]" /><span className="size-[11px] rounded-full bg-[#28C840]" /></span> : null}Zoom Meeting</div>
+            <div className="grid flex-1 grid-cols-2 gap-[10px] p-[10px]">
+              {[["Maria Garcia", "#3B5BDB"], ["You", "#2B8A3E"]].map(([n, c]) => (
+                <div key={n} className="relative flex items-center justify-center rounded-[10px] bg-[#26262B]"><span className="flex size-[72px] items-center justify-center rounded-full text-[26px] font-semibold text-white" style={{ background: c }}>{n[0]}</span><span className="absolute bottom-[10px] left-[10px] rounded-[6px] bg-black/50 px-[8px] py-[3px] text-[12px] text-white">{n}</span></div>
+              ))}
+            </div>
+            <div className="flex h-[56px] items-center justify-center gap-[18px] text-[11px] text-white/70">{["Mute", "Stop Video", "Participants", "Chat", "Share Screen", "Record"].map((t) => <span key={t}>{t}</span>)}<span className="rounded-[6px] bg-[#E0242B] px-[12px] py-[6px] font-medium text-white">Leave</span></div>
+          </div>
+          <div className={`absolute left-[calc(50%+8px)] right-[16px] ${mac ? "top-[44px]" : "top-[16px]"} ${mac ? "bottom-[16px]" : "bottom-[64px]"} overflow-hidden rounded-[12px]`} style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.35)" }}>
+            {mac && <div className="pointer-events-none absolute left-[16px] top-[16px] z-[70] flex items-center gap-[8px]"><span className="size-[12px] rounded-full bg-[#FF5F57]" /><span className="size-[12px] rounded-full bg-[#FEBC2E]" /><span className="size-[12px] rounded-full bg-[#28C840]" /></div>}
+            <SplitNotetaker />
+          </div>
+        </>
       )}
       {(state === "call" || state === "ready") && (
         <div className={`absolute right-[24px] ${mac ? "top-[44px]" : "bottom-[68px]"}`}><NoticeCard kind={state} onAct={() => {}} onClose={() => {}} /></div>

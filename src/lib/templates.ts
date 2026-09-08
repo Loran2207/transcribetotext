@@ -205,3 +205,34 @@ export async function getAutoAssignTemplate(
 
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Offline fallback: the demo portal has no live Supabase, so the account still
+// gets a working set of templates instead of an error toast and an empty list.
+// ---------------------------------------------------------------------------
+
+const demoTemplate = (id: string, name: string, description: string, sections: [string, string, string][]): Template => ({
+  id, user_id: null, name, description, instructions: null,
+  sections: sections.map(([sid, title, instruction]) => ({ id: sid, title, instruction })),
+  type: 'built_in', is_locked: true, is_default: id === 'demo-meeting', auto_assign_keywords: [], usage_count: 0,
+  created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+});
+
+export const DEMO_TEMPLATES: Template[] = [
+  demoTemplate('demo-meeting', 'Meeting Notes', 'Decisions, action items and open questions', [
+    ['s1', 'Summary', 'Three sentences on what the call was about'],
+    ['s2', 'Decisions', 'What was agreed, one line each'],
+    ['s3', 'Action items', 'Who does what by when'],
+    ['s4', 'Open questions', 'What is still unresolved'],
+  ]),
+  demoTemplate('demo-sales', 'Sales Call', 'Needs, objections and next step', [
+    ['s1', 'Summary', 'The prospect and what they need'],
+    ['s2', 'Objections', 'What held them back'],
+    ['s3', 'Next step', 'The one thing that moves the deal'],
+  ]),
+  demoTemplate('demo-1on1', '1 by 1', 'Wins, blockers and follow-ups', [
+    ['s1', 'Wins', 'What went well since last time'],
+    ['s2', 'Blockers', 'What is in the way'],
+    ['s3', 'Follow-ups', 'What each side does next'],
+  ]),
+];

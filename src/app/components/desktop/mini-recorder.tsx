@@ -18,7 +18,7 @@ export type MiniMode = "minimal" | "expanded" | "paused" | "ended" | "writing" |
    appears above the row: the note is written only from a stopped call. While
    it is written the row says so; when ready, Open or keep recording into the
    same note. Dev server: /desk with `?desk=widget|expanded|paused|writing|done`. */
-export function MiniRecorder({ mode: forced }: { mode?: MiniMode } = {}) {
+export function MiniRecorder({ mode: forced, peek = true }: { mode?: MiniMode; peek?: boolean } = {}) {
   const navigate = useNavigate();
   const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording, liveTranscriptSegments } = useTranscriptionModals();
   const [hover, setHover] = useState(false);
@@ -77,7 +77,7 @@ export function MiniRecorder({ mode: forced }: { mode?: MiniMode } = {}) {
   }
   return (
     <div className="relative" onMouseLeave={() => setHover(false)}>
-      {!paused && !ended && (
+      {peek && !paused && !ended && (
         <div className="absolute bottom-0 right-[calc(100%+10px)] w-[300px] rounded-[16px] p-[12px] text-[12.5px] leading-[17px] text-white/85 backdrop-blur-[10px]" style={{ background: "rgba(10,22,48,0.78)", boxShadow: "0 8px 24px rgba(10,22,48,0.22)" }}>
           {lines.map((l, i) => (<p key={i} className={i === lines.length - 1 ? "text-white" : "text-white/60"}>{l}</p>))}
         </div>

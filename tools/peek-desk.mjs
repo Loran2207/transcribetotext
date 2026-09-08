@@ -16,11 +16,7 @@ async function login(url) {
 }
 // WEB
 await login("http://localhost:5173/login?shell=web");
-const go = async (path) => { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, path); await p.waitForTimeout(1200); };
 const hide = () => p.addStyleTag({ content: "[data-sonner-toaster]{display:none!important}" });
-await login("http://localhost:5173/login?shell=desktop&os=win&desk=expanded"); await go("/desk"); await hide(); await p.screenshot({ path: `${out}/k1-desk-win-expanded.png`, clip: { x: 640, y: 700, width: 800, height: 160 } });
-await p.evaluate(() => sessionStorage.clear());
-await login("http://localhost:5173/login?shell=desktop&os=mac&desk=ended"); await go("/desk"); await hide(); await p.screenshot({ path: `${out}/k2-desk-mac-ended.png`, clip: { x: 980, y: 40, width: 460, height: 160 } });
-await p.evaluate(() => sessionStorage.clear());
-await login("http://localhost:5173/login?shell=desktop&os=mac&perm=mic"); await p.waitForTimeout(600); await hide(); await p.screenshot({ path: `${out}/k3-home-3tiles.png`, clip: { x: 256, y: 60, width: 1184, height: 320 } }); await p.click("text=Notetaker"); await p.waitForTimeout(900); await p.screenshot({ path: `${out}/k4-perm-mic.png`, clip: { x: 256, y: 260, width: 1184, height: 200 } });
+await login("http://localhost:5173/login?shell=desktop&os=mac"); await p.waitForTimeout(600); await p.locator("p:has-text('Record a call') >> visible=true").first().click(); await p.waitForTimeout(2500);
+await p.click("button:has-text('Pause')"); await p.waitForTimeout(500); await p.click("button:has-text('Generate notes')"); await p.waitForTimeout(16000); await hide(); await p.screenshot({ path: `${out}/s3-after-gen.png`, clip: { x: 256, y: 60, width: 1184, height: 520 } });
 await b.close(); console.log("peek-done");

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/components/auth-context';
-import {
+import { DEMO_TEMPLATES,
   type Template,
   type CreateTemplateData,
   type UpdateTemplateData,
@@ -46,9 +46,11 @@ export function useTemplates(): UseTemplatesReturn {
       const data = await getTemplates();
       setTemplates(data);
     } catch (err) {
+      /* no backend reachable: the built-in set keeps templates, summaries and the
+         desktop note flow working; the error stays available to whoever asks */
       const e = err instanceof Error ? err : new Error(String(err));
       setError(e);
-      toast.error('Failed to load templates');
+      setTemplates(DEMO_TEMPLATES);
     } finally {
       setIsLoading(false);
     }
