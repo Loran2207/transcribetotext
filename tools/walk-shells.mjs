@@ -24,7 +24,7 @@ await step("web-phone", async () => { await p.setViewportSize({ width: 390, heig
 // DESKTOP (mac)
 await login("http://localhost:5173/login?shell=desktop&os=mac"); await p.waitForTimeout(1200);
 await step("desk-home", async () => { await p.screenshot({ path: `${out}/d1-home.png` }); });
-await step("desk-record-modal", async () => { await p.locator("p:has-text('Meeting Recorder') >> visible=true").first().click(); await p.waitForTimeout(600); await p.screenshot({ path: `${out}/d2-record-modal.png` }); });
+await step("desk-record-modal", async () => { await p.locator("p:has-text('Record a call') >> visible=true").first().click(); await p.waitForTimeout(600); await p.screenshot({ path: `${out}/d2-record-modal.png` }); });
 await step("desk-start", async () => { await p.fill("input[placeholder='Untitled call']", "Acme Logistics - onboarding call"); await p.click("button:has-text('Start recording')"); await p.waitForTimeout(2500); await p.screenshot({ path: `${out}/d3-live-notes.png` }); });
 await step("desk-slash", async () => { await p.click("textarea >> nth=0"); await p.keyboard.type("/"); await p.waitForTimeout(400); await p.screenshot({ path: `${out}/d4-slash.png` }); await p.keyboard.press("Escape"); await p.keyboard.type("Ask who owns the export"); await p.keyboard.press("Enter"); await p.keyboard.type("# Questions"); await p.waitForTimeout(300); });
 await step("desk-transcript", async () => { await p.click("button[role=tab]:has-text('Transcript')"); await p.waitForTimeout(600); await p.screenshot({ path: `${out}/d5-live-transcript.png` }); });

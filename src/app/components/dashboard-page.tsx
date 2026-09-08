@@ -8,6 +8,7 @@ import { RightPanel } from "./right-panel";
 import { motion } from "motion/react";
 import { useLanguage } from "./language-context";
 import { DesktopAppBanner } from "./desktop/desktop-app-banner";
+import { useShell } from "./desktop/shell";
 import { useTranscriptionModals } from "./transcription-modals";
 import { useUserProfile } from "./user-profile-context";
 import { RecordsListMobile } from "./records-list-mobile";
@@ -143,7 +144,8 @@ function TeamsIcon() {
   );
 }
 
-function MeetingRecorderCard() {
+function MeetingRecorderCard({ label }: { label?: string }) {
+  const { t } = useLanguage();
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -181,7 +183,7 @@ function MeetingRecorderCard() {
       </div>
       {/* Label */}
       <div className="w-full px-[20px] pb-[20px]">
-        <p className="text-center text-foreground font-heading" style={{ fontWeight: 500, fontSize: "16px", lineHeight: 1.3 }}>{useLanguage().t("dash.card.meetingRecorder")}</p>
+        <p className="text-center text-foreground font-heading" style={{ fontWeight: 500, fontSize: "16px", lineHeight: 1.3 }}>{label ?? t("dash.card.meetingRecorder")}</p>
       </div>
     </div>
   );
@@ -375,10 +377,11 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
     transition: { duration: 0.9, ease, delay },
   });
 
+  const { desktop: desktopShell } = useShell();
   const cards = [
     { card: <AudioVideoFilesCard />, key: "1", modal: "upload" as const },
     { card: <InstantSpeachCard />, key: "2", modal: "record" as const },
-    { card: <MeetingRecorderCard />, key: "3", modal: "meeting" as const },
+    { card: <MeetingRecorderCard label={desktopShell ? "Record a call" : undefined} />, key: "3", modal: "meeting" as const },
     { card: <TranscribeFromLinkCard />, key: "4", modal: "link" as const },
   ];
 
