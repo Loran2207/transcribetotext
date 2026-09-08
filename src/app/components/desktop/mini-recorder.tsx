@@ -8,7 +8,7 @@ import { useTranscriptionModals } from "../transcription-modals";
 
 function fmt(s: number) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
 
-export type MiniMode = "minimal" | "expanded" | "paused" | "writing" | "done";
+export type MiniMode = "minimal" | "expanded" | "paused" | "ended" | "writing" | "done";
 
 /* The app's own small window for a call in progress, the one that stays on top
    when the main window is closed or behind the meeting. Granola's grammar,
@@ -20,11 +20,16 @@ export type MiniMode = "minimal" | "expanded" | "paused" | "writing" | "done";
    same note. Dev server: /desk with `?desk=widget|expanded|paused|writing|done`. */
 export function MiniRecorder({ mode: forced }: { mode?: MiniMode } = {}) {
   const navigate = useNavigate();
-  const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording } = useTranscriptionModals();
+  const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording, liveTranscriptSegments } = useTranscriptionModals();
   const [hover, setHover] = useState(false);
   const live = recordingPhase === "recording" || recordingPhase === "paused";
   const demo = readDemo("widget") ?? readDemo("desk");
-  const mode: MiniMode = forced ?? (demo === "expanded" || demo === "paused" || demo === "writing" || demo === "done" ? demo : live && recordingPhase === "paused" ? "paused" : "minimal");
+  const mode: MiniMode = forced ?? (demo === "expanded" || demo === "paused" || demo === "ended" || demo === "writing" || demo === "done" ? demo : live && recordingPhase === "paused" ? "paused" : "minimal");
+  const ended = mode === "ended";
+  /* the last lines heard, shown beside the open row so a glance says what the
+     call is at without opening the app */
+  const demoLines = ["Maria: the export is owned by our ops team, I can send the owner today.", "You: great, then the pricing tiers go out before Thursday.", "Maria: works for us, let us lock the dates on the call tomorrow."];
+  const lines = (liveTranscriptSegments.length ? liveTranscriptSegments.slice(-3).map((s) => s.text) : demoLines);
   const paused = mode === "paused";
   const open = hover || mode !== "minimal";
   const elapsed = live ? recordingElapsed : 754;
@@ -72,27 +77,34 @@ export function MiniRecorder({ mode: forced }: { mode?: MiniMode } = {}) {
   }
   return (
     <div className="relative" onMouseLeave={() => setHover(false)}>
-      {paused && (
+      {!paused && !ended && (
+        <div className="absolute bottom-0 right-[calc(100%+10px)] w-[300px] rounded-[16px] p-[12px] text-[12.5px] leading-[17px] text-white/85 backdrop-blur-[10px]" style={{ background: "rgba(10,22,48,0.78)", boxShadow: "0 8px 24px rgba(10,22,48,0.22)" }}>
+          {lines.map((l, i) => (<p key={i} className={i === lines.length - 1 ? "text-white" : "text-white/60"}>{l}</p>))}
+        </div>
+      )}
+      {(paused || ended) && (
         <button type="button" onClick={generate} className="ttt-glow absolute left-1/2 top-0 flex h-[36px] -translate-x-1/2 -translate-y-[calc(100%+10px)] items-center gap-[6px] rounded-full bg-primary px-[14px] text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]">
           <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.8} />
           Generate notes
         </button>
       )}
-      <div className={`${row} w-[340px] pl-[14px] pr-[10px]`} style={ground}>
+      <div className={`${row} ${ended ? "w-[400px]" : "w-[340px]"} pl-[14px] pr-[10px]`} style={ground}>
         <span className="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] bg-white"><SourceIcon source="zoom" /></span>
-        <span className={paused ? "size-[8px] shrink-0 rounded-full bg-[#FEBC2E]" : "size-[8px] shrink-0 rounded-full bg-[#FF3B30] animate-pulse"} />
+        <span className={ended ? "size-[8px] shrink-0 rounded-full bg-white/40" : paused ? "size-[8px] shrink-0 rounded-full bg-[#FEBC2E]" : "size-[8px] shrink-0 rounded-full bg-[#FF3B30] animate-pulse"} />
         <span className="shrink-0 text-[14px] font-semibold tabular-nums">{fmt(elapsed)}</span>
-        <span className="min-w-0 flex-1 truncate text-[13px] text-white/70">{paused ? "On hold" : title}</span>
+        <span className="min-w-0 flex-1 truncate text-[13px] text-white/70">{ended ? "Call ended, notes in 10s" : paused ? "On hold" : title}</span>
         <button type="button" onClick={toggle} className="flex h-[36px] shrink-0 items-center gap-[6px] rounded-full bg-white px-[14px] text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
-          <Icon icon={paused ? PlayIcon : PauseIcon} className="size-[14px]" strokeWidth={2} />
-          {paused ? "Resume" : "Pause"}
+          <Icon icon={paused || ended ? PlayIcon : PauseIcon} className="size-[14px]" strokeWidth={2} />
+          {ended ? "Keep recording" : paused ? "Resume" : "Pause"}
         </button>
       </div>
     </div>
   );
 }
 
-/* A page that is only the widget, for the desktop app's second window. */
+/* Granola's honest note: the OS sees the call end, so the row says so and
+   counts down to the note; Keep recording holds it open for the tail.
+   A page that is only the widget, for the desktop app's second window. */
 export function MiniRecorderPage() {
   const { os } = useShell();
   return (

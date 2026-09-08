@@ -17,8 +17,10 @@ async function login(url) {
 // WEB
 await login("http://localhost:5173/login?shell=web");
 const go = async (path) => { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, path); await p.waitForTimeout(1200); };
-await login("http://localhost:5173/login?shell=desktop&os=mac&desk=paused"); await go("/desk"); await p.addStyleTag({ content: "[data-sonner-toaster]{display:none!important}" }); await p.screenshot({ path: `${out}/k1-desk-mac-paused.png`, clip: { x: 980, y: 40, width: 460, height: 160 } });
+const hide = () => p.addStyleTag({ content: "[data-sonner-toaster]{display:none!important}" });
+await login("http://localhost:5173/login?shell=desktop&os=win&desk=expanded"); await go("/desk"); await hide(); await p.screenshot({ path: `${out}/k1-desk-win-expanded.png`, clip: { x: 640, y: 700, width: 800, height: 160 } });
 await p.evaluate(() => sessionStorage.clear());
-await login("http://localhost:5173/login?shell=desktop&os=mac&notice=call"); await p.waitForTimeout(600); await p.addStyleTag({ content: "[data-sonner-toaster]{display:none!important}" }); await p.screenshot({ path: `${out}/k2-app-call.png`, clip: { x: 1000, y: 0, width: 440, height: 100 } }); await p.evaluate(() => sessionStorage.clear());
-await p.locator("p:has-text('Record a call') >> visible=true").first().click(); await p.waitForTimeout(2500); await p.click("button:has-text('Pause')"); await p.waitForTimeout(600); await p.screenshot({ path: `${out}/k3-live-paused.png`, clip: { x: 700, y: 760, width: 500, height: 140 } });
+await login("http://localhost:5173/login?shell=desktop&os=mac&desk=ended"); await go("/desk"); await hide(); await p.screenshot({ path: `${out}/k2-desk-mac-ended.png`, clip: { x: 980, y: 40, width: 460, height: 160 } });
+await p.evaluate(() => sessionStorage.clear());
+await login("http://localhost:5173/login?shell=desktop&os=mac&perm=mic"); await p.waitForTimeout(600); await hide(); await p.screenshot({ path: `${out}/k3-home-3tiles.png`, clip: { x: 256, y: 60, width: 1184, height: 320 } }); await p.click("text=Notetaker"); await p.waitForTimeout(900); await p.screenshot({ path: `${out}/k4-perm-mic.png`, clip: { x: 256, y: 260, width: 1184, height: 200 } });
 await b.close(); console.log("peek-done");

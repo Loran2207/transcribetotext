@@ -25,7 +25,7 @@ export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
     return () => window.clearInterval(t);
   }, [held]);
   const feature = FEATURES[active];
-  const [perm, setPerm] = useState<Record<string, boolean>>(() => (readDemo("perm") === "1" ? { mic: false, sys: false } : { mic: true, sys: true }));
+  const [perm, setPerm] = useState<Record<string, boolean>>(() => { const d = readDemo("perm"); return d === "1" ? { mic: false, sys: false } : d === "mic" ? { mic: true, sys: false } : { mic: true, sys: true }; });
   const needsPerm = !perm.mic || !perm.sys;
   return (
     <div className="flex-1 overflow-auto bg-background">
@@ -63,7 +63,7 @@ export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
         {needsPerm && (
           <div className="mt-[16px] rounded-[16px] border border-border bg-card p-[16px] md:p-[20px]">
             <p className="text-[15px] font-semibold text-foreground">Before the first call, allow two things on {machine}</p>
-            <p className="mt-[2px] text-[13px] text-muted-foreground">Asked once. Nothing is recorded until you press Record a call.</p>
+            <p className="mt-[2px] text-[13px] text-muted-foreground">Asked once. This card goes away when both are allowed; nothing is recorded until you press Record a call.</p>
             <div className="mt-[14px] grid gap-[10px] md:grid-cols-2">
               {[
                 { id: "mic", icon: Mic01Icon, title: "Microphone", line: "Your side of the call." },
