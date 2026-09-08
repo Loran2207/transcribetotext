@@ -66,7 +66,7 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   else if (op === "scroll") await p.$eval(arg, (el) => { el.scrollTop = el.scrollHeight; });
   await p.waitForTimeout(350);
 }
-await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important}" });
+await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important}" });
 if (!(process.env.STEPS || "").includes("drag=")) await p.mouse.move(2, 2);
 await p.evaluate(async () => { await Promise.all([400,500,600,700,800].map((wt) => document.fonts.load(wt + " 16px Inter"))); await document.fonts.ready; });
 await p.waitForTimeout(700);

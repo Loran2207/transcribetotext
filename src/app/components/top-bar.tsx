@@ -113,7 +113,7 @@ export function TopBar({ onNavigate }: TopBarProps) {
   }, []);
 
   return (
-    <div className="shrink-0 hidden lg:flex items-center px-[16px] h-[56px] gap-[12px] bg-sidebar">
+    <div className="ttt-topbar shrink-0 hidden lg:flex items-center px-[16px] h-[56px] gap-[12px] bg-sidebar">
       {/* Search trigger */}
       <Button variant="ghost"
         onClick={() => setSearchOpen(true)}

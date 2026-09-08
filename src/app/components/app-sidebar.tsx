@@ -1,4 +1,5 @@
-import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
+import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon, Mic01Icon } from "@hugeicons/core-free-icons";
+import { useShell } from "./desktop/shell";
 
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -272,6 +273,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
   const [shareFolderName, setShareFolderName] = useState<string | null>(null);
   const { starredRecords } = useStarred();
   const { folders: userFolders, addFolder } = useFolders();
+  const { desktop: desktopShell } = useShell();
   const { t } = useLanguage();
   const { toggleSidebar, setOpenMobile } = useSidebar();
 
@@ -309,6 +311,15 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+            {/* The desktop app's own tab: calls recorded on this machine */}
+            {desktopShell && (
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={activePage === "notetaker"} onClick={() => { onNavigate("notetaker"); setOpenMobile(false); }} tooltip="Notetaker">
+                  <Icon icon={Mic01Icon} strokeWidth={1.3} />
+                  <span>Notetaker</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroup>
 

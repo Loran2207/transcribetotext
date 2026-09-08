@@ -4,6 +4,9 @@ import { Icon } from "./ui/icon";
 import { useLanguage } from "./language-context";
 import { usePlan } from "./use-plan";
 import { UpgradeBanner } from "./upgrade-banner";
+import { DesktopAppBanner } from "./desktop/desktop-app-banner";
+import { useTranscriptionModals } from "./transcription-modals";
+import { useShell } from "./desktop/shell";
 import { PromoCard } from "./right-panel";
 import { ANALYTICS_FILES, ANALYTICS_HOURS, ANALYTICS_SOURCES } from "./analytics-card";
 import { meetings, MeetingItem, TODAY_STR } from "./todays-events";
@@ -120,17 +123,21 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
     </div>
   );
 
+  const { setOpenModal } = useTranscriptionModals();
+  const { desktop: desktopShell } = useShell();
+  /* the desktop app is a third slide on the web, never inside the app itself */
+  const promoSlides = desktopShell ? ["banner", "promo"] : ["banner", "desktop", "promo"];
   const promoCarousel = (
     <div>
       <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
-        {["banner", "promo"].map((key) => (
+        {promoSlides.map((key) => (
           <div key={key} className="snap-center shrink-0 w-full h-[84px] flex items-center [&>*]:w-full">
-            {key === "banner" ? <UpgradeBanner bare /> : <PromoCard />}
+            {key === "banner" ? <UpgradeBanner bare /> : key === "desktop" ? <DesktopAppBanner compact onGet={() => { window.sessionStorage.setItem("ttt_meeting_method", "desktop"); setOpenModal("meeting"); }} /> : <PromoCard />}
           </div>
         ))}
       </div>
       <div className="flex items-center justify-center gap-[6px]">
-        {["banner", "promo"].map((key, i) => (<span key={key} className={i === promoActive ? dotOn : dotOff} />))}
+        {promoSlides.map((key, i) => (<span key={key} className={i === promoActive ? dotOn : dotOff} />))}
       </div>
     </div>
   );

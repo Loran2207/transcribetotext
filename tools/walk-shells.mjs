@@ -19,6 +19,8 @@ await login("http://localhost:5173/login?shell=web");
 await step("web-home", async () => { await p.waitForTimeout(1200); await p.screenshot({ path: `${out}/w1-home.png` }); });
 await step("web-meeting", async () => { await p.locator("p:has-text('Meeting Recorder') >> visible=true").first().click(); await p.waitForTimeout(600); await p.screenshot({ path: `${out}/w2-meeting-bot.png` }); });
 await step("web-desktop-method", async () => { await p.click("text=Record on your computer"); await p.waitForTimeout(400); await p.screenshot({ path: `${out}/w3-meeting-app.png` }); await p.keyboard.press("Escape"); });
+await step("web-installed", async () => { await login("http://localhost:5173/login?shell=web&installed=1"); await p.waitForTimeout(1000); await p.locator("p:has-text('Meeting Recorder') >> visible=true").first().click(); await p.waitForTimeout(400); await p.click("text=Record on your computer"); await p.waitForTimeout(400); await p.screenshot({ path: `${out}/w4-meeting-installed.png` }); await p.keyboard.press("Escape"); await p.evaluate(() => localStorage.setItem("ttt_app_installed", "0")); });
+await step("web-phone", async () => { await p.setViewportSize({ width: 390, height: 844 }); await login("http://localhost:5173/login?shell=web"); await p.waitForTimeout(1200); await p.screenshot({ path: `${out}/w5-phone.png` }); await p.setViewportSize({ width: 1440, height: 900 }); });
 // DESKTOP (mac)
 await login("http://localhost:5173/login?shell=desktop&os=mac"); await p.waitForTimeout(1200);
 await step("desk-home", async () => { await p.screenshot({ path: `${out}/d1-home.png` }); });
@@ -28,7 +30,7 @@ await step("desk-slash", async () => { await p.click("textarea >> nth=0"); await
 await step("desk-transcript", async () => { await p.click("button[role=tab]:has-text('Transcript')"); await p.waitForTimeout(600); await p.screenshot({ path: `${out}/d5-live-transcript.png` }); });
 await step("desk-generate", async () => { await p.click("button:has-text('Generate notes')"); await p.waitForTimeout(1200); await p.screenshot({ path: `${out}/d6-generating.png` }); await p.waitForTimeout(3200); await p.screenshot({ path: `${out}/d7-summary.png` }); });
 await step("desk-notes-tab", async () => { await p.click("button[role=tab]:has-text('Notes')"); await p.waitForTimeout(500); await p.screenshot({ path: `${out}/d8-notes-after.png` }); });
-await step("desk-dictate", async () => { await p.click("text=Dictate"); await p.waitForTimeout(500); await p.screenshot({ path: `${out}/d9-dictate.png` }); });
+await step("desk-notetaker", async () => { await p.click("text=Notetaker"); await p.waitForTimeout(800); await p.screenshot({ path: `${out}/d9-notetaker.png` }); });
 // WINDOWS frame
 await login("http://localhost:5173/login?shell=desktop&os=win"); await p.waitForTimeout(1200);
 await step("win-home", async () => { await p.screenshot({ path: `${out}/x1-win-home.png` }); });

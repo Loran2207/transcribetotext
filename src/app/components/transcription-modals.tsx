@@ -2502,7 +2502,7 @@ function RecordMethodCards({ method, onChange, desktopShell, machine }: { method
 
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addJob, templates, meetingCounterRef, consumeDefaultFolderId, guardFreeLimit, startInstantRecording } = useTranscriptionModals();
-  const { desktop: desktopShell, machine } = useShell();
+  const { desktop: desktopShell, machine, installed } = useShell();
   const [method, setMethod] = useState<RecordMethod>(desktopShell ? "desktop" : "bot");
   const [isStarting, setIsStarting] = useState(false);
 
@@ -2597,7 +2597,24 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
           <RecordMethodCards method={method} onChange={setMethod} desktopShell={desktopShell} machine={machine} />
 
-          {method === "desktop" && !desktopShell && (
+          {method === "desktop" && !desktopShell && installed && (
+            <div className="flex flex-col gap-[14px]">
+              <div className="rounded-[12px] border border-primary/15 bg-primary/5 p-[14px]">
+                <p className="text-[13px] leading-relaxed text-primary">
+                  TranscribeToText is installed on your computer. The call is recorded there, with the transcript live beside your notes, and the note lands in this account.
+                </p>
+              </div>
+              <Button className="h-[44px] w-full rounded-full gap-2 text-[14px] font-semibold" onClick={() => { window.location.assign("transcribetotext://record"); toast("Opening TranscribeToText on your computer"); }}>
+                <Icon icon={ComputerIcon} className="size-[16px]" strokeWidth={1.8} />
+                Open the app and record
+              </Button>
+              <p className="text-center text-[12.5px] text-muted-foreground">
+                Nothing opened? <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => toast("The download will start from the release page")}>Download the app again</button>
+              </p>
+            </div>
+          )}
+
+          {method === "desktop" && !desktopShell && !installed && (
             <div className="flex flex-col gap-[14px]">
               <div className="rounded-[12px] border border-primary/15 bg-primary/5 p-[14px]">
                 <p className="text-[13px] leading-relaxed text-primary">
@@ -2615,7 +2632,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                 </Button>
               </div>
               <p className="text-center text-[12.5px] text-muted-foreground">
-                Already installed? <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => toast("Opening TranscribeToText")}>Open the app</button>
+                Already installed? <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => { window.location.assign("transcribetotext://record"); toast("Opening TranscribeToText on your computer"); }}>Open the app</button>
               </p>
             </div>
           )}

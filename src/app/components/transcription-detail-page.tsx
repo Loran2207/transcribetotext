@@ -2990,7 +2990,7 @@ export function TranscriptionDetailPage() {
     return (
       <div ref={pageRef} className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-          <div className="border-b border-border px-8 pt-6 pb-5">
+          <div className={(desktopShell ? "" : "border-b border-border ") + "px-4 pt-6 pb-5 lg:px-8"}>
             <div className="flex h-7 items-center text-xs text-muted-foreground">{desktopShell ? "Recording a call" : "My record"}</div>
             <h1 className="mt-1 text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]">
               {title || (desktopShell ? liveTitle : "Live note")}
@@ -3008,19 +3008,19 @@ export function TranscriptionDetailPage() {
           </div>
 
           {desktopShell && (
-            <div className="border-b border-border px-8">
-              <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript")}>
+            <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript")} className="mt-2 lg:mt-4">
+              <div className="flex items-end border-b border-border px-4 lg:px-8">
                 <TabsList variant="line" className="border-b-0">
-                  <TabsTrigger value="notes" variant="line">Notes</TabsTrigger>
-                  <TabsTrigger value="transcript" variant="line">Transcript</TabsTrigger>
+                  <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">Notes</TabsTrigger>
+                  <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">Transcript</TabsTrigger>
                 </TabsList>
-              </Tabs>
-            </div>
+              </div>
+            </Tabs>
           )}
 
           <div className="flex-1 overflow-auto">
             {desktopShell && liveTab === "notes" ? (
-              <div className="mx-auto w-full max-w-[980px] px-8 py-6">
+              <div className="mx-auto w-full max-w-[980px] px-4 py-6 lg:px-8">
                 <NotesPad
                   lines={pad}
                   onChange={setPad}

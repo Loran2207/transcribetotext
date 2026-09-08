@@ -17,7 +17,7 @@ import { SettingsPage } from "./settings-modal";
 import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 import { DesktopWindowFrame, useShell } from "./desktop/shell";
-import { DictationPill } from "./desktop/dictation-pill";
+import { NotetakerPage } from "./desktop/notetaker-page";
 
 export function AppLayout() {
   const [activePage, setActivePage] = useState("dashboard");
@@ -61,7 +61,7 @@ export function AppLayout() {
   return (
     <UserProfileProvider>
      <DesktopWindowFrame>
-      <SidebarProvider className={(desktop ? "h-full" : "h-screen") + " !min-h-0 overflow-hidden bg-sidebar"}>
+      <SidebarProvider className="h-screen !min-h-0 overflow-hidden bg-sidebar">
         <AppSidebar activePage={activePage} onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />
         <SidebarInset className="overflow-hidden bg-sidebar">
           <TopBar onNavigate={handleNavigate} />
@@ -79,7 +79,8 @@ export function AppLayout() {
                 {!isSettings && activePage === "shared" && <SharedWithMePage />}
                 {!isSettings && activePage === "calendar" && <CalendarPage />}
                 {!isSettings && activePage === "templates" && <TemplatesPage />}
-                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && (
+                {!isSettings && desktop && activePage === "notetaker" && <NotetakerPage onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />}
+                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && activePage !== "notetaker" && (
                   <PagePlaceholder activePage={activePage} />
                 )}
               </>
@@ -89,7 +90,6 @@ export function AppLayout() {
           <InnerScreenBottomBar />
         </SidebarInset>
       </SidebarProvider>
-      <DictationPill />
      </DesktopWindowFrame>
     </UserProfileProvider>
   );

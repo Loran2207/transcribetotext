@@ -232,6 +232,8 @@
   .ttt-search[data-state="closed"] { animation-name: ttt-dim-out; }
 }
 
-/* The desktop shell: the app's title bar is above everything, so the fixed
-   sidebar starts under it instead of covering the window controls. */
-html[data-shell="desktop"] [data-slot="sidebar-container"] { top: 38px; height: calc(100svh - 38px); }
+/* The desktop shell keeps the portal's height: the window controls sit in the
+   top row, so the logo steps right on macOS and the top bar ends earlier on
+   Windows. */
+html[data-shell="desktop"][data-os="mac"] [data-slot="sidebar-header"] { padding-left: 84px; }
+html[data-shell="desktop"][data-os="win"] .ttt-topbar { padding-right: 150px; }
