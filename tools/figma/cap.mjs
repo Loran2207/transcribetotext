@@ -64,6 +64,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
     await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2 + +dy, { steps: 6 });
   }
   else if (op === "scroll") await p.$eval(arg, (el) => { el.scrollTop = el.scrollHeight; });
+  /* scrollx=<sel>|<px>: slide a horizontal carousel to a given offset */
+  else if (op === "scrollx") { const [sel, px] = arg.split("|"); await p.$eval(sel, (el, x) => { el.scrollLeft = x; }, +px); }
   await p.waitForTimeout(350);
 }
 await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important}" });
