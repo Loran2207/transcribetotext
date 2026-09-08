@@ -5,7 +5,7 @@ import { NoticeCard } from "./desktop-notice";
 /* The app with its window closed: only what floats over the desktop remains.
    A wallpaper and the system's own strip (menu bar on macOS, taskbar on
    Windows) give the eye a scale; nothing else on the desk is ours. The dev
-   server draws it at /desk with `?desk=widget|paused|call|ready`. */
+   server draws it at /desk with `?desk=widget|expanded|paused|writing|done|call|ready`. */
 export function DeskPage() {
   const { os } = useShell();
   const state = readDemo("desk") ?? "widget";
@@ -26,8 +26,8 @@ export function DeskPage() {
           <span className="flex flex-col items-end leading-[14px]"><span>21:14</span><span>08.09.2026</span></span>
         </div>
       )}
-      {(state === "widget" || state === "paused") && (
-        <div className={`absolute right-[24px] ${mac ? "top-[52px]" : "bottom-[72px]"}`}><MiniRecorder /></div>
+      {(state === "widget" || state === "expanded" || state === "paused" || state === "writing" || state === "done") && (
+        <div className={`absolute right-[24px] ${mac ? "top-[104px]" : "bottom-[72px]"}`}><MiniRecorder /></div>
       )}
       {(state === "call" || state === "ready") && (
         <div className={`absolute right-[24px] ${mac ? "top-[44px]" : "bottom-[68px]"}`}><NoticeCard kind={state} onAct={() => {}} onClose={() => {}} /></div>

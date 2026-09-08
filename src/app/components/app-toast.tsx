@@ -4,6 +4,7 @@ import {
   CheckmarkCircle02Icon,
   Download01Icon,
 } from "@hugeicons/core-free-icons";
+import type { ReactNode } from "react";
 import { Icon } from "./ui/icon";
 
 /* Every toast the app sends has one shape: a status mark, a line saying what
@@ -31,6 +32,7 @@ export function ToastCard({
   meta,
   action,
   secondary,
+  mark,
 }: {
   tone?: Tone;
   glyph?: unknown;
@@ -38,6 +40,7 @@ export function ToastCard({
   meta?: string;
   action?: { label: string; onClick: () => void; pressed?: boolean };
   secondary?: { label: string; onClick: () => void };
+  mark?: ReactNode;
 }) {
   const t = TONE[tone];
   return (
@@ -51,13 +54,15 @@ export function ToastCard({
          top card only, and the Toaster puts it there. */
       className="flex w-[356px] max-w-[calc(100vw-24px)] items-center gap-[12px] rounded-[14px] border border-border bg-popover px-[14px] py-[12px]"
     >
-      <span className={"flex size-[28px] shrink-0 items-center justify-center rounded-full " + t.chip}>
-        <Icon
-          icon={glyph ?? (tone === "error" ? AlertCircle : CheckmarkCircle02Icon)}
-          className={"size-[16px] " + t.ink}
-          strokeWidth={2}
-        />
-      </span>
+      {mark ?? (
+        <span className={"flex size-[28px] shrink-0 items-center justify-center rounded-full " + t.chip}>
+          <Icon
+            icon={glyph ?? (tone === "error" ? AlertCircle : CheckmarkCircle02Icon)}
+            className={"size-[16px] " + t.ink}
+            strokeWidth={2}
+          />
+        </span>
+      )}
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13.5px] font-semibold leading-[18px] -tracking-[0.1px] text-foreground">

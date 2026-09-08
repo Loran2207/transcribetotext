@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Mic01Icon, AiMagicIcon } from "@hugeicons/core-free-icons";
 import { ToastCard } from "../app-toast";
+import { SourceIcon } from "../source-icons";
 import { readDemo, useShell } from "./shell";
 import { useTranscriptionModals } from "../transcription-modals";
 
@@ -12,12 +13,14 @@ export type NoticeKind = "call" | "ready";
    take the microphone; "Notes are ready" comes after Generate notes while the
    app is behind other windows or closed. */
 export function NoticeCard({ kind, onAct, onClose }: { kind: NoticeKind; onAct: () => void; onClose: () => void }) {
+  /* the calling app's own logo is the mark: the reader knows which window rang
+     before reading a word */
   const n = kind === "call"
-    ? { glyph: Mic01Icon, title: "Zoom call started", meta: "No bot joins the call", act: "Record", later: "Not now" }
-    : { glyph: AiMagicIcon, title: "Notes are ready", meta: "Acme onboarding call", act: "Open", later: "Later" };
+    ? { mark: <span className="flex size-[28px] shrink-0 items-center justify-center rounded-[8px] border border-border bg-white [&_svg]:size-[18px]"><SourceIcon source="zoom" /></span>, glyph: Mic01Icon, title: "Zoom call detected", meta: "Record it here, no bot", act: "Record", later: "Not now" }
+    : { mark: undefined, glyph: AiMagicIcon, title: "Notes are ready", meta: "Acme onboarding call", act: "Open", later: "Later" };
   return (
     <div className="rounded-[14px]" style={{ boxShadow: "0 12px 32px rgba(15,23,42,0.14), 0 2px 6px rgba(15,23,42,0.06)" }}>
-      <ToastCard glyph={n.glyph} title={n.title} meta={n.meta} action={{ label: n.act, onClick: onAct }} secondary={{ label: n.later, onClick: onClose }} />
+      <ToastCard mark={n.mark} glyph={n.glyph} title={n.title} meta={n.meta} action={{ label: n.act, onClick: onAct }} secondary={{ label: n.later, onClick: onClose }} />
     </div>
   );
 }

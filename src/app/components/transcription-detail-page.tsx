@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Mic01Icon } from "@hugeicons/core-free-icons";
 import { useShell } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
@@ -1486,12 +1486,32 @@ function LiveRecordingBar({
   isSwitchingMicrophone: boolean;
 }) {
   const selectedMic = microphoneDevices.find((device) => device.id === selectedMicrophoneId);
+  /* the desktop hears the other side through an output device; which one is a
+     choice of its own, kept for the session */
+  const [outputs, setOutputs] = useState<{ id: string; label: string }[]>([]);
+  const [outputId, setOutputId] = useState(() => window.sessionStorage.getItem("ttt_output_device") || "");
+  useEffect(() => {
+    if (!generate || !navigator.mediaDevices?.enumerateDevices) return;
+    navigator.mediaDevices.enumerateDevices().then((list) => {
+      const outs = list.filter((d) => d.kind === "audiooutput").map((d, i) => ({ id: d.deviceId || `out-${i}`, label: d.label || `Speakers ${i + 1}` }));
+      setOutputs(outs.length ? outs : [{ id: "default", label: "Built-in speakers" }]);
+    }).catch(() => setOutputs([{ id: "default", label: "Built-in speakers" }]));
+  }, [generate]);
+  const outputLabel = outputs.find((o) => o.id === outputId)?.label || outputs[0]?.label || "Speakers";
   const triggerLabel = isSwitchingMicrophone
     ? "Switching microphone..."
     : (selectedMic?.label || (microphoneDevices.length ? "Select microphone" : "No microphone detected"));
 
   return (
-    <div className="shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-[2px]">
+    <div className="relative shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-[2px]">
+      {generate && isPaused && (
+        /* Granola's grammar: the call is on hold, and only now the note can be
+           written. One glowing verb above the bar, nothing else changes. */
+        <button type="button" onClick={onStop} className="ttt-glow absolute left-1/2 top-0 z-10 flex h-[40px] -translate-x-1/2 -translate-y-[calc(100%+12px)] items-center gap-[7px] rounded-full bg-primary pl-[14px] pr-[16px] text-[13.5px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]" title="End the call here and write the note">
+          <Icon icon={AiMagicIcon} className="size-[15px]" strokeWidth={1.9} />
+          Generate notes
+        </button>
+      )}
       <div className="grid items-center gap-3 md:grid-cols-[1fr_auto_1fr]">
         <div className="flex min-w-0 items-center gap-2">
           <span className="relative flex size-[8px] shrink-0">
@@ -1506,14 +1526,14 @@ function LiveRecordingBar({
           <span className="font-semibold text-[14px] text-foreground tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
           <LiveRecordingWaveform active={!isPaused} />
           <span className="hidden text-xs text-muted-foreground md:inline">
-            {isPaused ? "Recording on hold" : "Live transcript is running"}
+            {isPaused ? (generate ? "On hold. Resume, or generate the notes" : "Recording on hold") : "Live transcript is running"}
           </span>
         </div>
 
         <div className="order-3 md:order-2 flex items-center justify-center gap-2">
           <Button
             variant="pill-outline"
-            className="h-9 rounded-full px-3 gap-1.5"
+            className={`h-9 rounded-full gap-1.5 ${generate ? "px-4" : "px-3"}`}
             onClick={onPauseResume}
             title={isPaused ? "Resume recording" : "Pause recording"}
           >
@@ -1523,12 +1543,7 @@ function LiveRecordingBar({
             }
             <span className="text-[13px] font-medium text-foreground">{isPaused ? "Resume" : "Pause"}</span>
           </Button>
-          {generate ? (
-            <Button className="h-9 rounded-full px-3.5 gap-1.5" onClick={onStop} title="End the recording and write the note">
-              <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.8} />
-              <span className="text-[13px] font-semibold">Generate notes</span>
-            </Button>
-          ) : (
+          {generate ? null : (
           <Button
             variant="destructive"
             className="h-9 rounded-full px-3 gap-1.5"
@@ -1541,13 +1556,28 @@ function LiveRecordingBar({
           )}
         </div>
 
-        <div className="order-2 md:order-3 md:justify-self-end w-full md:w-auto md:min-w-[260px] md:max-w-[320px]">
+        <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? "flex gap-2 md:max-w-[520px]" : "md:min-w-[260px] md:max-w-[320px]"}`}>
+          {generate && (
+            <Select value={outputId || outputs[0]?.id} onValueChange={(v) => { setOutputId(v); window.sessionStorage.setItem("ttt_output_device", v); }} disabled={!outputs.length}>
+              <SelectTrigger className="h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] md:w-[240px]" title="Where the call's sound plays">
+                <span className="flex min-w-0 items-center gap-[8px]">
+                  <Icon icon={VolumeHighIcon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
+                  <span className="truncate text-[13px] text-foreground">{outputLabel}</span>
+                </span>
+              </SelectTrigger>
+              <SelectContent align="start" className="z-[120] max-w-[calc(100vw-32px)] rounded-[12px]">
+                {outputs.map((o) => (
+                  <SelectItem key={o.id} value={o.id} className="text-[13px]"><span className="truncate">{o.label}</span></SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Select
             value={selectedMicrophoneId || undefined}
             onValueChange={onSwitchMicrophone}
             disabled={!microphoneDevices.length || isSwitchingMicrophone}
           >
-            <SelectTrigger className="h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px]">
+            <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${generate ? "md:w-[240px]" : ""}`}>
               <span className="flex min-w-0 items-center gap-[8px]">
                 <SourceIcon source="microphone" />
                 <span className="truncate text-[13px] text-foreground">{triggerLabel}</span>
@@ -3109,6 +3139,16 @@ export function TranscriptionDetailPage() {
     );
   }
 
+  /* a finished note is not a closed door: the next part of the same call goes
+     into the same note, with the notes already written kept */
+  const continueRecording = async () => {
+    const ok = await startInstantRecording();
+    if (!ok) { toast.error("Microphone access is required to start recording."); return; }
+    window.sessionStorage.setItem("ttt_live_title", recordTitle);
+    savePad("live", pad);
+    navigate("/transcriptions/live", { state: { liveRecording: true } });
+  };
+
   const handleTemplateSelect = (id: string | null) => {
     if (id === null) {
       if (activeTemplateId !== null) toast("Template removed");
@@ -3306,6 +3346,12 @@ export function TranscriptionDetailPage() {
                 </>
               ) : null}
             </TabsList>
+            {desktopShell && !isJobTranscribing && (
+              <Button variant="pill-outline" className="mb-2 ml-auto mr-3 h-9 shrink-0 gap-1.5 rounded-full px-3.5" onClick={continueRecording} title="Record more into this note">
+                <Icon icon={Mic01Icon} className="size-[14px]" strokeWidth={1.8} />
+                <span className="text-[13px] font-medium">Continue recording</span>
+              </Button>
+            )}
 
             {/* Right side of tab row: context-dependent */}
             <div className="mb-1 flex items-center gap-2 max-md:hidden md:max-lg:mb-2">
