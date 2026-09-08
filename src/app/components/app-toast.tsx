@@ -30,12 +30,14 @@ export function ToastCard({
   title,
   meta,
   action,
+  secondary,
 }: {
   tone?: Tone;
   glyph?: unknown;
   title: string;
   meta?: string;
   action?: { label: string; onClick: () => void; pressed?: boolean };
+  secondary?: { label: string; onClick: () => void };
 }) {
   const t = TONE[tone];
   return (
@@ -66,6 +68,11 @@ export function ToastCard({
         ) : null}
       </div>
 
+      {secondary ? (
+        <button type="button" onClick={secondary.onClick} className="shrink-0 rounded-full px-[10px] py-[6px] text-[12.5px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+          {secondary.label}
+        </button>
+      ) : null}
       {action ? (
         <button
           type="button"

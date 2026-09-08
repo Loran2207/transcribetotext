@@ -11,6 +11,8 @@ import { ResetPasswordPage } from "./components/reset-password-page";
 import { ProtectedRoute } from "./components/protected-route";
 import { ShareViewPage } from "./components/share-view-page";
 import { CheckoutPage } from "./components/checkout-page";
+import { MiniRecorderPage } from "./components/desktop/mini-recorder";
+import { DeskPage } from "./components/desktop/desk-page";
 
 function ProtectedAppLayout() {
   return (
@@ -28,6 +30,8 @@ export const router = createBrowserRouter([
       { path: "transcriptions/:id", Component: TranscriptionDetailPage },
     ],
   },
+  { path: "/widget", Component: () => (<ProtectedRoute><MiniRecorderPage /></ProtectedRoute>) },
+  { path: "/desk", Component: () => (<ProtectedRoute><DeskPage /></ProtectedRoute>) },
   { path: "/login", Component: LoginPage },
   { path: "/signup", Component: SignupPage },
   { path: "/check-email", Component: EmailConfirmationPage },
