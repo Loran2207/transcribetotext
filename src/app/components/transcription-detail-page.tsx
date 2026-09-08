@@ -2,7 +2,9 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon } from "@hugeicons/core-free-icons";
+import { useShell } from "./desktop/shell";
+import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
@@ -1470,11 +1472,14 @@ function LiveRecordingBar({
   selectedMicrophoneId,
   onSwitchMicrophone,
   isSwitchingMicrophone,
+  generate = false,
 }: {
   isPaused: boolean;
   elapsedSeconds: number;
   onPauseResume: () => void;
   onStop: () => void;
+  /* the desktop shell ends a call with the note itself: one blue verb, no Stop */
+  generate?: boolean;
   microphoneDevices: { id: string; label: string }[];
   selectedMicrophoneId: string;
   onSwitchMicrophone: (deviceId: string) => void;
@@ -1518,6 +1523,12 @@ function LiveRecordingBar({
             }
             <span className="text-[13px] font-medium text-foreground">{isPaused ? "Resume" : "Pause"}</span>
           </Button>
+          {generate ? (
+            <Button className="h-9 rounded-full px-3.5 gap-1.5" onClick={onStop} title="End the recording and write the note">
+              <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.8} />
+              <span className="text-[13px] font-semibold">Generate notes</span>
+            </Button>
+          ) : (
           <Button
             variant="destructive"
             className="h-9 rounded-full px-3 gap-1.5"
@@ -1527,6 +1538,7 @@ function LiveRecordingBar({
             <svg className="size-[12px] text-white" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
             <span className="text-[13px] font-semibold text-white">Stop</span>
           </Button>
+          )}
         </div>
 
         <div className="order-2 md:order-3 md:justify-self-end w-full md:w-auto md:min-w-[260px] md:max-w-[320px]">
@@ -1936,6 +1948,20 @@ export function TranscriptionDetailPage() {
   const routeState = location.state as { record?: RecordRow; liveRecording?: boolean; fromRecordingStop?: boolean } | null;
   const routeStateRecord = routeState?.record;
   const isLiveRecordingRoute = id === "live" || Boolean(routeState?.liveRecording);
+  /* the desktop shell: your notes beside the live transcript, kept with the record */
+  const { desktop: desktopShell, machine } = useShell();
+  const padKey = isLiveRecordingRoute ? "live" : (id ?? "live");
+  const [liveTab, setLiveTab] = useState<"notes" | "transcript">("notes");
+  const [pad, setPad] = useState<PadLine[]>(() => {
+    if (!isLiveRecordingRoute && routeState?.fromRecordingStop) {
+      const moved = loadPad("live");
+      if (moved.some((l) => l.text)) { savePad(id ?? "live", moved); window.localStorage.removeItem("ttt_notes:live"); return moved; }
+    }
+    return loadPad(padKey);
+  });
+  useEffect(() => { savePad(padKey, pad); }, [pad, padKey]);
+  const liveTitle = window.sessionStorage.getItem("ttt_live_title") || "Untitled call";
+  const generatedRef = useRef(false);
   const persistedRecord = useMemo<RecordRow | null>(() => {
     if (!id || typeof window === "undefined") return null;
     try {
@@ -1967,7 +1993,7 @@ export function TranscriptionDetailPage() {
   const previewSegments = selectedJob?.livePreviewSegments ?? [];
 
 
-  const fallbackTitle = isLiveRecordingRoute ? "Live note" : "Weekly Team Sync - Product & Engineering";
+  const fallbackTitle = isLiveRecordingRoute ? (desktopShell ? liveTitle : "Live note") : "Weekly Team Sync - Product & Engineering";
   const recordTitle = selectedRecord ? getName(selectedRecord.id, selectedRecord.name) : fallbackTitle;
   const selectedFolder = useMemo(() => {
     if (!selectedRecord) return null;
@@ -2936,6 +2962,28 @@ export function TranscriptionDetailPage() {
     window.getSelection()?.removeAllRanges();
   }
 
+  const runGeneration = (selected: Template) => {
+    setActiveTab("summary");
+    setIsSummaryLoading(true);
+    setSummaryStage("Analyzing the transcript");
+    setTimeout(() => setSummaryStage("Generating sections"), 1300);
+    setTimeout(() => setSummaryStage("Polishing the summary"), 2600);
+    setTimeout(() => {
+      setIsSummaryLoading(false);
+      toast.success(`Template "${selected.name}" applied`);
+    }, 3600);
+  };
+  /* Generate notes on the desktop shell: the recording ends and the note is
+     written straight away, in the template chosen for the call or the first one */
+  useEffect(() => {
+    if (!desktopShell || !routeState?.fromRecordingStop || generatedRef.current || !templates.length || isJobTranscribing) return;
+    generatedRef.current = true;
+    const chosen = (activeTemplateId && templates.find((t) => t.id === activeTemplateId)) || templates[0];
+    setActiveTemplateId(chosen.id);
+    runGeneration(chosen);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desktopShell, routeState?.fromRecordingStop, templates.length, isJobTranscribing]);
+
   if (isLiveRecordingDetail) {
     const isPaused = recordingPhase === "paused";
     const hasTranscript = liveTranscriptSegments.length > 0 || liveTranscriptInterim.trim().length > 0;
@@ -2943,14 +2991,14 @@ export function TranscriptionDetailPage() {
       <div ref={pageRef} className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <div className="border-b border-border px-8 pt-6 pb-5">
-            <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
+            <div className="flex h-7 items-center text-xs text-muted-foreground">{desktopShell ? "Recording a call" : "My record"}</div>
             <h1 className="mt-1 text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]">
-              {title || "Live note"}
+              {title || (desktopShell ? liveTitle : "Live note")}
             </h1>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <span className="scale-[0.9]"><SourceIcon source="microphone" /></span>
-                <span>Microphone</span>
+                <span>{desktopShell ? `Microphone and the call's sound on ${machine}` : "Microphone"}</span>
               </span>
               <span className="text-border">{"\u2022"}</span>
               <span>{isPaused ? "Paused - live transcript is on hold" : "Recording in real time"}</span>
@@ -2959,7 +3007,30 @@ export function TranscriptionDetailPage() {
             </div>
           </div>
 
+          {desktopShell && (
+            <div className="border-b border-border px-8">
+              <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript")}>
+                <TabsList variant="line" className="border-b-0">
+                  <TabsTrigger value="notes" variant="line">Notes</TabsTrigger>
+                  <TabsTrigger value="transcript" variant="line">Transcript</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
+
           <div className="flex-1 overflow-auto">
+            {desktopShell && liveTab === "notes" ? (
+              <div className="mx-auto w-full max-w-[980px] px-8 py-6">
+                <NotesPad
+                  lines={pad}
+                  onChange={setPad}
+                  templates={templates.map((t) => ({ id: t.id, name: t.name }))}
+                  onTemplate={(tid) => { if (tid === "all") setTemplatePickerOpen(true); else { setActiveTemplateId(tid); const t = templates.find((x) => x.id === tid); if (t) toast(`"${t.name}" will shape the note`); } }}
+                  autoFocus
+                  hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
+                />
+              </div>
+            ) : (
             <div className="mx-auto w-full max-w-[980px] px-8 py-6">
               {!hasTranscript && (
                 <div className="mt-4 rounded-[16px] border border-dashed border-border bg-muted/20 px-6 py-8">
@@ -3019,6 +3090,7 @@ export function TranscriptionDetailPage() {
               )}
               <div ref={liveTranscriptEndRef} />
             </div>
+            )}
           </div>
 
           <LiveRecordingBar
@@ -3026,6 +3098,7 @@ export function TranscriptionDetailPage() {
             elapsedSeconds={recordingElapsed}
             onPauseResume={isPaused ? resumeInstantRecording : pauseInstantRecording}
             onStop={stopInstantRecording}
+            generate={desktopShell}
             microphoneDevices={microphoneDevices}
             selectedMicrophoneId={selectedMicrophoneId}
             onSwitchMicrophone={(deviceId) => { void switchRecordingMicrophone(deviceId); }}
@@ -3044,17 +3117,7 @@ export function TranscriptionDetailPage() {
     }
     setActiveTemplateId(id);
     const selected = templates.find((t) => t.id === id);
-    if (selected) {
-      setActiveTab("summary");
-      setIsSummaryLoading(true);
-      setSummaryStage("Analyzing the transcript");
-      setTimeout(() => setSummaryStage("Generating sections"), 1300);
-      setTimeout(() => setSummaryStage("Polishing the summary"), 2600);
-      setTimeout(() => {
-        setIsSummaryLoading(false);
-        toast.success(`Template "${selected.name}" applied`);
-      }, 3600);
-    }
+    if (selected) runGeneration(selected);
   };
   const barActiveTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
   const isTranscriptTab = activeTab === "transcript" || activeTab === "transcript-translated";
@@ -3221,6 +3284,7 @@ export function TranscriptionDetailPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
           <div className="flex items-end justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
             <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
+              {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Notes</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
               <TabsTrigger value="outline" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Outline</TabsTrigger>
@@ -3320,6 +3384,19 @@ export function TranscriptionDetailPage() {
             <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
             <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-muted-foreground">Time-stamped comments and team discussion will live here soon.</p>
           </TabsContent>
+          {desktopShell && (
+            <TabsContent value="notes" className="flex-1 overflow-auto">
+              <div className="mx-auto w-full max-w-[980px] px-4 py-6 lg:px-8">
+                <NotesPad
+                  lines={pad}
+                  onChange={setPad}
+                  templates={templates.map((t) => ({ id: t.id, name: t.name }))}
+                  onTemplate={(tid) => { if (tid === "all") setTemplatePickerOpen(true); else handleTemplateSelect(tid); }}
+                  hint="Your own notes from the call. Nothing here is rewritten."
+                />
+              </div>
+            </TabsContent>
+          )}
           <TabsContent value="transcript" className="flex-1 overflow-auto relative">
             {isJobTranscribing ? (
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />

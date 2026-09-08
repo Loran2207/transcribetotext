@@ -16,6 +16,8 @@ import { InnerScreenBottomBar } from "./inner-screen";
 import { SettingsPage } from "./settings-modal";
 import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
+import { DesktopWindowFrame, useShell } from "./desktop/shell";
+import { DictationPill } from "./desktop/dictation-pill";
 
 export function AppLayout() {
   const [activePage, setActivePage] = useState("dashboard");
@@ -54,9 +56,12 @@ export function AppLayout() {
     handleNavigate("records");
   }
 
+  const { desktop } = useShell();
+
   return (
     <UserProfileProvider>
-      <SidebarProvider className="h-screen !min-h-0 overflow-hidden bg-sidebar">
+     <DesktopWindowFrame>
+      <SidebarProvider className={(desktop ? "h-full" : "h-screen") + " !min-h-0 overflow-hidden bg-sidebar"}>
         <AppSidebar activePage={activePage} onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />
         <SidebarInset className="overflow-hidden bg-sidebar">
           <TopBar onNavigate={handleNavigate} />
@@ -84,6 +89,8 @@ export function AppLayout() {
           <InnerScreenBottomBar />
         </SidebarInset>
       </SidebarProvider>
+      <DictationPill />
+     </DesktopWindowFrame>
     </UserProfileProvider>
   );
 }

@@ -231,3 +231,7 @@
   .ttt-modal-sheet[data-state="closed"], .ttt-modal-sheet-sm[data-state="closed"],
   .ttt-search[data-state="closed"] { animation-name: ttt-dim-out; }
 }
+
+/* The desktop shell: the app's title bar is above everything, so the fixed
+   sidebar starts under it instead of covering the window controls. */
+html[data-shell="desktop"] [data-slot="sidebar-container"] { top: 38px; height: calc(100svh - 38px); }

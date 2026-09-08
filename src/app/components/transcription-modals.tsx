@@ -3,7 +3,7 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon, Download01Icon } from "@hugeicons/core-free-icons";
+import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon, Download01Icon, ComputerIcon, AppleIcon, Mic01Icon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -28,6 +28,7 @@ import type { Template } from "@/lib/templates";
 import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
+import { useShell } from "./desktop/shell";
 import { motion } from "motion/react";
 import { useIsMobile } from "./ui/use-mobile";
 import { ToastCard, toastReady, toastManyReady, toastFailed } from "./app-toast";
@@ -782,7 +783,10 @@ export function TranscriptionModalsProvider({
     setRecordingElapsed(0);
   }
   function submitInstantRecording(opts?: InstantRecordingSubmitOptions) {
-    const name = `Recording ${fmtTime(recordingElapsed)}.wav`;
+    /* a call started from the desktop shell keeps the name it was given */
+    const callTitle = window.sessionStorage.getItem("ttt_live_title");
+    window.sessionStorage.removeItem("ttt_live_title");
+    const name = callTitle || `Recording ${fmtTime(recordingElapsed)}.wav`;
     const previewSegments = [
       ...liveTranscriptSegments,
       ...(liveTranscriptInterim.trim().length > 0
@@ -2457,8 +2461,50 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 // Modal 4 - Meeting via bot
 // ════════════════════════════════════════════════════════════
 
+type RecordMethod = "bot" | "desktop";
+
+/* Two ways to record a call, as two cards, the way every step in this product
+   opens (Kirill's law: a step opens with a choice of method, centred cards, and
+   the choice stays changeable in place). On the web the second card leads to
+   the desktop app; in the desktop shell it records right here. */
+function RecordMethodCards({ method, onChange, desktopShell, machine }: { method: RecordMethod; onChange: (m: RecordMethod) => void; desktopShell: boolean; machine: string }) {
+  const cards: { id: RecordMethod; title: string; line: string; icon: typeof Video01Icon; badge?: string }[] = [
+    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "Record on your computer", line: desktopShell ? "Your microphone and the call's sound, with the transcript live beside your notes. Nothing joins the meeting." : "No bot in the meeting. Live transcript beside your notes. Needs the desktop app.", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
+    { id: "bot", title: "Send a bot", line: "Paste the invite link. A bot joins the meeting and transcribes it for you.", icon: Video01Icon },
+  ];
+  return (
+    <div className="grid grid-cols-2 gap-[10px] max-sm:grid-cols-1" role="radiogroup">
+      {cards.map((c) => {
+        const on = method === c.id;
+        return (
+          <button
+            key={c.id}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => onChange(c.id)}
+            className={"flex flex-col items-start gap-[8px] rounded-[14px] border p-[14px] text-left transition-colors " + (on ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40")}
+          >
+            <span className="flex w-full items-center gap-[8px]">
+              <span className={"flex size-[32px] items-center justify-center rounded-full " + (on ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
+                <Icon icon={c.icon} className="size-[16px]" strokeWidth={1.8} />
+              </span>
+              {c.badge && <span className="rounded-full bg-primary px-[7px] py-[1px] text-[10.5px] font-bold uppercase tracking-[0.04em] text-primary-foreground">{c.badge}</span>}
+            </span>
+            <span className="text-[14px] font-semibold text-foreground">{c.title}</span>
+            <span className="text-[12.5px] leading-[1.45] text-muted-foreground">{c.line}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, templates, meetingCounterRef, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
+  const { addJob, templates, meetingCounterRef, consumeDefaultFolderId, guardFreeLimit, startInstantRecording } = useTranscriptionModals();
+  const { desktop: desktopShell, machine } = useShell();
+  const [method, setMethod] = useState<RecordMethod>(desktopShell ? "desktop" : "bot");
+  const [isStarting, setIsStarting] = useState(false);
 
   const [meetingUrl, setMeetingUrl] = useState("");
   const [meetingUrlError, setMeetingUrlError] = useState("");
@@ -2480,9 +2526,29 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
     if (open) {
       const defaultFolder = consumeDefaultFolderId();
       if (defaultFolder) setSelectedFolderId(defaultFolder);
+      const preset = window.sessionStorage.getItem("ttt_meeting_method");
+      if (preset === "desktop" || preset === "bot") { setMethod(preset); window.sessionStorage.removeItem("ttt_meeting_method"); }
+      else setMethod(desktopShell ? "desktop" : "bot");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  /* the desktop shell records the call right here: the same live recording the
+     portal already has for instant speech, with the call's name kept for the note */
+  async function handleStartHere() {
+    if (isStarting) return;
+    if (guardFreeLimit()) return;
+    setIsStarting(true);
+    const started = await startInstantRecording({
+      folderId: selectedFolderId ?? undefined,
+      ...selectedTemplateJobFields(templates, selectedTemplateId),
+    });
+    setIsStarting(false);
+    if (!started) { toast.error("Microphone access is required to start recording."); return; }
+    window.sessionStorage.setItem("ttt_live_title", meetingName || "Untitled call");
+    handleClose();
+    void router.navigate("/transcriptions/live", { state: { liveRecording: true } });
+  }
 
   function resetForm() {
     setMeetingUrl(""); setMeetingUrlError(""); meetingCounterRef.current += 1;
@@ -2521,8 +2587,55 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
 
   return (
     <>
-      <ModalShell title="Record meeting" subtitle="A bot will join and transcribe your meeting" onClose={handleClose} onBackdropClick={handleClose} width={520}>
+      <ModalShell
+        title={desktopShell ? "Record a call" : "Record meeting"}
+        subtitle={method === "bot" ? "A bot will join and transcribe your meeting" : desktopShell ? `Recorded on ${machine}, the note lands in your account` : "Record without a bot, with the desktop app"}
+        onClose={handleClose}
+        onBackdropClick={handleClose}
+        width={520}
+      >
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
+          <RecordMethodCards method={method} onChange={setMethod} desktopShell={desktopShell} machine={machine} />
+
+          {method === "desktop" && !desktopShell && (
+            <div className="flex flex-col gap-[14px]">
+              <div className="rounded-[12px] border border-primary/15 bg-primary/5 p-[14px]">
+                <p className="text-[13px] leading-relaxed text-primary">
+                  The desktop app hears both sides of the call through your computer and writes the note when you press <strong>Generate notes</strong>. Every note lands in this account, with the same folders and templates.
+                </p>
+              </div>
+              <div className="flex gap-[8px] max-sm:flex-col">
+                <Button className="h-[42px] flex-1 rounded-full gap-2" onClick={() => toast("The download will start from the release page")}>
+                  <Icon icon={AppleIcon} className="size-[16px]" strokeWidth={1.8} />
+                  Download for Mac
+                </Button>
+                <Button variant="pill-outline" className="h-[42px] flex-1 rounded-full gap-2" onClick={() => toast("The download will start from the release page")}>
+                  <Icon icon={ComputerIcon} className="size-[16px]" strokeWidth={1.8} />
+                  Download for Windows
+                </Button>
+              </div>
+              <p className="text-center text-[12.5px] text-muted-foreground">
+                Already installed? <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => toast("Opening TranscribeToText")}>Open the app</button>
+              </p>
+            </div>
+          )}
+
+          {method === "desktop" && desktopShell && (
+            <div className="flex flex-col gap-[14px]">
+              <div>
+                <SectionLabel>Call name</SectionLabel>
+                <Input value={meetingName} onChange={(e) => setMeetingName(e.target.value)} placeholder="Untitled call" className="h-[42px] rounded-[12px] text-sm" />
+              </div>
+              <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              <Button className="h-[44px] w-full rounded-full gap-2 text-[14px] font-semibold" onClick={handleStartHere} disabled={isStarting}>
+                <Icon icon={Mic01Icon} className="size-[16px]" strokeWidth={1.8} />
+                {isStarting ? "Starting..." : "Start recording"}
+              </Button>
+              <p className="text-center text-[12.5px] text-muted-foreground">Pause any time. Generate notes ends the recording and writes the note.</p>
+            </div>
+          )}
+
+          {method === "bot" && (<>
           {/* Intro banner */}
           <div className="rounded-[12px] p-[14px] flex gap-[11px] bg-primary/5 border border-primary/15">
             <svg className="size-[16px] shrink-0 mt-[2px] text-primary" fill="none" viewBox="0 0 24 24">
@@ -2622,6 +2735,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
               </Button>
             </div>
           </div>
+          </>)}
         </div>
       </ModalShell>
     </>
