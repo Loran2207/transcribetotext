@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Mic01Icon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Mic01Icon , PlayIcon, PauseIcon } from "@hugeicons/core-free-icons";
 import { useShell } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
@@ -1507,8 +1507,8 @@ function LiveRecordingBar({
       {generate && isPaused && (
         /* Granola's grammar: the call is on hold, and only now the note can be
            written. One glowing verb above the bar, nothing else changes. */
-        <button type="button" onClick={onStop} className="ttt-glow absolute left-1/2 top-0 z-10 flex h-[40px] -translate-x-1/2 -translate-y-[calc(100%+12px)] items-center gap-[7px] rounded-full bg-primary pl-[14px] pr-[16px] text-[13.5px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]" title="End the call here and write the note">
-          <Icon icon={AiMagicIcon} className="size-[15px]" strokeWidth={1.9} />
+        <button type="button" onClick={onStop} className="ttt-glow absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+10px)] items-center gap-1.5 rounded-full bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]" title="End the call here and write the note">
+          <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.8} />
           Generate notes
         </button>
       )}
@@ -1537,10 +1537,7 @@ function LiveRecordingBar({
             onClick={onPauseResume}
             title={isPaused ? "Resume recording" : "Pause recording"}
           >
-            {isPaused
-              ? <svg className="size-[14px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
-              : <svg className="size-[14px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-            }
+            <Icon icon={isPaused ? PlayIcon : PauseIcon} className="size-[14px] text-foreground" strokeWidth={2} />
             <span className="text-[13px] font-medium text-foreground">{isPaused ? "Resume" : "Pause"}</span>
           </Button>
           {generate ? null : (

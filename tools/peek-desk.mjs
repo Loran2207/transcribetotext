@@ -17,8 +17,8 @@ async function login(url) {
 // WEB
 await login("http://localhost:5173/login?shell=web");
 const go = async (path) => { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, path); await p.waitForTimeout(1200); };
-await login("http://localhost:5173/login?shell=desktop&os=mac&desk=paused"); await go("/desk"); await p.screenshot({ path: `${out}/k1-desk-mac-paused.png`, clip: { x: 1000, y: 0, width: 440, height: 220 } });
+await login("http://localhost:5173/login?shell=desktop&os=mac&desk=paused"); await go("/desk"); await p.addStyleTag({ content: "[data-sonner-toaster]{display:none!important}" }); await p.screenshot({ path: `${out}/k1-desk-mac-paused.png`, clip: { x: 980, y: 40, width: 460, height: 160 } });
 await p.evaluate(() => sessionStorage.clear());
-await login("http://localhost:5173/login?shell=desktop&os=mac&notice=call"); await p.waitForTimeout(600); await p.screenshot({ path: `${out}/k2-app-call.png`, clip: { x: 1000, y: 0, width: 440, height: 120 } }); await p.evaluate(() => sessionStorage.clear());
-await p.locator("p:has-text('Record a call') >> visible=true").first().click(); await p.waitForTimeout(2500); await p.click("button[role=tab]:has-text('Transcript')"); await p.waitForTimeout(400); await p.click("button:has-text('Pause')"); await p.waitForTimeout(600); await p.screenshot({ path: `${out}/k3-live-paused.png`, clip: { x: 256, y: 700, width: 1184, height: 200 } });
+await login("http://localhost:5173/login?shell=desktop&os=mac&notice=call"); await p.waitForTimeout(600); await p.addStyleTag({ content: "[data-sonner-toaster]{display:none!important}" }); await p.screenshot({ path: `${out}/k2-app-call.png`, clip: { x: 1000, y: 0, width: 440, height: 100 } }); await p.evaluate(() => sessionStorage.clear());
+await p.locator("p:has-text('Record a call') >> visible=true").first().click(); await p.waitForTimeout(2500); await p.click("button:has-text('Pause')"); await p.waitForTimeout(600); await p.screenshot({ path: `${out}/k3-live-paused.png`, clip: { x: 700, y: 760, width: 500, height: 140 } });
 await b.close(); console.log("peek-done");

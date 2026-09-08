@@ -16,7 +16,7 @@ export function NoticeCard({ kind, onAct, onClose }: { kind: NoticeKind; onAct: 
   /* the calling app's own logo is the mark: the reader knows which window rang
      before reading a word */
   const n = kind === "call"
-    ? { mark: <span className="flex size-[28px] shrink-0 items-center justify-center rounded-[8px] border border-border bg-white [&_svg]:size-[18px]"><SourceIcon source="zoom" /></span>, glyph: Mic01Icon, title: "Zoom call detected", meta: "Record it here, no bot", act: "Record", later: "Not now" }
+    ? { mark: <span className="flex size-[28px] shrink-0 items-center justify-center rounded-[8px] border border-border bg-white"><SourceIcon source="zoom" /></span>, glyph: Mic01Icon, title: "Zoom call detected", meta: "Record it here, no bot", act: "Record", later: "Not now" }
     : { mark: undefined, glyph: AiMagicIcon, title: "Notes are ready", meta: "Acme onboarding call", act: "Open", later: "Later" };
   return (
     <div className="rounded-[14px]" style={{ boxShadow: "0 12px 32px rgba(15,23,42,0.14), 0 2px 6px rgba(15,23,42,0.06)" }}>
