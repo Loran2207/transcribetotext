@@ -3429,8 +3429,7 @@ export function TranscriptionDetailPage() {
                 <div className="flex items-center gap-2">
                   {activeTab === "summary" && activeTemplateId && !isSummaryLoading && (
                     <>
-                      <span className="hidden rounded-full border border-border px-[9px] py-[3px] text-[11.5px] text-muted-foreground lg:inline">{Math.max(1, Math.round(contentSummary.split(/\s+/).filter(Boolean).length / 200))} min read</span>
-                      <label className="hidden h-7 items-center gap-1.5 rounded-full border border-border px-2.5 text-xs text-muted-foreground focus-within:border-primary/50 lg:flex">
+                      <label className="hidden h-7 items-center gap-1.5 px-2 text-xs text-muted-foreground lg:flex">
                         <Icon icon={Search01Icon} className="size-[13px]" strokeWidth={2} />
                         <input value={summaryQuery} onChange={(e) => setSummaryQuery(e.target.value)} placeholder="Search the summary" className="w-[130px] bg-transparent text-foreground outline-none placeholder:text-muted-foreground" />
                       </label>
@@ -3761,22 +3760,6 @@ export function TranscriptionDetailPage() {
         </AlertDialog>
 
         {isJobTranscribing ? null : (<>
-          {desktopShell && (
-            /* the call is on hold, not over: Resume records more into this same note */
-            <LiveRecordingBar
-              isPaused
-              elapsedSeconds={effectiveDurationSeconds}
-              onPauseResume={() => { void continueRecording(); }}
-              onStop={() => {}}
-              generate
-              showGenerate={false}
-              showDevices={false}
-              microphoneDevices={microphoneDevices}
-              selectedMicrophoneId={selectedMicrophoneId}
-              onSwitchMicrophone={() => {}}
-              isSwitchingMicrophone={false}
-            />
-          )}
           <MediaPlayer
             duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
             progress={playerProgress}
@@ -3787,6 +3770,12 @@ export function TranscriptionDetailPage() {
             onSpeedChange={handlePlaybackRateChange}
             currentTimeSeconds={effectiveCurrentSeconds}
             durationSeconds={effectiveDurationSeconds}
+            trailing={desktopShell ? (
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full border-border px-3 text-[13px] font-medium" onClick={() => { void continueRecording(); }} title="Record more into this note">
+                <Icon icon={Mic01Icon} className="size-[14px]" strokeWidth={2} />
+                Resume recording
+              </Button>
+            ) : undefined}
           />
         </>)}
         {/* Mobile bottom action bar: Copy + Export + More (md:hidden) */}
