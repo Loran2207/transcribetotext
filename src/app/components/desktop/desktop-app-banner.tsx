@@ -16,7 +16,8 @@ export function useDesktopBannerHidden() {
 /* Told once, on the web portal's home: the same account records calls on the
    computer, no bot in the meeting. Two sizes: the wide card under the four
    tiles on a large screen, with a cross to put it away, and a slide of the same
-   build as the Pro banner inside the phone and tablet carousel. */
+   build as the Pro banner inside the phone and tablet carousel. Slides carry no
+   shadow: the scroller clips anything past its edge. */
 export function DesktopAppBanner({ onGet, compact = false }: { onGet: () => void; compact?: boolean }) {
   const { desktop, installed } = useShell();
   const { hidden, hide } = useDesktopBannerHidden();
@@ -24,7 +25,7 @@ export function DesktopAppBanner({ onGet, compact = false }: { onGet: () => void
   const cta = installed ? "Open the app" : "Get the app";
   if (compact) {
     return (
-      <button type="button" onClick={onGet} className="group relative flex w-full items-center gap-[12px] overflow-hidden rounded-[16px] px-[16px] py-[13px] text-left transition-transform active:scale-[0.99]" style={{ background: "#0A1630", boxShadow: "0 4px 12px rgba(10,22,48,0.28), 0 1px 3px rgba(0,0,0,0.08)" }}>
+      <button type="button" onClick={onGet} className="group relative flex w-full items-center gap-[12px] overflow-hidden rounded-[16px] px-[16px] py-[13px] text-left transition-transform active:scale-[0.99]" style={{ background: "#0A1630" }}>
         <img src="/images/desktop/banner.jpg" alt="" className="absolute inset-y-0 right-0 h-full w-[52%] object-cover" style={{ objectPosition: "center 42%" }} />
         <span className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0A1630 0%, #0A1630 48%, rgba(10,22,48,0.55) 100%)" }} />
         <span className="relative flex min-w-0 flex-1 flex-col gap-[2px]">
