@@ -28,7 +28,7 @@ import type { Template } from "@/lib/templates";
 import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
-import { useShell } from "./desktop/shell";
+import { useShell, useWideScreen } from "./desktop/shell";
 import { motion } from "motion/react";
 import { useIsMobile } from "./ui/use-mobile";
 import { ToastCard, toastReady, toastManyReady, toastFailed } from "./app-toast";
@@ -2504,7 +2504,9 @@ function RecordMethodCards({ method, onChange, desktopShell, machine }: { method
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addJob, templates, meetingCounterRef, consumeDefaultFolderId, guardFreeLimit, startInstantRecording } = useTranscriptionModals();
   const { desktop: desktopShell, machine, installed } = useShell();
+  const wide = useWideScreen();
   const [method, setMethod] = useState<RecordMethod>(desktopShell ? "desktop" : "bot");
+  const offersDesktop = desktopShell || wide;
   const [isStarting, setIsStarting] = useState(false);
 
   const [meetingUrl, setMeetingUrl] = useState("");
@@ -2528,14 +2530,19 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
       const defaultFolder = consumeDefaultFolderId();
       if (defaultFolder) setSelectedFolderId(defaultFolder);
       const preset = window.sessionStorage.getItem("ttt_meeting_method");
-      if (preset === "desktop" || preset === "bot") { setMethod(preset); window.sessionStorage.removeItem("ttt_meeting_method"); }
+      if ((preset === "desktop" && offersDesktop) || preset === "bot") { setMethod(preset); window.sessionStorage.removeItem("ttt_meeting_method"); }
       else setMethod(desktopShell ? "desktop" : "bot");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  /* the desktop shell records the call right here: the same live recording the
-     portal already has for instant speech, with the call's name kept for the note */
+  /* the desktop asks nothing: the tile, the hero button and the notification all
+     start the recording at once; the name and template are set on the note */
+  useEffect(() => {
+    if (open && desktopShell) void handleStartHere();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, desktopShell]);
+
   async function handleStartHere() {
     if (isStarting) return;
     if (guardFreeLimit()) return;
@@ -2545,8 +2552,8 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
       ...selectedTemplateJobFields(templates, selectedTemplateId),
     });
     setIsStarting(false);
-    if (!started) { toast.error("Microphone access is required to start recording."); return; }
-    window.sessionStorage.setItem("ttt_live_title", meetingName || "Untitled call");
+    if (!started) { toast.error("Microphone access is required to start recording."); if (desktopShell) handleClose(); return; }
+    window.sessionStorage.setItem("ttt_live_title", desktopShell ? "Untitled call" : (meetingName || "Untitled call"));
     handleClose();
     void router.navigate("/transcriptions/live", { state: { liveRecording: true } });
   }
@@ -2583,7 +2590,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
     handleClose();
   }
 
-  if (!open) return null;
+  if (!open || desktopShell) return null;
   const canSubmit = meetingUrl && isValidUrl(meetingUrl);
 
   return (
@@ -2596,7 +2603,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
         width={520}
       >
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
-          {!desktopShell && <RecordMethodCards method={method} onChange={setMethod} desktopShell={desktopShell} machine={machine} />}
+          {!desktopShell && wide && <RecordMethodCards method={method} onChange={setMethod} desktopShell={desktopShell} machine={machine} />}
 
           {method === "desktop" && !desktopShell && installed && (
             <div className="flex flex-col gap-[14px]">

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Mic01Icon, AiMagicIcon, CloudIcon } from "@hugeicons/core-free-icons";
+import { Mic01Icon, AiMagicIcon, CloudIcon, VolumeHighIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { RecordsTable } from "../records-table";
 import { useTranscriptionModals } from "../transcription-modals";
-import { useShell } from "./shell";
+import { readDemo, useShell } from "./shell";
 
 /* The desktop app's own tab. One verb at the top and the same records table the
    rest of the portal uses. The right half of the hero turns through the three
@@ -25,6 +25,8 @@ export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
     return () => window.clearInterval(t);
   }, [held]);
   const feature = FEATURES[active];
+  const [perm, setPerm] = useState<Record<string, boolean>>(() => (readDemo("perm") === "1" ? { mic: false, sys: false } : { mic: true, sys: true }));
+  const needsPerm = !perm.mic || !perm.sys;
   return (
     <div className="flex-1 overflow-auto bg-background">
       <div className="px-[16px] pt-[16px] pb-[112px] md:px-[24px] md:pt-[20px] md:pb-[40px] lg:px-[32px] lg:pt-[28px] lg:pb-0">
@@ -58,6 +60,31 @@ export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             </div>
           </div>
         </div>
+        {needsPerm && (
+          <div className="mt-[16px] rounded-[16px] border border-border bg-card p-[16px] md:p-[20px]">
+            <p className="text-[15px] font-semibold text-foreground">Before the first call, allow two things on {machine}</p>
+            <p className="mt-[2px] text-[13px] text-muted-foreground">Asked once. Nothing is recorded until you press Record a call.</p>
+            <div className="mt-[14px] grid gap-[10px] md:grid-cols-2">
+              {[
+                { id: "mic", icon: Mic01Icon, title: "Microphone", line: "Your side of the call." },
+                { id: "sys", icon: VolumeHighIcon, title: "System audio", line: "The other side, as it plays on this computer." },
+              ].map((r) => (
+                <div key={r.id} className="flex items-center gap-[12px] rounded-[12px] border border-border p-[12px]">
+                  <span className="flex size-[36px] shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Icon icon={r.icon} className="size-[18px]" strokeWidth={1.7} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[14px] font-semibold text-foreground">{r.title}</span>
+                    <span className="block text-[12.5px] text-muted-foreground">{r.line}</span>
+                  </span>
+                  {perm[r.id] ? (
+                    <span className="text-[13px] font-medium text-[#1F9D55]">Allowed</span>
+                  ) : (
+                    <button type="button" onClick={() => setPerm((p) => ({ ...p, [r.id]: true }))} className="h-[32px] shrink-0 rounded-full bg-primary px-[14px] text-[13px] font-semibold text-primary-foreground">Allow</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="mt-[8px]">
           <RecordsTable surface="home" onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />
         </div>

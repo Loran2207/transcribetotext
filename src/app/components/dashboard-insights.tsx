@@ -4,9 +4,6 @@ import { Icon } from "./ui/icon";
 import { useLanguage } from "./language-context";
 import { usePlan } from "./use-plan";
 import { UpgradeBanner } from "./upgrade-banner";
-import { DesktopAppBanner, useDesktopBannerHidden } from "./desktop/desktop-app-banner";
-import { useTranscriptionModals } from "./transcription-modals";
-import { useShell } from "./desktop/shell";
 import { PromoCard } from "./right-panel";
 import { ANALYTICS_FILES, ANALYTICS_HOURS, ANALYTICS_SOURCES } from "./analytics-card";
 import { meetings, MeetingItem, TODAY_STR } from "./todays-events";
@@ -123,17 +120,14 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
     </div>
   );
 
-  const { setOpenModal } = useTranscriptionModals();
-  const { desktop: desktopShell } = useShell();
-  const { hidden: appBannerHidden } = useDesktopBannerHidden();
-  /* the desktop app is a third slide on the web, never inside the app itself */
-  const promoSlides = desktopShell || appBannerHidden ? ["banner", "promo"] : ["banner", "desktop", "promo"];
+  /* nothing about the desktop app here: it cannot be installed from a phone or a tablet */
+  const promoSlides = ["banner", "promo"];
   const promoCarousel = (
     <div>
       <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
         {promoSlides.map((key) => (
           <div key={key} className="snap-center shrink-0 w-full flex items-stretch [&>*]:w-full">
-            {key === "banner" ? <UpgradeBanner bare /> : key === "desktop" ? <DesktopAppBanner compact onGet={() => { window.sessionStorage.setItem("ttt_meeting_method", "desktop"); setOpenModal("meeting"); }} /> : <PromoCard />}
+            {key === "banner" ? <UpgradeBanner bare /> : <PromoCard />}
           </div>
         ))}
       </div>

@@ -18,6 +18,7 @@ import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 import { DesktopWindowFrame, useShell } from "./desktop/shell";
 import { NotetakerPage } from "./desktop/notetaker-page";
+import { DesktopNotice } from "./desktop/desktop-notice";
 
 export function AppLayout() {
   const [activePage, setActivePage] = useState("dashboard");
@@ -90,6 +91,7 @@ export function AppLayout() {
           <InnerScreenBottomBar />
         </SidebarInset>
       </SidebarProvider>
+       <DesktopNotice />
      </DesktopWindowFrame>
     </UserProfileProvider>
   );

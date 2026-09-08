@@ -64,6 +64,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
     await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2 + +dy, { steps: 6 });
   }
   else if (op === "scroll") await p.$eval(arg, (el) => { el.scrollTop = el.scrollHeight; });
+  /* nav=<path>: walk to another route inside the app, the router way */
+  else if (op === "nav") { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, arg); await p.waitForTimeout(900); }
   /* scrollx=<sel>|<px>: slide a horizontal carousel to a given offset */
   else if (op === "scrollx") { const [sel, px] = arg.split("|"); await p.$eval(sel, (el, x) => { el.scrollLeft = x; }, +px); }
   await p.waitForTimeout(350);

@@ -22,12 +22,36 @@ function readFlag<T extends string>(param: string, key: string, allowed: T[], fa
   return stored && (allowed as string[]).includes(stored) ? (stored as T) : fallback;
 }
 
+/* States only the real app reaches (the OS saw a call start, the note finished
+   in the background, first-run permissions) are drawn from a demo flag on the
+   address, kept for the tab only: `?notice=call|ready`, `?perm=1`. */
+export function readDemo(param: string): string | null {
+  if (typeof window === "undefined") return null;
+  const key = "ttt_demo_" + param;
+  const fromUrl = new URLSearchParams(window.location.search).get(param);
+  if (fromUrl) window.sessionStorage.setItem(key, fromUrl);
+  return window.sessionStorage.getItem(key);
+}
+
 export function readShell() {
   return {
     shell: readFlag<Shell>("shell", "ttt_shell", ["web", "desktop"], "web"),
     os: readFlag<ShellOs>("os", "ttt_os", ["mac", "win"], "mac"),
     installed: readFlag<"0" | "1">("installed", "ttt_app_installed", ["0", "1"], "0") === "1",
   };
+}
+
+/* The desktop app can only be installed from a computer, so the web talks about
+   it only at the width where the portal shows its computer layout. */
+export function useWideScreen() {
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const on = () => setWide(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return wide;
 }
 
 export function useShell() {
@@ -69,3 +93,7 @@ export function DesktopWindowFrame({ children }: { children: ReactNode }) {
     </>
   );
 }
+
+/* read once at load, while the address still carries the flags: the login page
+   drops them before any desktop component mounts */
+if (typeof window !== "undefined") { readDemo("notice"); readDemo("perm"); }

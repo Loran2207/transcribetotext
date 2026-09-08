@@ -13,35 +13,14 @@ export function useDesktopBannerHidden() {
   return { hidden, hide };
 }
 
-/* Told once, on the web portal's home: the same account records calls on the
-   computer, no bot in the meeting. Two sizes: the wide card under the four
-   tiles on a large screen, with a cross to put it away, and a slide of the same
-   build as the Pro banner inside the phone and tablet carousel. Slides carry no
-   shadow: the scroller clips anything past its edge. */
-export function DesktopAppBanner({ onGet, compact = false }: { onGet: () => void; compact?: boolean }) {
+/* Told once, on the web portal's home, and only on a computer: the same
+   account records calls there, no bot in the meeting. A cross puts it away.
+   Phones and tablets never see it: the app cannot be installed from them. */
+export function DesktopAppBanner({ onGet }: { onGet: () => void }) {
   const { desktop, installed } = useShell();
   const { hidden, hide } = useDesktopBannerHidden();
   if (desktop || hidden) return null;
   const cta = installed ? "Open the app" : "Get the app";
-  if (compact) {
-    return (
-      <button type="button" onClick={onGet} className="group relative flex w-full items-center gap-[12px] overflow-hidden rounded-[16px] px-[16px] py-[13px] text-left transition-transform active:scale-[0.99]" style={{ background: "#0A1630" }}>
-        <img src="/images/desktop/banner.jpg" alt="" className="absolute inset-y-0 right-0 h-full w-[52%] object-cover" style={{ objectPosition: "center 42%" }} />
-        <span className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0A1630 0%, #0A1630 48%, rgba(10,22,48,0.55) 100%)" }} />
-        <span className="relative flex min-w-0 flex-1 flex-col gap-[2px]">
-          <span className="flex items-center gap-[6px]">
-            <span className="rounded-full bg-white px-[6px] py-[1px] text-[10px] font-bold uppercase tracking-[0.04em] text-[#0A1630]">New</span>
-            <span className="whitespace-nowrap text-white" style={{ fontWeight: 700, fontSize: "15px", letterSpacing: "-0.2px" }}>Record calls on your computer</span>
-          </span>
-          <span className="truncate text-white/75" style={{ fontWeight: 400, fontSize: "12px", lineHeight: "16px" }}>No bot in the meeting</span>
-        </span>
-        <span className="relative flex h-[34px] shrink-0 items-center gap-[3px] rounded-full bg-white pl-[15px] pr-[11px]">
-          <span className="text-[#0A1630]" style={{ fontWeight: 600, fontSize: "13px" }}>{installed ? "Open" : "Get it"}</span>
-          <Icon icon={ChevronRight} className="size-[14px] text-[#0A1630]" strokeWidth={2.5} />
-        </span>
-      </button>
-    );
-  }
   return (
     <div className="relative mt-[12px] hidden w-full lg:block">
       <button
