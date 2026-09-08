@@ -3084,7 +3084,7 @@ export function TranscriptionDetailPage() {
                   autoFocus
                   hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
                 />
-              <p className="sticky bottom-0 mt-auto w-full border-t border-border bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
+              <p className="sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
               </div>
             ) : (
             <div className="mx-auto w-full max-w-[980px] px-8 py-6">
@@ -3480,7 +3480,7 @@ export function TranscriptionDetailPage() {
                   onTemplate={(tid) => { if (tid === "all") setTemplatePickerOpen(true); else handleTemplateSelect(tid); }}
                   hint="Your own notes from the call. Nothing here is rewritten."
                 />
-              <p className="sticky bottom-0 mt-auto w-full border-t border-border bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
+              <p className="sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
               </div>
             </TabsContent>
           )}

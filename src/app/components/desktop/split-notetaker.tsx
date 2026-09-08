@@ -55,7 +55,7 @@ export function SplitNotetaker() {
           )}
         </div>
       </Tabs>
-      <p className="shrink-0 border-t border-border px-[16px] py-[8px] text-center text-[12px] text-muted-foreground">My thoughts won't be included when you share this note.</p>
+      <p className="shrink-0 px-[16px] py-[8px] text-center text-[12px] text-muted-foreground">My thoughts won't be included when you share this note.</p>
       <div className="flex shrink-0 items-center gap-[10px] border-t border-border px-[16px] py-[10px]">
         <span className="size-[8px] rounded-full bg-[#FF3B30] animate-pulse" />
         <span className="text-[13px] font-semibold text-destructive">Recording</span>
