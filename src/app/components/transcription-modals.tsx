@@ -3,7 +3,7 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon, Download01Icon, ComputerIcon, AppleIcon, Mic01Icon } from "@hugeicons/core-free-icons";
+import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon, Download01Icon, ComputerIcon, AppleIcon, Mic01Icon, VolumeHighIcon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -2836,8 +2836,37 @@ function RecordingMicrophoneSelect({ compact = false }: { compact?: boolean }) {
   );
 }
 
+
+/* The call's own sound comes through an output device; the pill offers the same
+   choice the recording bar does, in the compact size. */
+function RecordingOutputSelect() {
+  const [outputs, setOutputs] = useState<{ id: string; label: string }[]>([]);
+  const [outputId, setOutputId] = useState(() => window.sessionStorage.getItem("ttt_output_device") || "");
+  useEffect(() => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    navigator.mediaDevices.enumerateDevices().then((list) => {
+      setOutputs(list.filter((d) => d.kind === "audiooutput").map((d, i) => ({ id: d.deviceId || `out-${i}`, label: d.label || `Speakers ${i + 1}` })));
+    }).catch(() => {});
+  }, []);
+  const label = outputs.find((o) => o.id === outputId)?.label || outputs[0]?.label || "Speakers";
+  return (
+    <Select value={outputId || outputs[0]?.id} onValueChange={(v) => { setOutputId(v); window.sessionStorage.setItem("ttt_output_device", v); }} disabled={!outputs.length}>
+      <SelectTrigger className="h-[32px] w-full rounded-[10px] border-input bg-transparent px-[9px] gap-[6px]" title="Where the call's sound plays">
+        <span className="flex min-w-0 items-center gap-[6px]">
+          <Icon icon={VolumeHighIcon} className="size-[14px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
+          <span className="truncate text-[12px] text-foreground">{label}</span>
+        </span>
+      </SelectTrigger>
+      <SelectContent className="z-[10000] max-w-[calc(100vw-32px)] rounded-[12px]">
+        {outputs.map((o) => <SelectItem key={o.id} value={o.id} className="text-[13px]"><span className="truncate">{o.label}</span></SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function RecordingPill() {
   const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, recordingDetailOpen } = useTranscriptionModals();
+  const { desktop: desktopShell } = useShell();
   const visible = recordingPhase === "recording" || recordingPhase === "paused";
   const isPaused = recordingPhase === "paused";
   if (!visible || recordingDetailOpen) return null;
@@ -2901,7 +2930,9 @@ function RecordingPill() {
         </div>
 
         <div className="border-t border-border/70 px-[10px] pt-[8px] pb-[10px]">
-          <div className="w-full">
+          {/* the desktop hears both sides: the speakers the call plays through, and the microphone */}
+          <div className={desktopShell ? "grid grid-cols-2 gap-[8px]" : "w-full"}>
+            {desktopShell && <RecordingOutputSelect />}
             <RecordingMicrophoneSelect compact />
           </div>
         </div>

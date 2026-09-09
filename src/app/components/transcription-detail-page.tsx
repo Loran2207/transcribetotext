@@ -1507,6 +1507,27 @@ function RecordingOptions({ compact }: { compact: boolean }) {
   );
 }
 
+
+/* The warning sits on the device it is about: an orange ring around the picker
+   and a triangle on its corner. The words and the Allow button live one click
+   away, so the bar stays as quiet as before. */
+function BlockedBadge({ warning }: { warning: { title: string; body: string; action: string; onAllow: () => void } }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" title={warning.title} className="absolute -right-[7px] -top-[7px] z-[1] flex size-[20px] items-center justify-center rounded-full border-2 border-background bg-warning text-white shadow-sm transition-transform hover:scale-105">
+          <Icon icon={Alert02Icon} className="size-[11px]" strokeWidth={2.4} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" sideOffset={10} className="z-[120] w-[320px] rounded-[16px] p-[16px]">
+        <p className="flex items-start gap-2 text-[14px] font-semibold text-foreground"><Icon icon={Alert02Icon} className="mt-[2px] size-[16px] shrink-0 text-warning" strokeWidth={2} />{warning.title}</p>
+        <p className="mt-[6px] text-[12.5px] text-muted-foreground">{warning.body}</p>
+        <Button variant="warning" onClick={warning.onAllow} className="mt-[12px] h-8 rounded-full px-[14px] text-[13px] font-semibold">{warning.action}</Button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function LiveRecordingBar({
   isPaused,
   elapsedSeconds,
@@ -1529,7 +1550,7 @@ export function LiveRecordingBar({
   /* the half-width panel has no room for the caption; the dot and the timer say enough */
   caption?: boolean;
   /* a permission is missing: a triangle in the bar, the words on demand */
-  warning?: { title: string; body: string; action: string; onAllow: () => void };
+  warning?: { title: string; body: string; action: string; onAllow: () => void; mic: boolean; sys: boolean };
   elapsedSeconds: number;
   onPauseResume: () => void;
   onStop: () => void;
@@ -1544,7 +1565,7 @@ export function LiveRecordingBar({
   /* without the caption the bar is in the half-width panel: the device pickers shrink to their icons */
   const compact = !caption;
   /* with the warning triangle in the row the pickers give up a little width so Pause stays centred */
-  const pickerW = warning ? "md:w-[140px]" : "md:w-[168px]";
+  const pickerW = "md:w-[168px]";
   /* the desktop hears the other side through an output device; which one is a
      choice of its own, kept for the session */
   const [outputs, setOutputs] = useState<{ id: string; label: string }[]>([]);
@@ -1613,27 +1634,15 @@ export function LiveRecordingBar({
         </div>
 
         {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? (compact ? "flex gap-2" : "flex gap-2 md:max-w-[640px]") : "md:min-w-[260px] md:max-w-[320px]"}`}>
-          {warning && (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button type="button" title={warning.title} className="flex h-[36px] w-[40px] shrink-0 items-center justify-center rounded-[12px] border border-warning/40 bg-warning/[0.08] text-warning transition-colors hover:bg-warning/[0.14]">
-                  <Icon icon={Alert02Icon} className="size-[17px]" strokeWidth={2} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent align="end" sideOffset={10} className="z-[120] w-[320px] rounded-[16px] p-[16px]">
-                <p className="flex items-start gap-2 text-[14px] font-semibold text-foreground"><Icon icon={Alert02Icon} className="mt-[2px] size-[16px] shrink-0 text-warning" strokeWidth={2} />{warning.title}</p>
-                <p className="mt-[6px] text-[12.5px] text-muted-foreground">{warning.body}</p>
-                <Button variant="warning" onClick={warning.onAllow} className="mt-[12px] h-8 rounded-full px-[14px] text-[13px] font-semibold">{warning.action}</Button>
-              </PopoverContent>
-            </Popover>
-          )}
           {generate && <RecordingOptions compact={compact} />}
           {generate && (
+            <div className="relative">
+            {warning?.sys && <BlockedBadge warning={warning} />}
             <Select value={outputId || outputs[0]?.id} onValueChange={(v) => { setOutputId(v); window.sessionStorage.setItem("ttt_output_device", v); }} disabled={!outputs.length}>
-              <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : pickerW}`} title={compact ? outputLabel : "Where the call's sound plays"}>
+              <SelectTrigger className={`h-[36px] w-full rounded-[12px] bg-transparent px-[12px] gap-[8px] ${warning?.sys ? "border-warning bg-warning/[0.06]" : "border-input"} ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : pickerW}`} title={compact ? outputLabel : "Where the call's sound plays"}>
                 <span className="flex min-w-0 items-center gap-[8px]">
-                  <Icon icon={VolumeHighIcon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
-                  {!compact && <span className="truncate text-[13px] text-foreground">{outputLabel}</span>}
+                  <Icon icon={VolumeHighIcon} className={`size-[16px] shrink-0 ${warning?.sys ? "text-warning" : "text-muted-foreground"}`} strokeWidth={1.8} />
+                  {!compact && <span className={`truncate text-[13px] ${warning?.sys ? "text-warning" : "text-foreground"}`}>{warning?.sys ? "Not allowed" : outputLabel}</span>}
                 </span>
               </SelectTrigger>
               <SelectContent align="start" className="z-[120] max-w-[calc(100vw-32px)] rounded-[12px]">
@@ -1642,16 +1651,19 @@ export function LiveRecordingBar({
                 ))}
               </SelectContent>
             </Select>
+            </div>
           )}
+          <div className="relative">
+          {warning?.mic && <BlockedBadge warning={warning} />}
           <Select
             value={selectedMicrophoneId || undefined}
             onValueChange={onSwitchMicrophone}
             disabled={!microphoneDevices.length || isSwitchingMicrophone}
           >
-            <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? pickerW : ""}`} title={compact ? triggerLabel : undefined}>
+            <SelectTrigger className={`h-[36px] w-full rounded-[12px] bg-transparent px-[12px] gap-[8px] ${warning?.mic ? "border-warning bg-warning/[0.06]" : "border-input"} ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? pickerW : ""}`} title={compact ? triggerLabel : undefined}>
               <span className="flex min-w-0 items-center gap-[8px]">
                 <SourceIcon source="microphone" />
-                {!compact && <span className="truncate text-[13px] text-foreground">{triggerLabel}</span>}
+                {!compact && <span className={`truncate text-[13px] ${warning?.mic ? "text-warning" : "text-foreground"}`}>{warning?.mic ? "Not allowed" : triggerLabel}</span>}
               </span>
             </SelectTrigger>
             <SelectContent align="start" className="z-[120] max-w-[calc(100vw-32px)] rounded-[12px]">
@@ -1665,6 +1677,7 @@ export function LiveRecordingBar({
               ))}
             </SelectContent>
           </Select>
+          </div>
         </div>}
       </div>
     </div>
@@ -3256,6 +3269,8 @@ export function TranscriptionDetailPage() {
               body: permDemo === "1" ? "Nothing is being recorded until you allow them." : "Only your microphone is recorded, so the other side won't be in the transcript.",
               action: permDemo === "1" ? "Allow both" : "Allow system audio",
               onAllow: () => setPermDemo(null),
+              mic: permDemo === "1",
+              sys: true,
             } : undefined}
             microphoneDevices={microphoneDevices}
             selectedMicrophoneId={selectedMicrophoneId}
