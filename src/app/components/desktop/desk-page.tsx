@@ -1,4 +1,6 @@
+import { useNavigate } from "react-router";
 import { readDemo, useShell } from "./shell";
+import { DemoSwitcher } from "./demo-switcher";
 import { MiniRecorder } from "./mini-recorder";
 import { NoticeCard } from "./desktop-notice";
 import { SplitNotetaker } from "./split-notetaker";
@@ -9,6 +11,7 @@ import { SplitNotetaker } from "./split-notetaker";
    server draws it at /desk with `?desk=widget|expanded|paused|ended|writing|done|call|ready|upcoming|upcoming-menu|split`. */
 export function DeskPage() {
   const { os } = useShell();
+  const navigate = useNavigate();
   const state = readDemo("desk") ?? "widget";
   const mac = os !== "win";
   const wallpaper = mac
@@ -51,6 +54,9 @@ export function DeskPage() {
       {(state === "call" || state === "ready" || state === "upcoming" || state === "upcoming-menu") && (
         <div className={`absolute right-[24px] ${mac ? "top-[44px]" : "bottom-[68px]"}`}><NoticeCard kind={state === "upcoming-menu" ? "upcoming" : state} menuOpen={state === "upcoming-menu"} onAct={() => {}} onClose={() => {}} /></div>
       )}
+      {/* the way back into the window, where the dock would be */}
+      <button type="button" onClick={() => navigate("/")} className={`absolute left-1/2 -translate-x-1/2 flex h-[34px] items-center rounded-full bg-white/15 px-[14px] text-[12.5px] font-medium text-white backdrop-blur-[8px] transition-colors hover:bg-white/25 ${mac ? "bottom-[16px]" : "bottom-[60px]"}`}>Open the app window</button>
+      <DemoSwitcher />
     </div>
   );
 }

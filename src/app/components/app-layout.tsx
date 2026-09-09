@@ -18,6 +18,7 @@ import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 import { DesktopWindowFrame, useShell } from "./desktop/shell";
 import { NotetakerPage } from "./desktop/notetaker-page";
+import { DemoSwitcher } from "./desktop/demo-switcher";
 import { DesktopNotice } from "./desktop/desktop-notice";
 
 export function AppLayout() {
@@ -92,6 +93,7 @@ export function AppLayout() {
         </SidebarInset>
       </SidebarProvider>
        <DesktopNotice />
+       <DemoSwitcher />
      </DesktopWindowFrame>
     </UserProfileProvider>
   );
