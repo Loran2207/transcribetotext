@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
-import { useDemo, useShell } from "./shell";
+import { useDemo, setDemo, useShell } from "./shell";
 import { DemoSwitcher } from "./demo-switcher";
 import { MiniRecorder } from "./mini-recorder";
 import { NoticeCard } from "./desktop-notice";
@@ -48,7 +48,14 @@ export function DeskPage() {
             <div className="flex h-[56px] items-center justify-center gap-[18px] text-[11px] text-white/70">{["Mute", "Stop Video", "Participants", "Chat", "Share Screen", "Record"].map((t) => <span key={t}>{t}</span>)}<span className="rounded-[6px] bg-[#E0242B] px-[12px] py-[6px] font-medium text-white">Leave</span></div>
           </div>
           <div className={`absolute left-[calc(50%+8px)] right-[16px] ${mac ? "top-[44px]" : "top-[16px]"} ${mac ? "bottom-[16px]" : "bottom-[64px]"} overflow-hidden rounded-[12px]`} style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.35)" }}>
-            {mac && <div className="pointer-events-none absolute left-[16px] top-[16px] z-[70] flex items-center gap-[8px]"><span className="size-[12px] rounded-full bg-[#FF5F57]" /><span className="size-[12px] rounded-full bg-[#FEBC2E]" /><span className="size-[12px] rounded-full bg-[#28C840]" /></div>}
+            {mac && (
+              /* closing or hiding the docked panel leaves the capsule on the desk; the green light brings the full window back */
+              <div className="absolute left-[16px] top-[16px] z-[70] flex items-center gap-[8px]">
+                <button type="button" aria-label="Close the panel" title="Close the panel" onClick={() => setDemo("desk", "widget")} className="size-[12px] rounded-full bg-[#FF5F57] transition-transform hover:scale-110" />
+                <button type="button" aria-label="Hide the panel" title="Hide the panel" onClick={() => setDemo("desk", "widget")} className="size-[12px] rounded-full bg-[#FEBC2E] transition-transform hover:scale-110" />
+                <button type="button" aria-label="Full window" title="Full window" onClick={() => navigate("/transcriptions/live", { state: { liveRecording: true } })} className="size-[12px] rounded-full bg-[#28C840] transition-transform hover:scale-110" />
+              </div>
+            )}
             <SplitNotetaker />
           </div>
         </>
@@ -56,8 +63,8 @@ export function DeskPage() {
       {(state === "call" || state === "ready" || state === "upcoming" || state === "upcoming-menu") && (
         <div className={`absolute right-[24px] ${mac ? "top-[44px]" : "bottom-[68px]"}`}><NoticeCard kind={state === "upcoming-menu" ? "upcoming" : state} menuOpen={state === "upcoming-menu"} onAct={() => {}} onClose={() => {}} /></div>
       )}
-      {/* the way back into the window, where the dock would be */}
-      <button type="button" onClick={() => navigate("/")} className={`absolute left-1/2 -translate-x-1/2 flex h-[34px] items-center rounded-full bg-white/15 px-[14px] text-[12.5px] font-medium text-white backdrop-blur-[8px] transition-colors hover:bg-white/25 ${mac ? "bottom-[16px]" : "bottom-[60px]"}`}>Open the app window</button>
+      {/* the way back into the window, where the dock would be; the docked panel has its own lights for that */}
+      {state !== "split" && <button type="button" onClick={() => navigate("/")} className={`absolute left-1/2 -translate-x-1/2 flex h-[34px] items-center rounded-full bg-white/15 px-[14px] text-[12.5px] font-medium text-white backdrop-blur-[8px] transition-colors hover:bg-white/25 ${mac ? "bottom-[16px]" : "bottom-[60px]"}`}>Open the app window</button>}
       <DemoSwitcher />
     </div>
   );

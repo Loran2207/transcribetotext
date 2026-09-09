@@ -5,7 +5,7 @@ import { Icon } from "../ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { NotesPad, type PadLine } from "./notes-pad";
 import { useTranscriptionModals } from "../transcription-modals";
-import { LiveRecordingBar } from "../transcription-detail-page";
+import { LiveRecordingBar, LiveTitle, LiveFolderChip } from "../transcription-detail-page";
 import { useShell } from "./shell";
 import { SourceIcon } from "../source-icons";
 
@@ -26,7 +26,6 @@ export function SplitNotetaker() {
   const { recordingElapsed, recordingPhase, pauseInstantRecording, resumeInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone } = useTranscriptionModals();
   const elapsed = recordingPhase === "idle" ? 754 : recordingElapsed;
   const fmt = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
-  const title = window.sessionStorage.getItem("ttt_live_title") || "Untitled call";
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <div className="shrink-0 px-[20px] pt-[14px] pb-[12px]">
@@ -36,13 +35,15 @@ export function SplitNotetaker() {
             Full window
           </button>
         </div>
-        <h1 className="mt-1 truncate text-[22px] font-semibold leading-[28px] tracking-[-0.3px] text-foreground">{title}</h1>
+        <div className="mt-1"><LiveTitle className="text-[22px] font-semibold leading-[28px] tracking-[-0.3px] text-foreground" /></div>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5"><span className="scale-[0.9]"><SourceIcon source="microphone" /></span><span>Notetaker on {machine}</span></span>
           <span className="text-border">{"\u2022"}</span>
-          <span>Recording in real time</span>
+          <span>{recordingPhase === "paused" ? "Paused - live transcript is on hold" : "Recording in real time"}</span>
           <span className="text-border">{"\u2022"}</span>
           <span>{new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+          <span className="text-border">{"\u2022"}</span>
+          <LiveFolderChip />
         </div>
       </div>
       <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">

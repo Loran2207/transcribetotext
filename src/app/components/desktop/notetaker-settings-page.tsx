@@ -60,6 +60,12 @@ export function NotetakerSettingsPanel() {
       <SettingsCard>
         <SettingsCardTitle title="Sharing" subtitle="My thoughts are never shared." />
         <Rows>
+          <Row title="Who can see a note" desc="Transcripts and summaries stay in this account unless you share them.">
+            <Select value={settings.visibility} onValueChange={(v) => update({ visibility: v as NotetakerSettings["visibility"] })}>
+              <SelectTrigger className="h-[34px] w-[190px] rounded-[10px]"><SelectValue /></SelectTrigger>
+              <SelectContent className="z-[120]"><SelectItem value="private">Only people I invite</SelectItem><SelectItem value="link">Anyone with the link</SelectItem></SelectContent>
+            </Select>
+          </Row>
           <Row title="Share notes when they are ready" desc="Everyone on the calendar invite gets the summary and the transcript."><Switch checked={settings.autoShare} onCheckedChange={(v) => update({ autoShare: v })} /></Row>
         </Rows>
       </SettingsCard>
@@ -78,7 +84,8 @@ export function NotetakerSettingsPanel() {
   );
 }
 
-function Rows({ children }: { children: ReactNode }) { return <div className="-my-1 divide-y divide-border">{children}</div>; }
+/* the first row starts where the title's margin ends and the last one ends at the card's padding, so the gap above and below the rows is the same 16px */
+function Rows({ children }: { children: ReactNode }) { return <div className="-mb-1 divide-y divide-border [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">{children}</div>; }
 
 function Row({ title, desc, icon, children }: { title: string; desc: string; icon?: unknown; children: ReactNode }) {
   return (

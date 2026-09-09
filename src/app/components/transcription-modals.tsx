@@ -2524,13 +2524,16 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   const { addJob, templates, meetingCounterRef, consumeDefaultFolderId, guardFreeLimit, startInstantRecording } = useTranscriptionModals();
   const { desktop: desktopShell, machine, installed } = useShell();
   const wide = useWideScreen();
-  const [method, setMethod] = useState<RecordMethod>(desktopShell ? "desktop" : "bot");
+  const [method, setMethod] = useState<RecordMethod>("bot");
   const offersDesktop = desktopShell || wide;
   const [isStarting, setIsStarting] = useState(false);
 
   const [meetingUrl, setMeetingUrl] = useState("");
   const [meetingUrlError, setMeetingUrlError] = useState("");
   const [meetingName, setMeetingName] = useState(`Meeting ${meetingCounterRef.current}`);
+  /* the call has no invite link to name it by, so today's date stands in until the note is titled */
+  const todayCallName = () => `Call on ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+  const [callName, setCallName] = useState(todayCallName);
   const [langId, setLangId] = useState("auto");
   const [mode, setMode] = useState<"mono" | "bi">("mono");
   const [langBilingual, setLangBilingual] = useState<string[]>(["auto"]);
@@ -2550,7 +2553,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
       if (defaultFolder) setSelectedFolderId(defaultFolder);
       const preset = window.sessionStorage.getItem("ttt_meeting_method");
       if ((preset === "desktop" && offersDesktop) || preset === "bot") { setMethod(preset); window.sessionStorage.removeItem("ttt_meeting_method"); }
-      else setMethod(desktopShell ? "desktop" : "bot");
+      else setMethod("bot");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -2566,14 +2569,14 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
     });
     setIsStarting(false);
     if (!started) { toast.error("Microphone access is required to start recording."); if (desktopShell) handleClose(); return; }
-    window.sessionStorage.setItem("ttt_live_title", desktopShell ? "Untitled call" : (meetingName || "Untitled call"));
+    window.sessionStorage.setItem("ttt_live_title", (desktopShell ? callName : meetingName) || "Untitled call");
     handleClose();
     void router.navigate("/transcriptions/live", { state: { liveRecording: true } });
   }
 
   function resetForm() {
     setMeetingUrl(""); setMeetingUrlError(""); meetingCounterRef.current += 1;
-    setMeetingName(`Meeting ${meetingCounterRef.current}`); setLangId("auto"); setMode("mono"); setLangBilingual(["auto"]);
+    setMeetingName(`Meeting ${meetingCounterRef.current}`); setCallName(todayCallName()); setLangId("auto"); setMode("mono"); setLangBilingual(["auto"]);
     setBotName("TranscribeToText Bot"); setRealTimeTranslation(false); setRealTimeTranslationLang("en");
     setSpeakerEnabled(false); setSpeakerCount(2);
     setSelectedFolderId(null);
@@ -2610,7 +2613,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
     <>
       <ModalShell
         title={desktopShell ? "Record a call" : "Record meeting"}
-        subtitle={method === "bot" ? "A bot joins the meeting and transcribes it for you" : desktopShell ? `Your microphone and the call's sound on ${machine}, no bot in the meeting` : "Record without a bot, with the desktop app"}
+        subtitle={method === "bot" ? "A bot joins the meeting and transcribes it for you" : desktopShell ? "Recorded right here, without a bot in the meeting" : "Record without a bot, with the desktop app"}
         onClose={handleClose}
         onBackdropClick={handleClose}
         width={520}
@@ -2658,20 +2661,40 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           )}
 
-          {method === "desktop" && desktopShell && (
-            <div className="flex flex-col gap-[14px]">
-              <div>
-                <SectionLabel>Call name</SectionLabel>
-                <Input value={meetingName} onChange={(e) => setMeetingName(e.target.value)} placeholder="Untitled call" className="h-[42px] rounded-[12px] text-sm" />
+          {method === "desktop" && desktopShell && (<>
+          {/* the same skeleton as the bot form, so switching the method moves nothing:
+              a banner, one field, the template and folder row, the footer */}
+          <div className="rounded-[12px] p-[14px] flex gap-[11px] bg-primary/5 border border-primary/15">
+            <Icon icon={ComputerIcon} className="size-[16px] shrink-0 mt-[2px] text-primary" strokeWidth={1.8} />
+            <p className="text-[13px] text-primary leading-relaxed">
+              Your microphone and the call's sound are recorded on {machine}. <strong>No bot</strong> joins the meeting, and nobody is notified.
+            </p>
+          </div>
+          <div>
+            <SectionLabel>Call name</SectionLabel>
+            <Input value={callName} onChange={(e) => setCallName(e.target.value)} placeholder="Untitled call" className="w-full h-[42px] pl-[14px] rounded-[12px] text-sm" />
+          </div>
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
+              <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
               </div>
-              <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
-              <Button className="h-[44px] w-full rounded-full gap-2 text-[14px] font-semibold" onClick={handleStartHere} disabled={isStarting}>
-                <Icon icon={Mic01Icon} className="size-[16px]" strokeWidth={1.8} />
-                {isStarting ? "Starting..." : "Start recording"}
-              </Button>
-              <p className="text-center text-[12.5px] text-muted-foreground">Pause any time. Generate notes ends the recording and writes the note.</p>
+              <div className="flex-1 min-w-0">
+                <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
+              </div>
             </div>
-          )}
+            <div className="sticky bottom-0 z-10 -mx-[22px] mt-[2px] flex items-center justify-end gap-[8px] border-t border-border bg-popover px-[22px] pt-[14px] pb-[4px]">
+              <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
+                <span className="font-medium text-[13px] text-foreground">Cancel</span>
+              </Button>
+              <Button onClick={handleStartHere} disabled={isStarting}
+                className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <span className="font-semibold text-[13px]">{isStarting ? "Starting..." : "Start recording"}</span>
+              </Button>
+            </div>
+          </div>
+          </>)}
 
           {method === "bot" && (<>
           {/* Intro banner */}
@@ -2710,7 +2733,9 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
             display: "grid",
             gridTemplateRows: meetingUrl.length > 0 ? "1fr" : "0fr",
             opacity: meetingUrl.length > 0 ? 1 : 0,
-            transition: "grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease",
+            /* folded, it also gives back its gap, so the form is the same height as the other method's */
+            marginTop: meetingUrl.length > 0 ? 0 : -18,
+            transition: "grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, margin-top 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
           }}>
             <div style={{ overflow: "hidden" }}>
               <div className="flex flex-col gap-[18px] pb-[2px]">

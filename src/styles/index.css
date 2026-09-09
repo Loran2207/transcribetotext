@@ -245,3 +245,7 @@ html[data-shell="desktop"][data-os="win"] .ttt-topbar { padding-right: 150px; }
 
 /* the desk scene draws its own widget; the in-app pill stays off it */
 html[data-desk="1"] .ttt-recording-pill { display: none; }
+
+/* the recording capsule's sound bars: each bar breathes on its own beat */
+@keyframes ttt-bar { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+.ttt-bar { transform-origin: center; animation: ttt-bar 0.9s ease-in-out infinite; }

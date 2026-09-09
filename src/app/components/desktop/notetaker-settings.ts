@@ -16,12 +16,13 @@ export type NotetakerSettings = {
   splitOnJoin: boolean;
   liveTranscript: boolean;
   autoShare: boolean;
+  visibility: "private" | "link";
 };
 
 export const DEFAULT_NOTETAKER_SETTINGS: NotetakerSettings = {
   notifyBefore: "1m", detectCalls: true, stopOnCallEnd: true,
   language: "auto", speakers: true, speakerCount: "auto", maxLength: "2h", hideFromScreenShare: true,
-  openNoteOnStart: true, splitOnJoin: false, liveTranscript: true, autoShare: false,
+  openNoteOnStart: true, splitOnJoin: false, liveTranscript: true, autoShare: false, visibility: "private",
 };
 
 const KEY = "ttt_notetaker_settings";

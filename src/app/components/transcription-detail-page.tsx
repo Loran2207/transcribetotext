@@ -2,13 +2,13 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , LanguageSquareIcon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon } from "@hugeicons/core-free-icons";
 import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { LanguageSelector, SpeakerSection, LANGUAGES } from "./transcription-modals";
+import { LanguageSelector, SpeakerSection } from "./transcription-modals";
 import { useNotetakerSettings } from "./desktop/notetaker-settings";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
@@ -28,7 +28,7 @@ import { Slider } from "./ui/slider";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
-import { MoveToFolderDialog } from "./records-table";
+import { MoveToFolderDialog, FigmaCheckbox } from "./records-table";
 import { ScrollArea } from "./ui/scroll-area";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./ui/collapsible";
 import { useUserProfile } from "./user-profile-context";
@@ -1486,19 +1486,17 @@ function RecordingOptions({ compact }: { compact: boolean }) {
   const optsFlag = useDemo("opts");
   const [open, setOpen] = useState(optsFlag === "1");
   useEffect(() => { if (optsFlag === "1") setOpen(true); }, [optsFlag]);
-  const lang = LANGUAGES.find((l) => l.id === settings.language);
-  const label = lang?.id === "auto" || !lang ? "Auto-detect" : lang.label;
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button type="button" title="Language and speakers" className={`flex h-[36px] shrink-0 items-center gap-[8px] rounded-[12px] border border-input bg-transparent text-[13px] text-foreground transition-colors hover:bg-muted data-[state=open]:bg-muted ${compact ? "w-[44px] justify-center" : "px-[12px]"}`}>
-          <Icon icon={LanguageSquareIcon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
-          {!compact && <span className="truncate">{label}</span>}
+        <button type="button" title="Preferences" className={`flex h-[36px] shrink-0 items-center gap-[8px] rounded-[12px] border border-input bg-transparent text-[13px] text-foreground transition-colors hover:bg-muted data-[state=open]:bg-muted ${compact ? "w-[44px] justify-center" : "px-[12px]"}`}>
+          <Icon icon={Settings02Icon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
+          {!compact && <span className="truncate">Preferences</span>}
           {!compact && <Icon icon={ArrowDown01Icon} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={2} />}
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={10} className="z-[120] w-[340px] rounded-[16px] p-[16px]">
-        <p className="text-[14px] font-semibold text-foreground">This recording</p>
+        <p className="text-[14px] font-semibold text-foreground">Preferences for this recording</p>
         <p className="mt-[2px] text-[12.5px] text-muted-foreground">Changes apply from here on. Defaults live in Notetaker settings.</p>
         <div className="mt-[14px] flex flex-col gap-[14px]">
           <LanguageSelector value={settings.language} onChange={(v) => update({ language: v })} label="Transcription language" />
@@ -1509,6 +1507,110 @@ function RecordingOptions({ compact }: { compact: boolean }) {
   );
 }
 
+
+/* A folder drawn in its own colour: the glyph the Move menu uses, so a folder
+   looks the same wherever it is named. */
+export function FolderGlyph({ color, className = "size-4" }: { color: string; className?: string }) {
+  return (
+    <svg className={`${className} shrink-0`} fill="none" viewBox="0 0 16 16" aria-hidden>
+      <path d="M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z" fill={color} />
+    </svg>
+  );
+}
+
+/* The live note's folder and title live in the session while the call runs, so
+   the full window and the half-width panel show and edit the same facts. */
+const LIVE_META_EVENT = "ttt-live-meta";
+function useSessionValue(key: string): [string | null, (v: string | null) => void] {
+  const [value, setValue] = useState<string | null>(() => window.sessionStorage.getItem(key));
+  useEffect(() => {
+    const sync = () => setValue(window.sessionStorage.getItem(key));
+    window.addEventListener(LIVE_META_EVENT, sync);
+    return () => window.removeEventListener(LIVE_META_EVENT, sync);
+  }, [key]);
+  const set = (v: string | null) => {
+    if (v === null) window.sessionStorage.removeItem(key); else window.sessionStorage.setItem(key, v);
+    window.dispatchEvent(new Event(LIVE_META_EVENT));
+  };
+  return [value, set];
+}
+
+export function LiveFolderChip() {
+  const { folders } = useFolders();
+  const [folderId, setFolderId] = useSessionValue("ttt_live_folder");
+  const current = folders.find((f) => f.id === folderId);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className="inline-flex items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary">
+          {current ? <FolderGlyph color={current.color} className="size-[14px]" /> : <Icon icon={FolderOpen} className="size-[13px] text-muted-foreground" strokeWidth={1.7} />}
+          {current?.name ?? "Choose a folder"}
+          <Icon icon={ArrowDown01Icon} className="size-[11px] text-muted-foreground" strokeWidth={2} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="z-[120] w-[220px]">
+        {folders.map((folder) => (
+          <DropdownMenuItem key={folder.id} className="gap-2" onClick={() => setFolderId(folder.id)}>
+            <FolderGlyph color={folder.color} />
+            <span className="truncate">{folder.name}</span>
+          </DropdownMenuItem>
+        ))}
+        {folderId && <><DropdownMenuSeparator /><DropdownMenuItem className="gap-2" onClick={() => setFolderId(null)}><Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />No folder</DropdownMenuItem></>}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/* The title of the live note: click it and type, the way a finished record's
+   title has always worked. */
+export function LiveTitle({ className }: { className: string }) {
+  const [stored, setStored] = useSessionValue("ttt_live_title");
+  const value = stored || "Untitled call";
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editing && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); } }, [editing]);
+  return (
+    <div className={`-ml-2 min-w-0 max-w-full rounded-xl px-2 py-1 transition-colors ${editing ? "bg-muted/55" : "w-fit cursor-text hover:bg-muted/45"}`} onClick={() => { if (!editing) setEditing(true); }} title={editing ? undefined : "Click to rename"}>
+      {editing ? (
+        <Input ref={inputRef} value={value} onChange={(e) => setStored(e.target.value)} onBlur={() => setEditing(false)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") setEditing(false); }} className={`h-auto border-none bg-transparent p-0 shadow-none focus-visible:ring-0 ${className}`} />
+      ) : (
+        <h1 className={`truncate ${className}`}>{value}</h1>
+      )}
+    </div>
+  );
+}
+
+/* What the transcript shows besides the words: two independent checkboxes,
+   kept on this machine (Kirill, 20.08: checkboxes, never a Select). */
+const VIEW_KEY = "ttt_transcript_view";
+const VIEW_EVENT = "ttt-transcript-view";
+type TranscriptView = { speakers: boolean; timestamps: boolean };
+function readView(): TranscriptView {
+  try { const raw = window.localStorage.getItem(VIEW_KEY); return { speakers: true, timestamps: true, ...(raw ? JSON.parse(raw) : {}) }; } catch { return { speakers: true, timestamps: true }; }
+}
+export function useTranscriptView() {
+  const [view, setView] = useState<TranscriptView>(readView);
+  useEffect(() => { const sync = () => setView(readView()); window.addEventListener(VIEW_EVENT, sync); return () => window.removeEventListener(VIEW_EVENT, sync); }, []);
+  const toggle = (k: keyof TranscriptView) => {
+    const next = { ...readView(), [k]: !readView()[k] };
+    try { window.localStorage.setItem(VIEW_KEY, JSON.stringify(next)); } catch { /* private mode */ }
+    window.dispatchEvent(new Event(VIEW_EVENT));
+  };
+  return { view, toggle };
+}
+export function TranscriptViewChecks() {
+  const { view, toggle } = useTranscriptView();
+  return (
+    <div className="flex items-center gap-3">
+      {([["speakers", "Speakers"], ["timestamps", "Timestamps"]] as const).map(([k, label]) => (
+        <label key={k} className="flex h-7 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
+          <FigmaCheckbox checked={view[k]} onChange={() => toggle(k)} />
+          <span onClick={() => toggle(k)}>{label}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
 
 /* The warning sits on the device it is about: an orange ring around the picker
    and a triangle on its corner. The words and the Allow button live one click
@@ -1664,7 +1766,7 @@ export function LiveRecordingBar({
           >
             <SelectTrigger className={`h-[36px] w-full rounded-[12px] bg-transparent px-[12px] gap-[8px] ${warning?.mic ? "border-warning bg-warning/[0.06]" : "border-input"} ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? pickerW : ""}`} title={compact ? triggerLabel : undefined}>
               <span className="flex min-w-0 items-center gap-[8px]">
-                <SourceIcon source="microphone" />
+                {compact ? <Icon icon={Mic01Icon} className={`size-[16px] shrink-0 ${warning?.mic ? "text-warning" : "text-muted-foreground"}`} strokeWidth={1.8} /> : <SourceIcon source="microphone" />}
                 {!compact && <span className={`truncate text-[13px] ${warning?.mic ? "text-warning" : "text-foreground"}`}>{warning?.mic ? "Not allowed" : triggerLabel}</span>}
               </span>
             </SelectTrigger>
@@ -2130,6 +2232,7 @@ export function TranscriptionDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromMeetings, selectedFolder]);
   const [title, setTitle] = useState(recordTitle);
+  const { view: transcriptView } = useTranscriptView();
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("transcript");
   const [highlightedSegment, setHighlightedSegment] = useState<number | null>(null);
@@ -2146,7 +2249,6 @@ export function TranscriptionDetailPage() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryQuery, setSummaryQuery] = useState("");
   /* the desktop shell: which permission the demo pretends is missing (`?perm=1|mic`) */
-  const [liveFolderId, setLiveFolderId] = useState<string | null>(() => window.sessionStorage.getItem("ttt_live_folder"));
   const permFlag = useDemo("perm");
   const [permDemo, setPermDemo] = useState<string | null>(() => (permFlag === "1" || permFlag === "mic" ? permFlag : null));
   useEffect(() => { setPermDemo(permFlag === "1" || permFlag === "mic" ? permFlag : null); }, [permFlag]);
@@ -3126,9 +3228,13 @@ export function TranscriptionDetailPage() {
                 </button>
               )}
             </div>
-            <h1 className="mt-1 text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]">
-              {title || (desktopShell ? liveTitle : "Live note")}
-            </h1>
+            {desktopShell ? (
+              <div className="mt-1"><LiveTitle className="text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]" /></div>
+            ) : (
+              <h1 className="mt-1 text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]">
+                {title || "Live note"}
+              </h1>
+            )}
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <span className="scale-[0.9]"><SourceIcon source="microphone" /></span>
@@ -3142,24 +3248,7 @@ export function TranscriptionDetailPage() {
                 /* the folder is chosen while the call runs, in the same line as the rest of the record's facts */
                 <>
                   <span className="text-border">{"\u2022"}</span>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button type="button" className="inline-flex items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary">
-                        <Icon icon={FolderOpen} className="size-[13px] text-muted-foreground" strokeWidth={1.7} />
-                        {folders.find((f) => f.id === liveFolderId)?.name ?? "Choose a folder"}
-                        <Icon icon={ArrowDown01Icon} className="size-[11px] text-muted-foreground" strokeWidth={2} />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="z-[120] w-[220px]">
-                      {folders.map((folder) => (
-                        <DropdownMenuItem key={folder.id} className="gap-2" onClick={() => { setLiveFolderId(folder.id); window.sessionStorage.setItem("ttt_live_folder", folder.id); }}>
-                          <span className="size-[10px] shrink-0 rounded-[3px]" style={{ background: folder.color }} />
-                          <span className="truncate">{folder.name}</span>
-                        </DropdownMenuItem>
-                      ))}
-                      {liveFolderId && <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => { setLiveFolderId(null); window.sessionStorage.removeItem("ttt_live_folder"); }}>No folder</DropdownMenuItem></>}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <LiveFolderChip />
                 </>
               )}
             </div>
@@ -3172,6 +3261,7 @@ export function TranscriptionDetailPage() {
                   <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">My thoughts</TabsTrigger>
                   <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">Transcript</TabsTrigger>
                 </TabsList>
+                <div className={`mb-1 ml-auto max-md:hidden ${liveTab === "transcript" ? "" : "invisible pointer-events-none"}`}><TranscriptViewChecks /></div>
               </div>
             </Tabs>
           )}
@@ -3223,6 +3313,8 @@ export function TranscriptionDetailPage() {
                   isEditing={false}
                   highlighted={false}
                   isPlaybackActive={!isPaused && index === liveDetailSegments.length - 1}
+                  hideSpeaker={!transcriptView.speakers}
+                  hideTimecodes={!transcriptView.timestamps}
                   segmentRef={(el) => { segmentRefs.current[segment.id] = el; }}
                   isSegHighlighted={false}
                   onToggleHighlight={() => {}}
@@ -3540,12 +3632,15 @@ export function TranscriptionDetailPage() {
                     <Button size="sm" className="h-9 rounded-full px-4 text-[13px] lg:h-7 lg:px-3 lg:text-xs" onClick={handleSave}>Save</Button>
                   </>
                 ) : (
-                  sharedOwner ? null : (
+                  <>
+                  <TranscriptViewChecks />
+                  {sharedOwner ? null : (
                   <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
                     <Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />
                     Edit transcript
                   </Button>
-                  )
+                  )}
+                  </>
                 )
               ) : (
                 <div className="flex items-center gap-2">
@@ -3620,8 +3715,8 @@ export function TranscriptionDetailPage() {
                     key={seg.id}
                     segment={seg}
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
-                    hideSpeaker={isSingleSpeaker}
-                    hideTimecodes={forcePlainMono && !editMode}
+                    hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
+                    hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
                     editText={texts[seg.id]}
@@ -3735,7 +3830,8 @@ export function TranscriptionDetailPage() {
                     key={`${seg.id}-translated`}
                     segment={seg}
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
-                    hideSpeaker={isSingleSpeaker}
+                    hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
+                    hideTimecodes={!transcriptView.timestamps}
                     onSeekTimecode={seekTo}
                     isEditing={false}
                     editText={translatedSegments[seg.id] ?? (texts[seg.id] ?? seg.text)}
