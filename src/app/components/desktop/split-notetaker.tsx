@@ -38,7 +38,7 @@ export function SplitNotetaker() {
         </div>
         <h1 className="mt-1 truncate text-[22px] font-semibold leading-[28px] tracking-[-0.3px] text-foreground">{title}</h1>
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5"><span className="scale-[0.9]"><SourceIcon source="microphone" /></span><span>Microphone and the call's sound on {machine}</span></span>
+          <span className="inline-flex items-center gap-1.5"><span className="scale-[0.9]"><SourceIcon source="microphone" /></span><span>Notetaker on {machine}</span></span>
           <span className="text-border">{"\u2022"}</span>
           <span>Recording in real time</span>
           <span className="text-border">{"\u2022"}</span>

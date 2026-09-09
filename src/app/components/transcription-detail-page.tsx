@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , AlertCircle , LanguageSquareIcon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , LanguageSquareIcon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon } from "@hugeicons/core-free-icons";
 import { useShell, readDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
@@ -1485,13 +1485,14 @@ function RecordingOptions({ compact }: { compact: boolean }) {
   const { settings, update } = useNotetakerSettings();
   const [open, setOpen] = useState(() => readDemo("opts") === "1");
   const lang = LANGUAGES.find((l) => l.id === settings.language);
-  const label = lang?.id === "auto" || !lang ? "Auto" : lang.label;
+  const label = lang?.id === "auto" || !lang ? "Auto-detect" : lang.label;
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button type="button" title="Language and speakers" className={`flex h-[36px] shrink-0 items-center gap-[8px] rounded-[12px] border border-input bg-transparent text-[13px] text-foreground transition-colors hover:bg-muted data-[state=open]:bg-muted ${compact ? "w-[44px] justify-center" : "px-[12px]"}`}>
           <Icon icon={LanguageSquareIcon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
           {!compact && <span className="truncate">{label}</span>}
+          {!compact && <Icon icon={ArrowDown01Icon} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={2} />}
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={10} className="z-[120] w-[340px] rounded-[16px] p-[16px]">
@@ -1519,6 +1520,7 @@ export function LiveRecordingBar({
   showGenerate = true,
   showDevices = true,
   caption = true,
+  warning,
 }: {
   isPaused: boolean;
   /* after the note is written the bar only offers Resume; nothing new to generate yet */
@@ -1526,6 +1528,8 @@ export function LiveRecordingBar({
   showDevices?: boolean;
   /* the half-width panel has no room for the caption; the dot and the timer say enough */
   caption?: boolean;
+  /* a permission is missing: a triangle in the bar, the words on demand */
+  warning?: { title: string; body: string; action: string; onAllow: () => void };
   elapsedSeconds: number;
   onPauseResume: () => void;
   onStop: () => void;
@@ -1607,10 +1611,24 @@ export function LiveRecordingBar({
         </div>
 
         {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? (compact ? "flex gap-2" : "flex gap-2 md:max-w-[640px]") : "md:min-w-[260px] md:max-w-[320px]"}`}>
+          {warning && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" title={warning.title} className="flex h-[36px] w-[40px] shrink-0 items-center justify-center rounded-[12px] border border-warning/40 bg-warning/[0.08] text-warning transition-colors hover:bg-warning/[0.14]">
+                  <Icon icon={Alert02Icon} className="size-[17px]" strokeWidth={2} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={10} className="z-[120] w-[320px] rounded-[16px] p-[16px]">
+                <p className="flex items-start gap-2 text-[14px] font-semibold text-foreground"><Icon icon={Alert02Icon} className="mt-[2px] size-[16px] shrink-0 text-warning" strokeWidth={2} />{warning.title}</p>
+                <p className="mt-[6px] text-[12.5px] text-muted-foreground">{warning.body}</p>
+                <Button variant="warning" onClick={warning.onAllow} className="mt-[12px] h-8 rounded-full px-[14px] text-[13px] font-semibold">{warning.action}</Button>
+              </PopoverContent>
+            </Popover>
+          )}
           {generate && <RecordingOptions compact={compact} />}
           {generate && (
             <Select value={outputId || outputs[0]?.id} onValueChange={(v) => { setOutputId(v); window.sessionStorage.setItem("ttt_output_device", v); }} disabled={!outputs.length}>
-              <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : "md:w-[196px]"}`} title={compact ? outputLabel : "Where the call's sound plays"}>
+              <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : "md:w-[168px]"}`} title={compact ? outputLabel : "Where the call's sound plays"}>
                 <span className="flex min-w-0 items-center gap-[8px]">
                   <Icon icon={VolumeHighIcon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
                   {!compact && <span className="truncate text-[13px] text-foreground">{outputLabel}</span>}
@@ -1628,7 +1646,7 @@ export function LiveRecordingBar({
             onValueChange={onSwitchMicrophone}
             disabled={!microphoneDevices.length || isSwitchingMicrophone}
           >
-            <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? "md:w-[196px]" : ""}`} title={compact ? triggerLabel : undefined}>
+            <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? "md:w-[168px]" : ""}`} title={compact ? triggerLabel : undefined}>
               <span className="flex min-w-0 items-center gap-[8px]">
                 <SourceIcon source="microphone" />
                 {!compact && <span className="truncate text-[13px] text-foreground">{triggerLabel}</span>}
@@ -2110,6 +2128,7 @@ export function TranscriptionDetailPage() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryQuery, setSummaryQuery] = useState("");
   /* the desktop shell: which permission the demo pretends is missing (`?perm=1|mic`) */
+  const [liveFolderId, setLiveFolderId] = useState<string | null>(() => window.sessionStorage.getItem("ttt_live_folder"));
   const [permDemo, setPermDemo] = useState<string | null>(() => { const d = readDemo("perm"); return d === "1" || d === "mic" ? d : null; });
   const [summaryStage, setSummaryStage] = useState("");
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
@@ -3093,28 +3112,39 @@ export function TranscriptionDetailPage() {
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <span className="scale-[0.9]"><SourceIcon source="microphone" /></span>
-                <span>{desktopShell ? (permDemo === "1" ? `No sound source allowed on ${machine}` : permDemo === "mic" ? `Microphone only on ${machine}` : `Microphone and the call's sound on ${machine}`) : "Microphone"}</span>
+                <span>{desktopShell ? (permDemo === "1" ? "Notetaker, nothing allowed yet" : permDemo === "mic" ? "Notetaker, microphone only" : "Notetaker") : "Microphone"}</span>
               </span>
               <span className="text-border">{"\u2022"}</span>
               <span>{isPaused ? "Paused - live transcript is on hold" : "Recording in real time"}</span>
               <span className="text-border">{"\u2022"}</span>
               <span>{new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+              {desktopShell && (
+                /* the folder is chosen while the call runs, in the same line as the rest of the record's facts */
+                <>
+                  <span className="text-border">{"\u2022"}</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className="inline-flex items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary">
+                        <Icon icon={FolderOpen} className="size-[13px] text-muted-foreground" strokeWidth={1.7} />
+                        {folders.find((f) => f.id === liveFolderId)?.name ?? "Choose a folder"}
+                        <Icon icon={ArrowDown01Icon} className="size-[11px] text-muted-foreground" strokeWidth={2} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="z-[120] w-[220px]">
+                      {folders.map((folder) => (
+                        <DropdownMenuItem key={folder.id} className="gap-2" onClick={() => { setLiveFolderId(folder.id); window.sessionStorage.setItem("ttt_live_folder", folder.id); }}>
+                          <span className="size-[10px] shrink-0 rounded-[3px]" style={{ background: folder.color }} />
+                          <span className="truncate">{folder.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                      {liveFolderId && <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => { setLiveFolderId(null); window.sessionStorage.removeItem("ttt_live_folder"); }}>No folder</DropdownMenuItem></>}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
             </div>
           </div>
 
-          {desktopShell && permDemo && (
-            /* the recording runs, but half of it is missing: say which half, in the
-               colour of a warning, not an error, because nothing broke and the fix
-               is one system dialog away */
-            <div className="mx-4 mt-3 flex items-center gap-[12px] rounded-[12px] border border-warning/30 bg-warning/[0.07] px-[14px] py-[10px] lg:mx-8">
-              <span className="flex size-[28px] shrink-0 items-center justify-center rounded-full bg-warning/15 text-warning"><Icon icon={AlertCircle} className="size-[16px]" strokeWidth={2} /></span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-foreground">{permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `The call's sound isn't allowed on ${machine}`}</span>
-                <span className="block text-[12.5px] text-muted-foreground">{permDemo === "1" ? "Nothing is being recorded until you allow them." : "Only your microphone is recorded, so the other side won't be in the transcript."}</span>
-              </span>
-              <Button variant="warning" onClick={() => setPermDemo(null)} className="h-8 shrink-0 rounded-full px-[14px] text-[13px] font-semibold">{permDemo === "1" ? "Allow both" : "Allow system audio"}</Button>
-            </div>
-          )}
           {desktopShell && (
             <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript")} className="mt-2 lg:mt-4">
               <div className="flex items-end border-b border-border px-4 lg:px-8">
@@ -3141,6 +3171,17 @@ export function TranscriptionDetailPage() {
               </div>
             ) : (
             <div className="mx-auto w-full max-w-[980px] px-8 py-6">
+              {desktopShell && permDemo && (
+                /* the transcript is where the missing sound would have shown up, so the warning stands here too */
+                <div className="mb-4 flex items-center gap-3 rounded-[14px] border border-warning/30 bg-warning/[0.07] px-4 py-3">
+                  <Icon icon={Alert02Icon} className="size-[18px] shrink-0 text-warning" strokeWidth={2} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13.5px] font-semibold text-foreground">{permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `The call's sound isn't allowed on ${machine}`}</span>
+                    <span className="block text-[12.5px] text-muted-foreground">{permDemo === "1" ? "Nothing is being transcribed until you allow them." : "Only your side is transcribed. The other side won't appear here."}</span>
+                  </span>
+                  <Button variant="warning" onClick={() => setPermDemo(null)} className="h-8 shrink-0 rounded-full px-[14px] text-[13px] font-semibold">{permDemo === "1" ? "Allow both" : "Allow system audio"}</Button>
+                </div>
+              )}
               {!hasTranscript && (
                 <div className="mt-4 rounded-[16px] border border-dashed border-border bg-muted/20 px-6 py-8">
                   <p className="text-sm font-medium text-foreground">
@@ -3208,6 +3249,12 @@ export function TranscriptionDetailPage() {
             onPauseResume={isPaused ? resumeInstantRecording : pauseInstantRecording}
             onStop={stopInstantRecording}
             generate={desktopShell}
+            warning={desktopShell && permDemo ? {
+              title: permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `The call's sound isn't allowed on ${machine}`,
+              body: permDemo === "1" ? "Nothing is being recorded until you allow them." : "Only your microphone is recorded, so the other side won't be in the transcript.",
+              action: permDemo === "1" ? "Allow both" : "Allow system audio",
+              onAllow: () => setPermDemo(null),
+            } : undefined}
             microphoneDevices={microphoneDevices}
             selectedMicrophoneId={selectedMicrophoneId}
             onSwitchMicrophone={(deviceId) => { void switchRecordingMicrophone(deviceId); }}

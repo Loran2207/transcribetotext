@@ -18,7 +18,6 @@ import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 import { DesktopWindowFrame, useShell } from "./desktop/shell";
 import { NotetakerPage } from "./desktop/notetaker-page";
-import { NotetakerSettingsPage } from "./desktop/notetaker-settings-page";
 import { DesktopNotice } from "./desktop/desktop-notice";
 
 export function AppLayout() {
@@ -82,8 +81,7 @@ export function AppLayout() {
                 {!isSettings && activePage === "calendar" && <CalendarPage />}
                 {!isSettings && activePage === "templates" && <TemplatesPage />}
                 {!isSettings && desktop && activePage === "notetaker" && <NotetakerPage onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />}
-                {!isSettings && desktop && activePage === "notetaker-settings" && <NotetakerSettingsPage onBack={() => handleNavigate("notetaker")} />}
-                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && activePage !== "notetaker" && activePage !== "notetaker-settings" && (
+                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && activePage !== "notetaker" && (
                   <PagePlaceholder activePage={activePage} />
                 )}
               </>

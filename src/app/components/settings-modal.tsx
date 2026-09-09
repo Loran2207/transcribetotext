@@ -19,7 +19,10 @@ import {
   CustomerSupportIcon,
   Layers01Icon,
   SquareLockPasswordIcon,
+  Mic01Icon,
 } from "@hugeicons/core-free-icons";
+import { NotetakerSettingsPanel } from "./desktop/notetaker-settings-page";
+import { useShell } from "./desktop/shell";
 import { Icon } from "./ui/icon";
 import {
   PlanManagementPage,
@@ -708,7 +711,10 @@ const ACCOUNT_ROWS: {
   icon: typeof Mail;
   section?: SectionId;
   mail?: string;
+  /* the Notetaker records calls on this computer: the row only exists in the desktop shell */
+  desktopOnly?: boolean;
 }[] = [
+  { label: "Notetaker",       icon: Mic01Icon,           section: "notetaker", desktopOnly: true },
   { label: "Contact Support", icon: CustomerSupportIcon, mail: "support@transcribetotext.ai" },
   { label: "Privacy Policy",  icon: Shield01Icon,        section: "privacy" },
   { label: "Terms of Use",    icon: LegalDocument01Icon, section: "terms" },
@@ -723,6 +729,7 @@ function FormLabel({ children }: { children: React.ReactNode }) {
 function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void }) {
   const { displayName: localName, setDisplayName: setLocalName } = useUserProfile();
   const { user } = useAuth();
+  const { desktop } = useShell();
 
   const authName = user?.user_metadata?.full_name as string | undefined;
   const name = authName || localName;
@@ -809,7 +816,7 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void
 
         {/* The five inner pages. */}
         <div className="mt-8 flex flex-col gap-3">
-          {ACCOUNT_ROWS.map((row) => (
+          {ACCOUNT_ROWS.filter((row) => !row.desktopOnly || desktop).map((row) => (
             <button
               key={row.label}
               type="button"
@@ -848,12 +855,13 @@ interface SettingsPageProps {
   onClose: () => void;
 }
 
-type SectionId = "account" | "plan" | "meetings" | "invoices" | "privacy" | "terms";
+type SectionId = "account" | "plan" | "meetings" | "notetaker" | "invoices" | "privacy" | "terms";
 
 const SECTION_TITLE: Record<SectionId, string> = {
   account:  "Account",
   plan:     "Plan Management",
   meetings: "Meetings",
+  notetaker: "Notetaker",
   invoices: "Invoices",
   privacy:  "Privacy Policy",
   terms:    "Terms of Use",
@@ -863,6 +871,7 @@ const MAX_WIDTH: Record<SectionId, string> = {
   account:  "max-w-[800px]",
   plan:     "max-w-[788px]",
   meetings: "max-w-[720px]",
+  notetaker: "max-w-[720px]",
   invoices: "max-w-[560px]",
   privacy:  "max-w-[1080px]",
   terms:    "max-w-[1080px]",
@@ -918,6 +927,7 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
         {section === "account"  && <AccountPage onOpenSection={setSection} />}
         {section === "plan"     && <PlanManagementPage state={planState} />}
         {section === "meetings" && <MeetingsSettingsPanel />}
+        {section === "notetaker" && <NotetakerSettingsPanel />}
         {section === "invoices" && <InvoicesComingSoon />}
         {section === "privacy"  && <PrivacyPolicyPage />}
         {section === "terms"    && <TermsOfUsePage />}

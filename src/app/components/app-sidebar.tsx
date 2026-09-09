@@ -314,7 +314,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
             {/* The desktop app's own tab: calls recorded on this machine */}
             {desktopShell && (
               <SidebarMenuItem>
-                <SidebarMenuButton isActive={activePage === "notetaker" || activePage === "notetaker-settings"} onClick={() => { onNavigate("notetaker"); setOpenMobile(false); }} tooltip="Notetaker">
+                <SidebarMenuButton isActive={activePage === "notetaker"} onClick={() => { onNavigate("notetaker"); setOpenMobile(false); }} tooltip="Notetaker">
                   <Icon icon={Mic01Icon} strokeWidth={1.3} />
                   <span>Notetaker</span>
                 </SidebarMenuButton>

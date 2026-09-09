@@ -42,7 +42,7 @@ export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
                 <Icon icon={Mic01Icon} className="size-[16px]" strokeWidth={1.9} />
                 Record a call
               </button>
-              <button type="button" onClick={() => onNavigate?.("notetaker-settings")} className="flex h-[38px] items-center gap-[7px] rounded-full bg-white/12 px-[14px] text-[13.5px] font-medium text-white transition-colors hover:bg-white/20" title="Notetaker settings">
+              <button type="button" onClick={() => { try { localStorage.setItem("ttt_demo_settings_section", "notetaker"); } catch { /* private mode */ } onNavigate?.("settings"); }} className="flex h-[38px] items-center gap-[7px] rounded-full bg-white/12 px-[14px] text-[13.5px] font-medium text-white transition-colors hover:bg-white/20" title="Notetaker settings">
                 <Icon icon={Settings01Icon} className="size-[15px]" strokeWidth={1.9} />
                 Settings
               </button>
