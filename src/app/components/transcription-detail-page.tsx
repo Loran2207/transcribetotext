@@ -1543,6 +1543,8 @@ export function LiveRecordingBar({
   const selectedMic = microphoneDevices.find((device) => device.id === selectedMicrophoneId);
   /* without the caption the bar is in the half-width panel: the device pickers shrink to their icons */
   const compact = !caption;
+  /* with the warning triangle in the row the pickers give up a little width so Pause stays centred */
+  const pickerW = warning ? "md:w-[140px]" : "md:w-[168px]";
   /* the desktop hears the other side through an output device; which one is a
      choice of its own, kept for the session */
   const [outputs, setOutputs] = useState<{ id: string; label: string }[]>([]);
@@ -1628,7 +1630,7 @@ export function LiveRecordingBar({
           {generate && <RecordingOptions compact={compact} />}
           {generate && (
             <Select value={outputId || outputs[0]?.id} onValueChange={(v) => { setOutputId(v); window.sessionStorage.setItem("ttt_output_device", v); }} disabled={!outputs.length}>
-              <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : "md:w-[168px]"}`} title={compact ? outputLabel : "Where the call's sound plays"}>
+              <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : pickerW}`} title={compact ? outputLabel : "Where the call's sound plays"}>
                 <span className="flex min-w-0 items-center gap-[8px]">
                   <Icon icon={VolumeHighIcon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
                   {!compact && <span className="truncate text-[13px] text-foreground">{outputLabel}</span>}
@@ -1646,7 +1648,7 @@ export function LiveRecordingBar({
             onValueChange={onSwitchMicrophone}
             disabled={!microphoneDevices.length || isSwitchingMicrophone}
           >
-            <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? "md:w-[168px]" : ""}`} title={compact ? triggerLabel : undefined}>
+            <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? pickerW : ""}`} title={compact ? triggerLabel : undefined}>
               <span className="flex min-w-0 items-center gap-[8px]">
                 <SourceIcon source="microphone" />
                 {!compact && <span className="truncate text-[13px] text-foreground">{triggerLabel}</span>}
