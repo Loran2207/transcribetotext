@@ -12,10 +12,9 @@ import { useNotetakerSettings, type NotetakerSettings } from "./notetaker-settin
    one sentence per row, the one control that changes it on the right. */
 export function NotetakerSettingsPanel() {
   const { settings, update } = useNotetakerSettings();
-  const { machine, os } = useShell();
+  const { machine } = useShell();
   const perm = useDemo("perm");
   const allowed = { mic: perm !== "1", sys: perm !== "1" && perm !== "mic" };
-  const shortcut = os === "win" ? "Ctrl + Shift + R" : "\u2318 + \u21e7 + R";
   return (
     <div className="flex flex-col gap-4">
       <SettingsCard>
@@ -55,7 +54,6 @@ export function NotetakerSettingsPanel() {
           <Row title="Open the note when recording starts" desc="Otherwise only the widget shows, and the note waits in the app."><Switch checked={settings.openNoteOnStart} onCheckedChange={(v) => update({ openNoteOnStart: v })} /></Row>
           <Row title="Side by side when joining" desc="The call on the left, the note on the right."><Switch checked={settings.splitOnJoin} onCheckedChange={(v) => update({ splitOnJoin: v })} /></Row>
           <Row title="Show the live transcript" desc="Words appear on the Transcript tab as they are said."><Switch checked={settings.liveTranscript} onCheckedChange={(v) => update({ liveTranscript: v })} /></Row>
-          <Row title="Keyboard shortcut" desc="Start or stop recording from any window."><kbd className="rounded-[8px] border border-border bg-muted px-[10px] py-[5px] font-mono text-[12.5px] text-foreground">{shortcut}</kbd></Row>
         </Rows>
       </SettingsCard>
 

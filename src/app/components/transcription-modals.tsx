@@ -659,7 +659,8 @@ export function TranscriptionModalsProvider({
     }
     if (deviceId) {
       try {
-        return await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } } });
+        /* `ideal`, not `exact`: a remembered device that is gone must not hang the start */
+        return await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { ideal: deviceId } } });
       } catch {
         return await navigator.mediaDevices.getUserMedia({ audio: true });
       }
@@ -1988,6 +1989,17 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
         width={520}
       >
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
+          {!onDesktop && (
+            /* the web can only hear you; a call needs the app, and the choice is made here, not in a hint */
+            <MethodCards<"voice" | "desktop">
+              cards={[
+                { id: "voice", title: "Your voice, here", line: "Typed as you speak, in the browser", icon: Mic01Icon },
+                { id: "desktop", title: "A call, both sides", line: "No bot. Needs the desktop app", icon: ComputerIcon, badge: "New" },
+              ]}
+              method="voice"
+              onChange={(m) => { if (m === "desktop") { window.sessionStorage.setItem("ttt_meeting_method", "desktop"); onClose(); setOpenModal("meeting"); } }}
+            />
+          )}
           <SharedSettings
             state={settings}
             onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
@@ -2004,16 +2016,6 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
-            {!onDesktop && (
-              /* the web can only hear you; a call needs the app, and this is where people look for it */
-              <button type="button" onClick={() => { window.sessionStorage.setItem("ttt_meeting_method", "desktop"); onClose(); setOpenModal("meeting"); }} className="flex w-full items-center gap-[12px] rounded-[12px] border border-border px-[14px] py-[10px] text-left transition-colors hover:bg-muted">
-                <span className="flex size-[32px] shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Icon icon={ComputerIcon} className="size-[16px]" strokeWidth={1.8} /></span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-semibold text-foreground">Recording a call? Use the desktop app</span>
-                  <span className="block text-[12px] text-muted-foreground">Both sides of the call, no bot in the meeting, transcript live beside your notes.</span>
-                </span>
-              </button>
-            )}
             <div className="sticky bottom-0 z-10 -mx-[22px] mt-[2px] flex items-center justify-end gap-[8px] border-t border-border bg-popover px-[22px] pt-[14px] pb-[4px]">
               <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
@@ -2483,37 +2485,39 @@ type RecordMethod = "bot" | "desktop";
    opens (Kirill's law: a step opens with a choice of method, centred cards, and
    the choice stays changeable in place). On the web the second card leads to
    the desktop app; in the desktop shell it records right here. */
-function RecordMethodCards({ method, onChange, desktopShell, machine }: { method: RecordMethod; onChange: (m: RecordMethod) => void; desktopShell: boolean; machine: string }) {
-  const cards: { id: RecordMethod; title: string; line: string; icon: typeof Video01Icon; badge?: string }[] = [
-    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "Record on your computer", line: desktopShell ? "Your microphone and the call's sound, with the transcript live beside your notes. Nothing joins the meeting." : "No bot in the meeting. Live transcript beside your notes. Needs the desktop app.", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
-    { id: "bot", title: "Send a bot", line: "Paste the invite link. A bot joins the meeting and transcribes it for you.", icon: Video01Icon },
-  ];
+type MethodCard<T extends string> = { id: T; title: string; line: string; icon: typeof Video01Icon; badge?: string };
+
+/* Two ways in, as two compact cards (Kirill's law: a step opens with a choice
+   of method, and the choice stays changeable in place). One line each: the
+   detail belongs to the step that follows, not to the choice. */
+function MethodCards<T extends string>({ cards, method, onChange }: { cards: MethodCard<T>[]; method: T; onChange: (m: T) => void }) {
   return (
-    <div className="grid grid-cols-2 gap-[10px] max-sm:grid-cols-1" role="radiogroup">
+    <div className="grid grid-cols-2 gap-[8px] max-sm:grid-cols-1" role="radiogroup">
       {cards.map((c) => {
         const on = method === c.id;
         return (
-          <button
-            key={c.id}
-            type="button"
-            role="radio"
-            aria-checked={on}
-            onClick={() => onChange(c.id)}
-            className={"flex flex-col items-start gap-[8px] rounded-[14px] border p-[14px] text-left transition-colors " + (on ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40")}
-          >
-            <span className="flex w-full items-center gap-[8px]">
-              <span className={"flex size-[32px] items-center justify-center rounded-full " + (on ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
-                <Icon icon={c.icon} className="size-[16px]" strokeWidth={1.8} />
-              </span>
-              {c.badge && <span className="rounded-full bg-primary px-[7px] py-[1px] text-[10.5px] font-bold uppercase tracking-[0.04em] text-primary-foreground">{c.badge}</span>}
+          <button key={c.id} type="button" role="radio" aria-checked={on} onClick={() => onChange(c.id)}
+            className={"flex items-center gap-[10px] rounded-[12px] border px-[12px] py-[10px] text-left transition-colors " + (on ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40")}>
+            <span className={"flex size-[30px] shrink-0 items-center justify-center rounded-full " + (on ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
+              <Icon icon={c.icon} className="size-[15px]" strokeWidth={1.8} />
             </span>
-            <span className="text-[14px] font-semibold text-foreground">{c.title}</span>
-            <span className="text-[12.5px] leading-[1.45] text-muted-foreground">{c.line}</span>
+            <span className="min-w-0 flex-1">
+              <span className="flex items-center gap-[6px] text-[13.5px] font-semibold text-foreground">{c.title}{c.badge && <span className="rounded-full bg-primary px-[6px] py-[1px] text-[10px] font-bold uppercase tracking-[0.04em] text-primary-foreground">{c.badge}</span>}</span>
+              <span className="block truncate text-[12px] text-muted-foreground">{c.line}</span>
+            </span>
           </button>
         );
       })}
     </div>
   );
+}
+
+function RecordMethodCards({ method, onChange, desktopShell, machine }: { method: RecordMethod; onChange: (m: RecordMethod) => void; desktopShell: boolean; machine: string }) {
+  const cards: MethodCard<RecordMethod>[] = [
+    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "Record on your computer", line: desktopShell ? "Both sides of the call, no bot" : "No bot. Needs the desktop app", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
+    { id: "bot", title: "Send a bot", line: "A bot joins by the invite link", icon: Video01Icon },
+  ];
+  return <MethodCards cards={cards} method={method} onChange={onChange} />;
 }
 
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -2880,7 +2884,7 @@ function RecordingPill() {
   const isPaused = recordingPhase === "paused";
   if (!visible || recordingDetailOpen) return null;
   return createPortal(
-    <div className="fixed" style={{ bottom: "24px", right: "24px", zIndex: 9999 }}>
+    <div className="ttt-recording-pill fixed" style={{ bottom: "24px", right: "24px", zIndex: 9999 }}>
       <div className="w-[min(372px,calc(100vw-24px))] overflow-hidden rounded-[22px] border border-border bg-background shadow-lg">
         <div className="flex items-center gap-[10px] px-[14px] pt-[11px] pb-[9px]">
           <div className="flex shrink-0 items-center gap-[8px]">

@@ -64,7 +64,7 @@ export function AppLayout() {
     <UserProfileProvider>
      <DesktopWindowFrame>
       <SidebarProvider className="h-screen !min-h-0 overflow-hidden bg-sidebar">
-        <AppSidebar activePage={activePage} onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />
+        <AppSidebar activePage={isSubRoute ? "" : activePage} onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />
         <SidebarInset className="overflow-hidden bg-sidebar">
           <TopBar onNavigate={handleNavigate} />
           <MobileTopBar onNavigate={handleNavigate} />

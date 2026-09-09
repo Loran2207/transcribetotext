@@ -242,3 +242,6 @@ html[data-shell="desktop"][data-os="mac"] [data-slot="sidebar-header"] svg { wid
 @keyframes ttt-glow { 0%, 100% { box-shadow: 0 6px 18px color-mix(in oklch, var(--primary) 38%, transparent); } 50% { box-shadow: 0 8px 24px color-mix(in oklch, var(--primary) 55%, transparent); } }
 .ttt-glow { animation: ttt-glow 2.2s ease-in-out infinite; }
 html[data-shell="desktop"][data-os="win"] .ttt-topbar { padding-right: 150px; }
+
+/* the desk scene draws its own widget; the in-app pill stays off it */
+html[data-desk="1"] .ttt-recording-pill { display: none; }

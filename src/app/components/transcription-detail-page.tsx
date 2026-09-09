@@ -2051,6 +2051,7 @@ export function TranscriptionDetailPage() {
     pauseInstantRecording,
     resumeInstantRecording,
     stopInstantRecording,
+    startInstantRecording,
     microphoneDevices,
     selectedMicrophoneId,
     switchRecordingMicrophone,
@@ -3181,8 +3182,8 @@ export function TranscriptionDetailPage() {
                 <NotesPad
                   lines={pad}
                   onChange={setPad}
-                  templates={templates.map((t) => ({ id: t.id, name: t.name }))}
-                  onTemplate={(tid) => { if (tid === "all") setTemplatePickerOpen(true); else { setActiveTemplateId(tid); const t = templates.find((x) => x.id === tid); if (t) toast(`"${t.name}" will shape the note`); } }}
+                  templates={[]}
+                  onTemplate={() => {}}
                   autoFocus
                   hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
                 />

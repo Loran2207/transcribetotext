@@ -465,7 +465,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             ))}
           </motion.div>
           
-          <DesktopAppBanner onGet={() => { window.sessionStorage.setItem("ttt_meeting_method", "desktop"); setOpenModal("meeting"); }} />
+          <DesktopAppBanner />
           <div className="max-lg:mt-[16px]"><DashboardInsights onNavigate={onNavigate} /></div>
           {/* Records: folder chips + tabs + cards on mobile, full table on desktop */}
           <motion.div {...fadeUp(0.18, 70)}>

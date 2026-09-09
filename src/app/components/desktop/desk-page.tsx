@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useDemo, useShell } from "./shell";
 import { DemoSwitcher } from "./demo-switcher";
@@ -13,6 +14,7 @@ export function DeskPage() {
   const { os } = useShell();
   const navigate = useNavigate();
   const state = useDemo("desk") ?? "widget";
+  useEffect(() => { document.documentElement.dataset.desk = "1"; return () => { delete document.documentElement.dataset.desk; }; }, []);
   const mac = os !== "win";
   const wallpaper = mac
     ? "radial-gradient(120% 90% at 20% 10%, #6E7BFF 0%, #2B2F8F 42%, #0B1233 100%)"
@@ -30,7 +32,7 @@ export function DeskPage() {
           <span className="flex flex-col items-end leading-[14px]"><span>21:14</span><span>08.09.2026</span></span>
         </div>
       )}
-      {(state === "widget" || state === "expanded" || state === "paused" || state === "ended" || state === "writing" || state === "done") && (
+      {(state === "widget" || state === "expanded" || state === "hover" || state === "paused" || state === "ended" || state === "writing" || state === "done") && (
         <div className={`absolute right-[24px] ${mac ? "top-[104px]" : "bottom-[72px]"}`}><MiniRecorder /></div>
       )}
       {state === "split" && (

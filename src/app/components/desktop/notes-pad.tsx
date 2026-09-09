@@ -55,7 +55,7 @@ export function NotesPad({ lines, onChange, templates, onTemplate, autoFocus = f
     ...kinds,
     ...(tpls.length ? [{ id: "thead", name: "Templates", head: true }] : []),
     ...tpls.map((t) => ({ id: "t:" + t.id, name: t.name, emoji: templateEmoji(t.name) })),
-    { id: "tall", name: "All templates", icon: GridViewIcon, rule: true },
+    ...(templates.length ? [{ id: "tall", name: "All templates", icon: GridViewIcon, rule: true }] : []),
   ];
   const choices = items.filter((it) => !it.head);
   const active = choices[Math.min(pick, choices.length - 1)]?.id;
@@ -130,7 +130,7 @@ export function NotesPad({ lines, onChange, templates, onTemplate, autoFocus = f
               onChange={(v) => onText(i, v)}
               onKeyDown={(e) => onKey(i, e)}
               onFocus={() => setFocus(i)}
-              placeholder={i === 0 && lines.length === 1 ? "Write notes, or press / for a heading, a list or a template" : l.kind === "h" ? "Heading" : ""}
+              placeholder={i === 0 && lines.length === 1 ? (templates.length ? "Write notes, or press / for a heading, a list or a template" : "Write notes, or press / for a heading or a list") : l.kind === "h" ? "Heading" : ""}
               className={
                 "block w-full resize-none bg-transparent leading-[1.7] outline-none placeholder:text-muted-foreground " +
                 (l.kind === "h" ? "text-[16px] font-semibold text-foreground" : l.kind === "todo" && l.done ? "text-[15px] text-muted-foreground line-through" : "text-[15px] text-foreground")

@@ -1,101 +1,93 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { useNavigate } from "react-router";
-import { AiMagicIcon, Loading01Icon, Mic01Icon, PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
+import { AiMagicIcon, Loading01Icon, PauseIcon, PlayIcon, LayoutRightIcon, Note01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
-import { useDemo, useShell } from "./shell";
-import { SourceIcon } from "../source-icons";
 import { useTranscriptionModals } from "../transcription-modals";
+import { useDemo, setDemo, useShell } from "./shell";
 
-function fmt(s: number) { return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+export type MiniMode = "minimal" | "hover" | "paused" | "ended" | "writing" | "done";
 
-export type MiniMode = "minimal" | "expanded" | "paused" | "ended" | "writing" | "done";
-
-/* The app's own small window for a call in progress, the one that stays on top
-   when the main window is closed or behind the meeting. Granola's grammar,
-   kept whole: at rest a wordless capsule (red dot, three level bars) says it is
-   listening; hover opens the row with the timer, the name and one central
-   button, Pause. On hold the button reads Resume and a glowing Generate notes
-   appears above the row: the note is written only from a stopped call. While
-   it is written the row says so; when ready, Open or keep recording into the
-   same note. Dev server: /desk with `?desk=widget|expanded|paused|writing|done`. */
-export function MiniRecorder({ mode: forced, peek = true }: { mode?: MiniMode; peek?: boolean } = {}) {
+/* The recording, with the window gone: one small capsule that floats over the
+   desk (Kirill, 09.09: no wide row any more). Everything is a single round
+   button inside it: pause or resume, Generate notes when the call is on hold,
+   and Open, which docks the notes beside the call. Hovering shows the last
+   words heard, to the left. The capsule can be dragged anywhere and remembers
+   where it was left. Dev server: /desk?desk=widget|hover|paused|ended|writing|done. */
+export function MiniRecorder({ mode: forced }: { mode?: MiniMode } = {}) {
   const navigate = useNavigate();
   const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording, liveTranscriptSegments } = useTranscriptionModals();
   const [hover, setHover] = useState(false);
   const live = recordingPhase === "recording" || recordingPhase === "paused";
   const demoWidget = useDemo("widget"); const demoDesk = useDemo("desk"); const demo = demoWidget ?? demoDesk;
-  const mode: MiniMode = forced ?? (demo === "expanded" || demo === "paused" || demo === "ended" || demo === "writing" || demo === "done" ? demo : live && recordingPhase === "paused" ? "paused" : "minimal");
-  const ended = mode === "ended";
-  /* the last lines heard, shown beside the open row so a glance says what the
-     call is at without opening the app */
+  const mode: MiniMode = forced ?? (demo === "hover" || demo === "paused" || demo === "ended" || demo === "writing" || demo === "done" ? demo : live && recordingPhase === "paused" ? "paused" : "minimal");
+  const paused = mode === "paused", ended = mode === "ended", writing = mode === "writing", done = mode === "done";
+  const recording = mode === "minimal" || mode === "hover";
   const demoLines = ["Maria: the export is owned by our ops team, I can send the owner today.", "You: great, then the pricing tiers go out before Thursday.", "Maria: works for us, let us lock the dates on the call tomorrow."];
-  const lines = (liveTranscriptSegments.length ? liveTranscriptSegments.slice(-3).map((s) => s.text) : demoLines);
-  const paused = mode === "paused";
-  const open = hover || mode !== "minimal";
+  const lines = liveTranscriptSegments.length ? liveTranscriptSegments.slice(-3).map((s) => s.text) : demoLines;
   const elapsed = live ? recordingElapsed : 754;
-  const title = window.sessionStorage.getItem("ttt_live_title") || "Untitled call";
+  const fmt = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
   const toggle = () => { if (!live) return; if (paused) resumeInstantRecording(); else pauseInstantRecording(); };
   const generate = () => navigate("/transcriptions/live", { state: { liveRecording: true, generate: true } });
-  const ground = { background: "#0A1630", boxShadow: "0 10px 30px rgba(10,22,48,0.28)" };
-  const row = "flex h-[56px] items-center gap-[10px] rounded-full text-white";
+  const openNotes = () => setDemo("desk", "split");
 
-  if (mode === "writing") {
-    return (
-      <div className={`${row} pl-[14px] pr-[18px]`} style={ground}>
-        <Icon icon={Loading01Icon} className="size-[16px] animate-spin text-white/80" strokeWidth={2} />
-        <span className="text-[13px] font-semibold">Writing the note</span>
-        <span className="max-w-[180px] truncate text-[13px] text-white/60">{title}</span>
-      </div>
-    );
-  }
-  if (mode === "done") {
-    return (
-      <div className={`${row} pl-[16px] pr-[6px]`} style={ground}>
-        <span className="size-[8px] shrink-0 rounded-full bg-[#34C759]" />
-        <span className="text-[13px] font-semibold">Notes are ready</span>
-        <span className="max-w-[140px] truncate text-[13px] text-white/60">{title}</span>
-        <button type="button" onClick={() => navigate("/transcriptions/rec-1")} className="ml-[4px] flex h-[36px] items-center rounded-full bg-white/10 px-[14px] text-[13px] font-semibold transition-colors hover:bg-white/20">Open</button>
-        <button type="button" onClick={() => navigate("/transcriptions/live", { state: { liveRecording: true } })} className="flex h-[36px] items-center gap-[6px] rounded-full bg-white px-[14px] text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
-          <Icon icon={Mic01Icon} className="size-[14px]" strokeWidth={1.9} />
-          Continue recording
-        </button>
-      </div>
-    );
-  }
-  if (!open) {
-    return (
-      <button type="button" aria-label="Recording, open the controls" onMouseEnter={() => setHover(true)} className="flex w-[56px] flex-col items-center gap-[12px] rounded-full py-[16px] text-white" style={ground}>
-        <span className="size-[10px] rounded-full bg-[#FF3B30] animate-pulse" />
-        <span className="flex h-[22px] items-end gap-[3px]">
-          <span className="w-[4px] rounded-full bg-[#34C759]" style={{ height: "60%" }} />
-          <span className="w-[4px] rounded-full bg-[#34C759]" style={{ height: "100%" }} />
-          <span className="w-[4px] rounded-full bg-[#34C759]" style={{ height: "40%" }} />
-        </span>
-        <span className="h-[3px] w-[16px] rounded-full bg-white/25" />
-      </button>
-    );
-  }
+  /* drag: the offset lives in the session so the capsule stays where it was put */
+  const [offset, setOffset] = useState<{ x: number; y: number }>(() => { try { return JSON.parse(window.sessionStorage.getItem("ttt_widget_pos") || "") as { x: number; y: number }; } catch { return { x: 0, y: 0 }; } });
+  const drag = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null);
+  const onDown = (e: ReactPointerEvent<HTMLDivElement>) => { if ((e.target as HTMLElement).closest("button")) return; drag.current = { sx: e.clientX, sy: e.clientY, ox: offset.x, oy: offset.y }; (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); };
+  const onMove = (e: ReactPointerEvent<HTMLDivElement>) => { if (!drag.current) return; setOffset({ x: drag.current.ox + e.clientX - drag.current.sx, y: drag.current.oy + e.clientY - drag.current.sy }); };
+  const onUp = () => { if (!drag.current) return; drag.current = null; window.sessionStorage.setItem("ttt_widget_pos", JSON.stringify(offset)); };
+  useEffect(() => { if (!drag.current) window.sessionStorage.setItem("ttt_widget_pos", JSON.stringify(offset)); }, [offset]);
+
+  const btn = "flex size-[28px] shrink-0 items-center justify-center rounded-full text-white transition-colors hover:bg-white/20";
+  const peek = (hover || mode === "hover") && recording;
   return (
-    <div className="relative" onMouseLeave={() => setHover(false)}>
-      {peek && !paused && !ended && (
-        <div className="absolute bottom-0 right-[calc(100%+10px)] w-[300px] rounded-[16px] p-[12px] text-[12.5px] leading-[17px] text-white/85 backdrop-blur-[10px]" style={{ background: "rgba(10,22,48,0.78)", boxShadow: "0 8px 24px rgba(10,22,48,0.22)" }}>
+    <div className="relative select-none" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      {peek && (
+        <div className="absolute right-[calc(100%+10px)] top-0 w-[280px] rounded-[14px] p-[11px] text-[12.5px] leading-[17px] text-white/85 backdrop-blur-[10px]" style={{ background: "rgba(10,22,48,0.8)", boxShadow: "0 8px 24px rgba(10,22,48,0.22)" }}>
           {lines.map((l, i) => (<p key={i} className={i === lines.length - 1 ? "text-white" : "text-white/60"}>{l}</p>))}
         </div>
       )}
-      <div className={`${row} ${paused || ended ? "w-auto" : "w-[340px]"} pl-[14px] pr-[10px]`} style={ground}>
-        <span className="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] bg-white"><SourceIcon source="zoom" /></span>
-        <span className={ended ? "size-[8px] shrink-0 rounded-full bg-white/40" : paused ? "size-[8px] shrink-0 rounded-full bg-[#FEBC2E]" : "size-[8px] shrink-0 rounded-full bg-[#FF3B30] animate-pulse"} />
-        <span className="shrink-0 text-[14px] font-semibold tabular-nums">{fmt(elapsed)}</span>
-        <span className={`min-w-0 truncate text-[13px] text-white/70 ${paused || ended ? "max-w-[120px]" : "flex-1"}`}>{ended ? "Call ended, 10s to keep" : paused ? "On hold" : title}</span>
-        {/* the state text already says what is happening, so the verb is an icon in a white disc */}
-        <button type="button" onClick={toggle} aria-label={ended ? "Keep recording" : paused ? "Resume" : "Pause"} title={ended ? "Keep recording" : paused ? "Resume" : "Pause"} className="flex size-[36px] shrink-0 items-center justify-center rounded-full bg-white text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
-          <Icon icon={paused || ended ? PlayIcon : PauseIcon} className="size-[15px]" strokeWidth={2} />
-        </button>
+      <div
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        className="flex h-[40px] cursor-grab items-center gap-[2px] rounded-full pl-[12px] pr-[6px] text-white backdrop-blur-[12px] active:cursor-grabbing"
+        style={{ background: "rgba(10,22,48,0.82)", boxShadow: "0 10px 30px rgba(10,22,48,0.28)" }}
+        title={recording ? "Recording. Drag to move" : undefined}
+      >
+        {/* the state, as a dot and a number, never a sentence */}
+        {writing ? (
+          <Icon icon={Loading01Icon} className="size-[14px] animate-spin text-white/80" strokeWidth={2} />
+        ) : (
+          <span className={`size-[8px] shrink-0 rounded-full ${done ? "bg-[#34C759]" : ended ? "bg-white/40" : paused ? "bg-[#FEBC2E]" : "bg-[#FF3B30] animate-pulse"}`} />
+        )}
+        {recording && (
+          <span className="ml-[8px] flex h-[16px] items-end gap-[2px]" aria-hidden>
+            <span className="w-[3px] rounded-full bg-[#34C759]" style={{ height: "55%" }} />
+            <span className="w-[3px] rounded-full bg-[#34C759]" style={{ height: "100%" }} />
+            <span className="w-[3px] rounded-full bg-[#34C759]" style={{ height: "40%" }} />
+            <span className="w-[3px] rounded-full bg-[#34C759]" style={{ height: "75%" }} />
+          </span>
+        )}
+        {(paused || ended) && <span className="ml-[8px] text-[12.5px] font-semibold tabular-nums">{ended ? "10s" : fmt(elapsed)}</span>}
+        {writing && <span className="ml-[8px] text-[12.5px] text-white/80">Writing</span>}
+        {done && <span className="ml-[8px] text-[12.5px] text-white/80">Ready</span>}
+        <span className="mx-[6px] h-[16px] w-px bg-white/15" />
+        {(recording || paused || ended) && (
+          <button type="button" onClick={toggle} aria-label={ended ? "Keep recording" : paused ? "Resume" : "Pause"} title={ended ? "Keep recording" : paused ? "Resume" : "Pause"} className={btn}>
+            <Icon icon={paused || ended ? PlayIcon : PauseIcon} className="size-[14px]" strokeWidth={2} />
+          </button>
+        )}
         {(paused || ended) && (
-          /* the row grows by one verb; nothing floats */
-          <button type="button" onClick={generate} className="ttt-glow flex h-[36px] shrink-0 items-center gap-[6px] rounded-full bg-primary px-[14px] text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]">
-            <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.8} />
-            Generate notes
+          <button type="button" onClick={generate} aria-label="Generate notes" title="Generate notes" className={`${btn} ttt-glow bg-primary hover:bg-primary/90`}>
+            <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.9} />
+          </button>
+        )}
+        {done ? (
+          <button type="button" onClick={() => navigate("/transcriptions/rec-1")} aria-label="Open the note" title="Open the note" className={btn}>
+            <Icon icon={Note01Icon} className="size-[14px]" strokeWidth={1.9} />
+          </button>
+        ) : (
+          <button type="button" onClick={openNotes} aria-label="Open the notes beside the call" title="Open the notes beside the call" className={btn}>
+            <Icon icon={LayoutRightIcon} className="size-[14px]" strokeWidth={1.9} />
           </button>
         )}
       </div>
@@ -103,9 +95,7 @@ export function MiniRecorder({ mode: forced, peek = true }: { mode?: MiniMode; p
   );
 }
 
-/* Granola's honest note: the OS sees the call end, so the row says so and
-   counts down to the note; Keep recording holds it open for the tail.
-   A page that is only the widget, for the desktop app's second window. */
+/* A page that is only the widget, for the desktop app's second window. */
 export function MiniRecorderPage() {
   const { os } = useShell();
   return (
