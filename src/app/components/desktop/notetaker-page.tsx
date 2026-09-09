@@ -3,7 +3,7 @@ import { Mic01Icon, AiMagicIcon, CloudIcon, VolumeHighIcon, Settings01Icon } fro
 import { Icon } from "../ui/icon";
 import { RecordsTable } from "../records-table";
 import { useTranscriptionModals } from "../transcription-modals";
-import { readDemo, useShell } from "./shell";
+import { useDemo, useShell } from "./shell";
 
 /* The desktop app's own tab. One verb at the top and the same records table the
    rest of the portal uses. The right half of the hero turns through the three
@@ -25,7 +25,9 @@ export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
     return () => window.clearInterval(t);
   }, [held]);
   const feature = FEATURES[active];
-  const [perm, setPerm] = useState<Record<string, boolean>>(() => { const d = readDemo("perm"); return d === "1" ? { mic: false, sys: false } : d === "mic" ? { mic: true, sys: false } : { mic: true, sys: true }; });
+  const permFlag = useDemo("perm");
+  const [perm, setPerm] = useState<Record<string, boolean>>({ mic: true, sys: true });
+  useEffect(() => { setPerm(permFlag === "1" ? { mic: false, sys: false } : permFlag === "mic" ? { mic: true, sys: false } : { mic: true, sys: true }); }, [permFlag]);
   const needsPerm = !perm.mic || !perm.sys;
   return (
     <div className="flex-1 overflow-auto bg-background">

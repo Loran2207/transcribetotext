@@ -35,6 +35,29 @@ export function readDemo(param: string): string | null {
   return window.sessionStorage.getItem(key);
 }
 
+/* The switches can change while the app runs (the States panel, a notice being
+   dismissed): one event, and every hook below re-reads its value. No reloads. */
+const CHANGE = "ttt-flags-change";
+function announce() { window.dispatchEvent(new Event(CHANGE)); }
+export function setDemo(param: string, value: string | null) {
+  const key = "ttt_demo_" + param;
+  if (value) window.sessionStorage.setItem(key, value); else window.sessionStorage.removeItem(key);
+  announce();
+}
+export function setShellFlag(key: "ttt_shell" | "ttt_os" | "ttt_app_installed", value: string) {
+  window.localStorage.setItem(key, value);
+  announce();
+}
+export function useDemo(param: string): string | null {
+  const [value, setValue] = useState(() => readDemo(param));
+  useEffect(() => {
+    const on = () => setValue(window.sessionStorage.getItem("ttt_demo_" + param));
+    window.addEventListener(CHANGE, on);
+    return () => window.removeEventListener(CHANGE, on);
+  }, [param]);
+  return value;
+}
+
 /* A build can be born as one shell: the preview branch sets VITE_SHELL=desktop
    and VITE_OS=mac so the address needs no flags at all. */
 const ENV_SHELL = (import.meta.env.VITE_SHELL as Shell | undefined) === "desktop" ? "desktop" : "web";
@@ -63,7 +86,12 @@ export function useWideScreen() {
 }
 
 export function useShell() {
-  const [state] = useState(readShell);
+  const [state, setState] = useState(readShell);
+  useEffect(() => {
+    const on = () => setState(readShell());
+    window.addEventListener(CHANGE, on);
+    return () => window.removeEventListener(CHANGE, on);
+  }, []);
   return { ...state, desktop: state.shell === "desktop", machine: state.os === "win" ? "this PC" : "this Mac" };
 }
 

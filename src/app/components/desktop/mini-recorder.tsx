@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { AiMagicIcon, Loading01Icon, Mic01Icon, PauseIcon, PlayIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
-import { readDemo, useShell } from "./shell";
+import { useDemo, useShell } from "./shell";
 import { SourceIcon } from "../source-icons";
 import { useTranscriptionModals } from "../transcription-modals";
 
@@ -23,7 +23,7 @@ export function MiniRecorder({ mode: forced, peek = true }: { mode?: MiniMode; p
   const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording, liveTranscriptSegments } = useTranscriptionModals();
   const [hover, setHover] = useState(false);
   const live = recordingPhase === "recording" || recordingPhase === "paused";
-  const demo = readDemo("widget") ?? readDemo("desk");
+  const demoWidget = useDemo("widget"); const demoDesk = useDemo("desk"); const demo = demoWidget ?? demoDesk;
   const mode: MiniMode = forced ?? (demo === "expanded" || demo === "paused" || demo === "ended" || demo === "writing" || demo === "done" ? demo : live && recordingPhase === "paused" ? "paused" : "minimal");
   const ended = mode === "ended";
   /* the last lines heard, shown beside the open row so a glance says what the

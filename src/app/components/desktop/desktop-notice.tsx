@@ -5,7 +5,7 @@ import { ToastCard } from "../app-toast";
 import { SourceIcon } from "../source-icons";
 import { Icon } from "../ui/icon";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { readDemo, useShell } from "./shell";
+import { useDemo, setDemo, useShell } from "./shell";
 import { useTranscriptionModals } from "../transcription-modals";
 
 export type NoticeKind = "call" | "ready" | "upcoming";
@@ -74,12 +74,12 @@ export function NoticeCard({ kind, onAct, onClose, onJoinOnly, onOpenApp, menuOp
 export function DesktopNotice() {
   const { desktop, os } = useShell();
   const navigate = useNavigate();
-  const { setOpenModal } = useTranscriptionModals();
-  const [demo, setDemo] = useState(() => readDemo("notice"));
+  const { setOpenModal, startInstantRecording } = useTranscriptionModals();
+  const demo = useDemo("notice");
   const kind = (demo === "upcoming-menu" ? "upcoming" : demo) as NoticeKind | null;
   if (!desktop || (kind !== "call" && kind !== "ready" && kind !== "upcoming")) return null;
-  const close = () => { window.sessionStorage.removeItem("ttt_demo_notice"); setDemo(null); };
-  const act = () => { close(); if (kind === "ready") navigate("/transcriptions/rec-1"); else setOpenModal("meeting"); };
+  const close = () => setDemo("notice", null);
+  const act = () => { close(); if (kind === "ready") navigate("/transcriptions/rec-1"); else if (kind === "call") void startInstantRecording(); else setOpenModal("meeting"); };
   return (
     <div className={`fixed z-[80] ${os === "win" ? "bottom-[20px] right-[20px]" : "right-[20px] top-[20px]"}`}>
       <NoticeCard kind={kind} onAct={act} onClose={close} onJoinOnly={close} onOpenApp={close} menuOpen={demo === "upcoming-menu"} />

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { readDemo, useShell } from "./shell";
+import { useDemo, useShell } from "./shell";
 import { DemoSwitcher } from "./demo-switcher";
 import { MiniRecorder } from "./mini-recorder";
 import { NoticeCard } from "./desktop-notice";
@@ -12,7 +12,7 @@ import { SplitNotetaker } from "./split-notetaker";
 export function DeskPage() {
   const { os } = useShell();
   const navigate = useNavigate();
-  const state = readDemo("desk") ?? "widget";
+  const state = useDemo("desk") ?? "widget";
   const mac = os !== "win";
   const wallpaper = mac
     ? "radial-gradient(120% 90% at 20% 10%, #6E7BFF 0%, #2B2F8F 42%, #0B1233 100%)"

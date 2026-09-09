@@ -5,7 +5,7 @@ import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { LanguageSelector, SpeakerSection } from "../transcription-modals";
 import { SettingsCard, SettingsCardTitle } from "../calendar-settings";
-import { readDemo, useShell } from "./shell";
+import { useDemo, useShell } from "./shell";
 import { useNotetakerSettings, type NotetakerSettings } from "./notetaker-settings";
 
 /* The Notetaker section of Settings: the same cards the Meetings section uses,
@@ -13,7 +13,7 @@ import { useNotetakerSettings, type NotetakerSettings } from "./notetaker-settin
 export function NotetakerSettingsPanel() {
   const { settings, update } = useNotetakerSettings();
   const { machine, os } = useShell();
-  const perm = readDemo("perm");
+  const perm = useDemo("perm");
   const allowed = { mic: perm !== "1", sys: perm !== "1" && perm !== "mic" };
   const shortcut = os === "win" ? "Ctrl + Shift + R" : "\u2318 + \u21e7 + R";
   return (

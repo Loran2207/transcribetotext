@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Settings01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
-import { DEMO_TOOLS, readDemo, readShell } from "./shell";
+import { DEMO_TOOLS, useDemo, useShell, setDemo, setShellFlag } from "./shell";
 
 /* The prototype's hidden states, as a panel a designer can reach without the
    address bar. Lives only in builds with VITE_DEMO_TOOLS=1 (the preview
@@ -21,13 +21,13 @@ export function DemoSwitcher() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   if (!DEMO_TOOLS) return null;
-  const shell = readShell();
-  const current = (g: typeof GROUPS[number]) => g.kind === "local" ? (g.key === "ttt_shell" ? shell.shell : shell.os) : (readDemo(g.key.replace("ttt_demo_", "")) ?? (g.key === "ttt_demo_desk" ? "widget" : ""));
+  const shell = useShell();
+  const notice = useDemo("notice"), perm = useDemo("perm"), desk = useDemo("desk");
+  const current = (g: typeof GROUPS[number]) => g.key === "ttt_shell" ? shell.shell : g.key === "ttt_os" ? shell.os : g.key === "ttt_demo_notice" ? (notice ?? "") : g.key === "ttt_demo_perm" ? (perm ?? "") : (desk ?? "widget");
   const choose = (g: typeof GROUPS[number], value: string) => {
-    if (g.kind === "local") window.localStorage.setItem(g.key, value);
-    else if (value) window.sessionStorage.setItem(g.key, value); else window.sessionStorage.removeItem(g.key);
-    if (g.key === "ttt_demo_desk") { if (pathname !== "/desk") navigate("/desk"); }
-    window.location.reload();
+    if (g.kind === "local") setShellFlag(g.key as "ttt_shell" | "ttt_os", value);
+    else setDemo(g.key.replace("ttt_demo_", ""), value || null);
+    if (g.key === "ttt_demo_desk" && pathname !== "/desk") navigate("/desk");
   };
   return (
     <div className="fixed bottom-[16px] left-[16px] z-[300] text-[12.5px]">
@@ -49,13 +49,12 @@ export function DemoSwitcher() {
                 </div>
               </div>
             ))}
-            <p className="text-[11.5px] leading-[15px] text-muted-foreground">The same switches work as address flags: ?shell=desktop&os=mac, ?notice=upcoming, ?perm=mic, and /desk?desk=paused. The red and yellow lights hide the window and show the desk.</p>
+            <p className="text-[11.5px] leading-[15px] text-muted-foreground">Changes apply at once, no reload. The same switches work as address flags: ?shell=desktop&os=mac, ?notice=upcoming, ?perm=mic, /desk?desk=paused. The red and yellow lights hide the window and show the desk.</p>
           </div>
         </div>
       ) : (
-        <button type="button" onClick={() => setOpen(true)} title="Prototype states" className="flex h-[34px] items-center gap-[7px] rounded-full border border-border bg-popover px-[12px] font-medium text-foreground" style={{ boxShadow: "0 8px 24px rgba(15,23,42,0.14)" }}>
-          <Icon icon={Settings01Icon} className="size-[14px]" strokeWidth={1.9} />
-          States
+        <button type="button" onClick={() => setOpen(true)} title="Prototype states" aria-label="Prototype states" className="flex size-[28px] items-center justify-center rounded-full border border-border bg-popover text-muted-foreground opacity-50 transition-opacity hover:opacity-100" style={{ boxShadow: "0 6px 18px rgba(15,23,42,0.12)" }}>
+          <Icon icon={Settings01Icon} className="size-[13px]" strokeWidth={1.9} />
         </button>
       )}
     </div>

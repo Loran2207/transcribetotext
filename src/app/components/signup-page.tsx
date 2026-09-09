@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from "react";
+import { DesktopWindowFrame } from "./desktop/shell";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, Navigate } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
@@ -123,6 +124,7 @@ export function SignupPage() {
         };
 
   return (
+    <DesktopWindowFrame>
     <AuthLayout>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         <motion.div {...animProps(0)}>
@@ -324,5 +326,6 @@ export function SignupPage() {
         </motion.p>
       </form>
     </AuthLayout>
+    </DesktopWindowFrame>
   );
 }

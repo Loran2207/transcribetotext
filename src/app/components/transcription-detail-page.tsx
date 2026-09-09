@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
 import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , LanguageSquareIcon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon } from "@hugeicons/core-free-icons";
-import { useShell, readDemo } from "./desktop/shell";
+import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
@@ -1483,7 +1483,9 @@ function LiveRecordingWaveform({ active }: { active: boolean }) {
    before the recording, and defaults come from Notetaker settings. */
 function RecordingOptions({ compact }: { compact: boolean }) {
   const { settings, update } = useNotetakerSettings();
-  const [open, setOpen] = useState(() => readDemo("opts") === "1");
+  const optsFlag = useDemo("opts");
+  const [open, setOpen] = useState(optsFlag === "1");
+  useEffect(() => { if (optsFlag === "1") setOpen(true); }, [optsFlag]);
   const lang = LANGUAGES.find((l) => l.id === settings.language);
   const label = lang?.id === "auto" || !lang ? "Auto-detect" : lang.label;
   return (
@@ -2144,7 +2146,9 @@ export function TranscriptionDetailPage() {
   const [summaryQuery, setSummaryQuery] = useState("");
   /* the desktop shell: which permission the demo pretends is missing (`?perm=1|mic`) */
   const [liveFolderId, setLiveFolderId] = useState<string | null>(() => window.sessionStorage.getItem("ttt_live_folder"));
-  const [permDemo, setPermDemo] = useState<string | null>(() => { const d = readDemo("perm"); return d === "1" || d === "mic" ? d : null; });
+  const permFlag = useDemo("perm");
+  const [permDemo, setPermDemo] = useState<string | null>(() => (permFlag === "1" || permFlag === "mic" ? permFlag : null));
+  useEffect(() => { setPermDemo(permFlag === "1" || permFlag === "mic" ? permFlag : null); }, [permFlag]);
   const [summaryStage, setSummaryStage] = useState("");
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [langSheetOpen, setLangSheetOpen] = useState(false);

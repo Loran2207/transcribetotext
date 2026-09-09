@@ -1936,13 +1936,18 @@ async function detectVideoHasAudioTrack(file: File): Promise<boolean | null> {
 
 function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { desktop: onDesktop } = useShell();
-  const { startInstantRecording, templates, userPlan, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
+  const { startInstantRecording, templates, userPlan, consumeDefaultFolderId, guardFreeLimit, setOpenModal } = useTranscriptionModals();
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
+  /* the desktop asks nothing here: your voice, typed as you speak, starts at once */
+  useEffect(() => {
+    if (open && onDesktop) void handleStart();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, onDesktop]);
   useEffect(() => {
     if (!open) return;
     setSettings(DEFAULT_SETTINGS);
@@ -1971,7 +1976,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
     void router.navigate("/transcriptions/live", { state: { liveRecording: true } });
   }
 
-  if (!open) return null;
+  if (!open || onDesktop) return null;
 
   return (
     <>
@@ -1999,6 +2004,16 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
+            {!onDesktop && (
+              /* the web can only hear you; a call needs the app, and this is where people look for it */
+              <button type="button" onClick={() => { window.sessionStorage.setItem("ttt_meeting_method", "desktop"); onClose(); setOpenModal("meeting"); }} className="flex w-full items-center gap-[12px] rounded-[12px] border border-border px-[14px] py-[10px] text-left transition-colors hover:bg-muted">
+                <span className="flex size-[32px] shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Icon icon={ComputerIcon} className="size-[16px]" strokeWidth={1.8} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13px] font-semibold text-foreground">Recording a call? Use the desktop app</span>
+                  <span className="block text-[12px] text-muted-foreground">Both sides of the call, no bot in the meeting, transcript live beside your notes.</span>
+                </span>
+              </button>
+            )}
             <div className="sticky bottom-0 z-10 -mx-[22px] mt-[2px] flex items-center justify-end gap-[8px] border-t border-border bg-popover px-[22px] pt-[14px] pb-[4px]">
               <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
@@ -2536,12 +2551,6 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  /* the desktop asks nothing: the tile, the hero button and the notification all
-     start the recording at once; the name and template are set on the note */
-  useEffect(() => {
-    if (open && desktopShell) void handleStartHere();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, desktopShell]);
 
   async function handleStartHere() {
     if (isStarting) return;
@@ -2590,20 +2599,20 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
     handleClose();
   }
 
-  if (!open || desktopShell) return null;
+  if (!open) return null;
   const canSubmit = meetingUrl && isValidUrl(meetingUrl);
 
   return (
     <>
       <ModalShell
         title={desktopShell ? "Record a call" : "Record meeting"}
-        subtitle={desktopShell ? `Your microphone and the call's sound on ${machine}, no bot in the meeting` : method === "bot" ? "A bot will join and transcribe your meeting" : "Record without a bot, with the desktop app"}
+        subtitle={method === "bot" ? "A bot joins the meeting and transcribes it for you" : desktopShell ? `Your microphone and the call's sound on ${machine}, no bot in the meeting` : "Record without a bot, with the desktop app"}
         onClose={handleClose}
         onBackdropClick={handleClose}
         width={520}
       >
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
-          {!desktopShell && wide && <RecordMethodCards method={method} onChange={setMethod} desktopShell={desktopShell} machine={machine} />}
+          {wide && <RecordMethodCards method={method} onChange={setMethod} desktopShell={desktopShell} machine={machine} />}
 
           {method === "desktop" && !desktopShell && installed && (
             <div className="flex flex-col gap-[14px]">

@@ -383,7 +383,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
     { card: <InstantSpeachCard />, key: "2", modal: "record" as const },
     { card: <MeetingRecorderCard label={desktopShell ? "Record a call" : undefined} />, key: "3", modal: "meeting" as const },
     { card: <TranscribeFromLinkCard />, key: "4", modal: "link" as const },
-  ].filter((c) => !(desktopShell && c.modal === "record")).map((c, i) => ({ ...c, key: String(i + 1) }));
+  ].map((c, i) => ({ ...c, key: String(i + 1) }));
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
