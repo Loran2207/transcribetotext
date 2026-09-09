@@ -1,7 +1,8 @@
 import { forwardRef, useEffect, useRef, useState } from "react";
 import { Heading01Icon, LeftToRightListBulletIcon, CheckListIcon, GridViewIcon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
-import { templateEmoji } from "@/lib/template-meta";
+import { templateEmoji, templateAudience, hueForCategory, categorize } from "@/lib/template-meta";
+import type { Template } from "@/lib/templates";
 
 /* Your own notes while the call runs: a block notepad the way Granola does it.
    Plain lines, a heading, a bullet, a checkbox, and "/" on an empty line opens
@@ -22,12 +23,13 @@ const KINDS = [
   { id: "todo", name: "Checkbox", icon: CheckListIcon },
 ];
 
-type MenuItem = { id: string; name: string; icon?: typeof Heading01Icon; emoji?: string; head?: boolean; rule?: boolean };
+type MenuItem = { id: string; name: string; icon?: typeof Heading01Icon; emoji?: string; head?: boolean; rule?: boolean; tpl?: Template };
 
 export function NotesPad({ lines, onChange, templates, onTemplate, autoFocus = false, hint }: {
   lines: PadLine[];
   onChange: (lines: PadLine[]) => void;
-  templates: { id: string; name: string }[];
+  /* the same templates the picker lists, in the same order */
+  templates: Template[];
   /* a template chosen from the slash menu, or "all" for the library */
   onTemplate: (id: string) => void;
   autoFocus?: boolean;
@@ -50,11 +52,11 @@ export function NotesPad({ lines, onChange, templates, onTemplate, autoFocus = f
   const slashAt = focus !== null && lines[focus]?.text.startsWith("/") ? focus : null;
   const query = slashAt !== null ? lines[slashAt].text.slice(1).toLowerCase() : "";
   const kinds = KINDS.filter((k) => k.name.toLowerCase().includes(query));
-  const tpls = templates.filter((t) => t.name.toLowerCase().includes(query)).slice(0, 5);
+  const tpls = templates.filter((t) => t.name.toLowerCase().includes(query));
   const items: MenuItem[] = [
     ...kinds,
     ...(tpls.length ? [{ id: "thead", name: "Templates", head: true }] : []),
-    ...tpls.map((t) => ({ id: "t:" + t.id, name: t.name, emoji: templateEmoji(t.name) })),
+    ...tpls.map((t) => ({ id: "t:" + t.id, name: t.name, emoji: templateEmoji(t.name), tpl: t })),
     ...(templates.length ? [{ id: "tall", name: "All templates", icon: GridViewIcon, rule: true }] : []),
   ];
   const choices = items.filter((it) => !it.head);
@@ -137,7 +139,8 @@ export function NotesPad({ lines, onChange, templates, onTemplate, autoFocus = f
               }
             />
             {slashAt === i && (
-              <div className="absolute left-0 z-40 w-[272px] rounded-[12px] border border-border bg-popover p-1 shadow-md" style={{ top: 34 }}>
+              /* the menu scrolls once the template list outgrows it; the kinds stay on top, "All templates" at the foot */
+              <div className="absolute left-0 z-40 w-[320px] max-h-[400px] overflow-y-auto rounded-[12px] border border-border bg-popover p-1 shadow-md" style={{ top: 34 }}>
                 {items.map((it) =>
                   it.head ? (
                     <div key={it.id} className="px-2 pb-1 pt-2.5 text-[11px] font-medium text-muted-foreground">{it.name}</div>
@@ -150,11 +153,23 @@ export function NotesPad({ lines, onChange, templates, onTemplate, autoFocus = f
                         onClick={() => choose(it.id)}
                         className={"flex w-full items-center gap-2.5 rounded-[8px] px-2 py-1.5 text-left text-[13px] " + (active === it.id ? "bg-muted text-foreground" : "text-foreground hover:bg-muted")}
                       >
-                        <span className="flex w-4 shrink-0 items-center justify-center">
-                          {it.icon && <Icon icon={it.icon} className="size-4 text-muted-foreground" strokeWidth={1.6} />}
-                          {it.emoji && <span className="text-[14px] leading-none">{it.emoji}</span>}
-                        </span>
-                        <span className="truncate">{it.name}</span>
+                        {it.tpl ? (
+                          /* a template row, the way the picker draws it: coloured tile, name, who it is for */
+                          <>
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg text-[16px]" style={{ background: hueForCategory(categorize(it.tpl)).bg }}>{it.emoji}</span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[13px] font-medium leading-snug">{it.name}</span>
+                              <span className="block truncate text-[11px] leading-snug text-muted-foreground">{templateAudience(it.tpl)}</span>
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="flex w-4 shrink-0 items-center justify-center">
+                              {it.icon && <Icon icon={it.icon} className="size-4 text-muted-foreground" strokeWidth={1.6} />}
+                            </span>
+                            <span className="truncate">{it.name}</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   ),

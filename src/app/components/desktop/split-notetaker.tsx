@@ -63,7 +63,7 @@ export function SplitNotetaker() {
         </div>
         <div className="min-h-0 flex-1 overflow-auto px-[16px] py-[14px]">
           {tab === "notes" ? (
-            <NotesPad lines={pad} onChange={setPad} templates={templates.map((t) => ({ id: t.id, name: t.name }))} onTemplate={(tid) => { if (tid === "all") setLibraryOpen(true); else insertTemplate(tid); }} />
+            <NotesPad lines={pad} onChange={setPad} templates={templates} onTemplate={(tid) => { if (tid === "all") setLibraryOpen(true); else insertTemplate(tid); }} />
           ) : (
             <div className="flex flex-col gap-[12px] text-[13px] leading-[19px]">
               {[["Maria", "The export is owned by our ops team, I can send the owner today."], ["You", "Great, then the pricing tiers go out before Thursday."], ["Maria", "Works for us, let us lock the dates on the call tomorrow."]].map(([who, line], i) => (

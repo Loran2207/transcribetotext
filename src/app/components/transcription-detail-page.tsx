@@ -3356,7 +3356,7 @@ export function TranscriptionDetailPage() {
                 <NotesPad
                   lines={pad}
                   onChange={setPad}
-                  templates={templates.map((t) => ({ id: t.id, name: t.name }))}
+                  templates={templates}
                   onTemplate={(tid) => { if (tid === "all") setPadLibraryOpen(true); else insertTemplate(tid); }}
                   autoFocus
                   hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
@@ -3797,7 +3797,7 @@ export function TranscriptionDetailPage() {
                 <NotesPad
                   lines={pad}
                   onChange={setPad}
-                  templates={templates.map((t) => ({ id: t.id, name: t.name }))}
+                  templates={templates}
                   onTemplate={(tid) => { if (tid === "all") setPadLibraryOpen(true); else insertTemplate(tid); }}
                   hint="Your own notes from the call. Nothing here is rewritten."
                 />
