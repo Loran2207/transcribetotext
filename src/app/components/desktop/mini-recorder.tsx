@@ -86,10 +86,10 @@ export function MiniRecorder({ mode: forced, peek = true }: { mode?: MiniMode; p
         <span className="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] bg-white"><SourceIcon source="zoom" /></span>
         <span className={ended ? "size-[8px] shrink-0 rounded-full bg-white/40" : paused ? "size-[8px] shrink-0 rounded-full bg-[#FEBC2E]" : "size-[8px] shrink-0 rounded-full bg-[#FF3B30] animate-pulse"} />
         <span className="shrink-0 text-[14px] font-semibold tabular-nums">{fmt(elapsed)}</span>
-        <span className={`min-w-0 truncate text-[13px] text-white/70 ${paused || ended ? "max-w-[120px]" : "flex-1"}`}>{ended ? "Call ended, 10s" : paused ? "On hold" : title}</span>
-        <button type="button" onClick={toggle} className="flex h-[36px] shrink-0 items-center gap-[6px] rounded-full bg-white px-[14px] text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
-          <Icon icon={paused || ended ? PlayIcon : PauseIcon} className="size-[14px]" strokeWidth={2} />
-          {ended ? "Keep recording" : paused ? "Resume" : "Pause"}
+        <span className={`min-w-0 truncate text-[13px] text-white/70 ${paused || ended ? "max-w-[120px]" : "flex-1"}`}>{ended ? "Call ended, 10s to keep" : paused ? "On hold" : title}</span>
+        {/* the state text already says what is happening, so the verb is an icon in a white disc */}
+        <button type="button" onClick={toggle} aria-label={ended ? "Keep recording" : paused ? "Resume" : "Pause"} title={ended ? "Keep recording" : paused ? "Resume" : "Pause"} className="flex size-[36px] shrink-0 items-center justify-center rounded-full bg-white text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
+          <Icon icon={paused || ended ? PlayIcon : PauseIcon} className="size-[15px]" strokeWidth={2} />
         </button>
         {(paused || ended) && (
           /* the row grows by one verb; nothing floats */

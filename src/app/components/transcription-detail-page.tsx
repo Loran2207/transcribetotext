@@ -2,11 +2,14 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , AlertCircle , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , AlertCircle , LanguageSquareIcon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon } from "@hugeicons/core-free-icons";
 import { useShell, readDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { LanguageSelector, SpeakerSection, LANGUAGES } from "./transcription-modals";
+import { useNotetakerSettings } from "./desktop/notetaker-settings";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import {
@@ -1474,6 +1477,35 @@ function LiveRecordingWaveform({ active }: { active: boolean }) {
   );
 }
 
+
+/* What used to be the Instant speech dialog, folded into the bar: the language
+   the call is in and whether speakers are told apart. Opens on demand, never
+   before the recording, and defaults come from Notetaker settings. */
+function RecordingOptions({ compact }: { compact: boolean }) {
+  const { settings, update } = useNotetakerSettings();
+  const [open, setOpen] = useState(() => readDemo("opts") === "1");
+  const lang = LANGUAGES.find((l) => l.id === settings.language);
+  const label = lang?.id === "auto" || !lang ? "Auto" : lang.label;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" title="Language and speakers" className={`flex h-[36px] shrink-0 items-center gap-[8px] rounded-[12px] border border-input bg-transparent text-[13px] text-foreground transition-colors hover:bg-muted data-[state=open]:bg-muted ${compact ? "w-[44px] justify-center" : "px-[12px]"}`}>
+          <Icon icon={LanguageSquareIcon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
+          {!compact && <span className="truncate">{label}</span>}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" sideOffset={10} className="z-[120] w-[340px] rounded-[16px] p-[16px]">
+        <p className="text-[14px] font-semibold text-foreground">This recording</p>
+        <p className="mt-[2px] text-[12.5px] text-muted-foreground">Changes apply from here on. Defaults live in Notetaker settings.</p>
+        <div className="mt-[14px] flex flex-col gap-[14px]">
+          <LanguageSelector value={settings.language} onChange={(v) => update({ language: v })} label="Transcription language" />
+          <SpeakerSection enabled={settings.speakers} onToggle={() => update({ speakers: !settings.speakers })} count={settings.speakerCount} onCountChange={(v) => update({ speakerCount: v })} />
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function LiveRecordingBar({
   isPaused,
   elapsedSeconds,
@@ -1574,10 +1606,11 @@ export function LiveRecordingBar({
           )}
         </div>
 
-        {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? (compact ? "flex gap-2" : "flex gap-2 md:max-w-[520px]") : "md:min-w-[260px] md:max-w-[320px]"}`}>
+        {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? (compact ? "flex gap-2" : "flex gap-2 md:max-w-[640px]") : "md:min-w-[260px] md:max-w-[320px]"}`}>
+          {generate && <RecordingOptions compact={compact} />}
           {generate && (
             <Select value={outputId || outputs[0]?.id} onValueChange={(v) => { setOutputId(v); window.sessionStorage.setItem("ttt_output_device", v); }} disabled={!outputs.length}>
-              <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : "md:w-[240px]"}`} title={compact ? outputLabel : "Where the call's sound plays"}>
+              <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : "md:w-[196px]"}`} title={compact ? outputLabel : "Where the call's sound plays"}>
                 <span className="flex min-w-0 items-center gap-[8px]">
                   <Icon icon={VolumeHighIcon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
                   {!compact && <span className="truncate text-[13px] text-foreground">{outputLabel}</span>}
@@ -1595,7 +1628,7 @@ export function LiveRecordingBar({
             onValueChange={onSwitchMicrophone}
             disabled={!microphoneDevices.length || isSwitchingMicrophone}
           >
-            <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? "md:w-[240px]" : ""}`} title={compact ? triggerLabel : undefined}>
+            <SelectTrigger className={`h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px] ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? "md:w-[196px]" : ""}`} title={compact ? triggerLabel : undefined}>
               <span className="flex min-w-0 items-center gap-[8px]">
                 <SourceIcon source="microphone" />
                 {!compact && <span className="truncate text-[13px] text-foreground">{triggerLabel}</span>}
@@ -3073,13 +3106,13 @@ export function TranscriptionDetailPage() {
             /* the recording runs, but half of it is missing: say which half, in the
                colour of a warning, not an error, because nothing broke and the fix
                is one system dialog away */
-            <div className="mx-4 mt-3 flex items-center gap-[12px] rounded-[12px] border border-[#F2C26B] bg-[#FFF7E6] px-[14px] py-[10px] lg:mx-8">
-              <span className="flex size-[28px] shrink-0 items-center justify-center rounded-full bg-[#F7B733]/25 text-[#8A5A00]"><Icon icon={AlertCircle} className="size-[16px]" strokeWidth={2} /></span>
+            <div className="mx-4 mt-3 flex items-center gap-[12px] rounded-[12px] border border-warning/30 bg-warning/[0.07] px-[14px] py-[10px] lg:mx-8">
+              <span className="flex size-[28px] shrink-0 items-center justify-center rounded-full bg-warning/15 text-warning"><Icon icon={AlertCircle} className="size-[16px]" strokeWidth={2} /></span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[13.5px] font-semibold text-[#5C3D00]">{permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `The call's sound isn't allowed on ${machine}`}</span>
-                <span className="block text-[12.5px] text-[#8A5A00]">{permDemo === "1" ? "Nothing is being recorded until you allow them." : "Only your microphone is recorded, so the other side won't be in the transcript."}</span>
+                <span className="block text-[13.5px] font-semibold text-foreground">{permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `The call's sound isn't allowed on ${machine}`}</span>
+                <span className="block text-[12.5px] text-muted-foreground">{permDemo === "1" ? "Nothing is being recorded until you allow them." : "Only your microphone is recorded, so the other side won't be in the transcript."}</span>
               </span>
-              <button type="button" onClick={() => setPermDemo(null)} className="h-8 shrink-0 rounded-full bg-[#5C3D00] px-[14px] text-[13px] font-semibold text-white transition-colors hover:bg-[#4A3100]">{permDemo === "1" ? "Allow both" : "Allow system audio"}</button>
+              <Button variant="warning" onClick={() => setPermDemo(null)} className="h-8 shrink-0 rounded-full px-[14px] text-[13px] font-semibold">{permDemo === "1" ? "Allow both" : "Allow system audio"}</Button>
             </div>
           )}
           {desktopShell && (

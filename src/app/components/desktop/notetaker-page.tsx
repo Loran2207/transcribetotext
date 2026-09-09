@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Mic01Icon, AiMagicIcon, CloudIcon, VolumeHighIcon } from "@hugeicons/core-free-icons";
+import { Mic01Icon, AiMagicIcon, CloudIcon, VolumeHighIcon, Settings01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { RecordsTable } from "../records-table";
 import { useTranscriptionModals } from "../transcription-modals";
@@ -37,10 +37,16 @@ export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             <div className="flex min-w-0 flex-1 flex-col gap-[10px] md:max-w-[440px]">
               <p className="text-[20px] font-bold leading-[1.2] tracking-[-0.3px] text-white lg:text-[24px]">Every call, written up</p>
               <p className="text-[13px] leading-[1.5] text-white/78">Start when the call starts. Pause any time. Generate notes ends the recording and writes the note.</p>
-              <button type="button" className="mt-[4px] flex h-[38px] w-fit items-center gap-[8px] rounded-full bg-white pl-[16px] pr-[18px] text-[13.5px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]" onClick={() => setOpenModal("meeting")}>
+              <div className="mt-[4px] flex items-center gap-[8px]">
+              <button type="button" className="flex h-[38px] w-fit items-center gap-[8px] rounded-full bg-white pl-[16px] pr-[18px] text-[13.5px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]" onClick={() => setOpenModal("meeting")}>
                 <Icon icon={Mic01Icon} className="size-[16px]" strokeWidth={1.9} />
                 Record a call
               </button>
+              <button type="button" onClick={() => onNavigate?.("notetaker-settings")} className="flex h-[38px] items-center gap-[7px] rounded-full bg-white/12 px-[14px] text-[13.5px] font-medium text-white transition-colors hover:bg-white/20" title="Notetaker settings">
+                <Icon icon={Settings01Icon} className="size-[15px]" strokeWidth={1.9} />
+                Settings
+              </button>
+              </div>
             </div>
             <div className="ml-auto hidden w-[300px] shrink-0 flex-col gap-[10px] md:flex" onMouseEnter={() => setHeld(true)} onMouseLeave={() => setHeld(false)}>
               <div key={active} className="ttt-feature-in flex items-start gap-[12px] rounded-[14px] border border-white/15 bg-white/10 p-[14px] backdrop-blur-[6px]">

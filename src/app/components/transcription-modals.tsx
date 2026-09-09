@@ -1350,7 +1350,7 @@ function selectedTemplateJobFields(templates: Template[], templateId: string | n
 
 // ── Languages ──────────────────────────────────────────────
 
-const LANGUAGES = [
+export const LANGUAGES = [
   { id: "auto", label: "Detect automatically", flag: "🌐" },
   { id: "en", label: "English", flag: "🇺🇸" },
   { id: "ru", label: "Russian", flag: "🇷🇺" },
@@ -1373,7 +1373,7 @@ const LANGUAGES = [
   { id: "uk", label: "Ukrainian", flag: "🇺🇦" },
 ];
 
-function LanguageSelector({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
+export function LanguageSelector({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -1485,7 +1485,7 @@ function TranscriptionModeToggle({ mode, onChange, compact = false }: {
 
 // ── Speaker identification ─────────────────────────────────
 
-function SpeakerSection({ enabled, onToggle, count, onCountChange }: {
+export function SpeakerSection({ enabled, onToggle, count, onCountChange }: {
   enabled: boolean; onToggle: () => void; count: number | "auto"; onCountChange: (v: number | "auto") => void;
 }) {
   const [dropOpen, setDropOpen] = useState(false);
