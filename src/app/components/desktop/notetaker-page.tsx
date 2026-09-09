@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { Mic01Icon, AiMagicIcon, CloudIcon, VolumeHighIcon } from "@hugeicons/core-free-icons";
+import { Mic01Icon, AiMagicIcon, CloudIcon, VolumeHighIcon, Video01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { RecordsTable } from "../records-table";
+import { SourceIcon } from "../source-icons";
+import { UPCOMING } from "./desktop-notice";
 import { useTranscriptionModals } from "../transcription-modals";
 import { readDemo, useShell } from "./shell";
 
@@ -59,6 +61,19 @@ export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
               </div>
             </div>
           </div>
+        </div>
+        <div className="mt-[16px] flex items-center gap-[14px] rounded-[16px] border border-border bg-card p-[14px] md:px-[20px]">
+          <span className="flex size-[40px] shrink-0 items-center justify-center rounded-[12px] border border-border bg-white"><SourceIcon source={UPCOMING.source} /></span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-[8px]"><span className="text-[12px] font-semibold uppercase tracking-[0.4px] text-muted-foreground">Up next</span><span className="text-[12px] text-muted-foreground">in {UPCOMING.startsIn}</span></span>
+            <span className="block truncate text-[15px] font-semibold text-foreground">{UPCOMING.title}</span>
+            <span className="block truncate text-[12.5px] text-muted-foreground">{UPCOMING.time} · {UPCOMING.people.join(", ")}</span>
+          </span>
+          <button type="button" className="hidden h-[36px] shrink-0 rounded-full px-[12px] text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:block" onClick={() => setOpenModal("meeting")}>Join only</button>
+          <button type="button" className="flex h-[36px] shrink-0 items-center gap-[8px] rounded-full bg-primary pl-[14px] pr-[16px] text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90" onClick={() => setOpenModal("meeting")}>
+            <Icon icon={Video01Icon} className="size-[15px]" strokeWidth={2} />
+            Join and record
+          </button>
         </div>
         {needsPerm && (
           <div className="mt-[16px] rounded-[16px] border border-border bg-card p-[16px] md:p-[20px]">
