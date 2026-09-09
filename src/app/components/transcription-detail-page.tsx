@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon } from "@hugeicons/core-free-icons";
 import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
@@ -38,6 +38,8 @@ import { SourceIcon, getSourceLabel, type SourceType } from "./source-icons";
 import { ActionSheet, ActionSheetItem } from "./action-sheet";
 import { records, type RecordRow } from "./records-table";
 import { TemplatePicker } from "./template-picker";
+import { TemplateLibraryDialog } from "./template-library-dialog";
+import { meetings as calendarMeetings } from "./todays-events";
 import { TemplateSheet, LanguageSheet } from "./result-picker-sheets";
 import { templateEmoji } from "@/lib/template-meta";
 import { Icon } from "./ui/icon";
@@ -1535,29 +1537,116 @@ function useSessionValue(key: string): [string | null, (v: string | null) => voi
   return [value, set];
 }
 
-export function LiveFolderChip() {
+export function FolderChip({ folderId, onChange }: { folderId: string | null; onChange: (id: string | null) => void }) {
   const { folders } = useFolders();
-  const [folderId, setFolderId] = useSessionValue("ttt_live_folder");
   const current = folders.find((f) => f.id === folderId);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button type="button" className="inline-flex items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary">
           {current ? <FolderGlyph color={current.color} className="size-[14px]" /> : <Icon icon={FolderOpen} className="size-[13px] text-muted-foreground" strokeWidth={1.7} />}
-          {current?.name ?? "Choose a folder"}
+          {current?.name ?? "Add to folder"}
           <Icon icon={ArrowDown01Icon} className="size-[11px] text-muted-foreground" strokeWidth={2} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="z-[120] w-[220px]">
         {folders.map((folder) => (
-          <DropdownMenuItem key={folder.id} className="gap-2" onClick={() => setFolderId(folder.id)}>
+          <DropdownMenuItem key={folder.id} className="gap-2" onClick={() => onChange(folder.id)}>
             <FolderGlyph color={folder.color} />
             <span className="truncate">{folder.name}</span>
           </DropdownMenuItem>
         ))}
-        {folderId && <><DropdownMenuSeparator /><DropdownMenuItem className="gap-2" onClick={() => setFolderId(null)}><Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />No folder</DropdownMenuItem></>}
+        {folderId && <><DropdownMenuSeparator /><DropdownMenuItem className="gap-2" onClick={() => onChange(null)}><Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />No folder</DropdownMenuItem></>}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+export function LiveFolderChip() {
+  const [folderId, setFolderId] = useSessionValue("ttt_live_folder");
+  return <FolderChip folderId={folderId} onChange={setFolderId} />;
+}
+
+/* The calendar event this note belongs to, and who was on it (Granola's "Today · 2"
+   chips). The event is picked from the calendar the app already shows; the people
+   are the invitees of that event. */
+const MEETING_PEOPLE: Record<string, string[]> = {
+  "1": ["You", "Maria Garcia", "Alex Chen", "Sam Ortiz"],
+  "2": ["You", "Maria Garcia", "Alex Chen", "Priya Nair", "Tom Becker", "Lena Fischer"],
+  "3": ["You", "Maria Garcia", "Alex Chen"],
+};
+export function MeetingChips({ meetingId, onChange }: { meetingId: string | null; onChange: (id: string | null) => void }) {
+  const meeting = calendarMeetings.find((m) => m.id === meetingId) ?? null;
+  const people = meeting ? MEETING_PEOPLE[meeting.id] ?? ["You"] : ["You"];
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className="inline-flex max-w-[260px] items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary">
+            <Icon icon={Calendar03Icon} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={1.7} />
+            <span className="truncate">{meeting ? meeting.title : "No calendar event"}</span>
+            <Icon icon={ArrowDown01Icon} className="size-[11px] shrink-0 text-muted-foreground" strokeWidth={2} />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="z-[120] w-[300px]">
+          <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">Link to a calendar event</DropdownMenuLabel>
+          {calendarMeetings.map((m) => (
+            <DropdownMenuItem key={m.id} className="flex-col items-start gap-0" onClick={() => onChange(m.id)}>
+              <span className="truncate text-[13px] text-foreground">{m.title}</span>
+              <span className="text-[11.5px] text-muted-foreground">{m.dayLabel} · {m.time} · {MEETING_PEOPLE[m.id]?.length ?? m.attendees} people</span>
+            </DropdownMenuItem>
+          ))}
+          {meetingId && <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => onChange(null)}>No calendar event</DropdownMenuItem></>}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <span className="text-border">{"\u2022"}</span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" className="inline-flex items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary" title="Who was on the call">
+            <Icon icon={UserGroupIcon} className="size-[13px] text-muted-foreground" strokeWidth={1.7} />
+            {people.length === 1 ? "Me" : `${people.length} people`}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" sideOffset={8} className="z-[120] w-[240px] rounded-[14px] p-[8px]">
+          <p className="px-[8px] pb-[6px] pt-[4px] text-[11px] font-medium text-muted-foreground">{meeting ? "On this call" : "Only you, until an event is linked"}</p>
+          {people.map((n) => (
+            <div key={n} className="flex items-center gap-2 rounded-[8px] px-[8px] py-[5px] text-[13px] text-foreground">
+              <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">{n.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span>
+              {n}
+            </div>
+          ))}
+        </PopoverContent>
+      </Popover>
+    </>
+  );
+}
+export function LiveMeetingChips() {
+  const [meetingId, setMeetingId] = useSessionValue("ttt_live_meeting");
+  return <MeetingChips meetingId={meetingId} onChange={setMeetingId} />;
+}
+/* the record's event, remembered on this machine */
+function useRecordMeeting(recordId: string) {
+  const key = `ttt_record_meeting_${recordId}`;
+  const [id, setId] = useState<string | null>(() => { try { return window.localStorage.getItem(key); } catch { return null; } });
+  useEffect(() => { try { setId(window.localStorage.getItem(key)); } catch { setId(null); } }, [key]);
+  const set = (v: string | null) => { try { if (v) window.localStorage.setItem(key, v); else window.localStorage.removeItem(key); } catch { /* private mode */ } setId(v); };
+  return [id, set] as const;
+}
+
+/* A template dropped into My thoughts is only structure: one heading per section,
+   an empty line under each, nothing bound to the summary (Kirill, 10.09). */
+export function padWithTemplate(lines: PadLine[], template: Template): PadLine[] {
+  const blocks: PadLine[] = template.sections.flatMap((sec, i) => [{ kind: "h", text: sec.title || `Section ${i + 1}` }, { kind: "p", text: "" }]);
+  const last = lines[lines.length - 1];
+  const base = last && last.kind === "p" && !last.text ? lines.slice(0, -1) : lines;
+  return base.length ? [...base, ...blocks] : blocks;
+}
+function AuthorChip() {
+  const { displayName, avatarSrc } = useUserProfile();
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
+      <span>{displayName}</span>
+    </span>
   );
 }
 
@@ -1813,6 +1902,8 @@ interface PageHeaderProps {
   hasSummary: boolean;
   onSetTemplate: () => void;
   onMoveToFolder: (folderId: string) => void;
+  /* the folder and the calendar event, as chips in the meta line (Move left the overflow menu) */
+  chips?: React.ReactNode;
   onCreateFolderAndMove: () => void;
   onExport: () => void;
   onRematchSpeakers: () => void;
@@ -1841,6 +1932,7 @@ function PageHeader({
   hasSummary,
   onSetTemplate,
   onMoveToFolder,
+  chips,
   onCreateFolderAndMove,
   onExport,
   onRematchSpeakers,
@@ -2044,31 +2136,6 @@ function PageHeader({
               </DropdownMenuSub>
               )}
               <DropdownMenuSeparator className="max-md:hidden lg:hidden" />
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2">
-                  <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                  Move
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="w-[220px]">
-                  {folders.length > 0 ? (
-                    folders.map((folder) => (
-                      <DropdownMenuItem key={folder.id} className="gap-2" onClick={() => onMoveToFolder(folder.id)}>
-                        <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16">
-                          <path d="M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z" fill={folder.color} />
-                        </svg>
-                        <span className="truncate">{folder.name}</span>
-                      </DropdownMenuItem>
-                    ))
-                  ) : (
-                    <DropdownMenuItem disabled>No folders yet</DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="gap-2" onClick={onCreateFolderAndMove}>
-                    <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                    Create folder and move
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
               {sharedOwner ? (
                 /* The only thing a reader may do to somebody else's record: stop
                    keeping it on their own list. It does not touch the original. */
@@ -2126,8 +2193,7 @@ function PageHeader({
         <span>{meta.dateLabel}</span>
         <span className="text-border">{"\u2022"}</span>
         <span>{meta.durationLabel}</span>
-        <span className="text-border max-lg:hidden">{"\u2022"}</span>
-        <span className="max-lg:hidden">{meta.screenshotsCount} {meta.screenshotsCount === 1 ? "screenshot" : "screenshots"}</span>
+        {chips}
       </div>
     </div>
   );
@@ -2170,7 +2236,12 @@ export function TranscriptionDetailPage() {
   /* the desktop shell: your notes beside the live transcript, kept with the record */
   const { desktop: desktopShell, machine } = useShell();
   const padKey = isLiveRecordingRoute ? "live" : (id ?? "live");
-  const [liveTab, setLiveTab] = useState<"notes" | "transcript">("notes");
+  const [liveTab, setLiveTab] = useState<"notes" | "transcript" | "summary">("notes");
+  const [padLibraryOpen, setPadLibraryOpen] = useState(false);
+  const [recordMeetingId, setRecordMeetingId] = useRecordMeeting(id ?? "live");
+  const [liveTemplateId, setLiveTemplateId] = useState<string | null>(() => window.sessionStorage.getItem("ttt_live_template"));
+  const pickLiveTemplate = (id: string | null) => { setLiveTemplateId(id); if (id) window.sessionStorage.setItem("ttt_live_template", id); else window.sessionStorage.removeItem("ttt_live_template"); };
+  const insertTemplate = (id: string) => { const t = templates.find((x) => x.id === id); if (!t) return; setPad((prev) => padWithTemplate(prev, t)); toast(`${t.name} added to your notes`); };
   const [pad, setPad] = useState<PadLine[]>(() => {
     if (!isLiveRecordingRoute && routeState?.fromRecordingStop) {
       const moved = loadPad("live");
@@ -3205,7 +3276,8 @@ export function TranscriptionDetailPage() {
   useEffect(() => {
     if (!desktopShell || !routeState?.fromRecordingStop || generatedRef.current || !templates.length || isJobTranscribing) return;
     generatedRef.current = true;
-    const chosen = (activeTemplateId && templates.find((t) => t.id === activeTemplateId)) || templates[0];
+    const preset = window.sessionStorage.getItem("ttt_live_template"); window.sessionStorage.removeItem("ttt_live_template");
+    const chosen = (activeTemplateId && templates.find((t) => t.id === activeTemplateId)) || (preset && templates.find((t) => t.id === preset)) || templates[0];
     setActiveTemplateId(chosen.id);
     runGeneration(chosen);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -3215,18 +3287,24 @@ export function TranscriptionDetailPage() {
     const isPaused = recordingPhase === "paused";
     const hasTranscript = liveTranscriptSegments.length > 0 || liveTranscriptInterim.trim().length > 0;
     return (
+      <>
+      <TemplateLibraryDialog open={padLibraryOpen} onOpenChange={setPadLibraryOpen} value={null} onSelect={(tid) => { if (tid) insertTemplate(tid); }} gate={false} />
       <div ref={pageRef} className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <div className={(desktopShell ? "" : "border-b border-border ") + "px-4 pt-6 pb-5 lg:px-8"}>
             <div className="flex h-7 items-center justify-between text-xs text-muted-foreground">
               <span>{desktopShell ? "Recording a call" : "My record"}</span>
-              {desktopShell && (
-                /* the window docks beside the call: notes on one half, the meeting on the other */
+              {desktopShell && (<div className="flex items-center gap-2">
+                <div className="mr-1 flex items-center max-lg:hidden">
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Previous note" disabled><Icon icon={ArrowLeft01Icon} className="size-[16px]" strokeWidth={2} /></Button>
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button>
+                </div>
+                {/* the window docks beside the call: notes on one half, the meeting on the other */}
                 <button type="button" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }} className="flex h-7 items-center gap-[6px] rounded-full border border-border px-[10px] text-[12px] font-medium text-foreground transition-colors hover:bg-muted" title="Put the notes beside the call">
                   <Icon icon={LayoutRightIcon} className="size-[13px]" strokeWidth={1.9} />
                   Side by side
                 </button>
-              )}
+              </div>)}
             </div>
             {desktopShell ? (
               <div className="mt-1"><LiveTitle className="text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]" /></div>
@@ -3236,6 +3314,7 @@ export function TranscriptionDetailPage() {
               </h1>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              {desktopShell && <><AuthorChip /><span className="text-border">{"\u2022"}</span></>}
               <span className="inline-flex items-center gap-1.5">
                 <span className="scale-[0.9]"><SourceIcon source="microphone" /></span>
                 <span>{desktopShell ? (permDemo === "1" ? "Notetaker, nothing allowed yet" : permDemo === "mic" ? "Notetaker, microphone only" : "Notetaker") : "Microphone"}</span>
@@ -3249,17 +3328,20 @@ export function TranscriptionDetailPage() {
                 <>
                   <span className="text-border">{"\u2022"}</span>
                   <LiveFolderChip />
+                  <span className="text-border">{"\u2022"}</span>
+                  <LiveMeetingChips />
                 </>
               )}
             </div>
           </div>
 
           {desktopShell && (
-            <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript")} className="mt-2 lg:mt-4">
+            <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript" | "summary")} className="mt-2 lg:mt-4">
               <div className="flex items-end border-b border-border px-4 lg:px-8">
                 <TabsList variant="line" className="border-b-0">
                   <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">My thoughts</TabsTrigger>
                   <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">Transcript</TabsTrigger>
+                  <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px]">Summary</TabsTrigger>
                 </TabsList>
                 <div className={`mb-1 ml-auto max-md:hidden ${liveTab === "transcript" ? "" : "invisible pointer-events-none"}`}><TranscriptViewChecks /></div>
               </div>
@@ -3272,12 +3354,25 @@ export function TranscriptionDetailPage() {
                 <NotesPad
                   lines={pad}
                   onChange={setPad}
-                  templates={[]}
-                  onTemplate={() => {}}
+                  templates={templates.map((t) => ({ id: t.id, name: t.name }))}
+                  onTemplate={(tid) => { if (tid === "all") setPadLibraryOpen(true); else insertTemplate(tid); }}
                   autoFocus
                   hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
                 />
               <p className="sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
+              </div>
+            ) : desktopShell && liveTab === "summary" ? (
+              /* the summary is written when the call ends; until then the tab is where the template is chosen */
+              <div className="flex flex-col items-center justify-center px-8 py-24 text-center">
+                <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5">
+                  <Icon icon={AiMagicIcon} className="size-6 text-primary" strokeWidth={1.6} />
+                </div>
+                <h3 className="text-[16px] font-semibold text-foreground">The summary is written when the call ends</h3>
+                <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">Press Generate notes when you are done. Pick a template while you wait, or leave it to the first one.</p>
+                <div className="mt-5">
+                  <TemplatePicker value={liveTemplateId} onSelect={pickLiveTemplate} onManageTemplates={() => navigate("/")} align="center"
+                    trigger={<Button variant={liveTemplateId ? "pill-outline" : "default"} className="h-9 gap-1.5 rounded-full px-5 text-[13px] font-medium">{liveTemplateId ? <><span>{templateEmoji(templates.find((t) => t.id === liveTemplateId)?.name ?? "")}</span>{templates.find((t) => t.id === liveTemplateId)?.name}</> : "Choose a template"}<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg></Button>} />
+                </div>
               </div>
             ) : (
             <div className="mx-auto w-full max-w-[980px] px-8 py-6">
@@ -3376,6 +3471,7 @@ export function TranscriptionDetailPage() {
           />
         </div>
       </div>
+      </>
     );
   }
 
@@ -3535,6 +3631,12 @@ export function TranscriptionDetailPage() {
           hasSummary={activeTemplateId !== null}
           onSetTemplate={() => { setActiveTab("summary"); setTemplatePickerOpen(true); }}
           onMoveToFolder={moveToFolder}
+          chips={desktopShell ? (<>
+            <span className="text-border">{"\u2022"}</span>
+            <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />
+            <span className="text-border">{"\u2022"}</span>
+            <MeetingChips meetingId={recordMeetingId} onChange={setRecordMeetingId} />
+          </>) : undefined}
           onCreateFolderAndMove={createFolderAndMove}
           onExport={exportTranscript}
           onRematchSpeakers={rematchSpeakers}
@@ -3693,7 +3795,7 @@ export function TranscriptionDetailPage() {
                   lines={pad}
                   onChange={setPad}
                   templates={templates.map((t) => ({ id: t.id, name: t.name }))}
-                  onTemplate={(tid) => { if (tid === "all") setTemplatePickerOpen(true); else handleTemplateSelect(tid); }}
+                  onTemplate={(tid) => { if (tid === "all") setPadLibraryOpen(true); else insertTemplate(tid); }}
                   hint="Your own notes from the call. Nothing here is rewritten."
                 />
               <p className="sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
@@ -3948,6 +4050,7 @@ export function TranscriptionDetailPage() {
           )}
         </ActionSheet>
         <TemplateSheet open={templatePickerOpen && belowMd} onOpenChange={setTemplatePickerOpen} value={activeTemplateId} onSelect={handleTemplateSelect} />
+        <TemplateLibraryDialog open={padLibraryOpen} onOpenChange={setPadLibraryOpen} value={null} onSelect={(tid) => { if (tid) insertTemplate(tid); }} gate={false} />
         <LanguageSheet open={langSheetOpen && belowLg} onOpenChange={setLangSheetOpen} languages={TRANSLATION_LANGUAGES} activeLang={activeTranslationLang} disabled={isTranslationLoading || isJobTranscribing} onPick={(code) => { void handleTranslate(code); }} />
         <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={1} onMove={(id) => moveToFolder(id)} onCreateFolder={() => { setMoveDialogOpen(false); createFolderAndMove(); }} folders={folders} />
 

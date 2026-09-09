@@ -272,9 +272,11 @@ interface TemplateLibraryDialogProps {
   onOpenChange: (open: boolean) => void;
   value: string | null;
   onSelect: (templateId: string | null) => void;
+  /* false when the template is only dropped into the notes as headings: nothing to pay for */
+  gate?: boolean;
 }
 
-export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSelect }: TemplateLibraryDialogProps) {
+export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSelect, gate = true }: TemplateLibraryDialogProps) {
   const { templates } = useTemplates();
   const plan = usePlan();
   const isFree = plan === "free";
@@ -334,7 +336,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
     });
   };
   const handleUse = (t: Template) => {
-    if (isFree) { toast("Applying templates needs a Pro subscription. Upgrade to unlock."); return; }
+    if (gate && isFree) { toast("Applying templates needs a Pro subscription. Upgrade to unlock."); return; }
     onSelect(t.id);
     onOpenChange(false);
   };

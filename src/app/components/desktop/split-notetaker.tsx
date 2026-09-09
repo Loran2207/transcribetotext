@@ -5,7 +5,9 @@ import { Icon } from "../ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { NotesPad, type PadLine } from "./notes-pad";
 import { useTranscriptionModals } from "../transcription-modals";
-import { LiveRecordingBar, LiveTitle, LiveFolderChip } from "../transcription-detail-page";
+import { LiveRecordingBar, LiveTitle, LiveFolderChip, LiveMeetingChips, padWithTemplate } from "../transcription-detail-page";
+import { useTemplates } from "@/hooks/use-templates";
+import { TemplateLibraryDialog } from "../template-library-dialog";
 import { useShell } from "./shell";
 import { SourceIcon } from "../source-icons";
 
@@ -23,6 +25,9 @@ export function SplitNotetaker() {
   const navigate = useNavigate();
   const [pad, setPad] = useState<PadLine[]>(DEMO_PAD);
   const [tab, setTab] = useState("notes");
+  const { templates } = useTemplates();
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const insertTemplate = (id: string) => { const t = templates.find((x) => x.id === id); if (t) setPad((prev) => padWithTemplate(prev, t)); };
   const { recordingElapsed, recordingPhase, pauseInstantRecording, resumeInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone } = useTranscriptionModals();
   const elapsed = recordingPhase === "idle" ? 754 : recordingElapsed;
   const fmt = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
@@ -44,7 +49,10 @@ export function SplitNotetaker() {
           <span>{new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
           <span className="text-border">{"\u2022"}</span>
           <LiveFolderChip />
+          <span className="text-border">{"\u2022"}</span>
+          <LiveMeetingChips />
         </div>
+        <TemplateLibraryDialog open={libraryOpen} onOpenChange={setLibraryOpen} value={null} onSelect={(tid) => { if (tid) insertTemplate(tid); }} gate={false} />
       </div>
       <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
         <div className="border-b border-border px-[20px]">
@@ -55,7 +63,7 @@ export function SplitNotetaker() {
         </div>
         <div className="min-h-0 flex-1 overflow-auto px-[16px] py-[14px]">
           {tab === "notes" ? (
-            <NotesPad lines={pad} onChange={setPad} templates={[]} onTemplate={() => {}} />
+            <NotesPad lines={pad} onChange={setPad} templates={templates.map((t) => ({ id: t.id, name: t.name }))} onTemplate={(tid) => { if (tid === "all") setLibraryOpen(true); else insertTemplate(tid); }} />
           ) : (
             <div className="flex flex-col gap-[12px] text-[13px] leading-[19px]">
               {[["Maria", "The export is owned by our ops team, I can send the owner today."], ["You", "Great, then the pricing tiers go out before Thursday."], ["Maria", "Works for us, let us lock the dates on the call tomorrow."]].map(([who, line], i) => (
