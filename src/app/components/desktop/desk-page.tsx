@@ -2,12 +2,11 @@ import { readDemo, useShell } from "./shell";
 import { MiniRecorder } from "./mini-recorder";
 import { NoticeCard } from "./desktop-notice";
 import { SplitNotetaker } from "./split-notetaker";
-import { JoinPanel, ZoomPreJoin } from "./join-panel";
 
 /* The app with its window closed: only what floats over the desktop remains.
    A wallpaper and the system's own strip (menu bar on macOS, taskbar on
    Windows) give the eye a scale; nothing else on the desk is ours. The dev
-   server draws it at /desk with `?desk=widget|expanded|paused|ended|writing|done|call|ready|upcoming|upcoming-menu|split|join`. */
+   server draws it at /desk with `?desk=widget|expanded|paused|ended|writing|done|call|ready|upcoming|upcoming-menu|split`. */
 export function DeskPage() {
   const { os } = useShell();
   const state = readDemo("desk") ?? "widget";
@@ -46,16 +45,6 @@ export function DeskPage() {
           <div className={`absolute left-[calc(50%+8px)] right-[16px] ${mac ? "top-[44px]" : "top-[16px]"} ${mac ? "bottom-[16px]" : "bottom-[64px]"} overflow-hidden rounded-[12px]`} style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.35)" }}>
             {mac && <div className="pointer-events-none absolute left-[16px] top-[16px] z-[70] flex items-center gap-[8px]"><span className="size-[12px] rounded-full bg-[#FF5F57]" /><span className="size-[12px] rounded-full bg-[#FEBC2E]" /><span className="size-[12px] rounded-full bg-[#28C840]" /></div>}
             <SplitNotetaker />
-          </div>
-        </>
-      )}
-      {state === "join" && (
-        /* before the call: Zoom's preview left, our brief and the arm button right */
-        <>
-          <div className={`absolute left-[16px] right-[calc(50%+8px)] ${mac ? "top-[44px]" : "top-[16px]"} ${mac ? "bottom-[16px]" : "bottom-[64px]"}`} style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.35)" }}><ZoomPreJoin mac={mac} /></div>
-          <div className={`absolute left-[calc(50%+8px)] right-[16px] ${mac ? "top-[44px]" : "top-[16px]"} ${mac ? "bottom-[16px]" : "bottom-[64px]"} overflow-hidden rounded-[12px]`} style={{ boxShadow: "0 20px 50px rgba(0,0,0,0.35)" }}>
-            {mac && <div className="pointer-events-none absolute left-[16px] top-[16px] z-[70] flex items-center gap-[8px]"><span className="size-[12px] rounded-full bg-[#FF5F57]" /><span className="size-[12px] rounded-full bg-[#FEBC2E]" /><span className="size-[12px] rounded-full bg-[#28C840]" /></div>}
-            <JoinPanel os={mac ? "mac" : "win"} />
           </div>
         </>
       )}

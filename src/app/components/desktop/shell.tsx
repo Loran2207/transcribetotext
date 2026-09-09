@@ -96,4 +96,4 @@ export function DesktopWindowFrame({ children }: { children: ReactNode }) {
 
 /* read once at load, while the address still carries the flags: the login page
    drops them before any desktop component mounts */
-if (typeof window !== "undefined") { readDemo("notice"); readDemo("perm"); readDemo("widget"); readDemo("desk"); }
+if (typeof window !== "undefined") { readDemo("notice"); readDemo("perm"); readDemo("widget"); readDemo("desk"); readDemo("upnext"); }

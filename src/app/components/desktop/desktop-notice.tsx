@@ -51,7 +51,7 @@ export function NoticeCard({ kind, onAct, onClose, onJoinOnly, onOpenApp, menuOp
                   <Icon icon={ArrowDown01Icon} className="size-[13px]" strokeWidth={2} />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={8} className="min-w-[200px]">
+              <DropdownMenuContent align="end" sideOffset={8} className="z-[100] min-w-[200px]">
                 <DropdownMenuItem onClick={onJoinOnly}>Join without recording</DropdownMenuItem>
                 <DropdownMenuItem onClick={onOpenApp}>Open the app</DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -83,6 +83,24 @@ export function DesktopNotice() {
   return (
     <div className={`fixed z-[80] ${os === "win" ? "bottom-[20px] right-[20px]" : "right-[20px] top-[20px]"}`}>
       <NoticeCard kind={kind} onAct={act} onClose={close} onJoinOnly={close} onOpenApp={close} menuOpen={demo === "upcoming-menu"} />
+    </div>
+  );
+}
+
+/* The same meeting, as a pill in the window's top bar: the call is one click
+   away from every screen, not only from a card the reader has to find. */
+export function UpNextPill({ onJoin }: { onJoin: () => void }) {
+  return (
+    <div className="flex h-[32px] shrink-0 items-center overflow-hidden rounded-full border border-border bg-background text-[12.5px]">
+      <span className="flex items-center gap-[8px] pl-[8px] pr-[10px]">
+        <span className="flex size-[20px] items-center justify-center rounded-[6px] border border-border bg-white [&_svg]:size-[12px]"><SourceIcon source={UPCOMING.source} /></span>
+        <span className="font-semibold text-foreground">{UPCOMING.title}</span>
+        <span className="text-muted-foreground">in {UPCOMING.startsIn}</span>
+      </span>
+      <button type="button" onClick={onJoin} className="flex h-full items-center gap-[6px] border-l border-border px-[11px] font-semibold text-primary transition-colors hover:bg-primary/8">
+        <Icon icon={Video01Icon} className="size-[14px]" strokeWidth={2} />
+        Join and record
+      </button>
     </div>
   );
 }
