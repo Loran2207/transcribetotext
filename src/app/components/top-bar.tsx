@@ -8,9 +8,6 @@ import { SearchModal } from "./search-modal";
 import { useUserProfile } from "./user-profile-context";
 import { useAuth } from "./auth-context";
 import { usePlan } from "./use-plan";
-import { readDemo, useShell } from "./desktop/shell";
-import { UpNextPill } from "./desktop/desktop-notice";
-import { useTranscriptionModals } from "./transcription-modals";
 
 const SUPPORT_EMAIL = "support@transcribetotext.ai";
 
@@ -115,8 +112,6 @@ export function TopBar({ onNavigate }: TopBarProps) {
     return () => document.removeEventListener("keydown", h);
   }, []);
 
-  const { desktop } = useShell();
-  const { setOpenModal } = useTranscriptionModals();
   return (
     <div className="ttt-topbar shrink-0 hidden lg:flex items-center px-[16px] h-[56px] gap-[12px] bg-sidebar">
       {/* Search trigger */}
@@ -135,8 +130,6 @@ export function TopBar({ onNavigate }: TopBarProps) {
 
       {/* Spacer */}
       <div className="flex-1" />
-
-      {desktop && readDemo("upnext") === "1" && <UpNextPill onJoin={() => setOpenModal("meeting")} />}
 
       {plan === "free" && (
       <Button

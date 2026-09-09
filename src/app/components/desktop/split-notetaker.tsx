@@ -4,8 +4,8 @@ import { ArrowExpand01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { NotesPad, type PadLine } from "./notes-pad";
-import { PauseIcon } from "@hugeicons/core-free-icons";
 import { useTranscriptionModals } from "../transcription-modals";
+import { LiveRecordingBar } from "../transcription-detail-page";
 import { useShell } from "./shell";
 import { SourceIcon } from "../source-icons";
 
@@ -19,19 +19,18 @@ const DEMO_PAD: PadLine[] = [
    transcript one tab away, and the recording row at the bottom. Nothing the
    full window has is missing, only the chrome around it. */
 export function SplitNotetaker() {
-  const { os, machine } = useShell();
+  const { machine } = useShell();
   const navigate = useNavigate();
   const [pad, setPad] = useState<PadLine[]>(DEMO_PAD);
   const [tab, setTab] = useState("notes");
-  const { recordingElapsed, recordingPhase, pauseInstantRecording } = useTranscriptionModals();
+  const { recordingElapsed, recordingPhase, pauseInstantRecording, resumeInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone } = useTranscriptionModals();
   const elapsed = recordingPhase === "idle" ? 754 : recordingElapsed;
   const fmt = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
   const title = window.sessionStorage.getItem("ttt_live_title") || "Untitled call";
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <div className="shrink-0 px-[20px] pt-[14px] pb-[12px]">
-        <div className={`flex h-7 items-center justify-between text-xs text-muted-foreground ${os === "mac" ? "pl-[64px]" : ""}`}>
-          <span>Recording a call</span>
+        <div className="flex h-7 items-center justify-end">
           <button type="button" onClick={() => navigate("/transcriptions/live", { state: { liveRecording: true } })} className="flex h-7 items-center gap-[6px] rounded-full border border-border px-[10px] text-[12px] font-medium text-foreground transition-colors hover:bg-muted" title="Back to the full window">
             <Icon icon={ArrowExpand01Icon} className="size-[13px]" strokeWidth={1.9} />
             Full window
@@ -66,16 +65,19 @@ export function SplitNotetaker() {
         </div>
       </Tabs>
       <p className="shrink-0 px-[16px] py-[8px] text-center text-[12px] text-muted-foreground">My thoughts won't be included when you share this note.</p>
-      <div className="flex shrink-0 items-center gap-[10px] border-t border-border px-[16px] py-[10px]">
-        <span className="size-[8px] rounded-full bg-[#FF3B30] animate-pulse" />
-        <span className="text-[13px] font-semibold text-destructive">Recording</span>
-        <span className="text-[14px] font-semibold tabular-nums">{fmt(elapsed)}</span>
-        <span className="min-w-0 flex-1 truncate text-[12.5px] text-muted-foreground">Live transcript is running</span>
-        <button type="button" onClick={pauseInstantRecording} className="flex h-9 items-center gap-1.5 rounded-full border border-border px-4 text-[13px] font-medium transition-colors hover:bg-muted">
-          <Icon icon={PauseIcon} className="size-[14px]" strokeWidth={2} />
-          Pause
-        </button>
-      </div>
+      <LiveRecordingBar
+        isPaused={recordingPhase === "paused"}
+        elapsedSeconds={elapsed}
+        onPauseResume={() => { if (recordingPhase === "paused") void resumeInstantRecording(); else pauseInstantRecording(); }}
+        onStop={() => {}}
+        generate
+        showGenerate={false}
+        caption={false}
+        microphoneDevices={microphoneDevices}
+        selectedMicrophoneId={selectedMicrophoneId}
+        onSwitchMicrophone={(id) => { void switchRecordingMicrophone(id); }}
+        isSwitchingMicrophone={isSwitchingMicrophone}
+      />
     </div>
   );
 }
