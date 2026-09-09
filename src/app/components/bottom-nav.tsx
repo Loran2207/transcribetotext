@@ -51,7 +51,7 @@ function useCompactViewport() {
 
 export function BottomNav() {
   const { t } = useLanguage();
-  const { setOpenModal } = useTranscriptionModals();
+  const { setOpenModal, recordingPhase } = useTranscriptionModals();
   const [createOpen, setCreateOpen] = useState(false);
   const inner = useInnerScreen();
   const fabHidden = useFabHidden();
@@ -60,7 +60,8 @@ export function BottomNav() {
   const { pathname } = useLocation();
   const onDetailPage = pathname.startsWith("/transcriptions/");
 
-  if (inner?.hideNav || onDetailPage) return null;
+  /* while a recording runs, the recording pill owns that corner */
+  if (inner?.hideNav || onDetailPage || recordingPhase !== "idle") return null;
 
   const fab = (
     <button

@@ -2502,7 +2502,7 @@ function MethodCards<T extends string>({ cards, method, onChange }: { cards: Met
               <Icon icon={c.icon} className="size-[15px]" strokeWidth={1.8} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-[6px] text-[13.5px] font-semibold text-foreground">{c.title}{c.badge && <span className="rounded-full bg-primary px-[6px] py-[1px] text-[10px] font-bold uppercase tracking-[0.04em] text-primary-foreground">{c.badge}</span>}</span>
+              <span className="flex flex-wrap items-center gap-x-[6px] gap-y-[2px] text-[13.5px] font-semibold text-foreground"><span className="min-w-0 truncate">{c.title}</span>{c.badge && <span className="shrink-0 rounded-full bg-primary px-[6px] py-[1px] text-[10px] font-bold uppercase tracking-[0.04em] text-primary-foreground">{c.badge}</span>}</span>
               <span className="block truncate text-[12px] text-muted-foreground">{c.line}</span>
             </span>
           </button>
@@ -2514,7 +2514,7 @@ function MethodCards<T extends string>({ cards, method, onChange }: { cards: Met
 
 function RecordMethodCards({ method, onChange, desktopShell, machine }: { method: RecordMethod; onChange: (m: RecordMethod) => void; desktopShell: boolean; machine: string }) {
   const cards: MethodCard<RecordMethod>[] = [
-    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "Record on your computer", line: desktopShell ? "Both sides of the call, no bot" : "No bot. Needs the desktop app", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
+    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "On your computer", line: desktopShell ? "Both sides of the call, no bot" : "No bot. Needs the desktop app", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
     { id: "bot", title: "Send a bot", line: "A bot joins by the invite link", icon: Video01Icon },
   ];
   return <MethodCards cards={cards} method={method} onChange={onChange} />;

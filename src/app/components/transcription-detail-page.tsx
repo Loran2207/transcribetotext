@@ -1576,47 +1576,49 @@ const MEETING_PEOPLE: Record<string, string[]> = {
 };
 export function MeetingChips({ meetingId, onChange }: { meetingId: string | null; onChange: (id: string | null) => void }) {
   const meeting = calendarMeetings.find((m) => m.id === meetingId) ?? null;
-  const people = meeting ? MEETING_PEOPLE[meeting.id] ?? ["You"] : ["You"];
+  const people = meeting ? MEETING_PEOPLE[meeting.id] ?? ["You"] : [];
   return (
-    <>
+    <span className="inline-flex items-center gap-1.5">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button type="button" className="inline-flex max-w-[260px] items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary">
             <Icon icon={Calendar03Icon} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={1.7} />
-            <span className="truncate">{meeting ? meeting.title : "No calendar event"}</span>
+            <span className="truncate">{meeting ? meeting.title : "Link a calendar event"}</span>
             <Icon icon={ArrowDown01Icon} className="size-[11px] shrink-0 text-muted-foreground" strokeWidth={2} />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="z-[120] w-[300px]">
-          <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">Link to a calendar event</DropdownMenuLabel>
+          <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">Calendar events</DropdownMenuLabel>
           {calendarMeetings.map((m) => (
             <DropdownMenuItem key={m.id} className="flex-col items-start gap-0" onClick={() => onChange(m.id)}>
               <span className="truncate text-[13px] text-foreground">{m.title}</span>
               <span className="text-[11.5px] text-muted-foreground">{m.dayLabel} · {m.time} · {MEETING_PEOPLE[m.id]?.length ?? m.attendees} people</span>
             </DropdownMenuItem>
           ))}
-          {meetingId && <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => onChange(null)}>No calendar event</DropdownMenuItem></>}
+          {meetingId && <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => onChange(null)}>Unlink the event</DropdownMenuItem></>}
         </DropdownMenuContent>
       </DropdownMenu>
-      <span className="text-border">{"\u2022"}</span>
-      <Popover>
-        <PopoverTrigger asChild>
-          <button type="button" className="inline-flex items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary" title="Who was on the call">
-            <Icon icon={UserGroupIcon} className="size-[13px] text-muted-foreground" strokeWidth={1.7} />
-            {people.length === 1 ? "Me" : `${people.length} people`}
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="start" sideOffset={8} className="z-[120] w-[240px] rounded-[14px] p-[8px]">
-          <p className="px-[8px] pb-[6px] pt-[4px] text-[11px] font-medium text-muted-foreground">{meeting ? "On this call" : "Only you, until an event is linked"}</p>
-          {people.map((n) => (
-            <div key={n} className="flex items-center gap-2 rounded-[8px] px-[8px] py-[5px] text-[13px] text-foreground">
-              <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">{n.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span>
-              {n}
-            </div>
-          ))}
-        </PopoverContent>
-      </Popover>
-    </>
+      {meeting && (
+        /* the people belong to the event, so they sit inside the same chip, Granola's "Today · 2" */
+        <Popover>
+          <PopoverTrigger asChild>
+            <button type="button" className="inline-flex items-center gap-1 rounded-full text-xs text-foreground transition-colors hover:text-primary" title="Who was on the call">
+              <Icon icon={UserGroupIcon} className="size-[13px] text-muted-foreground" strokeWidth={1.7} />
+              {people.length}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" sideOffset={8} className="z-[120] w-[240px] rounded-[14px] p-[8px]">
+            <p className="px-[8px] pb-[6px] pt-[4px] text-[11px] font-medium text-muted-foreground">On this call</p>
+            {people.map((n) => (
+              <div key={n} className="flex items-center gap-2 rounded-[8px] px-[8px] py-[5px] text-[13px] text-foreground">
+                <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">{n.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span>
+                {n}
+              </div>
+            ))}
+          </PopoverContent>
+        </Popover>
+      )}
+    </span>
   );
 }
 export function LiveMeetingChips() {
@@ -1645,7 +1647,7 @@ function AuthorChip() {
   return (
     <span className="inline-flex items-center gap-1.5">
       <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
-      <span>{displayName}</span>
+      <span className="whitespace-nowrap">Me</span>
     </span>
   );
 }
@@ -2177,7 +2179,7 @@ function PageHeader({
         ) : (
           <div className="flex items-center gap-1.5 max-md:hidden">
             <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
-            <span>{displayName}</span>
+            <span className="whitespace-nowrap">Me</span>
           </div>
         )}
         {source && (
@@ -3359,7 +3361,8 @@ export function TranscriptionDetailPage() {
                   autoFocus
                   hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
                 />
-              <p className="sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
+              {/* on hold, Generate notes floats over the bar, so the footer line steps up out of its way */}
+              <p className={`sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px] ${isPaused ? "pb-[54px]" : ""}`}>My thoughts won't be included when you share this note.</p>
               </div>
             ) : desktopShell && liveTab === "summary" ? (
               /* the summary is written when the call ends; until then the tab is where the template is chosen */
