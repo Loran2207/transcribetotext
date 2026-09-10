@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
@@ -2279,6 +2279,17 @@ function PageHeader({
   );
 }
 
+/* A disabled control does not take the pointer, so the hint sits on a wrapper
+   around it: hovering the greyed button still tells you why it waits */
+function WaitsFor({ hint, children, className = "" }: { hint: string; children: ReactNode; className?: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild><span tabIndex={0} className={"inline-flex rounded-full outline-none " + className}>{children}</span></TooltipTrigger>
+      <TooltipContent>{hint}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 // ════════════════════════════════════════════════════════════
 // Main Page Component
 // ════════════════════════════════════════════════════════════
@@ -3384,14 +3395,14 @@ export function TranscriptionDetailPage() {
               <span>{desktopShell ? "Recording a call" : "My record"}</span>
               {desktopShell && (<div className="flex items-center gap-2">
                 <div className="mr-1 flex items-center max-lg:hidden">
-                  <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Previous note" disabled><Icon icon={ArrowLeft01Icon} className="size-[16px]" strokeWidth={2} /></Button>
-                  <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button>
+                  <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Previous note" disabled={!records.length} onClick={() => navigate(`/transcriptions/${records[0].id}`)}><Icon icon={ArrowLeft01Icon} className="size-[16px]" strokeWidth={2} /></Button></TooltipTrigger><TooltipContent>Previous note. The call keeps recording</TooltipContent></Tooltip>
+                  <WaitsFor hint="This call is the newest note"><Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button></WaitsFor>
                 </div>
-                <div className="max-lg:hidden inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
+                <WaitsFor hint="Translation is available once the call has ended" className="max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
                   <Select disabled>
-                    <SelectTrigger size="sm" className="h-8 w-[190px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0" title="Translate the transcript once the call has ended"><SelectValue placeholder="Translate to..." /></SelectTrigger>
+                    <SelectTrigger size="sm" className="h-8 w-[190px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0"><SelectValue placeholder="Translate to..." /></SelectTrigger>
                   </Select>
-                </div>
+                </WaitsFor>
                 {/* the window docks beside the call: notes on one half, the meeting on the other */}
                 <span className="max-lg:hidden"><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Side by side with the call" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }}><Icon icon={LayoutRightIcon} className="size-4" strokeWidth={1.9} /></Button></TooltipTrigger><TooltipContent>Side by side with the call</TooltipContent></Tooltip></span>
               </div>)}
@@ -3412,15 +3423,15 @@ export function TranscriptionDetailPage() {
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[190px]">
+                    <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[250px]">
                       <DropdownMenuItem className="gap-2" onClick={() => { void navigator.clipboard?.writeText(liveDetailSegments.map((sg) => `${sg.speaker.name}: ${sg.text}`).join("\n")); toast("Transcript copied"); }}><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy transcript</DropdownMenuItem>
                       <DropdownMenuItem className="gap-2" onClick={() => { void navigator.clipboard?.writeText(padToText(pad)); toast("My thoughts copied"); }}><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy my thoughts</DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2" disabled><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy summary</DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2" disabled><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} /><span className="whitespace-nowrap">Copy summary</span><span className="ml-auto whitespace-nowrap text-[11px] text-muted-foreground">after the call</span></DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" aria-label="Export" disabled title="Export once the call has ended"><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} /></Button>
-                  <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" aria-label="Copy link" disabled title="The link appears once the call has ended"><Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.8} /></Button>
-                  <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" aria-label="More actions" disabled><Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} /></Button>
+                  <WaitsFor hint="Export is available once the call has ended" className="max-md:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Export" disabled><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} /></Button></WaitsFor>
+                  <WaitsFor hint="The link appears once the call has ended" className="max-lg:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Copy link" disabled><Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.8} /></Button></WaitsFor>
+                  <WaitsFor hint="Move, rename and delete are available once the call has ended" className="max-lg:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="More actions" disabled><Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} /></Button></WaitsFor>
                 </div>
               </div>
             ) : (
@@ -3456,7 +3467,7 @@ export function TranscriptionDetailPage() {
                 </TabsList>
                 <div className={`mb-1 ml-auto flex items-center gap-2 max-md:hidden ${liveTab === "transcript" ? "" : "invisible pointer-events-none"}`}>
                   <TranscriptViewChecks />
-                  <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled title="Edit the transcript once the call has ended"><Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />Edit transcript</Button>
+                  <WaitsFor hint="The transcript can be edited once the call has ended"><Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled><Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />Edit transcript</Button></WaitsFor>
                 </div>
               </div>
             </Tabs>
