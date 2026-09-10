@@ -36,7 +36,7 @@ export function NotetakerSettingsPanel() {
           <Row title="Transcription language" desc="Auto-detect works for most calls. Set it when a call mixes two languages.">
             <div className="w-[220px]"><LanguageSelector value={settings.language} onChange={(v) => update({ language: v })} /></div>
           </Row>
-          <div className="py-3"><SpeakerSection enabled={settings.speakers} onToggle={() => update({ speakers: !settings.speakers })} count={settings.speakerCount} onCountChange={(v) => update({ speakerCount: v })} /></div>
+          <div className="py-3 first:pt-0 last:pb-0"><SpeakerSection enabled={settings.speakers} onToggle={() => update({ speakers: !settings.speakers })} count={settings.speakerCount} onCountChange={(v) => update({ speakerCount: v })} /></div>
           <Row title="Longest recording" desc="Stops on its own at this length, with a warning shortly before.">
             <Select value={settings.maxLength} onValueChange={(v) => update({ maxLength: v as NotetakerSettings["maxLength"] })}>
               <SelectTrigger className="h-[34px] w-[130px] rounded-[10px]"><SelectValue /></SelectTrigger>
@@ -74,11 +74,11 @@ export function NotetakerSettingsPanel() {
 }
 
 /* the first row starts where the title's margin ends and the last one ends at the card's padding, so the gap above and below the rows is the same 16px */
-export function Rows({ children }: { children: ReactNode }) { return <div className="-mb-1 divide-y divide-border [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">{children}</div>; }
+export function Rows({ children }: { children: ReactNode }) { return <div className="divide-y divide-border">{children}</div>; }
 
 export function Row({ title, desc, icon, children }: { title: string; desc: string; icon?: unknown; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-4 py-3">
+    <div className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
       {icon ? <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Icon icon={icon} className="size-[18px]" strokeWidth={1.7} /></span> : null}
       <span className="min-w-0 flex-1">
         <span className="block text-[13.5px] font-semibold text-foreground">{title}</span>

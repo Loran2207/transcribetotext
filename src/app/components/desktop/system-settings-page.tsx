@@ -14,8 +14,8 @@ export function SystemSettingsPanel() {
   const { settings, update } = useSystemSettings();
   const { os, machine } = useShell();
   const perm = useDemo("perm");
-  const allowed = { mic: perm !== "1", sys: perm !== "1" && perm !== "mic" };
   const mac = os !== "win";
+  const allowed = { mic: perm !== "1", sys: !mac || (perm !== "1" && perm !== "mic") };
   const shortcuts: Record<SystemSettings["shortcut"], string> = mac
     ? { primary: "\u2325 \u2318 R", secondary: "\u2303 \u2325 R", tertiary: "\u21E7 \u2318 R" }
     : { primary: "Ctrl + Alt + R", secondary: "Ctrl + Shift + R", tertiary: "Alt + R" };
@@ -50,9 +50,9 @@ export function SystemSettingsPanel() {
       </SettingsCard>
 
       <SettingsCard>
-        <SettingsCardTitle title={`Permissions on ${machine}`} subtitle="Asked once. Both are needed to hear the whole call." />
+        <SettingsCardTitle title={`Permissions on ${machine}`} subtitle={mac ? "Asked once. Both are needed to hear the whole call." : "Asked once. The call's sound needs no permission on Windows."} />
         <Rows>
-          {[{ icon: Mic01Icon, title: "Microphone", desc: "Your side of the call.", ok: allowed.mic }, { icon: VolumeHighIcon, title: "System audio", desc: "The other side, as it plays on this computer.", ok: allowed.sys }].map((r) => (
+          {[{ icon: Mic01Icon, title: "Microphone", desc: "Your side of the call.", ok: allowed.mic }, ...(mac ? [{ icon: VolumeHighIcon, title: "System audio", desc: "The other side, as it plays on this computer.", ok: allowed.sys }] : [])].map((r) => (
             <Row key={r.title} title={r.title} desc={r.desc} icon={r.icon}>
               {r.ok ? <span className="text-[13px] font-medium text-[#1F9D55]">Allowed</span> : <button type="button" className="h-[32px] rounded-full bg-primary px-[14px] text-[13px] font-semibold text-primary-foreground">Allow</button>}
             </Row>

@@ -1936,7 +1936,7 @@ export function LiveRecordingBar({
           >
             <SelectTrigger className={`h-[36px] w-full rounded-[12px] bg-transparent px-[12px] gap-[8px] ${warning?.mic ? "border-warning bg-warning/[0.06]" : "border-input"} ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? pickerW : ""}`} title={compact ? triggerLabel : undefined}>
               <span className="flex min-w-0 items-center gap-[8px]">
-                {compact ? <Icon icon={Mic01Icon} className={`size-[16px] shrink-0 ${warning?.mic ? "text-warning" : "text-muted-foreground"}`} strokeWidth={1.8} /> : <SourceIcon source="microphone" />}
+                {compact || warning?.mic ? <Icon icon={Mic01Icon} className={`size-[16px] shrink-0 ${warning?.mic ? "text-warning" : "text-muted-foreground"}`} strokeWidth={1.8} /> : <SourceIcon source="microphone" />}
                 {!compact && <span className={`truncate text-[13px] ${warning?.mic ? "text-warning" : "text-foreground"}`}>{warning?.mic ? "Not allowed" : triggerLabel}</span>}
               </span>
             </SelectTrigger>
@@ -2314,7 +2314,9 @@ export function TranscriptionDetailPage() {
   const routeStateRecord = routeState?.record;
   const isLiveRecordingRoute = id === "live" || Boolean(routeState?.liveRecording);
   /* the desktop shell: your notes beside the live transcript, kept with the record */
-  const { desktop: desktopShell, machine } = useShell();
+  const { desktop: desktopShell, machine, os: shellOs } = useShell();
+  /* Windows records the call's sound through WASAPI loopback and needs no permission for it: only the microphone can be missing there */
+  const sysIsAPermission = shellOs !== "win";
   const padKey = isLiveRecordingRoute ? "live" : (id ?? "live");
   const [liveTab, setLiveTab] = useState<"notes" | "transcript" | "summary">("notes");
   const [padLibraryOpen, setPadLibraryOpen] = useState(false);
@@ -3430,7 +3432,7 @@ export function TranscriptionDetailPage() {
               {desktopShell && <><LiveMeetingChips /><span className="text-border">{"\u2022"}</span><LiveFolderChip /><span className="text-border">{"\u2022"}</span></>}
               <span className="inline-flex items-center gap-1.5">
                 <span className="scale-[0.9]"><SourceIcon source="microphone" /></span>
-                <span>{desktopShell ? (permDemo === "1" ? "Notetaker, nothing allowed yet" : permDemo === "mic" ? "Notetaker, microphone only" : "Notetaker") : "Microphone"}</span>
+                <span>{desktopShell ? (permDemo === "1" ? "Notetaker, nothing allowed yet" : permDemo === "mic" && sysIsAPermission ? "Notetaker, microphone only" : "Notetaker") : "Microphone"}</span>
               </span>
               <span className="text-border">{"\u2022"}</span>
               <span>{isPaused ? "Paused - live transcript is on hold" : "Recording in real time"}</span>
@@ -3570,13 +3572,13 @@ export function TranscriptionDetailPage() {
             onPauseResume={isPaused ? resumeInstantRecording : pauseInstantRecording}
             onStop={stopInstantRecording}
             generate={desktopShell}
-            warning={desktopShell && permDemo ? {
-              title: permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `Call sound isn't allowed on ${machine}`,
-              body: permDemo === "1" ? "Nothing is being recorded until you allow them." : "Only your microphone is recorded, so the other side won't be in the transcript.",
-              action: permDemo === "1" ? "Allow both" : "Allow system audio",
+            warning={desktopShell && permDemo && (sysIsAPermission || permDemo === "1") ? {
+              title: permDemo === "1" ? (sysIsAPermission ? `Microphone and the call's sound aren't allowed on ${machine}` : `Microphone isn't allowed on ${machine}`) : `Call sound isn't allowed on ${machine}`,
+              body: permDemo === "1" ? (sysIsAPermission ? "Nothing is being recorded until you allow them." : "Nothing is being recorded until you allow it.") : "Only your microphone is recorded, so the other side won't be in the transcript.",
+              action: permDemo === "1" ? (sysIsAPermission ? "Allow both" : "Allow microphone") : "Allow system audio",
               onAllow: () => setPermDemo(null),
               mic: permDemo === "1",
-              sys: true,
+              sys: sysIsAPermission,
             } : undefined}
             microphoneDevices={microphoneDevices}
             selectedMicrophoneId={selectedMicrophoneId}
