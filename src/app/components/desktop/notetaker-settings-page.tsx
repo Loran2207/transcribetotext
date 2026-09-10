@@ -10,7 +10,7 @@ import { useNotetakerSettings, type NotetakerSettings } from "./notetaker-settin
 /* The Notetaker section of Settings: how calls are noticed, recorded, written
    up and shared. The same cards the Meetings section uses, one sentence per
    row, the one control that changes it on the right. What the app does as a
-   program (startup, shortcut, updates, permissions) lives in System. */
+   program (startup, updates, permissions) lives in System. */
 export function NotetakerSettingsPanel() {
   const { settings, update } = useNotetakerSettings();
   const { machine } = useShell();

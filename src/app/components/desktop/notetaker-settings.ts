@@ -30,11 +30,10 @@ export const DEFAULT_NOTETAKER_SETTINGS: NotetakerSettings = {
 export type SystemSettings = {
   openAtLogin: boolean;
   keepRunning: boolean;
-  shortcut: "primary" | "secondary" | "tertiary";
   autoUpdate: boolean;
 };
 
-export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = { openAtLogin: true, keepRunning: true, shortcut: "primary", autoUpdate: true };
+export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = { openAtLogin: true, keepRunning: true, autoUpdate: true };
 
 function store<T extends object>(key: string, defaults: T) {
   const event = key.replace(/_/g, "-");
