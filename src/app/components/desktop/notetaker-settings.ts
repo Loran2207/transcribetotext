@@ -25,24 +25,37 @@ export const DEFAULT_NOTETAKER_SETTINGS: NotetakerSettings = {
   openNoteOnStart: true, splitOnJoin: false, liveTranscript: true, autoShare: false, visibility: "private",
 };
 
-const KEY = "ttt_notetaker_settings";
-const EVENT = "ttt-notetaker-settings";
+/* What the app does as a program on this computer, apart from any call: when
+   it starts, where it lives when the window is closed, how it updates. */
+export type SystemSettings = {
+  openAtLogin: boolean;
+  keepRunning: boolean;
+  shortcut: "primary" | "secondary" | "tertiary";
+  autoUpdate: boolean;
+};
 
-function read(): NotetakerSettings {
-  try { const raw = window.localStorage.getItem(KEY); return raw ? { ...DEFAULT_NOTETAKER_SETTINGS, ...JSON.parse(raw) } : DEFAULT_NOTETAKER_SETTINGS; } catch { return DEFAULT_NOTETAKER_SETTINGS; }
-}
+export const DEFAULT_SYSTEM_SETTINGS: SystemSettings = { openAtLogin: true, keepRunning: true, shortcut: "primary", autoUpdate: true };
 
-export function useNotetakerSettings() {
-  const [settings, setSettings] = useState<NotetakerSettings>(read);
-  useEffect(() => {
-    const sync = () => setSettings(read());
-    window.addEventListener(EVENT, sync); window.addEventListener("storage", sync);
-    return () => { window.removeEventListener(EVENT, sync); window.removeEventListener("storage", sync); };
-  }, []);
-  const update = (patch: Partial<NotetakerSettings>) => {
-    const next = { ...read(), ...patch };
-    try { window.localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ }
-    window.dispatchEvent(new Event(EVENT));
+function store<T extends object>(key: string, defaults: T) {
+  const event = key.replace(/_/g, "-");
+  const read = (): T => {
+    try { const raw = window.localStorage.getItem(key); return raw ? { ...defaults, ...JSON.parse(raw) } : defaults; } catch { return defaults; }
   };
-  return { settings, update };
+  return function useStore() {
+    const [settings, setSettings] = useState<T>(read);
+    useEffect(() => {
+      const sync = () => setSettings(read());
+      window.addEventListener(event, sync); window.addEventListener("storage", sync);
+      return () => { window.removeEventListener(event, sync); window.removeEventListener("storage", sync); };
+    }, []);
+    const update = (patch: Partial<T>) => {
+      const next = { ...read(), ...patch };
+      try { window.localStorage.setItem(key, JSON.stringify(next)); } catch { /* private mode */ }
+      window.dispatchEvent(new Event(event));
+    };
+    return { settings, update };
+  };
 }
+
+export const useNotetakerSettings = store<NotetakerSettings>("ttt_notetaker_settings", DEFAULT_NOTETAKER_SETTINGS);
+export const useSystemSettings = store<SystemSettings>("ttt_system_settings", DEFAULT_SYSTEM_SETTINGS);

@@ -1,20 +1,19 @@
 import type { ReactNode } from "react";
-import { Mic01Icon, VolumeHighIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { Switch } from "../ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { LanguageSelector, SpeakerSection } from "../transcription-modals";
 import { SettingsCard, SettingsCardTitle } from "../calendar-settings";
-import { useDemo, useShell } from "./shell";
+import { useShell } from "./shell";
 import { useNotetakerSettings, type NotetakerSettings } from "./notetaker-settings";
 
-/* The Notetaker section of Settings: the same cards the Meetings section uses,
-   one sentence per row, the one control that changes it on the right. */
+/* The Notetaker section of Settings: how calls are noticed, recorded, written
+   up and shared. The same cards the Meetings section uses, one sentence per
+   row, the one control that changes it on the right. What the app does as a
+   program (startup, shortcut, updates, permissions) lives in System. */
 export function NotetakerSettingsPanel() {
   const { settings, update } = useNotetakerSettings();
   const { machine } = useShell();
-  const perm = useDemo("perm");
-  const allowed = { mic: perm !== "1", sys: perm !== "1" && perm !== "mic" };
   return (
     <div className="flex flex-col gap-4">
       <SettingsCard>
@@ -70,24 +69,14 @@ export function NotetakerSettingsPanel() {
         </Rows>
       </SettingsCard>
 
-      <SettingsCard>
-        <SettingsCardTitle title={`Permissions on ${machine}`} subtitle="Asked once. Both are needed to hear the whole call." />
-        <Rows>
-          {[{ icon: Mic01Icon, title: "Microphone", desc: "Your side of the call.", ok: allowed.mic }, { icon: VolumeHighIcon, title: "System audio", desc: "The other side, as it plays on this computer.", ok: allowed.sys }].map((r) => (
-            <Row key={r.title} title={r.title} desc={r.desc} icon={r.icon}>
-              {r.ok ? <span className="text-[13px] font-medium text-[#1F9D55]">Allowed</span> : <button type="button" className="h-[32px] rounded-full bg-primary px-[14px] text-[13px] font-semibold text-primary-foreground">Allow</button>}
-            </Row>
-          ))}
-        </Rows>
-      </SettingsCard>
     </div>
   );
 }
 
 /* the first row starts where the title's margin ends and the last one ends at the card's padding, so the gap above and below the rows is the same 16px */
-function Rows({ children }: { children: ReactNode }) { return <div className="-mb-1 divide-y divide-border [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">{children}</div>; }
+export function Rows({ children }: { children: ReactNode }) { return <div className="-mb-1 divide-y divide-border [&>*:first-child]:pt-0 [&>*:last-child]:pb-0">{children}</div>; }
 
-function Row({ title, desc, icon, children }: { title: string; desc: string; icon?: unknown; children: ReactNode }) {
+export function Row({ title, desc, icon, children }: { title: string; desc: string; icon?: unknown; children: ReactNode }) {
   return (
     <div className="flex items-center gap-4 py-3">
       {icon ? <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Icon icon={icon} className="size-[18px]" strokeWidth={1.7} /></span> : null}

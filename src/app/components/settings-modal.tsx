@@ -20,8 +20,10 @@ import {
   Layers01Icon,
   SquareLockPasswordIcon,
   Mic01Icon,
+  Settings02Icon,
 } from "@hugeicons/core-free-icons";
 import { NotetakerSettingsPanel } from "./desktop/notetaker-settings-page";
+import { SystemSettingsPanel } from "./desktop/system-settings-page";
 import { useShell } from "./desktop/shell";
 import { Icon } from "./ui/icon";
 import {
@@ -711,9 +713,10 @@ const ACCOUNT_ROWS: {
   icon: typeof Mail;
   section?: SectionId;
   mail?: string;
-  /* the Notetaker records calls on this computer: the row only exists in the desktop shell */
+  /* the app as a program and the Notetaker both live on this computer: these rows only exist in the desktop shell */
   desktopOnly?: boolean;
 }[] = [
+  { label: "System",          icon: Settings02Icon,      section: "system",   desktopOnly: true },
   { label: "Notetaker",       icon: Mic01Icon,           section: "notetaker", desktopOnly: true },
   { label: "Contact Support", icon: CustomerSupportIcon, mail: "support@transcribetotext.ai" },
   { label: "Privacy Policy",  icon: Shield01Icon,        section: "privacy" },
@@ -855,12 +858,13 @@ interface SettingsPageProps {
   onClose: () => void;
 }
 
-type SectionId = "account" | "plan" | "meetings" | "notetaker" | "invoices" | "privacy" | "terms";
+type SectionId = "account" | "plan" | "meetings" | "system" | "notetaker" | "invoices" | "privacy" | "terms";
 
 const SECTION_TITLE: Record<SectionId, string> = {
   account:  "Account",
   plan:     "Plan Management",
   meetings: "Meetings",
+  system:   "System",
   notetaker: "Notetaker",
   invoices: "Invoices",
   privacy:  "Privacy Policy",
@@ -871,6 +875,7 @@ const MAX_WIDTH: Record<SectionId, string> = {
   account:  "max-w-[800px]",
   plan:     "max-w-[788px]",
   meetings: "max-w-[720px]",
+  system:   "max-w-[720px]",
   notetaker: "max-w-[720px]",
   invoices: "max-w-[560px]",
   privacy:  "max-w-[1080px]",
@@ -927,6 +932,7 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
         {section === "account"  && <AccountPage onOpenSection={setSection} />}
         {section === "plan"     && <PlanManagementPage state={planState} />}
         {section === "meetings" && <MeetingsSettingsPanel />}
+        {section === "system"   && <SystemSettingsPanel />}
         {section === "notetaker" && <NotetakerSettingsPanel />}
         {section === "invoices" && <InvoicesComingSoon />}
         {section === "privacy"  && <PrivacyPolicyPage />}
