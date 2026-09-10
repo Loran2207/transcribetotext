@@ -16,7 +16,8 @@ const FEATURES = [
 
 export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page: string) => void; onOpenFolder?: (folderId: string) => void }) {
   const { setOpenModal } = useTranscriptionModals();
-  const { machine } = useShell();
+  const { machine, os } = useShell();
+  const sysIsAPermission = os !== "win";
   const [active, setActive] = useState(0);
   const [held, setHeld] = useState(false);
   useEffect(() => {
@@ -27,7 +28,7 @@ export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
   const feature = FEATURES[active];
   const permFlag = useDemo("perm");
   const [perm, setPerm] = useState<Record<string, boolean>>({ mic: true, sys: true });
-  useEffect(() => { setPerm(permFlag === "1" ? { mic: false, sys: false } : permFlag === "mic" ? { mic: true, sys: false } : { mic: true, sys: true }); }, [permFlag]);
+  useEffect(() => { setPerm(permFlag === "1" ? { mic: false, sys: !sysIsAPermission } : permFlag === "mic" ? { mic: true, sys: !sysIsAPermission ? true : false } : { mic: true, sys: true }); }, [permFlag, sysIsAPermission]);
   const needsPerm = !perm.mic || !perm.sys;
   return (
     <div className="flex-1 overflow-auto bg-background">
@@ -70,12 +71,12 @@ export function NotetakerPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
         </div>
         {needsPerm && (
           <div className="mt-[16px] rounded-[16px] border border-border bg-card p-[16px] md:p-[20px]">
-            <p className="text-[15px] font-semibold text-foreground">Before the first call, allow two things on {machine}</p>
-            <p className="mt-[2px] text-[13px] text-muted-foreground">Asked once. This card goes away when both are allowed; nothing is recorded until you press Record a call.</p>
-            <div className="mt-[14px] grid gap-[10px] md:grid-cols-2">
+            <p className="text-[15px] font-semibold text-foreground">{sysIsAPermission ? `Before the first call, allow two things on ${machine}` : `Before the first call, allow the microphone on ${machine}`}</p>
+            <p className="mt-[2px] text-[13px] text-muted-foreground">{sysIsAPermission ? "Asked once. This card goes away when both are allowed; nothing is recorded until you press Record a call." : "Asked once. This card goes away when the microphone is allowed; the call's sound needs no permission on Windows."}</p>
+            <div className={"mt-[14px] grid gap-[10px]" + (sysIsAPermission ? " md:grid-cols-2" : "")}>
               {[
                 { id: "mic", icon: Mic01Icon, title: "Microphone", line: "Your side of the call." },
-                { id: "sys", icon: VolumeHighIcon, title: "System audio", line: "The other side, as it plays on this computer." },
+                ...(sysIsAPermission ? [{ id: "sys", icon: VolumeHighIcon, title: "System audio", line: "The other side, as it plays on this computer." }] : []),
               ].map((r) => (
                 <div key={r.id} className="flex items-center gap-[12px] rounded-[12px] border border-border p-[12px]">
                   <span className="flex size-[36px] shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Icon icon={r.icon} className="size-[18px]" strokeWidth={1.7} /></span>
