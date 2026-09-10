@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Lock, SearchIcon, Layers } from "@hugeicons/core-free-icons";
+import { Lock, SearchIcon, GridViewIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
 import { cn } from "@/app/components/ui/utils";
@@ -276,8 +276,8 @@ export function TemplatePicker({
             onClick={() => { setOpenState(false); setLibraryOpen(true); }}
             className="w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12px] font-medium text-primary hover:bg-muted/60 transition-colors"
           >
-            <Icon icon={Layers} size={14} />
-            Template library
+            <Icon icon={GridViewIcon} size={14} />
+            All templates
           </button>
         </div>
       </PopoverContent>

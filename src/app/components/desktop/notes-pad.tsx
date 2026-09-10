@@ -151,7 +151,7 @@ export function NotesPad({ lines, onChange, templates, onTemplate, autoFocus = f
                         type="button"
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => choose(it.id)}
-                        className={"flex w-full items-center gap-2.5 rounded-[8px] px-2 py-1.5 text-left text-[13px] " + (active === it.id ? "bg-muted text-foreground" : "text-foreground hover:bg-muted")}
+                        className={"flex w-full items-center gap-2.5 rounded-[8px] px-2 py-1.5 text-left text-[13px] " + (it.id === "tall" ? "font-medium text-primary " : "") + (active === it.id ? "bg-muted" : "hover:bg-muted") + (it.id === "tall" ? "" : " text-foreground")}
                       >
                         {it.tpl ? (
                           /* a template row, the way the picker draws it: coloured tile, name, who it is for */

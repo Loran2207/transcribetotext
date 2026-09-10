@@ -317,6 +317,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
                 <SidebarMenuButton isActive={activePage === "notetaker"} onClick={() => { onNavigate("notetaker"); setOpenMobile(false); }} tooltip="Notetaker">
                   <Icon icon={Mic01Icon} strokeWidth={1.3} />
                   <span>Notetaker</span>
+                  <span className="ml-auto rounded-full bg-primary px-[7px] text-[10px] font-semibold leading-[17px] text-primary-foreground">New</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             )}
