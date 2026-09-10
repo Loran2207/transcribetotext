@@ -2,9 +2,9 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon } from "@hugeicons/core-free-icons";
 import { useShell, useDemo } from "./desktop/shell";
-import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
+import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -1566,67 +1566,145 @@ export function LiveFolderChip() {
   return <FolderChip folderId={folderId} onChange={setFolderId} />;
 }
 
-/* The calendar event this note belongs to, and who was on it (Granola's "Today · 2"
-   chips). The event is picked from the calendar the app already shows; the people
-   are the invitees of that event. */
-const MEETING_PEOPLE: Record<string, string[]> = {
-  "1": ["You", "Maria Garcia", "Alex Chen", "Sam Ortiz"],
-  "2": ["You", "Maria Garcia", "Alex Chen", "Priya Nair", "Tom Becker", "Lena Fischer"],
-  "3": ["You", "Maria Garcia", "Alex Chen"],
+/* The calendar event this note belongs to, and who was on it, the way Granola's
+   "Today · Me" chip opens: pick the event (with search), see its link, Join or open
+   the calendar, and the people on the invite, grouped by company. When the app
+   thinks a meeting is on right now, the chip offers it and asks first. */
+const MEETING_PEOPLE: Record<string, { name: string; email: string }[]> = {
+  "1": [{ name: "Maria Garcia", email: "maria@nexora.com" }, { name: "Alex Chen", email: "alex@nexora.com" }, { name: "Sam Ortiz", email: "sam@ql-instance.io" }],
+  "2": [{ name: "Maria Garcia", email: "maria@nexora.com" }, { name: "Alex Chen", email: "alex@nexora.com" }, { name: "Priya Nair", email: "priya@nexora.com" }, { name: "Tom Becker", email: "tom@nexora.com" }, { name: "Lena Fischer", email: "lena@nexora.com" }],
+  "3": [{ name: "Maria Garcia", email: "maria@nexora.com" }, { name: "Alex Chen", email: "alex@nexora.com" }],
 };
-export function MeetingChips({ meetingId, onChange }: { meetingId: string | null; onChange: (id: string | null) => void }) {
+const MEETING_LINK: Record<string, string> = { "1": "meet.google.com/nex-daily-sync", "2": "meet.google.com/nex-product", "3": "teams.microsoft.com/l/meetup-join/nexora" };
+const PLATFORM_SOURCE = { meet: "google-meet", zoom: "zoom", teams: "teams" } as const;
+const PLATFORM_LABEL = { meet: "Google Meet", zoom: "Zoom", teams: "Teams" } as const;
+export function meetingPeopleCount(meetingId: string | null) { return meetingId ? (MEETING_PEOPLE[meetingId]?.length ?? 0) + 1 : 1; }
+
+export function MeetingCard({ meetingId, onChange, dateLabel = "Today", suggestedId = null, onDismissSuggestion }: {
+  meetingId: string | null; onChange: (id: string | null) => void; dateLabel?: string;
+  /* a meeting the calendar says is on right now: offered on the chip, linked only after a Yes */
+  suggestedId?: string | null; onDismissSuggestion?: () => void;
+}) {
+  const { displayName, avatarSrc } = useUserProfile();
   const meeting = calendarMeetings.find((m) => m.id === meetingId) ?? null;
-  const people = meeting ? MEETING_PEOPLE[meeting.id] ?? ["You"] : [];
+  const suggested = !meeting && suggestedId ? calendarMeetings.find((m) => m.id === suggestedId) ?? null : null;
+  const [open, setOpen] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const [query, setQuery] = useState("");
+  const [extra, setExtra] = useState<string[]>([]);
+  const [draft, setDraft] = useState("");
+  const people = meeting ? MEETING_PEOPLE[meeting.id] ?? [] : [];
+  const groups = new Map<string, { name: string; email: string }[]>();
+  for (const person of [...people, ...extra.map((e) => ({ name: e.split("@")[0], email: e }))]) { const d = person.email.split("@")[1] ?? "other"; groups.set(d, [...(groups.get(d) ?? []), person]); }
+  const list = calendarMeetings.filter((m) => m.title.toLowerCase().includes(query.toLowerCase()));
+  const count = 1 + people.length + extra.length;
+  const initials = (n: string) => n.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const chipClass = "inline-flex items-center gap-1.5 rounded-full border px-2 py-[3px] text-xs transition-colors";
   return (
-    <span className="inline-flex items-center gap-1.5">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button type="button" className="inline-flex max-w-[260px] items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary">
-            <Icon icon={Calendar03Icon} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={1.7} />
-            <span className="truncate">{meeting ? meeting.title : "Link a calendar event"}</span>
-            <Icon icon={ArrowDown01Icon} className="size-[11px] shrink-0 text-muted-foreground" strokeWidth={2} />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="z-[120] w-[300px]">
-          <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground">Calendar events</DropdownMenuLabel>
-          {calendarMeetings.map((m) => (
-            <DropdownMenuItem key={m.id} className="flex-col items-start gap-0" onClick={() => onChange(m.id)}>
-              <span className="truncate text-[13px] text-foreground">{m.title}</span>
-              <span className="text-[11.5px] text-muted-foreground">{m.dayLabel} · {m.time} · {MEETING_PEOPLE[m.id]?.length ?? m.attendees} people</span>
-            </DropdownMenuItem>
-          ))}
-          {meetingId && <><DropdownMenuSeparator /><DropdownMenuItem onClick={() => onChange(null)}>Unlink the event</DropdownMenuItem></>}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      {meeting && (
-        /* the people belong to the event, so they sit inside the same chip, Granola's "Today · 2" */
-        <Popover>
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setPicking(false); setQuery(""); } }}>
+      {suggested ? (
+        /* the offer: the meeting on the chip, a tick to take it, a cross to leave it */
+        <span className={`${chipClass} border-primary/30 bg-primary/[0.06] text-foreground`}>
           <PopoverTrigger asChild>
-            <button type="button" className="inline-flex items-center gap-1 rounded-full text-xs text-foreground transition-colors hover:text-primary" title="Who was on the call">
-              <Icon icon={UserGroupIcon} className="size-[13px] text-muted-foreground" strokeWidth={1.7} />
-              {people.length}
-            </button>
+            <button type="button" className="inline-flex items-center gap-1.5"><Icon icon={Calendar03Icon} className="size-[13px] text-primary" strokeWidth={1.8} /><span className="max-w-[220px] truncate">{suggested.title}</span></button>
           </PopoverTrigger>
-          <PopoverContent align="start" sideOffset={8} className="z-[120] w-[240px] rounded-[14px] p-[8px]">
-            <p className="px-[8px] pb-[6px] pt-[4px] text-[11px] font-medium text-muted-foreground">On this call</p>
-            {people.map((n) => (
-              <div key={n} className="flex items-center gap-2 rounded-[8px] px-[8px] py-[5px] text-[13px] text-foreground">
-                <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">{n.split(" ").map((w) => w[0]).join("").slice(0, 2)}</span>
-                {n}
-              </div>
-            ))}
-          </PopoverContent>
-        </Popover>
+          <button type="button" aria-label="Not this meeting" onClick={onDismissSuggestion} className="rounded-full p-[2px] text-muted-foreground hover:text-foreground"><Icon icon={CloseIcon} className="size-[11px]" strokeWidth={2.2} /></button>
+          <button type="button" aria-label="Yes, this meeting" onClick={() => onChange(suggested.id)} className="rounded-full p-[2px] text-primary hover:text-primary/80"><Icon icon={Tick02Icon} className="size-[12px]" strokeWidth={2.4} /></button>
+        </span>
+      ) : (
+        <PopoverTrigger asChild>
+          <button type="button" className={`${chipClass} border-border text-foreground hover:bg-muted/60 data-[state=open]:bg-muted/60`}>
+            <Icon icon={Calendar03Icon} className="size-[13px] text-muted-foreground" strokeWidth={1.8} />
+            <span className="max-w-[220px] truncate">{meeting ? meeting.title : dateLabel}</span>
+            <Icon icon={UserGroupIcon} className="ml-0.5 size-[13px] text-muted-foreground" strokeWidth={1.8} />
+            <span>{count === 1 ? "Me" : count}</span>
+          </button>
+        </PopoverTrigger>
       )}
-    </span>
+      <PopoverContent align="start" sideOffset={8} className="z-[120] w-[360px] overflow-hidden rounded-[16px] p-0">
+        {suggested ? (
+          <div className="p-[14px]">
+            <p className="text-[12.5px] text-muted-foreground">Is this your current meeting?</p>
+            <div className="mt-[10px] flex items-start gap-3">
+              <span className="mt-[5px] size-[9px] shrink-0 rounded-[3px] bg-primary" />
+              <span className="min-w-0"><span className="block truncate text-[14px] font-semibold text-foreground">{suggested.title}</span><span className="block text-[12.5px] text-muted-foreground">{suggested.dayLabel} · {suggested.time}</span></span>
+            </div>
+            <div className="mt-[14px] grid grid-cols-2 gap-2">
+              <Button className="h-9 rounded-full text-[13px] font-semibold" onClick={() => { onChange(suggested.id); setOpen(false); }}>Yes</Button>
+              <Button variant="pill-outline" className="h-9 rounded-full text-[13px] font-medium" onClick={() => { onDismissSuggestion?.(); setOpen(false); }}>No</Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="p-[10px]">
+              <button type="button" onClick={() => setPicking((v) => !v)} className="flex w-full items-center gap-3 rounded-[12px] bg-muted/50 px-[12px] py-[9px] text-left transition-colors hover:bg-muted">
+                {meeting && <span className="size-[9px] shrink-0 rounded-[3px] bg-primary" />}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13.5px] font-semibold text-foreground">{meeting ? meeting.title : "Select calendar event"}</span>
+                  <span className="block text-[12px] text-muted-foreground">{meeting ? `${meeting.dayLabel} · ${meeting.time}` : `${dateLabel} · ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}</span>
+                </span>
+                <Icon icon={ArrowDown01Icon} className={`size-[14px] shrink-0 text-muted-foreground transition-transform ${picking ? "rotate-180" : ""}`} strokeWidth={2} />
+              </button>
+              {picking && (
+                <div className="mt-[6px] rounded-[12px] border border-border bg-popover p-[6px] shadow-sm">
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search event..." className="h-8 w-full rounded-[8px] bg-transparent px-[8px] text-[13px] text-foreground outline-none placeholder:text-muted-foreground" />
+                  <div className="my-[4px] h-px bg-border" />
+                  {meeting && <button type="button" onClick={() => { onChange(null); setPicking(false); }} className="flex w-full items-center gap-2 rounded-[8px] px-[8px] py-[7px] text-left text-[13px] text-foreground hover:bg-muted"><Icon icon={CloseIcon} className="size-[13px] text-muted-foreground" strokeWidth={2} />Remove calendar event</button>}
+                  <div className="max-h-[220px] overflow-y-auto">
+                    {list.map((m) => (
+                      <button key={m.id} type="button" onClick={() => { onChange(m.id); setPicking(false); setQuery(""); }} className="flex w-full items-center gap-3 rounded-[8px] px-[8px] py-[7px] text-left hover:bg-muted">
+                        <span className="size-[9px] shrink-0 rounded-[3px] bg-primary/70" />
+                        <span className="min-w-0 flex-1"><span className="block truncate text-[13px] text-foreground">{m.title}</span><span className="block text-[11.5px] text-muted-foreground">{m.dayLabel} · {m.time}</span></span>
+                        {m.id === meetingId && <Icon icon={Tick02Icon} className="size-[14px] shrink-0 text-primary" strokeWidth={2.4} />}
+                      </button>
+                    ))}
+                    {!list.length && <p className="px-[8px] py-[10px] text-[12.5px] text-muted-foreground">Nothing on the calendar matches.</p>}
+                  </div>
+                </div>
+              )}
+              {meeting && !picking && (
+                <>
+                  <a href={`https://${MEETING_LINK[meeting.id]}`} target="_blank" rel="noopener" className="mt-[8px] flex items-center gap-2 px-[4px] text-[12.5px] text-muted-foreground hover:text-primary hover:underline"><Icon icon={Link01Icon} className="size-[13px]" strokeWidth={1.8} /><span className="truncate">{MEETING_LINK[meeting.id]}</span></a>
+                  <div className="mt-[10px] grid grid-cols-2 gap-2">
+                    <Button variant="pill-outline" className="h-9 gap-2 rounded-full text-[13px] font-medium" onClick={() => toast(`Opening ${PLATFORM_LABEL[meeting.platform]}`)}><span className="scale-[0.9]"><SourceIcon source={PLATFORM_SOURCE[meeting.platform]} /></span>Join</Button>
+                    <Button variant="pill-outline" className="h-9 gap-2 rounded-full text-[13px] font-medium" onClick={() => toast("Opening the calendar")}><Icon icon={Calendar03Icon} className="size-[14px]" strokeWidth={1.8} />Calendar</Button>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="border-t border-border">
+              <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && draft.trim()) { setExtra((x) => [...x, draft.trim().includes("@") ? draft.trim() : `${draft.trim().toLowerCase().replace(/\s+/g, ".")}@guest`]); setDraft(""); } }} placeholder="Add attendees..." className="h-10 w-full bg-transparent px-[14px] text-[13px] text-foreground outline-none placeholder:text-muted-foreground" />
+            </div>
+            <div className="max-h-[260px] overflow-y-auto border-t border-border px-[6px] py-[6px]">
+              <p className="px-[8px] pb-[4px] pt-[6px] text-[11.5px] text-muted-foreground">{displayName.split(" ").pop()?.replace(/[()]/g, "") || "Me"}</p>
+              <div className="flex items-center gap-2.5 rounded-[8px] px-[8px] py-[5px] text-[13px] text-foreground"><Avatar className="size-6"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>{displayName} <span className="text-muted-foreground">(me)</span></div>
+              {[...groups.entries()].map(([domain, members]) => (
+                <div key={domain}>
+                  <p className="px-[8px] pb-[4px] pt-[8px] text-[11.5px] text-muted-foreground">{domain}</p>
+                  {members.map((m) => (
+                    <div key={m.email} className="group/att flex items-center gap-2.5 rounded-[8px] px-[8px] py-[5px] text-[13px] text-foreground hover:bg-muted/60">
+                      <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">{initials(m.name)}</span>
+                      <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                      <button type="button" onClick={() => toast(`Notes shared with ${m.name}`)} className="hidden shrink-0 rounded-full border border-border px-[8px] py-[2px] text-[11.5px] text-foreground group-hover/att:inline-flex hover:bg-muted">Share notes</button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 export function LiveMeetingChips() {
   const [meetingId, setMeetingId] = useSessionValue("ttt_live_meeting");
-  return <MeetingChips meetingId={meetingId} onChange={setMeetingId} />;
+  const [dismissed, setDismissed] = useSessionValue("ttt_live_meeting_dismissed");
+  return <MeetingCard meetingId={meetingId} onChange={setMeetingId} suggestedId={dismissed ? null : calendarMeetings[0].id} onDismissSuggestion={() => setDismissed("1")} />;
 }
 /* the record's event, remembered on this machine */
 function useRecordMeeting(recordId: string) {
+  /* eslint-disable-next-line react-hooks/rules-of-hooks */
   const key = `ttt_record_meeting_${recordId}`;
   const [id, setId] = useState<string | null>(() => { try { return window.localStorage.getItem(key); } catch { return null; } });
   useEffect(() => { try { setId(window.localStorage.getItem(key)); } catch { setId(null); } }, [key]);
@@ -1737,7 +1815,10 @@ export function LiveRecordingBar({
   showDevices = true,
   caption = true,
   warning,
+  join,
 }: {
+  /* the linked meeting, offered above the bar: one tap to join it, a cross to put it away */
+  join?: { label: string; source: "zoom" | "google-meet" | "teams"; onJoin: () => void; onDismiss: () => void };
   isPaused: boolean;
   /* after the note is written the bar only offers Resume; nothing new to generate yet */
   showGenerate?: boolean;
@@ -1760,25 +1841,20 @@ export function LiveRecordingBar({
   /* without the caption the bar is in the half-width panel: the device pickers shrink to their icons */
   const compact = !caption;
   /* with the warning triangle in the row the pickers give up a little width so Pause stays centred */
-  const pickerW = "md:w-[168px]";
-  /* the desktop hears the other side through an output device; which one is a
-     choice of its own, kept for the session */
-  const [outputs, setOutputs] = useState<{ id: string; label: string }[]>([]);
-  const [outputId, setOutputId] = useState(() => window.sessionStorage.getItem("ttt_output_device") || "");
-  useEffect(() => {
-    if (!generate || !navigator.mediaDevices?.enumerateDevices) return;
-    navigator.mediaDevices.enumerateDevices().then((list) => {
-      const outs = list.filter((d) => d.kind === "audiooutput").map((d, i) => ({ id: d.deviceId || `out-${i}`, label: d.label || `Speakers ${i + 1}` }));
-      setOutputs(outs.length ? outs : [{ id: "default", label: "Built-in speakers" }]);
-    }).catch(() => setOutputs([{ id: "default", label: "Built-in speakers" }]));
-  }, [generate]);
-  const outputLabel = outputs.find((o) => o.id === outputId)?.label || outputs[0]?.label || "Speakers";
+  const pickerW = "md:w-[200px]";
   const triggerLabel = isSwitchingMicrophone
     ? "Switching microphone..."
     : (selectedMic?.label || (microphoneDevices.length ? "Select microphone" : "No microphone detected"));
 
   return (
     <div className="relative shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-[2px]">
+      {generate && !isPaused && join && (
+        /* the meeting is linked: the way into it floats above the bar until it is dismissed (Granola's "Join Google Meet ×") */
+        <span className="absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+10px)] items-center gap-1 rounded-full bg-[#1B1F27] pl-3 pr-1.5 text-[13px] font-medium text-white shadow-md">
+          <button type="button" onClick={join.onJoin} className="flex items-center gap-2"><span className="scale-[0.9]"><SourceIcon source={join.source} /></span>Join {join.label}</button>
+          <button type="button" aria-label="Put away" onClick={join.onDismiss} className="ml-1 flex size-6 items-center justify-center rounded-full text-white/70 hover:bg-white/15 hover:text-white"><Icon icon={CloseIcon} className="size-[12px]" strokeWidth={2.2} /></button>
+        </span>
+      )}
       {generate && isPaused && showGenerate && (
         /* Granola's grammar: the call is on hold, and only now the note can be
            written. One glowing verb above the bar, nothing else changes. */
@@ -1828,25 +1904,23 @@ export function LiveRecordingBar({
           )}
         </div>
 
-        {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? (compact ? "flex gap-2" : "flex gap-2 md:max-w-[640px]") : "md:min-w-[260px] md:max-w-[320px]"}`}>
+        {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? (compact ? "flex gap-2" : "flex gap-2 md:max-w-[560px]") : "md:min-w-[260px] md:max-w-[320px]"}`}>
           {generate && <RecordingOptions compact={compact} />}
-          {generate && (
-            <div className="relative">
-            {warning?.sys && <BlockedBadge warning={warning} />}
-            <Select value={outputId || outputs[0]?.id} onValueChange={(v) => { setOutputId(v); window.sessionStorage.setItem("ttt_output_device", v); }} disabled={!outputs.length}>
-              <SelectTrigger className={`h-[36px] w-full rounded-[12px] bg-transparent px-[12px] gap-[8px] ${warning?.sys ? "border-warning bg-warning/[0.06]" : "border-input"} ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : pickerW}`} title={compact ? outputLabel : "Where the call's sound plays"}>
-                <span className="flex min-w-0 items-center gap-[8px]">
-                  <Icon icon={VolumeHighIcon} className={`size-[16px] shrink-0 ${warning?.sys ? "text-warning" : "text-muted-foreground"}`} strokeWidth={1.8} />
-                  {!compact && <span className={`truncate text-[13px] ${warning?.sys ? "text-warning" : "text-foreground"}`}>{warning?.sys ? "Not allowed" : outputLabel}</span>}
-                </span>
-              </SelectTrigger>
-              <SelectContent align="start" className="z-[120] max-w-[calc(100vw-32px)] rounded-[12px]">
-                {outputs.map((o) => (
-                  <SelectItem key={o.id} value={o.id} className="text-[13px]"><span className="truncate">{o.label}</span></SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            </div>
+          {generate && warning?.sys && (
+            /* the other side of the call is not a device to pick, it is a permission: when it is missing, it says so here */
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" title={warning.title} className={`flex h-[36px] shrink-0 items-center gap-[8px] rounded-[12px] border border-warning bg-warning/[0.06] text-[13px] text-warning transition-colors hover:bg-warning/[0.12] ${compact ? "w-[44px] justify-center" : "px-[12px]"}`}>
+                  <Icon icon={Alert02Icon} className="size-[16px] shrink-0" strokeWidth={2} />
+                  {!compact && <span className="truncate">Call sound not allowed</span>}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={10} className="z-[120] w-[320px] rounded-[16px] p-[16px]">
+                <p className="flex items-start gap-2 text-[14px] font-semibold text-foreground"><Icon icon={Alert02Icon} className="mt-[2px] size-[16px] shrink-0 text-warning" strokeWidth={2} />{warning.title}</p>
+                <p className="mt-[6px] text-[12.5px] text-muted-foreground">{warning.body}</p>
+                <Button variant="warning" onClick={warning.onAllow} className="mt-[12px] h-8 rounded-full px-[14px] text-[13px] font-semibold">{warning.action}</Button>
+              </PopoverContent>
+            </Popover>
           )}
           <div className="relative">
           {warning?.mic && <BlockedBadge warning={warning} />}
@@ -2176,12 +2250,13 @@ function PageHeader({
             <span className="text-foreground">{sharedOwner.name}</span>
             <span>shared this with you</span>
           </div>
-        ) : (
+        ) : chips ? null : (
           <div className="flex items-center gap-1.5 max-md:hidden">
             <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
             <span className="whitespace-nowrap">Me</span>
           </div>
         )}
+        {chips}
         {source && (
           <>
             <span className="text-border max-md:hidden">{"\u2022"}</span>
@@ -2191,11 +2266,9 @@ function PageHeader({
             </span>
           </>
         )}
-        <span className="text-border">{"\u2022"}</span>
-        <span>{meta.dateLabel}</span>
+        {!chips && <><span className="text-border">{"\u2022"}</span><span>{meta.dateLabel}</span></>}
         <span className="text-border">{"\u2022"}</span>
         <span>{meta.durationLabel}</span>
-        {chips}
       </div>
     </div>
   );
@@ -2240,6 +2313,9 @@ export function TranscriptionDetailPage() {
   const padKey = isLiveRecordingRoute ? "live" : (id ?? "live");
   const [liveTab, setLiveTab] = useState<"notes" | "transcript" | "summary">("notes");
   const [padLibraryOpen, setPadLibraryOpen] = useState(false);
+  const [liveMeetingId] = useSessionValue("ttt_live_meeting");
+  const [joinDismissed, setJoinDismissed] = useSessionValue("ttt_live_join_dismissed");
+  const liveMeeting = calendarMeetings.find((m) => m.id === liveMeetingId) ?? null;
   const [recordMeetingId, setRecordMeetingId] = useRecordMeeting(id ?? "live");
   const [liveTemplateId, setLiveTemplateId] = useState<string | null>(() => window.sessionStorage.getItem("ttt_live_template"));
   const pickLiveTemplate = (id: string | null) => { setLiveTemplateId(id); if (id) window.sessionStorage.setItem("ttt_live_template", id); else window.sessionStorage.removeItem("ttt_live_template"); };
@@ -3291,6 +3367,7 @@ export function TranscriptionDetailPage() {
     return (
       <>
       <TemplateLibraryDialog open={padLibraryOpen} onOpenChange={setPadLibraryOpen} value={null} onSelect={(tid) => { if (tid) insertTemplate(tid); }} gate={false} />
+      <ShareDialog open={shareDialogOpen} onOpenChange={setShareDialogOpen} resourceType="transcription" resourceId="live" resourceName={window.sessionStorage.getItem("ttt_live_title") || "Untitled call"} />
       <div ref={pageRef} className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <div className={(desktopShell ? "" : "border-b border-border ") + "px-4 pt-6 pb-5 lg:px-8"}>
@@ -3301,6 +3378,15 @@ export function TranscriptionDetailPage() {
                   <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Previous note" disabled><Icon icon={ArrowLeft01Icon} className="size-[16px]" strokeWidth={2} /></Button>
                   <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button>
                 </div>
+                {/* the note can be shared and copied while it is still being written, Granola's way */}
+                <Button variant="pill-outline" className="h-7 gap-1.5 rounded-full px-[10px] text-[12px] font-medium" onClick={() => setShareDialogOpen(true)}><Icon icon={Share} className="size-[13px]" strokeWidth={1.8} />Share</Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild><Button variant="pill-outline" className="h-7 gap-1.5 rounded-full px-[10px] text-[12px] font-medium"><Icon icon={Copy} className="size-[13px]" strokeWidth={1.8} />Copy<Icon icon={ArrowDown01Icon} className="size-[11px] text-muted-foreground" strokeWidth={2} /></Button></DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="z-[120] w-[200px]">
+                    <DropdownMenuItem onClick={() => { void navigator.clipboard?.writeText(liveDetailSegments.map((sg) => `${sg.speaker.name}: ${sg.text}`).join("\n")); toast("Transcript copied"); }}>Copy transcript</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { void navigator.clipboard?.writeText(padToText(pad)); toast("My thoughts copied"); }}>Copy my thoughts</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 {/* the window docks beside the call: notes on one half, the meeting on the other */}
                 <button type="button" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }} className="flex h-7 items-center gap-[6px] rounded-full border border-border px-[10px] text-[12px] font-medium text-foreground transition-colors hover:bg-muted" title="Put the notes beside the call">
                   <Icon icon={LayoutRightIcon} className="size-[13px]" strokeWidth={1.9} />
@@ -3316,24 +3402,14 @@ export function TranscriptionDetailPage() {
               </h1>
             )}
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              {desktopShell && <><AuthorChip /><span className="text-border">{"\u2022"}</span></>}
+              {desktopShell && <><LiveMeetingChips /><span className="text-border">{"\u2022"}</span><LiveFolderChip /><span className="text-border">{"\u2022"}</span></>}
               <span className="inline-flex items-center gap-1.5">
                 <span className="scale-[0.9]"><SourceIcon source="microphone" /></span>
                 <span>{desktopShell ? (permDemo === "1" ? "Notetaker, nothing allowed yet" : permDemo === "mic" ? "Notetaker, microphone only" : "Notetaker") : "Microphone"}</span>
               </span>
               <span className="text-border">{"\u2022"}</span>
               <span>{isPaused ? "Paused - live transcript is on hold" : "Recording in real time"}</span>
-              <span className="text-border">{"\u2022"}</span>
-              <span>{new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
-              {desktopShell && (
-                /* the folder is chosen while the call runs, in the same line as the rest of the record's facts */
-                <>
-                  <span className="text-border">{"\u2022"}</span>
-                  <LiveFolderChip />
-                  <span className="text-border">{"\u2022"}</span>
-                  <LiveMeetingChips />
-                </>
-              )}
+              {!desktopShell && <><span className="text-border">{"\u2022"}</span><span>{new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span></>}
             </div>
           </div>
 
@@ -3342,7 +3418,13 @@ export function TranscriptionDetailPage() {
               <div className="flex items-end border-b border-border px-4 lg:px-8">
                 <TabsList variant="line" className="border-b-0">
                   <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">My thoughts</TabsTrigger>
-                  <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">Transcript</TabsTrigger>
+                  <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">
+                    {!isPaused && (
+                      /* the transcript is alive: three green bars breathe on the tab while sound comes in */
+                      <span className="mr-1.5 inline-flex h-[12px] items-center gap-[2px]" aria-hidden>{[0.55, 1, 0.7].map((h, i) => <span key={i} className="ttt-bar w-[2.5px] rounded-full bg-[#34C759]" style={{ height: `${h * 100}%`, animationDelay: `${i * 0.18}s` }} />)}</span>
+                    )}
+                    Transcript
+                  </TabsTrigger>
                   <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px]">Summary</TabsTrigger>
                 </TabsList>
                 <div className={`mb-1 ml-auto max-md:hidden ${liveTab === "transcript" ? "" : "invisible pointer-events-none"}`}><TranscriptViewChecks /></div>
@@ -3362,7 +3444,7 @@ export function TranscriptionDetailPage() {
                   hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
                 />
               {/* on hold, Generate notes floats over the bar, so the footer line steps up out of its way */}
-              <p className={`sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px] ${isPaused ? "pb-[54px]" : ""}`}>My thoughts won't be included when you share this note.</p>
+              <p className={`sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px] ${isPaused || (liveMeeting && !joinDismissed) ? "pb-[54px]" : ""}`}>My thoughts won't be included when you share this note.</p>
               </div>
             ) : desktopShell && liveTab === "summary" ? (
               /* the summary is written when the call ends; until then the tab is where the template is chosen */
@@ -3454,6 +3536,7 @@ export function TranscriptionDetailPage() {
           </div>
 
           <LiveRecordingBar
+            join={desktopShell && liveMeeting && !joinDismissed ? { label: PLATFORM_LABEL[liveMeeting.platform], source: PLATFORM_SOURCE[liveMeeting.platform], onJoin: () => toast(`Opening ${PLATFORM_LABEL[liveMeeting.platform]}`), onDismiss: () => setJoinDismissed("1") } : undefined}
             isPaused={isPaused}
             elapsedSeconds={recordingElapsed}
             onPauseResume={isPaused ? resumeInstantRecording : pauseInstantRecording}
@@ -3635,10 +3718,9 @@ export function TranscriptionDetailPage() {
           onSetTemplate={() => { setActiveTab("summary"); setTemplatePickerOpen(true); }}
           onMoveToFolder={moveToFolder}
           chips={desktopShell ? (<>
+            <MeetingCard meetingId={recordMeetingId} onChange={setRecordMeetingId} dateLabel={(selectedRecord?.dateCreated ?? "Mar 24, 2026 · 10:30 AM").split(/[,·]/)[0].trim()} />
             <span className="text-border">{"\u2022"}</span>
             <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />
-            <span className="text-border">{"\u2022"}</span>
-            <MeetingChips meetingId={recordMeetingId} onChange={setRecordMeetingId} />
           </>) : undefined}
           onCreateFolderAndMove={createFolderAndMove}
           onExport={exportTranscript}
