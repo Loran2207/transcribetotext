@@ -165,7 +165,7 @@ export function NotesPad({ lines, onChange, templates, onTemplate, autoFocus = f
                         ) : (
                           <>
                             <span className="flex w-4 shrink-0 items-center justify-center">
-                              {it.icon && <Icon icon={it.icon} className="size-4 text-muted-foreground" strokeWidth={1.6} />}
+                              {it.icon && <Icon icon={it.icon} className={"size-4 " + (it.id === "tall" ? "text-primary" : "text-muted-foreground")} strokeWidth={1.6} />}
                             </span>
                             <span className="truncate">{it.name}</span>
                           </>
