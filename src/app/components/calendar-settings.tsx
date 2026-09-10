@@ -115,7 +115,7 @@ function saveSettings(settings: MeetingSettings) {
    Building blocks
    ═══════════════════════════════════════════ */
 
-function SettingsCard({ children }: { children: React.ReactNode }) {
+export function SettingsCard({ children }: { children: React.ReactNode }) {
   return (
     <section className="rounded-xl border border-border bg-card px-6 py-5">
       {children}
@@ -123,7 +123,7 @@ function SettingsCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-function SettingsCardTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+export function SettingsCardTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-4">
       <h3 className="text-[15px] font-semibold text-foreground tracking-tight">{title}</h3>

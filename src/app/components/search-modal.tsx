@@ -314,10 +314,10 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
 
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[10vh]">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[3px]" onClick={() => { closeDropdowns(); onClose(); }} />
+      <div className="ttt-dim absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={() => { closeDropdowns(); onClose(); }} />
 
       <div
-        className="relative w-[calc(100vw-24px)] max-w-[560px] lg:w-[640px] lg:max-w-none rounded-[16px] overflow-visible flex flex-col bg-popover"
+        className="ttt-search md:relative max-md:fixed max-md:inset-0 max-md:z-[210] md:w-[calc(100vw-24px)] md:max-w-[560px] lg:w-[640px] lg:max-w-none md:rounded-[16px] overflow-visible flex flex-col md:bg-popover max-md:bg-background max-md:!max-h-none max-md:!shadow-none max-md:pt-[env(safe-area-inset-top)] max-md:pb-[env(safe-area-inset-bottom)]"
         style={{
           boxShadow: "0px 24px 64px rgba(0,0,0,0.12), 0px 8px 24px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04)",
           maxHeight: "70vh",
@@ -326,7 +326,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
       >
         {/* ─── Search Header ─── */}
         <div className="flex items-center gap-[8px] px-[14px] h-[52px] shrink-0 border-b border-border">
-          <ScopeSelector scope={scope} onChange={setScope} />
+          <div className="shrink-0 max-md:hidden"><ScopeSelector scope={scope} onChange={setScope} /></div>
           <div className="flex items-center gap-[8px] flex-1 min-w-0" onClick={e => e.stopPropagation()}>
             <Icon icon={Search} className="size-[15px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
             <Input
@@ -349,8 +349,23 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           </div>
         </div>
 
+        {/* Phone: scope as LINE tabs (matches the app tabs everywhere else) */}
+        <div className="md:hidden flex items-center gap-6 px-[16px] shrink-0 border-b border-border">
+          {(["recordings", "folders"] as const).map((sc) => (
+            <button
+              key={sc}
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setScope(sc); }}
+              className={`relative -mb-px py-[10px] text-[13px] font-medium transition-colors ${scope === sc ? "text-primary" : "text-muted-foreground"}`}
+            >
+              {sc === "recordings" ? "Recordings" : "Folders"}
+              {scope === sc && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />}
+            </button>
+          ))}
+        </div>
+
         {/* ─── Filter Chips ─── */}
-        <div className="flex items-center gap-[6px] px-[14px] py-[8px] shrink-0 flex-wrap border-b border-border">
+        <div className="flex items-center gap-[6px] px-[16px] py-[10px] shrink-0 max-md:overflow-x-auto max-md:flex-nowrap max-md:[&::-webkit-scrollbar]:hidden md:flex-wrap border-b border-border">
           {/* Folders */}
           {scope === "recordings" && (
             <div className="relative" onClick={e => e.stopPropagation()}>
@@ -469,7 +484,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {scope === "recordings" && (hasQuery || hasFilters) && recordingResults.length > 0 && (
             <div className="px-[10px] py-[6px]">
               <div className="px-[8px] pt-[6px] pb-[4px]">
-                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px]">Best matches</span>
+                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px] max-lg:text-[15px] max-lg:leading-[20px] max-lg:font-semibold max-lg:text-foreground max-lg:tracking-normal">Best matches</span>
               </div>
               {recordingResults.map(r => (
                 <Button variant="ghost"
@@ -506,7 +521,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {scope === "folders" && (hasQuery || hasFilters) && folderResults.length > 0 && (
             <div className="px-[10px] py-[6px]">
               <div className="px-[8px] pt-[6px] pb-[4px]">
-                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px]">Matching folders</span>
+                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px] max-lg:text-[15px] max-lg:leading-[20px] max-lg:font-semibold max-lg:text-foreground max-lg:tracking-normal">Matching folders</span>
               </div>
               {folderResults.map(f => (
                 <Button variant="ghost"
@@ -538,7 +553,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           {!hasQuery && !hasFilters && (
             <div className="px-[10px] py-[6px]">
               <div className="px-[8px] pt-[6px] pb-[4px]">
-                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px]">Recent searches</span>
+                <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px] max-lg:text-[15px] max-lg:leading-[20px] max-lg:font-semibold max-lg:text-foreground max-lg:tracking-normal">Recent searches</span>
               </div>
               {recentSearches.length === 0 ? (
                 <div className="px-[8px] py-[14px] text-center">

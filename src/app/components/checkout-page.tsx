@@ -1,83 +1,19 @@
 import { useSearchParams } from "react-router";
 import { PaymentError, PAYMENT_ERRORS, VARIANT_ORDER, type PaymentErrorVariant } from "./payment-error";
+import { CardFields, CheckoutCloseButton, PaymentButtons, SummaryRow, TrustBadges } from "./checkout-parts";
+import { Button } from "./ui/button";
 
 /* ─────────────────────────────────────────────────────────────
    Isolated mobile "Complete Checkout" screen (Figma node 2627:3)
    with the real brand-button + no-Stripe trust-badge images.
-   Standalone route, design + capture only.
+   Standalone route, design + capture only. The 75% win-back
+   variation of this screen lives at /checkout-75.
    Query modes:
      ?err=<key>&v=<1..4>   error block above the payment buttons, design variant v
      ?msgs=<1..4>          one design variant shown across every error message
    ───────────────────────────────────────────────────────────── */
 
-const ASSET = {
-  paypal: "/checkout/paypal.png",
-  link: "/checkout/link.png",
-  gpay: "/checkout/gpay.png",
-  badges: "/checkout/badges.png",
-};
-
 const MSG_ORDER = ["payment_error", "card_declined", "insufficient_funds", "card_expired", "incorrect_details"];
-
-function CloseButton() {
-  return (
-    <button type="button" aria-label="Close" className="absolute right-[16px] top-[16px] flex items-center justify-center size-[28px] rounded-full bg-primary/[0.08]">
-      <svg className="size-[14px] text-primary" fill="none" viewBox="0 0 16 16">
-        <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      </svg>
-    </button>
-  );
-}
-
-function SummaryRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
-  return (
-    <div className="flex items-baseline justify-between">
-      <span className={`text-[15px] ${bold ? "font-semibold text-foreground" : "font-normal text-foreground"}`}>{label}</span>
-      <span className={`text-[15px] ${bold ? "font-semibold text-foreground" : "font-medium text-foreground"}`}>{value}</span>
-    </div>
-  );
-}
-
-function PaymentButtons() {
-  return (
-    <div className="flex flex-col gap-[12px]">
-      <img src={ASSET.paypal} alt="Pay with PayPal" className="block w-full" draggable={false} />
-      <img src={ASSET.link} alt="Pay with Link" className="block w-full" draggable={false} />
-      <img src={ASSET.gpay} alt="Pay with Google Pay" className="block w-full" draggable={false} />
-    </div>
-  );
-}
-
-function CardFields() {
-  return (
-    <div className="flex flex-col gap-[10px]">
-      <div className="flex items-center h-[48px] px-[14px] rounded-[10px] border border-border bg-background">
-        <span className="text-[14px] text-muted-foreground">Credit or Debit card number</span>
-      </div>
-      <div className="flex gap-[10px]">
-        <div className="flex items-center flex-1 h-[48px] px-[12px] rounded-[10px] border border-border bg-background">
-          <span className="text-[13.5px] text-muted-foreground whitespace-nowrap">Expiry date MM/YY</span>
-        </div>
-        <div className="flex items-center flex-1 h-[48px] px-[12px] rounded-[10px] border border-border bg-background">
-          <span className="flex-1 text-[13.5px] text-muted-foreground">CVV/CVC</span>
-          <svg className="size-[18px] text-muted-foreground/70 shrink-0" fill="none" viewBox="0 0 20 20">
-            <circle cx="10" cy="10" r="7.25" stroke="currentColor" strokeWidth="1.4" />
-            <path d="M10 9v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-            <circle cx="10" cy="6.6" r="0.9" fill="currentColor" />
-          </svg>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ContinueButton() {
-  return (
-    <button type="button" className="w-full h-[48px] rounded-[10px] bg-primary text-primary-foreground font-semibold text-[15px]">
-      Continue
-    </button>
-  );
-}
 
 /* One design variant shown across every error message. */
 function MessageGallery({ variant }: { variant: PaymentErrorVariant }) {
@@ -116,7 +52,7 @@ export function CheckoutPage() {
   return (
     <div className="min-h-screen w-full flex justify-center bg-background">
       <div className="relative w-full max-w-[390px] bg-card flex flex-col px-[20px] pt-[52px] pb-[28px]">
-        <CloseButton />
+        <CheckoutCloseButton />
 
         <h1 className="text-center font-bold text-foreground text-[26px] leading-[31px] tracking-[-0.3px]">
           Complete Checkout
@@ -138,9 +74,11 @@ export function CheckoutPage() {
 
         <div className="mt-[24px]"><PaymentButtons /></div>
         <div className="mt-[18px]"><CardFields /></div>
-        <div className="mt-[12px]"><ContinueButton /></div>
+        <div className="mt-[12px]">
+          <Button className="h-[48px] w-full text-[15px] font-semibold">Continue</Button>
+        </div>
 
-        <img src={ASSET.badges} alt="Guaranteed safe and secure checkout. Visa, Mastercard, American Express, Google Pay, Apple Pay, PayPal accepted." className="block w-full mt-[26px]" draggable={false} />
+        <TrustBadges className="mt-[26px]" />
 
         <p className="mt-[14px] text-center text-[12px] leading-[18px] text-muted-foreground">
           By proceeding with the purchase, you agree to our{" "}

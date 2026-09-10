@@ -3,8 +3,12 @@ import { createPortal } from "react-dom";
 import { useFolders, type FolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
-import { RecordsTable, records as mockRecords, type RecordRow } from "./records-table";
+import { RecordsTable, records as mockRecords, type RecordRow, SharedBadge, SHARED_FOLDER_IDS } from "./records-table";
 import { ExportFormatSubMenu } from "./export-format-menu";
+import { ScrollFade } from "./scroll-fade";
+import { Drawer, DrawerContent, DrawerTitle } from "./ui/drawer";
+import { setInnerScreen } from "./inner-screen";
+import { setFabHidden } from "./fab-visibility";
 import {
   exportRecords,
   type ExportableRecord,
@@ -33,7 +37,8 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Icon } from "./ui/icon";
-import { FolderOpen, Edit, Trash, MoreHorizontal, Upload, ChevronDown, ChevronUp, Microphone, Link, Video, CloudUpload } from "@hugeicons/core-free-icons";
+import { FolderOpen, Edit, Trash, MoreHorizontal, Upload, ChevronDown, ChevronUp, Microphone, Link, Video, CloudUpload, FolderPlus, Share } from "@hugeicons/core-free-icons";
+import { ShareDialog } from "./share-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -132,8 +137,8 @@ function FolderFormDialog({ open, onClose, folder, onSave, title, submitLabel }:
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative rounded-[20px] w-[400px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">{title}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center">
@@ -209,8 +214,8 @@ function MoveFolderDialog({ open, onClose, movingFolder, allFolders, onMove }: {
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[360px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative rounded-[20px] w-[360px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">Move to folder</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full">
@@ -261,15 +266,7 @@ function MoveFolderDialog({ open, onClose, movingFolder, allFolders, onMove }: {
   );
 }
 
-/* ── FolderPlus icon ── */
-function FolderPlusIcon() {
-  return (
-    <svg className="size-[15px]" fill="none" viewBox="0 0 16 16">
-      <path d="M14.667 12.667a1.333 1.333 0 01-1.334 1.333H2.667a1.333 1.333 0 01-1.334-1.333V3.333A1.333 1.333 0 012.667 2h4l1.333 2h5.333a1.333 1.333 0 011.334 1.333v7.334z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 7v4M6 9h4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-    </svg>
-  );
-}
+
 
 /* ── MyRecordsPage ── */
 
@@ -285,6 +282,8 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   // Create folder dialog
   const [createOpen, setCreateOpen] = useState(false);
+  const [folderAddOpen, setFolderAddOpen] = useState(false);
+  const [folderActionsOpen, setFolderActionsOpen] = useState(false);
   // If set, after creating a new folder we move this folder ID into it
   const [moveAfterCreate, setMoveAfterCreate] = useState<string | null>(null);
 
@@ -293,6 +292,10 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   // Move folder dialog
   const [movingFolder, setMovingFolder] = useState<FolderItem | null>(null);
+
+  /* A folder can be shared, so every place that lists a folder's actions has to
+     offer it - the card, the folder you have open, and the phone sheet. */
+  const [sharingFolder, setSharingFolder] = useState<FolderItem | null>(null);
 
   // Drag & drop state
   const [dragOver, setDragOver] = useState(false);
@@ -392,8 +395,51 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
     }
   }
 
+  const pageScrollRef = useRef<HTMLDivElement>(null);
+
+  /* Hide the floating "+" while the pagination bar (list bottom) is in view so it never overlaps. */
+  useEffect(() => {
+    const el = pageScrollRef.current;
+    if (!el) return;
+    const check = () => setFabHidden(el.scrollHeight - el.scrollTop - el.clientHeight < 96 && el.scrollHeight > el.clientHeight + 40);
+    check();
+    el.addEventListener("scroll", check, { passive: true });
+    return () => { el.removeEventListener("scroll", check); setFabHidden(false); };
+  }, [activeFolderId]);
+
+  /* Phone chrome: inside a folder the top bar becomes back + "My Records / <name>"
+     with the folder kebab on the right; the wrapping desktop header hides below md. */
+  useEffect(() => {
+    if (!activeFolder) { setInnerScreen(null); return; }
+    // Max nesting is two levels (folder in folder). The top bar shows the immediate
+    // parent + current folder ("Client Calls / Q2 notes" when nested, "My Records /
+    // Client Calls" at the top level); back climbs ONE level. The folder "..." moved
+    // to the bottom bar (next to Add file) since it acts on the whole folder.
+    const parentFolder = activeFolderPath.length > 1 ? activeFolderPath[activeFolderPath.length - 2] : null;
+    setInnerScreen({
+      back: () => setActiveFolderId(parentFolder ? parentFolder.id : null),
+      parent: parentFolder ? parentFolder.name : t("nav.myRecords"),
+      title: activeFolder.name,
+      hideNav: true,
+      bottomBar: (
+        <div className="flex items-center gap-[10px]">
+          <Button variant="pill-outline" onClick={() => setFolderAddOpen(true)} className="flex-1 h-[46px] rounded-full text-[14px] font-semibold gap-[8px] text-foreground">
+            <Icon icon={CloudUpload} className="size-[17px] text-foreground" strokeWidth={1.7} />
+            Add file
+          </Button>
+          <Button variant="pill-outline" size="icon" onClick={() => setFolderActionsOpen(true)} className="size-[46px] shrink-0 text-foreground" aria-label="Folder actions">
+            <Icon icon={MoreHorizontal} className="size-5" strokeWidth={2} />
+          </Button>
+        </div>
+      ),
+    });
+    return () => setInnerScreen(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFolder]);
+
   return (
     <div
+      ref={pageScrollRef}
       className={`flex-1 overflow-auto min-w-0 relative ${dragOver ? "bg-primary/[0.04]" : ""}`}
       style={{ transition: "background-color 0.15s ease" }}
       onDragEnter={handleDragEnter}
@@ -401,6 +447,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
+      <ScrollFade scrollRef={pageScrollRef} />
       {/* Drag-over border highlight */}
       {dragOver && (
         <div
@@ -409,10 +456,10 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
         />
       )}
 
-      <div className="px-[32px] pt-[28px] pb-[24px]">
+      <div className="px-[16px] pt-[16px] pb-[24px] md:px-[24px] md:pt-[20px] lg:px-[32px] lg:pt-[28px]">
 
-        {/* Header row */}
-        <div className="flex items-center justify-between gap-[12px]">
+        {/* Header row (phones hide it inside a folder - the inner top bar takes over) */}
+        <div className={`flex items-center justify-between gap-[12px] ${isInsideFolder ? "max-md:hidden" : ""}`}>
           {isInsideFolder ? (
             <Breadcrumb>
               <BreadcrumbList className="text-[13px]">
@@ -446,8 +493,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             </Breadcrumb>
           ) : (
             <p
-              className="whitespace-nowrap text-foreground"
-              style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}
+              className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap"
             >
               {t("nav.myRecords")}
             </p>
@@ -468,7 +514,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="pill-outline"
-                  className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
+                  className="max-lg:hidden flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
                 >
                   <Icon icon={CloudUpload} className="size-[15px] text-foreground" strokeWidth={1.5} />
                   <span className="font-medium text-[13px] text-foreground">Upload</span>
@@ -497,9 +543,9 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             <Button
               variant="pill-outline"
               onClick={() => setCreateOpen(true)}
-              className="hidden lg:flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
+              className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
             >
-              <FolderPlusIcon />
+              <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
               <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
             </Button>
             {isInsideFolder && activeFolder && (
@@ -545,6 +591,10 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                     triggerLabel={`Export files (${folderRecordCounts.get(activeFolder.id) ?? 0})`}
                     onSelect={(format) => exportFolder(activeFolder.id, format)}
                   />
+                  <DropdownMenuItem className="gap-2" onClick={() => setSharingFolder(activeFolder)}>
+                    <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                    Share folder
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => setDeletingFolderId(activeFolder.id)}>
                     <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
@@ -557,7 +607,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
         </div>
 
         {/* Folder cards grid */}
-        <div className={isInsideFolder ? "mt-[16px]" : "mt-[24px]"}>
+        <div className={isInsideFolder ? "max-md:mt-0 mt-[16px]" : "mt-[24px] max-lg:mt-[16px]"}>
           <div className="hidden lg:block">
           {demoRecordsLoading && (
             <div className="mb-[20px]">
@@ -603,6 +653,11 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                         <FolderGlyph color={folder.color} size={22} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-[14px] font-semibold text-foreground leading-tight">{folder.name}</p>
+                          {SHARED_FOLDER_IDS.has(folder.id) && (
+                            /* The same mark a record row carries: this one is
+                               open to more than you. */
+                            <span className="mt-[3px] inline-flex"><SharedBadge /></span>
+                          )}
                           <p className="text-[12px] text-muted-foreground leading-tight mt-[2px]">
                             {recordsCount} {recordsLabel}
                           </p>
@@ -653,6 +708,10 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                               </DropdownMenuItem>
                             </DropdownMenuSubContent>
                           </DropdownMenuSub>
+                          <DropdownMenuItem className="gap-2" onClick={() => setSharingFolder(folder)}>
+                            <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                            Share folder
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => setDeletingFolderId(folder.id)}>
                             <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
@@ -670,7 +729,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
           </div>
 
-          <RecordsTable hideTopHeader showAddFolderButton={false} scopedFolderId={activeFolderId} onOpenFolder={(folderId) => setActiveFolderId(folderId)} />
+          <RecordsTable hideTopHeader showAddFolderButton={false} surface="records" scopedFolderId={activeFolderId} onOpenFolder={(folderId) => setActiveFolderId(folderId)} />
         </div>
       </div>
 
@@ -689,6 +748,73 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
           }
         }}
       />
+
+      <ShareDialog
+        open={!!sharingFolder}
+        onOpenChange={(open) => { if (!open) setSharingFolder(null); }}
+        resourceType="folder"
+        resourceId={sharingFolder?.id ?? ""}
+        resourceName={sharingFolder?.name ?? ""}
+      />
+
+      {/* Folder actions sheet (opened from the "..." in the bottom bar) - acts on the whole folder */}
+      <Drawer open={folderActionsOpen} onOpenChange={setFolderActionsOpen}>
+        <DrawerContent className="[&>div:first-child]:hidden">
+          <div className="flex items-center gap-[10px] px-[18px] pt-[18px] pb-[10px]">
+            {activeFolder && <svg className="size-[22px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={FOLDER_PATH} fill={activeFolder.color} /></svg>}
+            <DrawerTitle className="flex-1 min-w-0 truncate" style={{ fontSize: 15, fontWeight: 600 }}>{activeFolder?.name}</DrawerTitle>
+          </div>
+          <div className="px-[14px] pb-[calc(16px+env(safe-area-inset-bottom))] pt-[4px] flex flex-col">
+            <button onClick={() => { setFolderActionsOpen(false); if (activeFolder) setEditingFolder(activeFolder); }} className="flex items-center gap-[13px] h-[52px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
+              <Icon icon={Edit} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
+              <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Edit folder</span>
+            </button>
+            <button onClick={() => { setFolderActionsOpen(false); if (activeFolder) setSharingFolder(activeFolder); }} className="flex items-center gap-[13px] h-[52px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
+              <Icon icon={Share} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
+              <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>Share folder</span>
+            </button>
+            <button onClick={() => { setFolderActionsOpen(false); if (activeFolder) setDeletingFolderId(activeFolder.id); }} className="flex items-center gap-[13px] h-[52px] px-[12px] rounded-[12px] active:bg-destructive/10 transition-colors text-left">
+              <Icon icon={Trash} className="size-[19px] text-destructive" strokeWidth={1.7} />
+              <span className="flex-1 text-destructive" style={{ fontSize: 14, fontWeight: 500 }}>Delete folder</span>
+            </button>
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Folder inner-screen: the pinned "Add file" bar opens these create options, scoped to the folder */}
+      <Drawer open={folderAddOpen} onOpenChange={setFolderAddOpen}>
+        <DrawerContent className="[&>div:first-child]:hidden">
+          <div className="px-[18px] pt-[18px] pb-[10px]">
+            <DrawerTitle style={{ fontSize: 18, fontWeight: 600 }}>Add file to folder</DrawerTitle>
+          </div>
+          <div className="px-[18px] pb-[24px] flex flex-col gap-[8px]">
+            <button key="upload" onClick={() => { setFolderAddOpen(false); openModalInFolder("upload"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+              <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#ECEAFE", color: "#7C3AED" }}>
+                <Icon icon={Upload} className="size-[20px]" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Audio & video files</span>
+            </button>
+            <button key="record" onClick={() => { setFolderAddOpen(false); openModalInFolder("record"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+              <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#E3F0FE", color: "#2563EB" }}>
+                <Icon icon={Microphone} className="size-[20px]" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Instant speech</span>
+            </button>
+            <button key="meeting" onClick={() => { setFolderAddOpen(false); openModalInFolder("meeting"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+              <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#FFF1DC", color: "#D97706" }}>
+                <Icon icon={Video} className="size-[20px]" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Meeting recorder</span>
+            </button>
+            <button key="link" onClick={() => { setFolderAddOpen(false); openModalInFolder("link"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+              <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#FEECEB", color: "#EF4444" }}>
+                <Icon icon={Link} className="size-[20px]" strokeWidth={1.9} />
+              </span>
+              <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Transcribe from link</span>
+            </button>
+          </div>
+        </DrawerContent>
+      </Drawer>
 
       {/* Edit folder dialog */}
       <FolderFormDialog

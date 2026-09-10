@@ -10,12 +10,19 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { useFolders, type FolderItem as CtxFolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
-import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit } from "@hugeicons/core-free-icons";
+import { setFabHidden } from "./fab-visibility";
+import { ActionSheet, ActionSheetItem } from "./action-sheet";
+import { ChevronRight, FolderPlus, Copy, Share, FolderOpen, Upload, Trash, Edit, X, MoreHorizontal } from "@hugeicons/core-free-icons";
 import { ShareDialog } from "./share-dialog";
+import { Drawer, DrawerContent, DrawerTitle } from "./ui/drawer";
+import { useIsMobile } from "./ui/use-mobile";
 import { Icon } from "./ui/icon";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
+import { useSidebar } from "./ui/sidebar";
 import { RecordCard as RecordCardMobile } from "./record-card";
+import { RecordsMobileSort } from "./records-mobile-sort";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
@@ -51,19 +58,26 @@ import {
    Column Configuration Types
    ══════════════════════════════════════════════ */
 
-type ColumnId = "template" | "lang" | "duration" | "date";
+type ColumnId = "template" | "folder" | "lang" | "duration" | "date";
 
 const COLUMN_LABEL_KEYS: Record<ColumnId, string> = {
   template: "table.template",
+  folder: "table.folder",
   lang: "table.colLanguage",
   duration: "table.duration",
   date: "table.colDateCreated",
 };
 
-const DEFAULT_COLUMN_ORDER: ColumnId[] = ["template", "lang", "duration", "date"];
+const DEFAULT_COLUMN_ORDER: ColumnId[] = ["template", "folder", "lang", "duration", "date"];
+
+/* The folder cell has two widths. On the dashboard the right rail takes a third
+   of the row, so only the colour fits and the name arrives on hover. On My
+   Records there is room, so the name is written out. */
+type FolderColumnMode = "compact" | "full";
+const NO_FOLDER = "__no_folder__";
 
 /* ── Inline folder helpers ── */
-const INLINE_FOLDER_PATH = "M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z";
+export const INLINE_FOLDER_PATH = "M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z";
 const INLINE_FOLDER_COLORS = [
   { id: "blue", color: "#3B82F6" }, { id: "green", color: "#22C55E" }, { id: "amber", color: "#F59E0B" }, { id: "red", color: "#EF4444" },
   { id: "purple", color: "#8B5CF6" }, { id: "pink", color: "#EC4899" }, { id: "cyan", color: "#06B6D4" }, { id: "gray", color: "#6B7280" },
@@ -85,7 +99,7 @@ function flattenFoldersInTable(folders: CtxFolderItem[], excludeId?: string): Ct
    Figma-exact Checkbox
    ══════════════════════════════════════════════ */
 
-function FigmaCheckbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+export function FigmaCheckbox({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
     <Button type="button" variant="ghost" size="icon" onClick={onChange} className="relative size-[16px] shrink-0">
       <div
@@ -134,12 +148,12 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M11.333 2a1.886 1.886 0 012.667 2.667L5.333 13.333 2 14l.667-3.333L11.333 2z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground" /></svg>
       </Button>
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title="Share" onClick={(e) => { e.stopPropagation(); onShare(); }}>
-        <svg className="size-[15px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
-          <circle cx="12" cy="2.667" r="1.667" stroke="currentColor" strokeWidth="1.2"/>
-          <circle cx="4" cy="8" r="1.667" stroke="currentColor" strokeWidth="1.2"/>
-          <circle cx="12" cy="13.333" r="1.667" stroke="currentColor" strokeWidth="1.2"/>
-          <path d="M5.58 6.94l4.84-2.82M10.42 11.88L5.58 9.06" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-        </svg>
+        {/* The same glyph the result page's Share button carries. This row used
+            to draw its own three-node icon, so one action had two faces. */}
+        {/* Its neighbours in this row are hand-drawn on a 16 grid, this one comes
+            from the icon pack on a 24 grid: the same number renders a third
+            thinner. 1.8 on 24 is the 1.2 the others draw on 16. */}
+        <Icon icon={Share} className="size-[15px] text-muted-foreground" strokeWidth={1.8} />
       </Button>
       <Button variant="ghost" size="icon" className="size-[28px] rounded-full flex items-center justify-center transition-colors hover:bg-accent" title={isStarred ? "Unstar" : "Star"} onClick={(e) => { e.stopPropagation(); onStar(); }}>
         <svg className="size-[15px]" fill="none" viewBox="0 0 16 16"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" className={isStarred ? "" : "text-muted-foreground"} /></svg>
@@ -185,12 +199,13 @@ function RowActions({ isStarred, onStar, onEdit, onShare, onMoveFolder, onTrash,
    Multi-select Column Header Dropdown
    ══════════════════════════════════════════════ */
 
-function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "left" }: {
+export function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "left", compactIcon }: {
   label: string;
-  options: { id: string; label: string; icon?: string; sourceIcon?: SourceType }[];
+  options: { id: string; label: string; icon?: string; sourceIcon?: SourceType; color?: string }[];
   selected: Set<string>;
   onToggle: (id: string) => void;
   align?: "left" | "right";
+  compactIcon?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -202,10 +217,14 @@ function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "lef
 
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen(!open)} className="flex items-center gap-[3px] transition-opacity hover:opacity-70 group">
-        <span className={`uppercase tracking-[0.3404px] font-medium text-[11px] ${isFiltered ? "text-primary" : "text-foreground"}`}>
-          {label}
-        </span>
+      <button onClick={() => setOpen(!open)} aria-label={label} title={compactIcon ? label : undefined} className="flex items-center gap-[3px] transition-opacity hover:opacity-70 group">
+        {compactIcon ? (
+          <span className={isFiltered ? "text-primary" : "text-muted-foreground"}>{compactIcon}</span>
+        ) : (
+          <span className={`uppercase tracking-[0.3404px] font-medium text-[11px] ${isFiltered ? "text-primary" : "text-foreground"}`}>
+            {label}
+          </span>
+        )}
         {isFiltered && (
           <span className="ml-[2px] font-semibold text-[10px] text-primary">{filterCount}</span>
         )}
@@ -233,6 +252,7 @@ function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "lef
                 </div>
                 {opt.sourceIcon && <div className="w-[18px] shrink-0 flex items-center justify-center"><SourceIcon source={opt.sourceIcon} /></div>}
                 {opt.icon && !opt.sourceIcon && <span className="text-[14px] w-[18px] text-center shrink-0">{opt.icon}</span>}
+                {opt.color && <span className="w-[18px] shrink-0 flex items-center justify-center"><svg className="size-[16px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={opt.color} /></svg></span>}
                 <span className={`flex-1 text-left truncate text-[13px] ${isSelected ? "font-medium text-primary" : "text-foreground"}`}>{opt.label}</span>
               </Button>
             );
@@ -244,7 +264,7 @@ function ColumnHeaderDropdown({ label, options, selected, onToggle, align = "lef
 }
 
 /* Sort header (Date column) */
-function SortHeaderDropdown({ label, options, selected, onSelect, align = "left" }: {
+export function SortHeaderDropdown({ label, options, selected, onSelect, align = "left" }: {
   label: string; options: { id: string; label: string }[]; selected: string; onSelect: (id: string) => void; align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
@@ -275,7 +295,7 @@ function SortHeaderDropdown({ label, options, selected, onSelect, align = "left"
    Search
    ══════════════════════════════════════════════ */
 
-function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+export function SearchInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { function h(e: KeyboardEvent) { if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); inputRef.current?.focus(); } } document.addEventListener("keydown", h); return () => document.removeEventListener("keydown", h); }, []);
   return (
@@ -320,6 +340,36 @@ function MultiSelectTextBtn({ icon, label, onClick, variant = "primary" }: { ico
       {icon}
       <span className="font-medium text-[13px]">{label}</span>
     </button>
+  );
+}
+
+export function MSActionBtn({ icon, label, onClick, destructive = false }: { icon: React.ComponentProps<typeof Icon>["icon"]; label: string; onClick: () => void; destructive?: boolean }) {
+  /* The box grows with its own word rather than clipping it or letting two
+     labels run into each other - min-w only sets the floor for short ones. */
+  return (
+    <button type="button" onClick={onClick} className="flex flex-col items-center justify-center gap-[3px] min-w-[46px] h-[46px] px-[8px] rounded-[12px] active:bg-muted transition-colors">
+      <Icon icon={icon} className={"size-[18px] " + (destructive ? "text-destructive" : "text-foreground")} strokeWidth={1.6} />
+      <span className={"whitespace-nowrap text-[10px] leading-none font-medium " + (destructive ? "text-destructive" : "text-muted-foreground")}>{label}</span>
+    </button>
+  );
+}
+
+/* The one bar a touch screen gets when rows are selected: it floats above the
+   list at the bottom edge, close cross and count on the left, the actions on
+   the right. Every list in the product mounts this same shell and names its own
+   actions inside it, so selecting rows feels identical wherever it happens. */
+export function MobileBulkBar({ count, onCancel, children }: { count: number; onCancel: () => void; children: React.ReactNode }) {
+  return (
+    <div className="lg:hidden fixed left-[12px] z-40" style={{ right: 12, bottom: "calc(16px + env(safe-area-inset-bottom))" }}>
+      <div className="rounded-[18px] bg-card border border-border px-[8px] py-[7px] flex items-center gap-[2px]" style={{ boxShadow: "0 10px 30px -6px rgba(16,24,40,0.22), 0 2px 8px -2px rgba(16,24,40,0.12)" }}>
+        <button type="button" onClick={onCancel} aria-label="Cancel selection" className="size-[38px] rounded-full flex items-center justify-center text-muted-foreground active:bg-muted transition-colors">
+          <Icon icon={X} className="size-[18px]" strokeWidth={1.8} />
+        </button>
+        <span className="mr-[2px] min-w-[18px] text-center text-[14px] font-bold text-foreground tabular-nums">{count}</span>
+        <div className="flex-1" />
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -564,13 +614,25 @@ function StatBadge({ icon, count }: { icon: "tasks" | "screenshots"; count: numb
 }
 
 /* Shared badge - outline pill matching screenshot */
-function SharedBadge() {
+/* One mark, one meaning: more than one person can see this. It says nothing
+   about who shared what with whom - that question belongs to Shared with me,
+   which answers it with a whole Owner column. Used wherever an object is
+   listed: a record row, a record card, a folder. */
+export function SharedBadge() {
   return (
-    <span className="inline-flex items-center shrink-0 h-[17px] px-[6px] rounded-full border border-border">
-      <span className="font-medium text-[11px] text-primary">Shared</span>
+    <span className="inline-flex h-[18px] shrink-0 items-center gap-[4px] rounded-full border border-border pl-[5px] pr-[7px]">
+      <svg className="size-[11px] shrink-0 text-primary" viewBox="0 0 16 16" fill="none">
+        <circle cx="6" cy="5.4" r="2.3" stroke="currentColor" strokeWidth="1.3" />
+        <path d="M1.9 12.4c0-1.8 1.8-3.1 4.1-3.1s4.1 1.3 4.1 3.1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+        <path d="M10.6 3.6a2 2 0 010 3.7M11.4 9.6c1.6.3 2.7 1.4 2.7 2.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      </svg>
+      <span className="whitespace-nowrap text-[11px] font-medium text-primary">Shared</span>
     </span>
   );
 }
+
+/** Folders of yours that other people can see. */
+export const SHARED_FOLDER_IDS = new Set(["f1", "f3"]);
 
 function InlineNameEditor({ value, onSave, onCancel }: { value: string; onSave: (v: string) => void; onCancel: () => void }) {
   const [text, setText] = useState(value);
@@ -635,7 +697,7 @@ function RecordCard({ record, isStarred, onStar }: { record: RecordRow; isStarre
    Empty State
    ══════════════════════════════════════════════ */
 
-function EmptyFilterState({ onClear }: { onClear: () => void }) {
+export function EmptyFilterState({ onClear }: { onClear: () => void }) {
   const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center py-[56px] px-[24px]">
@@ -655,7 +717,7 @@ function EmptyFilterState({ onClear }: { onClear: () => void }) {
   );
 }
 
-function EmptyTabState({ tab, onNew }: { tab: string; onNew?: () => void }) {
+export function EmptyTabState({ tab, onNew }: { tab: string; onNew?: () => void }) {
   const { t } = useLanguage();
 
   // Trash / Starred keep their simple single-line message.
@@ -714,8 +776,8 @@ export function CreateFolderModal({ open, onClose, onCreate }: { open: boolean; 
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative rounded-[20px] w-[400px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">{t("folder.createNew")}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center transition-colors"><svg className="size-[16px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></Button>
@@ -796,9 +858,9 @@ export function MoveToFolderDialog({ open, onClose, count, onMove, onCreateFolde
   const allFolders = ctxFolders && ctxFolders.length > 0 ? ctxFolders.map(f => ({ ...f, children: undefined })) : defaultFolders;
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[420px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center md:items-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative overflow-hidden bg-popover w-full rounded-t-[24px] rounded-b-none md:w-[420px] md:max-w-[calc(100vw-32px)] md:rounded-t-[20px] md:rounded-b-[20px]" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[6px]">
           <h2 className="font-bold text-[17px] text-foreground">{t("folder.moveTitle", count, count !== 1 ? "s" : "")}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center transition-colors"><svg className="size-[16px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></Button>
@@ -813,7 +875,7 @@ export function MoveToFolderDialog({ open, onClose, count, onMove, onCreateFolde
             <span className="font-medium text-[13px] text-muted-foreground">{t("folder.createNewFolder")}</span>
           </Button>
         </div>
-        <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px]">
+        <div className="flex items-center justify-end gap-[8px] px-[24px] py-[18px] mt-[4px] max-md:pb-[calc(18px+env(safe-area-inset-bottom))]">
           <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors"><span className="font-medium text-[13px] text-foreground">{t("common.cancel")}</span></Button>
           <Button onClick={() => { if (selectedId) { onMove(selectedId); onClose(); } }} disabled={!selectedId} className="h-[36px] px-[18px] rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-white"><span className="font-medium text-[13px]">{t("folder.moveHere")}</span></Button>
         </div>
@@ -833,8 +895,8 @@ function InlineFolderEditDialog({ open, folder, onClose, onSave }: { open: boole
   if (!open || !folder) return null;
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative rounded-[20px] w-[400px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">Edit folder</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center">
@@ -882,7 +944,7 @@ const DEMO_VIDEO_URL = "https://interactive-examples.mdn.mozilla.net/media/cc0-v
 export interface RecordRow {
   id: string; name: string; iconColor: string; iconType: "square" | "circle" | "link"; duration: string;
   dateCreated: string; dateGroup: string; template: string; language: string; source: SourceType;
-  summary: string; tasks: number; screenshots: number; time: string; thumbnail?: string; videoUrl?: string;
+  summary: string; tasks: number; screenshots: number; time: string; thumbnail?: string; videoUrl?: string; templateId?: string;
 }
 
 export const records: RecordRow[] = [
@@ -957,10 +1019,11 @@ function mapJobToRecord(job: TranscriptionJob): RecordRow {
     name: job.name,
     iconColor: "#3B82F6",
     iconType: "square",
-    duration: isDone ? (job.duration ?? "\u2014") : isError ? "Failed" : "In progress",
+    duration: isDone ? (job.duration ?? "-") : isError ? "Failed" : "In progress",
     dateCreated: dateParts.dateCreated,
     dateGroup: dateParts.dateGroup,
-    template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
+    template: job.templateName ?? (job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary"),
+    templateId: job.templateId,
     language: normalizeLanguage(job.lang, job.langBilingual),
     source: normalizeSource(job.source, job.fileType),
     summary: isDone
@@ -977,7 +1040,7 @@ function mapJobToRecord(job: TranscriptionJob): RecordRow {
 
 /* cellTextStyle is computed inside TableRow */
 
-const typeFilterOptions: { id: string; label: string; sourceIcon?: SourceType }[] = [
+export const typeFilterOptions: { id: string; label: string; sourceIcon?: SourceType }[] = [
   { id: "google-meet", label: "Google Meet", sourceIcon: "google-meet" }, { id: "zoom", label: "Zoom", sourceIcon: "zoom" },
   { id: "teams", label: "Teams", sourceIcon: "teams" }, { id: "microphone", label: "Microphone", sourceIcon: "microphone" },
   { id: "mp4", label: "MP4 File", sourceIcon: "mp4" }, { id: "mp3", label: "MP3 File", sourceIcon: "mp3" },
@@ -1002,7 +1065,7 @@ const dateFilterOptions = [{ id: "newest", label: "Newest first" }, { id: "oldes
    ══════════════════════════════════════════════ */
 
 interface SavedView {
-  id: string; name: string; typeFilter: Set<string>; templateFilter: Set<string>; langFilter: Set<string>; dateSort: string;
+  id: string; name: string; typeFilter: Set<string>; templateFilter: Set<string>; langFilter: Set<string>; folderFilter: Set<string>; dateSort: string;
 }
 
 function SavedViewTab({ view, isActive, onLoad, onRename, onDelete }: { view: SavedView; isActive: boolean; onLoad: () => void; onRename: (name: string) => void; onDelete: () => void }) {
@@ -1063,18 +1126,29 @@ interface RecordsTableProps {
   hideTopHeader?: boolean;
   showAddFolderButton?: boolean;
   scopedFolderId?: string | null;
-  showInlineFolderRows?: boolean;
+  /* "home" is the dashboard: a feed of recent records, with no folders on it at
+     all and only room for the folder colour. "records" is the place, where the
+     folders are the contents and the column writes their name out. */
+  surface?: "home" | "records";
   onNavigateToRecords?: () => void;
   onOpenFolder?: (folderId: string | null) => void;
 }
 
-export function RecordsTable({ hideTopHeader = false, showAddFolderButton = false, scopedFolderId = null, showInlineFolderRows = true, onNavigateToRecords, onOpenFolder }: RecordsTableProps = {}) {
+export function RecordsTable({ hideTopHeader = false, showAddFolderButton = false, scopedFolderId = null, surface = "records", onNavigateToRecords, onOpenFolder }: RecordsTableProps = {}) {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  
   const { jobs, setOpenModal } = useTranscriptionModals();
   const { folders: userFolders, addFolder: addFolderToContext, folderAssignments, assignToFolder, deleteFolder, renameFolder, changeFolderColor, moveFolder } = useFolders();
   const [deletingInlineFolderId, setDeletingInlineFolderId] = useState<string | null>(null);
   const [editingInlineFolder, setEditingInlineFolder] = useState<FolderItem | null>(null);
+  /* Below lg a folder card carries its own actions, so it needs somewhere to
+     put them. A menu is a menu at every touch width - the product opens More
+     actions, Template, Copy and Sort and filter as bottom sheets on a tablet
+     too - so this is the layout question (1024), not the phone one. */
+  const [sharingInlineFolder, setSharingInlineFolder] = useState<FolderItem | null>(null);
+  const [folderSheet, setFolderSheet] = useState<FolderItem | null>(null);
+  const menuIsSheet = useIsMobile();
   const [renamingInlineFolderId, setRenamingInlineFolderId] = useState<string | null>(null);
   const [dragRecordId, setDragRecordId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
@@ -1084,11 +1158,11 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
   const [templateFilter, setTemplateFilter] = useState<Set<string>>(new Set());
   const [langFilter, setLangFilter] = useState<Set<string>>(new Set());
+  const [folderFilter, setFolderFilter] = useState<Set<string>>(new Set());
   const [dateSort, setDateSort] = useState("newest");
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
-  const [mobileVisible, setMobileVisible] = useState(12);
   const [groupByDate, setGroupByDate] = useState(false);
   const [trashedIds, setTrashedIds] = useState<Set<string>>(() => {
     // Demo: ttt_trash_seed pre-fills Trash for design captures; off by default.
@@ -1119,7 +1193,31 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     setColumnOrder([...DEFAULT_COLUMN_ORDER]);
     setHiddenColumns(new Set());
   }
-  const visibleColumns = columnOrder.filter((c) => !hiddenColumns.has(c));
+  /* Inside a folder every row shares the same one, so the column would repeat a
+     single answer down the whole table. It earns its place only where records
+     from different folders are mixed. */
+  const showFolderColumn = !scopedFolderId;
+  const visibleColumns = columnOrder.filter((c) => !hiddenColumns.has(c)).filter((c) => c !== "folder" || showFolderColumn);
+  const folderColumnMode: FolderColumnMode = surface === "home" ? "compact" : "full";
+
+  /* A record knows only its folder id, so the column needs one flat lookup. */
+  const folderById = useMemo(() => {
+    const map = new Map<string, FolderItem>();
+    const walk = (list: FolderItem[]) => list.forEach((f) => { map.set(f.id, f); walk(f.children ?? []); });
+    walk(userFolders);
+    return map;
+  }, [userFolders]);
+  const folderOfRecord = useCallback(
+    (recordId: string) => folderById.get(folderAssignments[recordId] ?? "") ?? null,
+    [folderById, folderAssignments]
+  );
+  const folderFilterOptions = useMemo(
+    () => [
+      ...Array.from(folderById.values()).map((f) => ({ id: f.id, label: f.name, color: f.color })),
+      { id: NO_FOLDER, label: t("table.noFolder") },
+    ],
+    [folderById, t]
+  );
 
   function toggleSetItem(set: Set<string>, id: string): Set<string> { const next = new Set(set); if (next.has(id)) next.delete(id); else next.add(id); return next; }
   function toggleRow(id: string) { setSelectedRows((prev) => toggleSetItem(prev, id)); }
@@ -1137,10 +1235,10 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     });
   }
   function clearSelection() { setSelectedRows(new Set()); }
-  function clearAllFilters() { setSearchQuery(""); setTypeFilter(new Set()); setTemplateFilter(new Set()); setLangFilter(new Set()); setDateSort("newest"); }
+  function clearAllFilters() { setSearchQuery(""); setTypeFilter(new Set()); setTemplateFilter(new Set()); setLangFilter(new Set()); setFolderFilter(new Set()); setDateSort("newest"); }
   useEffect(() => { clearSelection(); }, [scopedFolderId]);
-  const hasActiveFilters = searchQuery !== "" || typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0;
-  const showSaveView = (typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0) && !activeTab.startsWith("sv_");
+  const hasActiveFilters = searchQuery !== "" || typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0 || folderFilter.size > 0;
+  const showSaveView = (typeFilter.size > 0 || templateFilter.size > 0 || langFilter.size > 0 || folderFilter.size > 0) && !activeTab.startsWith("sv_");
   function trashSelected() { setTrashedIds((prev) => { const next = new Set(prev); selectedRows.forEach((id) => next.add(id)); return next; }); clearSelection(); }
   function trashOne(id: string) { setTrashedIds((prev) => { const next = new Set(prev); next.add(id); return next; }); }
   function restoreFromTrash(id: string) { setTrashedIds((prev) => { const next = new Set(prev); next.delete(id); return next; }); }
@@ -1153,7 +1251,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
   function saveCurrentView() {
     const id = "sv_" + Date.now();
-    const newView: SavedView = { id, name: "My View", typeFilter: new Set(typeFilter), templateFilter: new Set(templateFilter), langFilter: new Set(langFilter), dateSort };
+    const newView: SavedView = { id, name: "My View", typeFilter: new Set(typeFilter), templateFilter: new Set(templateFilter), langFilter: new Set(langFilter), folderFilter: new Set(folderFilter), dateSort };
     setSavedViews((prev) => [...prev, newView]);
     // Clear filters from current tab and switch to new view
     clearAllFilters();
@@ -1162,9 +1260,10 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     setTypeFilter(new Set(newView.typeFilter));
     setTemplateFilter(new Set(newView.templateFilter));
     setLangFilter(new Set(newView.langFilter));
+    setFolderFilter(new Set(newView.folderFilter));
     setDateSort(newView.dateSort);
   }
-  function loadView(view: SavedView) { setTypeFilter(new Set(view.typeFilter)); setTemplateFilter(new Set(view.templateFilter)); setLangFilter(new Set(view.langFilter)); setDateSort(view.dateSort); setActiveTab(view.id); }
+  function loadView(view: SavedView) { setTypeFilter(new Set(view.typeFilter)); setTemplateFilter(new Set(view.templateFilter)); setLangFilter(new Set(view.langFilter)); setFolderFilter(new Set(view.folderFilter ?? [])); setDateSort(view.dateSort); setActiveTab(view.id); }
   function renameView(id: string, name: string) { setSavedViews((prev) => prev.map((v) => v.id === id ? { ...v, name } : v)); setEditingViewId(null); }
   function deleteView(id: string) { setSavedViews((prev) => prev.filter((v) => v.id !== id)); }
 
@@ -1201,7 +1300,12 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     return totals;
   }, [userFolders, folderAssignments]);
 
-  const jobRecords = useMemo(() => jobs.map(mapJobToRecord), [jobs]);
+  // Only finished transcriptions belong in the table. Everything in progress
+  // and everything failed lives in the widget.
+  const jobRecords = useMemo(
+    () => jobs.filter((job) => job.status === "done").map(mapJobToRecord),
+    [jobs],
+  );
   // Demo: ttt_starred_seed pads the list to 30 records and stars them all (design captures only; off by default).
   const demoStarAll = typeof window !== "undefined" && window.localStorage.getItem("ttt_starred_seed") === "1";
   // Demo: ttt_demo_records = "loading" (skeleton list) | "many" (pad list so pagination shows). Off by default.
@@ -1239,17 +1343,45 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
     if (typeFilter.size > 0) filteredRecords = filteredRecords.filter((r) => typeFilter.has(r.source));
     if (templateFilter.size > 0) filteredRecords = filteredRecords.filter((r) => templateFilter.has(r.template));
     if (langFilter.size > 0) filteredRecords = filteredRecords.filter((r) => langFilter.has(r.language));
+    if (folderFilter.size > 0) filteredRecords = filteredRecords.filter((r) => folderFilter.has(folderAssignments[r.id] ?? NO_FOLDER));
   }
   if (dateSort === "newest") filteredRecords = [...filteredRecords].sort((a, b) => b.dateCreated.localeCompare(a.dateCreated));
-  else filteredRecords = [...filteredRecords].sort((a, b) => a.dateCreated.localeCompare(b.dateCreated));
+  else if (dateSort === "oldest") filteredRecords = [...filteredRecords].sort((a, b) => a.dateCreated.localeCompare(b.dateCreated));
+  else if (dateSort === "name-asc") filteredRecords = [...filteredRecords].sort((a, b) => a.name.localeCompare(b.name));
+  else if (dateSort === "name-desc") filteredRecords = [...filteredRecords].sort((a, b) => b.name.localeCompare(a.name));
   // Demo: ?empty=1 (or localStorage ttt_empty) forces the empty-records state for design captures; off by default.
-  if (typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("empty") === "1" || window.localStorage.getItem("ttt_empty") === "1")) filteredRecords = [];
+  const forceEmpty = typeof window !== "undefined" && (new URLSearchParams(window.location.search).get("empty") === "1" || window.localStorage.getItem("ttt_empty") === "1");
+  if (forceEmpty) filteredRecords = [];
 
   // Demo: ?exportall=1 opens the export dialog with all visible records (design captures; off by default)
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (new URLSearchParams(window.location.search).get("exportall") !== "1" && window.localStorage.getItem("ttt_exportall") !== "1") return;
     const t = setTimeout(() => setExportDialogIds(filteredRecords.map((r) => r.id)), 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* Demo: ttt_exportsome=1 opens the dialog on a few records, so the archive
+     switch is meaningful and there are still files left to add. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem("ttt_exportsome") !== "1") return;
+    const few = filteredRecords.slice(0, 6).map((r) => r.id);
+    if (few.length === 0) return;
+    const t = setTimeout(() => setExportDialogIds(few), 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Demo: ttt_exportone=1 opens the same dialog on a single record, where the
+  // archive switch has nothing to pack (design captures; off by default).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.localStorage.getItem("ttt_exportone") !== "1") return;
+    const first = filteredRecords[0];
+    if (!first) return;
+    const t = setTimeout(() => setExportDialogIds([first.id]), 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -1275,8 +1407,6 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
   // Back to page 1 when the visible set changes shape
   useEffect(() => { setPage(1); }, [activeTab, searchQuery, pageSize]);
-  // Restart the below-lg card list when the visible set changes shape
-  useEffect(() => { setMobileVisible(12); }, [activeTab, searchQuery, typeFilter, templateFilter, langFilter, dateSort]);
 
 
   const allSelected = pagedRecords.length > 0 && pagedRecords.every(r => selectedRows.has(r.id));
@@ -1289,6 +1419,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   }
 
   const hasSelection = selectedRows.size > 0 && activeTab !== "Trash";
+  useEffect(() => { setFabHidden(hasSelection, "select"); return () => setFabHidden(false, "select"); }, [hasSelection]);
 
   const sharedCount = scopedActiveRecords.filter((r) => sharedIds.has(r.id) || false).length;
 
@@ -1307,6 +1438,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
             <Icon icon={ChevronRight} className="size-[16px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
           </button>
           <div className="flex-1" />
+          <div className="lg:hidden"><RecordsMobileSort dateSort={dateSort} setDateSort={setDateSort} typeFilter={typeFilter} setTypeFilter={setTypeFilter} typeOptions={typeFilterOptions} templateFilter={templateFilter} setTemplateFilter={setTemplateFilter} templateOptions={templateFilterOptions} langFilter={langFilter} setLangFilter={setLangFilter} langOptions={langFilterOptions} onClearAll={clearAllFilters} /></div>
           <Button variant="pill-outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer">
             <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
             <span className="font-medium text-[13px] text-foreground">{t("folder.addFolder")}</span>
@@ -1317,11 +1449,19 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       <CreateFolderModal open={folderModalOpen} onClose={() => setFolderModalOpen(false)} onCreate={(name, color) => { addFolderToContext(name, color); }} />
       <ExportDialog open={!!exportDialogIds} onClose={() => setExportDialogIds(null)} records={(exportDialogIds ?? []).map((id) => displayRecords.find((r) => r.id === id)).filter((r): r is typeof displayRecords[number] => !!r).map(recordToExportable)} availableRecords={displayRecords.map(recordToExportable)} />
       <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={selectedRows.size} onMove={(folderId) => { assignToFolder(Array.from(selectedRows), folderId); clearSelection(); }} onCreateFolder={() => { setMoveDialogOpen(false); setFolderModalOpen(true); }} folders={userFolders} />
+      {hasSelection && (
+        <MobileBulkBar count={selectedRows.size} onCancel={clearSelection}>
+          <MSActionBtn icon={Copy} label="Summary" onClick={() => { const sep = String.fromCharCode(10, 10); const texts = displayRecords.filter(r => selectedRows.has(r.id)).map(r => r.name + ": " + r.summary).join(sep); navigator.clipboard.writeText(texts); }} />
+          <MSActionBtn icon={Share} label="Share" onClick={() => { const ids = Array.from(selectedRows); if (ids.length) setShareDialogRecord(ids[0]); }} />
+          <MSActionBtn icon={FolderOpen} label="Folder" onClick={() => setMoveDialogOpen(true)} />
+          <MSActionBtn icon={Trash} label="Trash" onClick={trashSelected} destructive />
+        </MobileBulkBar>
+      )}
 
       {/* Hard-delete confirmation (permanent, bypasses Trash) */}
       <AlertDialog open={!!confirmDeleteIds} onOpenChange={(open) => { if (!open) setConfirmDeleteIds(null); }}>
         <AlertDialogContent>
-          <AlertDialogHeader>
+          <AlertDialogHeader className="text-left">
             <AlertDialogTitle>{confirmDeleteIds && confirmDeleteIds.length > 1 ? `Delete ${confirmDeleteIds.length} records forever?` : "Delete record forever?"}</AlertDialogTitle>
             <AlertDialogDescription>
               {confirmDeleteIds && confirmDeleteIds.length > 1
@@ -1329,9 +1469,9 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                 : "This record and its transcript will be permanently deleted. This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={hardDeleteConfirmed} className="bg-destructive text-white hover:bg-destructive/90">Delete forever</AlertDialogAction>
+          <AlertDialogFooter className="flex-row justify-end gap-[8px]">
+            <AlertDialogCancel className="px-[18px] text-[13px]">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={hardDeleteConfirmed} className="px-[18px] text-[13px] font-semibold bg-destructive text-white hover:bg-destructive/90">Delete forever</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1379,16 +1519,59 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         resourceName={displayRecords.find(r => r.id === shareDialogRecord)?.name ?? ""}
       />
 
+      <ShareDialog
+        open={!!sharingInlineFolder}
+        onOpenChange={(open) => { if (!open) setSharingInlineFolder(null); }}
+        resourceType="folder"
+        resourceId={sharingInlineFolder?.id ?? ""}
+        resourceName={sharingInlineFolder?.name ?? ""}
+      />
+
+      {/* A folder's actions, in the product's one action sheet - the same shape
+          a record and the record page open. */}
+      <ActionSheet
+        open={!!folderSheet}
+        onOpenChange={(open) => { if (!open) setFolderSheet(null); }}
+        mark={folderSheet ? <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folderSheet.color} /></svg> : null}
+        title={folderSheet?.name ?? ""}
+        kind={folderSheet ? t((mobileFolderCounts.get(folderSheet.id) ?? 0) === 1 ? "folder.fileOne" : "folder.fileOther", mobileFolderCounts.get(folderSheet.id) ?? 0) : undefined}
+      >
+        <ActionSheetItem icon={FolderOpen} label="Open folder" onClick={() => { const f = folderSheet; setFolderSheet(null); if (f) onOpenFolder?.(f.id); }} />
+        <ActionSheetItem icon={Share} label="Share folder" onClick={() => { const f = folderSheet; setFolderSheet(null); setSharingInlineFolder(f); }} />
+        <ActionSheetItem icon={Edit} label="Rename" onClick={() => { const f = folderSheet; setFolderSheet(null); setEditingInlineFolder(f); }} />
+        <ActionSheetItem icon={Trash} label="Delete" destructive onClick={() => { const f = folderSheet; setFolderSheet(null); if (f) setDeletingInlineFolderId(f.id); }} />
+      </ActionSheet>
+
+      {/* Mobile / tablet folder block (below lg): Google Drive pattern - a horizontally
+          scrollable row of compact folder chips ABOVE the tab strip. */}
+      <div className="lg:hidden">
+        {scopedFolderId ? (
+          <button
+            type="button"
+            onClick={() => onOpenFolder?.(null)}
+            aria-label={t("nav.myRecords")}
+            className="mt-[12px] mb-[6px] hidden md:flex items-center gap-[8px] w-full h-[40px] px-[6px] rounded-[12px] text-left active:bg-muted/60 transition-colors"
+          >
+            <span className="flex items-center justify-center size-[28px] shrink-0 text-muted-foreground">
+              <svg className="size-[18px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </span>
+            {scopedFolder && <svg className="size-[18px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={scopedFolder.color} /></svg>}
+            <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-foreground">{scopedFolder?.name ?? t("nav.myRecords")}</span>
+          </button>
+        ) : null}
+      </div>
+
+
       {/* Tabs */}
       <div className="relative">
         <div className="flex items-center">
           <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); clearSelection(); clearAllFilters(); }} className="flex-1 min-w-0 gap-0">
-            <TabsList variant="line" className="gap-6 w-full justify-start">
+            <TabsList variant="line" className="gap-5 lg:gap-6 w-full justify-start scrollbar-hide max-lg:overflow-x-auto">
               {tabs.map((tab) => {
                 const isTrash = tab === "Trash";
                 const count = tab === "Recent" ? recentCount : tab === "Starred" ? starredCount : tab === "Shared" ? sharedCount : trashCount;
                 return (
-                  <TabsTrigger key={tab} value={tab} variant="line" className={activeTab === tab && isTrash ? "text-destructive data-[state=active]:text-destructive data-[state=active]:after:bg-destructive" : ""}>
+                  <TabsTrigger key={tab} value={tab} variant="line" className={`max-lg:text-[13px] max-lg:whitespace-nowrap max-lg:shrink-0 ${activeTab === tab && isTrash ? "text-destructive data-[state=active]:text-destructive data-[state=active]:after:bg-destructive" : ""}`}>
                     {tab === "Recent" ? t("table.recent") : tab === "Starred" ? t("table.starred") : tab === "Shared" ? t("table.shared") : t("table.trash")}
                     <span className="opacity-50 font-[inherit]">{count}</span>
                   </TabsTrigger>
@@ -1416,7 +1599,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
           {/* Add Folder button (inline with tabs) */}
           {showAddFolderButton && (
             <Button variant="pill-outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-[28px] px-[12px] ml-[8px] mb-[4px] shrink-0 transition-colors cursor-pointer">
-              <Icon icon={FolderPlus} className="size-[13px] text-foreground" strokeWidth={1.5} />
+              <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
               <span className="font-medium text-[12px] text-foreground">{t("folder.addFolder")}</span>
             </Button>
           )}
@@ -1434,75 +1617,101 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         </div>
       </div>
 
-      {/* Mobile / tablet folder block (below lg): folders live above the record card list. */}
-      <div className="lg:hidden">
-        {scopedFolderId ? (
-          <button
-            type="button"
-            onClick={() => onOpenFolder?.(null)}
-            aria-label={t("nav.myRecords")}
-            className="mt-[12px] mb-[6px] flex items-center gap-[8px] w-full h-[40px] px-[6px] rounded-[12px] text-left active:bg-muted/60 transition-colors"
-          >
-            <span className="flex items-center justify-center size-[28px] shrink-0 text-muted-foreground">
-              <svg className="size-[18px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </span>
-            {scopedFolder && <svg className="size-[18px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={scopedFolder.color} /></svg>}
-            <span className="flex-1 min-w-0 truncate font-semibold text-[15px] text-foreground">{scopedFolder?.name ?? t("nav.myRecords")}</span>
-          </button>
-        ) : (
-          <div className="mt-[12px] mb-[6px]">
-            <div className="flex items-center justify-between px-[2px] mb-[8px]">
-              <span className="text-[13px] font-semibold text-foreground">{t("folder.folders")}</span>
-              <Button variant="ghost" size="icon" onClick={() => setFolderModalOpen(true)} className="size-[32px] text-muted-foreground" aria-label={t("folder.addFolder")} title={t("folder.addFolder")}>
-                <Icon icon={FolderPlus} className="size-[18px]" strokeWidth={1.7} />
-              </Button>
-            </div>
-            {userFolders.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
-                {userFolders.map((folder) => {
-                  const count = mobileFolderCounts.get(folder.id) ?? 0;
-                  return (
-                    <button
-                      key={folder.id}
-                      type="button"
-                      onClick={() => onOpenFolder?.(folder.id)}
-                      className="group flex items-center gap-[12px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors text-left"
+      {/* Mobile / tablet card list (below lg): flat filtered list, paginated in lockstep with the desktop table. */}
+      <div className="lg:hidden mt-[12px] pb-[40px]">
+        {surface !== "home" && activeTab === "Recent" && !scopedFolderId && !hasActiveFilters && !forceEmpty && inlineFolders.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-[10px] mb-[10px]">
+            {inlineFolders.map((folder) => {
+              const fcount = mobileFolderCounts.get(folder.id) ?? 0;
+              return (
+                <div
+                  key={"mf-" + folder.id}
+                  className="group flex w-full items-center gap-[12px] px-[14px] py-[12px] rounded-[14px] bg-card border border-border/60 transition-colors"
+                >
+                  {/* Opening the folder and acting on it are two buttons side by
+                      side, not a button inside a button: nesting them made the
+                      card answer to the menu's own name. */}
+                  <button
+                    type="button"
+                    onClick={() => onOpenFolder?.(folder.id)}
+                    className="flex min-w-0 flex-1 items-center gap-[12px] rounded-[10px] text-left active:opacity-70 transition-opacity"
+                  >
+                    <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
+                      <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
+                    </span>
+                    <span className="min-w-0 flex flex-1 flex-col gap-[3px]">
+                      <span className="flex min-w-0 items-center gap-[6px]">
+                        <span className="truncate font-medium text-[14px] leading-[19px] text-foreground">{folder.name}</span>
+                        {SHARED_FOLDER_IDS.has(folder.id) && <SharedBadge />}
+                      </span>
+                      <span className="text-[11px] leading-[14px] text-muted-foreground">{t(fcount === 1 ? "folder.fileOne" : "folder.fileOther", fcount)}</span>
+                    </span>
+                  </button>
+                  {/* A folder's actions sit behind the same three dots a record
+                      card carries, so both kinds of card answer "what can I do
+                      with this" the same way. The chevron said only "it opens",
+                      which left sharing a folder with no visible way in. */}
+                  {menuIsSheet ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Folder actions"
+                      onClick={() => setFolderSheet(folder)}
+                      className="size-[32px] shrink-0 text-muted-foreground"
                     >
-                      <span className="shrink-0 flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
-                        <svg className="size-[20px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
-                      </span>
-                      <span className="flex-1 min-w-0 flex flex-col gap-[2px]">
-                        <span className="truncate font-semibold text-[14px] leading-[19px] text-foreground">{folder.name}</span>
-                        <span className="text-[11.5px] text-muted-foreground">{t(count === 1 ? "folder.fileOne" : "folder.fileOther", count)}</span>
-                      </span>
-                      <Icon icon={ChevronRight} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.7} />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                      <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={1.8} />
+                    </Button>
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Folder actions"
+                          className="size-[32px] shrink-0 text-muted-foreground"
+                        >
+                          <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={1.8} />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-[190px]">
+                        <DropdownMenuItem className="gap-2" onSelect={() => onOpenFolder?.(folder.id)}>
+                          <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                          Open folder
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2" onSelect={() => setSharingInlineFolder(folder)}>
+                          <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                          Share folder
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2" onSelect={() => setEditingInlineFolder(folder)}>
+                          <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem variant="destructive" className="gap-2" onSelect={() => setDeletingInlineFolderId(folder.id)}>
+                          <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
-      </div>
 
-      {/* Mobile / tablet card list (below lg): flat filtered list as cleaned cards */}
-      <div className="lg:hidden pb-[24px]">
-        {filteredRecords.length === 0 ? (
-          <div className="flex items-center justify-center py-[48px] text-[14px] text-muted-foreground">{t("table.noRecords")}</div>
+        {demoRecordsLoading ? (
+          <div className="flex flex-col gap-[10px]">{Array.from({ length: 6 }).map((_, i) => (<div key={i} className="h-[74px] rounded-[14px] border border-border/60 bg-card animate-pulse" />))}</div>
+        ) : filteredRecords.length === 0 ? (
+          hasActiveFilters ? <EmptyFilterState onClear={clearAllFilters} /> : <EmptyTabState tab={activeTab} onNew={() => setOpenModal("upload")} />
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-[10px]">
-              {filteredRecords.slice(0, mobileVisible).map((record) => (
-                <RecordCardMobile key={record.id} record={record} />
+            <div className="grid grid-cols-1 gap-[10px]">
+              {pagedRecords.map((record) => (
+                <RecordCardMobile key={record.id} record={record} isTrash={activeTab === "Trash"} selected={selectedRows.has(record.id)} selectionMode={hasSelection} isShared={sharedIds.has(record.id)} onToggleSelect={() => toggleRow(record.id)} />
               ))}
             </div>
-            {filteredRecords.length > mobileVisible && (
-              <div className="mt-[16px]">
-                <Button variant="pill-outline" onClick={() => setMobileVisible((c) => c + 12)} className="w-full h-[40px] text-[13px] font-medium">
-                  {t("table.loadMore")}
-                </Button>
-              </div>
-            )}
+            <PaginationBar compact total={filteredRecords.length} page={safePage} pageSize={pageSize} onPage={setPage} onPageSize={(n) => { setPageSize(n); setPage(1); }} />
           </>
         )}
       </div>
@@ -1538,6 +1747,16 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
               <div className="w-[32px] shrink-0" />
               {visibleColumns.map((col) => {
                 if (col === "template") return <div key={col} className="flex-[1] min-w-0 px-[12px] flex items-center"><ColumnHeaderDropdown label={t("table.template")} options={templateFilterOptions} selected={templateFilter} onToggle={(id) => setTemplateFilter((s) => toggleSetItem(s, id))} /></div>;
+                if (col === "folder") return (
+                  <div key={col} className={(folderColumnMode === "full" ? "w-[156px]" : "w-[72px]") + " shrink-0 px-[8px] flex items-center"}>
+                    <ColumnHeaderDropdown
+                      label={t("table.folder")}
+                      options={folderFilterOptions}
+                      selected={folderFilter}
+                      onToggle={(id) => setFolderFilter((sel) => toggleSetItem(sel, id))}
+                    />
+                  </div>
+                );
                 if (col === "lang") return <div key={col} className="w-[50px] shrink-0 px-[6px] flex items-center justify-center"><ColumnHeaderDropdown label={t("table.lang")} options={langFilterOptions} selected={langFilter} onToggle={(id) => setLangFilter((s) => toggleSetItem(s, id))} align="right" /></div>;
                 if (col === "duration") return <div key={col} className="w-[80px] shrink-0 px-[8px] flex items-center"><span className="uppercase tracking-[0.3404px] font-medium text-[11px] text-foreground">{t("table.duration")}</span></div>;
                 if (col === "date") return <div key={col} className="w-[130px] shrink-0 px-[8px] flex items-center"><SortHeaderDropdown label={t("table.date")} options={[{ id: "newest", label: t("table.newestFirst") }, { id: "oldest", label: t("table.oldestFirst") }]} selected={dateSort} onSelect={setDateSort} align="right" /></div>;
@@ -1555,7 +1774,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                 <div key={group.label}>
                   <DateSeparator label={group.label} />
                   {group.records.map((record) => (
-                    <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
+                    <TableRow key={record.id} record={record} folder={folderOfRecord(record.id)} folderColumnMode={folderColumnMode} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
                       onToggleRow={() => toggleRow(record.id)} onMouseEnter={() => setHoveredRow(record.id)} onMouseLeave={() => setHoveredRow(null)}
                       onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
                       onShare={() => setShareDialogRecord(record.id)}
@@ -1572,98 +1791,8 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
               ))
             ) : (
               <>
-                {showInlineFolderRows && activeTab === "Recent" && inlineFolders.map((folder) => (
-                  <div
-                    key={folder.id}
-                    className={"group flex items-center h-[40px] transition-colors cursor-pointer border-b border-border " + (dragOverFolderId === folder.id ? "bg-primary/5 ring-1 ring-inset ring-primary/40" : "hover:bg-accent")}
-                    onDragOver={(e) => { if (dragRecordId) { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (dragOverFolderId !== folder.id) setDragOverFolderId(folder.id); } }}
-                    onDragLeave={() => { if (dragOverFolderId === folder.id) setDragOverFolderId(null); }}
-                    onDrop={(e) => { e.preventDefault(); const id = e.dataTransfer.getData("text/record-id") || dragRecordId; if (id) { assignToFolder([id], folder.id); toast.success(`Moved to ${folder.name}`); } setDragOverFolderId(null); setDragRecordId(null); }}
-                    onDoubleClick={() => onOpenFolder?.(folder.id)}
-                  >
-                    <div className="w-[40px] shrink-0" />
-                    <div className="flex-[2.2] min-w-0 px-[12px] flex items-center gap-[8px]">
-                      <svg className="size-[16px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
-                      {renamingInlineFolderId === folder.id ? (
-                        <input
-                          autoFocus
-                          defaultValue={folder.name}
-                          className="h-[26px] w-[220px] rounded-[6px] border border-primary/50 bg-background px-[8px] font-medium text-[14px] text-foreground outline-none focus:ring-2 focus:ring-primary/15"
-                          onClick={(e) => e.stopPropagation()}
-                          onDoubleClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") { const v = (e.target as HTMLInputElement).value.trim(); if (v) renameFolder(folder.id, v); setRenamingInlineFolderId(null); }
-                            if (e.key === "Escape") setRenamingInlineFolderId(null);
-                          }}
-                          onBlur={(e) => { const v = e.target.value.trim(); if (v) renameFolder(folder.id, v); setRenamingInlineFolderId(null); }}
-                        />
-                      ) : (
-                        <span className="font-medium text-[14px] text-foreground">{folder.name}</span>
-                      )}
-                    </div>
-                    {/* Star column placeholder */}
-                    <div className="w-[32px] shrink-0" />
-                    {visibleColumns.map((col) => (
-                      <div key={col} className={col === "time" ? "flex-[1.3] min-w-0 px-[12px]" : col === "duration" ? "flex-[0.8] min-w-0 px-[12px]" : col === "language" ? "flex-[0.6] min-w-0 px-[12px]" : col === "template" ? "flex-[1.2] min-w-0 px-[12px]" : "flex-[0.8] min-w-0 px-[12px]"}>
-                        {col === "time" && folder.createdAt ? <span className="text-[13px] text-muted-foreground">{new Date(folder.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span> : null}
-                      </div>
-                    ))}
-                    <div className="w-[100px] shrink-0 flex items-center justify-end pr-[8px]">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                          onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                          className="flex size-[28px] shrink-0 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-accent hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <svg className="size-[14px]" fill="none" viewBox="0 0 16 16">
-                            <circle cx="8" cy="3" r="1.2" fill="currentColor" />
-                            <circle cx="8" cy="8" r="1.2" fill="currentColor" />
-                            <circle cx="8" cy="13" r="1.2" fill="currentColor" />
-                          </svg>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" sideOffset={6} className="w-[170px]">
-                          <DropdownMenuItem className="gap-2" onClick={() => onOpenFolder?.(folder.id)}>
-                            <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                            Open folder
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onClick={() => setRenamingInlineFolderId(folder.id)}>
-                            <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                            Rename
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="gap-2" onClick={() => setEditingInlineFolder(folder)}>
-                            <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger className="gap-2">
-                              <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                              Move to folder
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="w-[210px]">
-                              <DropdownMenuItem className="gap-2" onClick={() => moveFolder(folder.id, null)}>
-                                <svg className="size-4 shrink-0 text-muted-foreground" fill="none" viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="13" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.1" /><path d="M1.5 6.5h13" stroke="currentColor" strokeWidth="1.1" /></svg>
-                                <span className="truncate">My Records (root)</span>
-                              </DropdownMenuItem>
-                              {flattenFoldersInTable(userFolders, folder.id).map((f) => (
-                                <DropdownMenuItem key={f.id} className="gap-2" onClick={() => moveFolder(folder.id, f.id)}>
-                                  <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={f.color} /></svg>
-                                  <span className="truncate">{f.name}</span>
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => setDeletingInlineFolderId(folder.id)}>
-                            <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                ))}
                 {pagedRecords.map((record) => (
-                  <TableRow key={record.id} record={record} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
+                  <TableRow key={record.id} record={record} folder={folderOfRecord(record.id)} folderColumnMode={folderColumnMode} visibleColumns={visibleColumns} isSelected={selectedRows.has(record.id)} isStarred={demoStarAll || starred.has(record.id)} isShared={sharedIds.has(record.id)} isHovered={hoveredRow === record.id} isEditing={editingId === record.id} isTrash={activeTab === "Trash"}
                     onToggleRow={() => toggleRow(record.id)} onMouseEnter={() => setHoveredRow(record.id)} onMouseLeave={() => setHoveredRow(null)}
                     onStar={() => toggleStar(record.id, { id: record.id, name: record.name, iconColor: record.iconColor, iconType: record.iconType, source: record.source })}
                     onShare={() => setShareDialogRecord(record.id)}
@@ -1747,11 +1876,11 @@ function pageWindow(page: number, total: number): (number | "ellipsis")[] {
   return out;
 }
 
-function PaginationBar({ total, page, pageSize, onPage, onPageSize }: {
-  total: number; page: number; pageSize: number; onPage: (p: number) => void; onPageSize: (n: number) => void;
+export function PaginationBar({ total, page, pageSize, onPage, onPageSize, compact = false }: {
+  total: number; page: number; pageSize: number; onPage: (p: number) => void; onPageSize: (n: number) => void; compact?: boolean;
 }) {
   const [gotoValue, setGotoValue] = useState("");
-  if (total <= PAGE_SIZE_OPTIONS[0]) return null;
+  if (total <= (compact ? pageSize : PAGE_SIZE_OPTIONS[0])) return null;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const from = (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
@@ -1760,6 +1889,40 @@ function PaginationBar({ total, page, pageSize, onPage, onPageSize }: {
     if (!Number.isNaN(n)) onPage(Math.min(totalPages, Math.max(1, n)));
     setGotoValue("");
   };
+  if (compact) {
+    // Phone pagination: TWO rows so the numbers get real tap targets and the FAB
+    // (bottom-right) never crowds them. Row 1 = range + per-page; row 2 = full-width
+    // arrows around a centered page-number window (36px targets).
+    return (
+      <div className="flex flex-col gap-[10px] px-[4px] pt-[12px] pb-[8px] bg-background border-t border-border">
+        <div className="flex items-center justify-between px-[4px]">
+          <span className="text-[12.5px] text-muted-foreground whitespace-nowrap tabular-nums">{from}-{to} of {total}</span>
+          <div className="flex items-center gap-[6px]">
+            <span className="text-[12px] text-muted-foreground whitespace-nowrap">Per page</span>
+            <Select value={String(pageSize)} onValueChange={(v) => onPageSize(parseInt(v, 10))}>
+              <SelectTrigger className="h-[30px] w-[74px] rounded-[8px] text-[12.5px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PAGE_SIZE_OPTIONS.map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex items-center justify-center gap-[6px]">
+          <Button variant="pill-outline" size="icon" disabled={page <= 1} onClick={() => onPage(page - 1)} className="size-[36px] disabled:opacity-30" title="Previous page">
+            <svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M10 3L5.5 8L10 13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </Button>
+          {pageWindow(page, totalPages).map((p, i) => p === "ellipsis" ? (
+            <span key={"e" + i} className="w-[24px] text-center text-[13px] text-muted-foreground">&#8230;</span>
+          ) : (
+            <Button key={p} variant="ghost" onClick={() => onPage(p)} className={"h-[36px] min-w-[36px] px-[10px] rounded-full text-[14px] tabular-nums " + (p === page ? "bg-primary text-primary-foreground font-semibold hover:bg-primary hover:text-primary-foreground" : "text-foreground border border-border")}>{p}</Button>
+          ))}
+          <Button variant="pill-outline" size="icon" disabled={page >= totalPages} onClick={() => onPage(page + 1)} className="size-[36px] disabled:opacity-30" title="Next page">
+            <svg className="size-[14px]" fill="none" viewBox="0 0 16 16"><path d="M6 3L10.5 8L6 13" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </Button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="sticky bottom-0 z-30 flex items-center gap-[14px] h-[52px] px-[8px] bg-background border-t border-border">
       <div className="flex items-center gap-[8px]">
@@ -1805,13 +1968,53 @@ function PaginationBar({ total, page, pageSize, onPage, onPageSize }: {
    Table Row
    ══════════════════════════════════════════════ */
 
-function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onDeleteForever, onMoveFolder, onTrash, onExport, onDoubleClick, rowDragging, onRowDragStart, onRowDragEnd }: {
-  record: RecordRow; visibleColumns: ColumnId[]; isSelected: boolean; isStarred: boolean; isShared: boolean; isHovered: boolean; isEditing: boolean; isTrash: boolean;
+function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected, isStarred, isShared, isHovered, isEditing, isTrash, onToggleRow, onMouseEnter, onMouseLeave, onStar, onShare, onEdit, onSaveName, onCancelEdit, onRestore, onDeleteForever, onMoveFolder, onTrash, onExport, onDoubleClick, rowDragging, onRowDragStart, onRowDragEnd }: {
+  record: RecordRow; folder: FolderItem | null; folderColumnMode: FolderColumnMode; visibleColumns: ColumnId[]; isSelected: boolean; isStarred: boolean; isShared: boolean; isHovered: boolean; isEditing: boolean; isTrash: boolean;
   onToggleRow: () => void; onMouseEnter: () => void; onMouseLeave: () => void; onStar: () => void; onShare: () => void; onEdit: () => void; onSaveName: (n: string) => void; onCancelEdit: () => void; onRestore: () => void; onDeleteForever: () => void; onMoveFolder: () => void; onTrash: () => void; onExport: () => void; onDoubleClick: () => void; rowDragging?: boolean; onRowDragStart?: (e: React.DragEvent) => void; onRowDragEnd?: () => void;
 }) {
   const { t: tRow } = useLanguage();
 
   function renderColumn(col: ColumnId) {
+    if (col === "folder") {
+      if (folderColumnMode === "compact") {
+        return (
+          <div key={col} className="w-[72px] shrink-0 px-[8px] flex items-center">
+            {folder ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex size-[22px] items-center justify-center">
+                    <svg className="size-[16px]" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{folder.name}</TooltipContent>
+              </Tooltip>
+            ) : null}
+          </div>
+        );
+      }
+      return (
+        <div key={col} className="w-[156px] min-w-0 shrink-0 px-[8px] flex items-center">
+          {folder ? (
+            <span className="flex min-w-0 items-center gap-[6px]">
+              <svg className="size-[16px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={folder.color} /></svg>
+              <span className="truncate text-[13px] text-foreground">{folder.name}</span>
+            </span>
+          ) : (
+            /* Nothing is written for a record that sits in no folder. The offer to
+               put it in one belongs to the row you are pointing at, not to every
+               row at once. */
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onMoveFolder(); }}
+              className={"flex items-center gap-[5px] rounded-full px-[7px] py-[3px] text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary " + (isHovered ? "opacity-100" : "opacity-0 pointer-events-none")}
+            >
+              <Icon icon={FolderPlus} className="size-[13px]" strokeWidth={1.6} />
+              <span className="text-[12.5px] whitespace-nowrap">{tRow("table.addToFolder")}</span>
+            </button>
+          )}
+        </div>
+      );
+    }
     if (col === "template") return <div key={col} className="flex-[1] min-w-0 px-[12px]"><div className="inline-flex items-center h-[22px] px-[8px] rounded-[4px] bg-muted"><span className="truncate text-[12px] text-muted-foreground">{record.template}</span></div></div>;
     if (col === "lang") return <div key={col} className="w-[50px] shrink-0 px-[6px] flex justify-center"><LanguageBadge lang={record.language} /></div>;
     if (col === "duration") return <div key={col} className="w-[80px] shrink-0 px-[8px]"><p className="leading-[20px] whitespace-nowrap text-[14px] text-muted-foreground tracking-[-0.154px]">{record.duration}</p></div>;
@@ -1826,14 +2029,17 @@ function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isH
   const dateVisible = visibleColumns.includes("date");
   const rowBg = isSelected && !isTrash ? "bg-primary/5" : "";
   const hoverBg = "var(--accent)";
-  // Color for the actions overlay background - matches the current row state
-  const actionsBg = isSelected ? "#f0f4ff" : hoverBg;
+  /* Hovering a row shows its actions; it no longer tints the row, and the fade
+     that keeps a long title from running under those actions is white to match.
+     The two have to agree - a white fade over a tinted row is a white patch,
+     and a tinted fade over a white row is the grey block this replaces. */
+  const actionsBg = isSelected ? "#f0f4ff" : "var(--card)";
   const [showSummary, setShowSummary] = useState(false);
   const summaryTimer = useRef<ReturnType<typeof setTimeout>>();
   const shortSummary = record.summary.length > 120 ? record.summary.slice(0, 120) + "\u2026" : record.summary;
 
   return (
-    <div draggable={!!onRowDragStart} onDragStart={onRowDragStart} onDragEnd={onRowDragEnd} className={`flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer relative border-b border-border ${isTrash ? "opacity-60 hover:opacity-80" : "hover:bg-accent"} ${rowBg} ${rowDragging ? "opacity-40" : ""}`} onMouseEnter={(e) => { onMouseEnter(); summaryTimer.current = setTimeout(() => setShowSummary(true), 600); }} onMouseLeave={(e) => { onMouseLeave(); clearTimeout(summaryTimer.current); setShowSummary(false); }} onDoubleClick={onDoubleClick}>
+    <div draggable={!!onRowDragStart} onDragStart={onRowDragStart} onDragEnd={onRowDragEnd} className={`flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer relative border-b border-border ${isTrash ? "opacity-60 hover:opacity-80" : ""} ${rowBg} ${rowDragging ? "opacity-40" : ""}`} onMouseEnter={(e) => { onMouseEnter(); summaryTimer.current = setTimeout(() => setShowSummary(true), 600); }} onMouseLeave={(e) => { onMouseLeave(); clearTimeout(summaryTimer.current); setShowSummary(false); }} onDoubleClick={onDoubleClick}>
       {/* Summary hover card */}
       {showSummary && record.summary && !isEditing && (
         <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+6px)] z-[60] pointer-events-none" style={{ animation: "fadeInUp 0.2s ease" }}>
@@ -1855,7 +2061,10 @@ function TableRow({ record, visibleColumns, isSelected, isStarred, isShared, isH
         ) : (
           <div className="flex items-center gap-[6px] min-w-0 flex-1">
             <p className="truncate min-w-0 leading-[20px] font-medium text-[14px] text-foreground tracking-[-0.154px]">{record.name}</p>
-            {isShared && !isTrash && <SharedBadge />}
+            {/* One mark, one meaning: other people can see this. Who shared
+                something WITH you is answered by the Owner column on Shared
+                with me, not by a second pill of the same shape here. */}
+            {!isTrash && !isHovered && isShared && <SharedBadge />}
           </div>
         )}
         {/* Actions overlay - appears at right edge of name cell on hover */}

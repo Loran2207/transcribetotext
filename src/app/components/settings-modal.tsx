@@ -3,8 +3,8 @@ import {
   User,
   Camera,
   Lock,
-  Eye,
-  EyeOff,
+  ViewIcon,
+  ViewOffSlashIcon,
   Shield,
   Info,
   Mail,
@@ -13,7 +13,18 @@ import {
   Invoice01Icon,
   Shield01Icon,
   LegalDocument01Icon,
+  ArrowRight01Icon,
+  ArrowRight02Icon,
+  ArrowLeft02Icon,
+  CustomerSupportIcon,
+  Layers01Icon,
+  SquareLockPasswordIcon,
+  Mic01Icon,
+  Settings02Icon,
 } from "@hugeicons/core-free-icons";
+import { NotetakerSettingsPanel } from "./desktop/notetaker-settings-page";
+import { SystemSettingsPanel } from "./desktop/system-settings-page";
+import { useShell } from "./desktop/shell";
 import { Icon } from "./ui/icon";
 import {
   PlanManagementPage,
@@ -36,43 +47,20 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "./ui/alert-dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { cn } from "./ui/utils";
+import { MODAL_SURFACE, MODAL_W_CONFIRM, MODAL_W_FORM, MODAL_FOOTER, MODAL_HEADER } from "./modal-surface";
 import { useUserProfile } from "./user-profile-context";
+import { setInnerScreen } from "./inner-screen";
 import { useAuth } from "./auth-context";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "./ui/sidebar";
-
-// ── Password requirements ─────────────────────────────────────
-const PW_RULES = [
-  { label: "8 - 20 characters",           test: (v: string) => v.length >= 8 && v.length <= 20 },
-  { label: "At least 1 uppercase letter",  test: (v: string) => /[A-Z]/.test(v) },
-  { label: "At least 1 lowercase letter",  test: (v: string) => /[a-z]/.test(v) },
-  { label: "At least 1 special character", test: (v: string) => /[^A-Za-z0-9]/.test(v) },
-  { label: "At least 1 number",            test: (v: string) => /[0-9]/.test(v) },
-];
-
-function PasswordRequirements({ value }: { value: string }) {
-  return (
-    <div className="absolute left-full top-0 ml-3 w-[220px] bg-card rounded-[10px] shadow-lg border border-border py-3 px-4 z-10">
-      <div className="flex flex-col gap-[6px]">
-        {PW_RULES.map(rule => (
-          <div key={rule.label} className="flex items-center gap-2">
-            <div
-              className={`size-[6px] rounded-full shrink-0 transition-colors ${
-                value && rule.test(value) ? "bg-green-500" : "bg-muted-foreground/30"
-              }`}
-            />
-            <span className="text-[12px] text-muted-foreground">{rule.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // ── Reusable action button ────────────────────────────────────
 interface ActionBtnProps {
@@ -121,24 +109,36 @@ function DialogShell({
   title, onClose, children,
 }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center bg-black/30 backdrop-blur-[3px]">
-      <div className="relative flex flex-col bg-background border border-border shadow-xl"
-        style={{ width: "480px", maxWidth: "calc(100vw - 32px)", borderRadius: "18px" }}>
-        <div className="flex items-center justify-between px-6 pt-6 pb-5">
-          <h3 className="font-bold text-[18px] text-foreground tracking-tight">
+    <Dialog open onOpenChange={(open) => { if (!open) onClose(); }}>
+      {/* The base content draws its own bare close glyph as the last child. This
+          product closes with a round ghost button in the header, so that one is
+          hidden rather than drawn twice. The description is opted out of because
+          each dialog says what it is in its own body. */}
+      <DialogContent
+        aria-describedby={undefined}
+        className={cn(MODAL_SURFACE, MODAL_W_FORM, "gap-0 p-0 [&>button:last-child]:hidden")}
+      >
+        <DialogHeader className="flex-row items-center justify-between gap-4 space-y-0 px-6 pt-6 pb-5 text-left">
+          <DialogTitle className="font-bold text-[18px] text-foreground tracking-tight">
             {title}
-          </h3>
-          <Button variant="ghost" size="icon"
-            onClick={onClose}
-            className="size-8 rounded-full">
-            <svg viewBox="0 0 14 14" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M1 1l12 12M13 1L1 13"/>
-            </svg>
-          </Button>
-        </div>
+          </DialogTitle>
+          {/* The same close the sheets and the record card use: a round grey
+              ghost with a 16px cross at stroke 1.5, not a black one. */}
+          <DialogClose asChild>
+            <button
+              type="button"
+              aria-label="Close"
+              className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </button>
+          </DialogClose>
+        </DialogHeader>
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -168,7 +168,7 @@ function DialogFooter({ onCancel, onConfirm, confirmLabel, confirmDisabled }: {
   onCancel: () => void; onConfirm: () => void; confirmLabel: string; confirmDisabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-border">
+    <div className="flex items-center justify-end gap-2 px-6 pt-5 pb-6 max-md:pb-[calc(20px+env(safe-area-inset-bottom))]">
       <Button variant="pill-outline" onClick={onCancel}
         className="h-9 px-4 rounded-full text-[13px] text-muted-foreground">
         Cancel
@@ -299,14 +299,11 @@ function ChangeEmailDialog({ currentEmail, onClose }: ChangeEmailDialogProps) {
 
 // ── Change Password Dialog ───────────────────────────────────
 interface ChangePasswordDialogProps {
-  email: string;
   onClose: () => void;
 }
-function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
-  const [currentPw,  setCurrentPw]  = useState("");
+function ChangePasswordDialog({ onClose }: ChangePasswordDialogProps) {
   const [password,   setPassword]   = useState("");
   const [confirm,    setConfirm]    = useState("");
-  const [showCurr,   setShowCurr]   = useState(false);
   const [showPw,     setShowPw]     = useState(false);
   const [showConf,   setShowConf]   = useState(false);
   const [pwFocused,  setPwFocused]  = useState(false);
@@ -314,23 +311,12 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
   const [error,      setError]      = useState<string | null>(null);
 
   const passwordsMatch = password !== "" && confirm !== "" && password === confirm;
-  const canSubmit = currentPw.trim() !== "" && password.length >= 6 && passwordsMatch && !saving;
+  const canSubmit = password.length >= 6 && passwordsMatch && !saving;
 
   async function handleSave() {
     if (!canSubmit) return;
     setSaving(true);
     setError(null);
-
-    // Verify current password by re-authenticating
-    const { error: verifyError } = await supabase.auth.signInWithPassword({
-      email,
-      password: currentPw,
-    });
-    if (verifyError) {
-      setError("Current password is incorrect");
-      setSaving(false);
-      return;
-    }
 
     // Update to new password
     const { error: updateError } = await supabase.auth.updateUser({
@@ -347,30 +333,8 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
   }
 
   return (
-    <DialogShell title="Change Password" onClose={onClose}>
+    <DialogShell title="Change password" onClose={onClose}>
       <div className="px-6 flex flex-col gap-4">
-        {error && (
-          <p className="text-[13px] text-destructive">{error}</p>
-        )}
-
-        {/* Current password */}
-        <div>
-          <FieldLabel label="Current password" />
-          <div className="flex items-center rounded-[12px] overflow-hidden border border-border bg-background">
-            <div className="flex items-center gap-2 flex-1 px-4">
-              <Icon icon={Lock} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
-              <Input type={showCurr?"text":"password"} value={currentPw}
-                onChange={e => { setCurrentPw(e.target.value); setError(null); }}
-                placeholder="Enter your current password"
-                className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-2.5 text-sm h-auto rounded-none"/>
-            </div>
-            <Button variant="ghost" type="button" onClick={() => setShowCurr(v=>!v)}
-              className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
-              {showCurr ? <Icon icon={EyeOff} className="size-4"/> : <Icon icon={Eye} className="size-4"/>}
-            </Button>
-          </div>
-        </div>
-
         {/* New password */}
         <div>
           <FieldLabel label="New password" />
@@ -379,23 +343,18 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
               <div className="flex items-center gap-2 flex-1 px-4">
                 <Icon icon={Lock} className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5}/>
                 <Input type={showPw?"text":"password"} value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={e => { setPassword(e.target.value); setError(null); }}
                   onFocus={() => setPwFocused(true)} onBlur={() => setPwFocused(false)}
                   placeholder="Create a strong password..."
                   className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-2.5 text-sm h-auto rounded-none min-w-0"/>
               </div>
               <Button variant="ghost" type="button" onClick={() => setShowPw(v=>!v)}
+                aria-label={showPw ? "Hide password" : "Show password"}
                 className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
-                {showPw ? <Icon icon={EyeOff} className="size-4"/> : <Icon icon={Eye} className="size-4"/>}
+                {showPw ? <Icon icon={ViewOffSlashIcon} className="size-4"/> : <Icon icon={ViewIcon} className="size-4"/>}
               </Button>
             </div>
-            {pwFocused && <PasswordRequirements value={password}/>}
           </div>
-          {password && password.length < 6 && !pwFocused && (
-            <p className="text-[11px] mt-1.5 px-1 text-destructive">
-              Password must be at least 6 characters
-            </p>
-          )}
         </div>
 
         {/* Confirm password */}
@@ -412,15 +371,22 @@ function ChangePasswordDialog({ email, onClose }: ChangePasswordDialogProps) {
                 className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 px-0 py-2.5 text-sm h-auto rounded-none"/>
             </div>
             <Button variant="ghost" type="button" onClick={() => setShowConf(v=>!v)}
+              aria-label={showConf ? "Hide password" : "Show password"}
               className="pr-4 pl-2 py-2.5 h-auto rounded-none text-muted-foreground hover:text-foreground">
-              {showConf ? <Icon icon={EyeOff} className="size-4"/> : <Icon icon={Eye} className="size-4"/>}
+              {showConf ? <Icon icon={ViewOffSlashIcon} className="size-4"/> : <Icon icon={ViewIcon} className="size-4"/>}
             </Button>
           </div>
-          {confirm && confirm !== password && (
-            <p className="text-[11px] mt-1.5 px-1 text-destructive">
-              Passwords do not match
-            </p>
-          )}
+          {/* One line, always here: the dialog keeps its height whether or not
+              the form has something to say, and the fields keep their spacing. */}
+          <div className="mt-1.5 min-h-4">
+            {error ? (
+              <p className="text-[11px] leading-4 text-destructive">{error}</p>
+            ) : confirm && confirm !== password ? (
+              <p className="text-[11px] leading-4 text-destructive">Passwords do not match</p>
+            ) : password && password.length < 6 && !pwFocused ? (
+              <p className="text-[11px] leading-4 text-destructive">Password must be at least 6 characters</p>
+            ) : null}
+          </div>
         </div>
       </div>
 
@@ -442,8 +408,8 @@ function ConfirmDialog({ title, description, confirmLabel, onConfirm, onClose }:
 }) {
   return (
     <AlertDialog open onOpenChange={(open) => { if (!open) onClose(); }}>
-      <AlertDialogContent className="rounded-[18px] max-w-[380px] p-0 gap-0">
-        <AlertDialogHeader className="px-6 pt-6 pb-5">
+      <AlertDialogContent className={cn(MODAL_SURFACE, MODAL_W_CONFIRM, "p-0 gap-0")}>
+        <AlertDialogHeader className={cn(MODAL_HEADER, "px-6 pt-6 pb-5")}>
           <AlertDialogTitle className="font-bold text-[17px] tracking-tight">
             {title}
           </AlertDialogTitle>
@@ -451,7 +417,7 @@ function ConfirmDialog({ title, description, confirmLabel, onConfirm, onClose }:
             {description}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex-row justify-end gap-2 px-6 pb-5">
+        <AlertDialogFooter className={cn(MODAL_FOOTER, "px-6 pb-5 max-md:pb-[calc(20px+env(safe-area-inset-bottom))]")}>
           <AlertDialogCancel
             className="h-9 px-4 rounded-full text-[13px] font-medium"
             onClick={onClose}>
@@ -477,7 +443,19 @@ function initialsOf(name: string): string {
 }
 
 // ── Account Tab ───────────────────────────────────────────────
-function AccountPage() {
+const HELP_ROWS = [
+  {
+    label: "Contact Support",
+    desc: "support@transcribetotext.ai",
+    icon: Mail,
+    mail: "support@transcribetotext.ai",
+    section: null as null | "terms" | "privacy",
+  },
+  { label: "Terms of Use", desc: "How the service works", icon: LegalDocument01Icon, section: "terms" as const },
+  { label: "Privacy Policy", desc: "What we store and why", icon: Shield01Icon, section: "privacy" as const },
+];
+
+export function AccountSettingsDetailed({ onOpenSection }: { onOpenSection: (id: "terms" | "privacy") => void }) {
   const { displayName: localName, avatarSrc, setDisplayName: setLocalName, setAvatarSrc } = useUserProfile();
   const { user, signOut } = useAuth();
 
@@ -530,19 +508,19 @@ function AccountPage() {
 
   return (
     <>
-      {showSetPw     && <ChangePasswordDialog email={EMAIL} onClose={() => setShowSetPw(false)} />}
+      {showSetPw     && <ChangePasswordDialog onClose={() => setShowSetPw(false)} />}
       {showChgEmail  && <ChangeEmailDialog currentEmail={EMAIL} onClose={() => setShowChgEmail(false)} />}
       {showSignOut   && <ConfirmDialog
         title="Are you sure you want to log out?"
         description="You'll need to sign in again to access your account."
-        confirmLabel="Log Out"
+        confirmLabel="Log out"
         onConfirm={() => { setShowSignOut(false); signOut(); }}
         onClose={() => setShowSignOut(false)}
       />}
       {showDeleteAcc && <ConfirmDialog
         title="Are you sure you want to delete your account?"
         description="This action is permanent and cannot be undone. All your data will be deleted."
-        confirmLabel="Delete Account"
+        confirmLabel="Delete account"
         onConfirm={() => { setShowDeleteAcc(false); toast("Account deletion coming soon."); }}
         onClose={() => setShowDeleteAcc(false)}
       />}
@@ -640,10 +618,44 @@ function AccountPage() {
         </div>
 
         {/* ── Danger zone ─────────────────────────── */}
+        {/* Help and legal: the rows the account screen is expected to carry.
+            Support opens a mail draft; the two documents open in place. */}
+        <div className="mt-7">
+          <p className="text-[13px] font-semibold text-foreground">Support and legal</p>
+          <div className="mt-3 overflow-hidden rounded-2xl border border-border">
+            {HELP_ROWS.map((row, i) => (
+              <button
+                key={row.label}
+                type="button"
+                onClick={() => {
+                  if (row.section) onOpenSection(row.section);
+                  else window.location.href = `mailto:${row.mail}`;
+                }}
+                className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent ${
+                  i > 0 ? "border-t border-border" : ""
+                }`}
+              >
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary/10">
+                  <Icon icon={row.icon} className="size-4 text-primary" strokeWidth={1.8} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13.5px] font-medium text-foreground">{row.label}</span>
+                  <span className="block text-[12.5px] text-muted-foreground">{row.desc}</span>
+                </span>
+                <Icon
+                  icon={ArrowRight01Icon}
+                  className="size-4 shrink-0 text-muted-foreground"
+                  strokeWidth={1.8}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex flex-col mt-4 gap-1">
 
           {/* Sign out */}
-          <div className="flex items-center justify-between py-3">
+          <div className="flex flex-col items-start gap-2.5 py-3 md:flex-row md:items-center md:justify-between md:gap-4">
             <div>
               <p className="text-sm font-medium text-foreground">Sign out</p>
               <p className="text-xs mt-0.5 text-muted-foreground">Sign out of your account on this device</p>
@@ -657,16 +669,16 @@ function AccountPage() {
           </div>
 
           {/* Delete account */}
-          <div className="flex items-center justify-between py-3">
+          <div className="flex flex-col items-start gap-2.5 py-3 md:flex-row md:items-center md:justify-between md:gap-4">
             <div>
               <p className="text-sm font-medium text-foreground">Delete account</p>
               <p className="text-xs mt-0.5 text-muted-foreground">Permanently delete your account and all data</p>
             </div>
-            <Button variant="destructive" size="sm"
+            <Button variant="destructive-outline" size="sm"
               onClick={() => setShowDeleteAcc(true)}
               className="rounded-full text-[13px]"
             >
-              Delete Account
+              Delete account
             </Button>
           </div>
 
@@ -692,114 +704,239 @@ function InvoicesComingSoon() {
   );
 }
 
-// ── Settings Page (inline, full content area) ─────────────────
+// ── Account ───────────────────────────────────────────────────
+// The screen the product already ships, drawn with our tokens: the same rows,
+// the same words, the same order, so nothing has to be rebuilt to adopt it.
+// Every row below the form opens an inner page. There is no tab strip.
+const ACCOUNT_ROWS: {
+  label: string;
+  icon: typeof Mail;
+  section?: SectionId;
+  mail?: string;
+  /* the app as a program and the Notetaker both live on this computer: these rows only exist in the desktop shell */
+  desktopOnly?: boolean;
+}[] = [
+  { label: "System",          icon: Settings02Icon,      section: "system",   desktopOnly: true },
+  { label: "Notetaker",       icon: Mic01Icon,           section: "notetaker", desktopOnly: true },
+  { label: "Contact Support", icon: CustomerSupportIcon, mail: "support@transcribetotext.ai" },
+  { label: "Privacy Policy",  icon: Shield01Icon,        section: "privacy" },
+  { label: "Terms of Use",    icon: LegalDocument01Icon, section: "terms" },
+  { label: "Plan Management", icon: Layers01Icon,        section: "plan" },
+  { label: "Invoices",        icon: Invoice01Icon,       section: "invoices" },
+];
+
+function FormLabel({ children }: { children: React.ReactNode }) {
+  return <span className="mb-1.5 block text-[12.5px] text-muted-foreground">{children}</span>;
+}
+
+function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void }) {
+  const { displayName: localName, setDisplayName: setLocalName } = useUserProfile();
+  const { user } = useAuth();
+  const { desktop } = useShell();
+
+  const authName = user?.user_metadata?.full_name as string | undefined;
+  const name = authName || localName;
+  const email = user?.email || "";
+
+  const [draftName, setDraftName] = useState(name);
+  const [savingName, setSavingName] = useState(false);
+  const [showSetPw, setShowSetPw] = useState(false);
+  const [showDeleteAcc, setShowDeleteAcc] = useState(false);
+
+  useEffect(() => { setDraftName(name); }, [name]);
+
+  const dirty = draftName.trim() !== "" && draftName.trim() !== name;
+
+  async function saveName() {
+    if (!dirty) return;
+    setSavingName(true);
+    const { error } = await supabase.auth.updateUser({ data: { full_name: draftName.trim() } });
+    setSavingName(false);
+    if (error) { toast.error(error.message); return; }
+    setLocalName(draftName.trim());
+    toast.success("Profile updated");
+  }
+
+  return (
+    <>
+      {showSetPw && <ChangePasswordDialog onClose={() => setShowSetPw(false)} />}
+      {showDeleteAcc && <ConfirmDialog
+        title="Are you sure you want to delete your account?"
+        description="This action is permanent and cannot be undone. All your data will be deleted."
+        confirmLabel="Delete account"
+        onConfirm={() => { setShowDeleteAcc(false); toast("Account deletion coming soon."); }}
+        onClose={() => setShowDeleteAcc(false)}
+      />}
+
+      <div className="flex flex-col">
+        {/* Name and email sit side by side on anything wider than a phone,
+            exactly as the product lays them out. */}
+        <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+          <div>
+            <FormLabel>User name</FormLabel>
+            <div className="flex h-12 items-center gap-2 rounded-[14px] border border-border bg-card pl-4 pr-2 focus-within:border-primary">
+              <Input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") saveName(); }}
+                maxLength={255}
+                className="h-auto min-w-0 flex-1 rounded-none border-0 bg-transparent px-0 text-[14px] shadow-none focus-visible:ring-0"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={saveName}
+                disabled={!dirty || savingName}
+                className={`h-8 shrink-0 px-3 text-[13px] font-semibold ${dirty ? "text-primary" : "text-primary/40"}`}
+              >
+                {savingName ? "Saving" : "Save"}
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <FormLabel>Email</FormLabel>
+            <div className="flex h-12 items-center rounded-[14px] bg-muted px-4">
+              <span className="truncate text-[14px] text-muted-foreground">{email}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Set password keeps the product's half width on desktop. */}
+        <button
+          type="button"
+          onClick={() => setShowSetPw(true)}
+          className="mt-5 flex w-full items-center gap-4 rounded-[16px] bg-primary/5 px-5 py-4 text-left transition-colors hover:bg-primary/[0.08] sm:w-[calc(50%-12px)]"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold text-foreground">Set password</span>
+            <span className="mt-0.5 block text-[13px] text-muted-foreground">
+              Set a password for your T2T.Ai account
+            </span>
+          </span>
+          <Icon icon={SquareLockPasswordIcon} className="size-5 shrink-0 text-primary" strokeWidth={1.8} />
+        </button>
+
+        {/* The five inner pages. */}
+        <div className="mt-8 flex flex-col gap-3">
+          {ACCOUNT_ROWS.filter((row) => !row.desktopOnly || desktop).map((row) => (
+            <button
+              key={row.label}
+              type="button"
+              onClick={() => {
+                if (row.section) onOpenSection(row.section);
+                else if (row.mail) window.location.href = `mailto:${row.mail}`;
+              }}
+              className="flex w-full items-center gap-4 rounded-[16px] border border-border bg-card px-5 py-4 text-left shadow-[var(--elevation-sm)] transition-colors hover:bg-accent"
+            >
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <Icon icon={row.icon} className="size-5 text-primary" strokeWidth={1.8} />
+              </span>
+              <span className="min-w-0 flex-1 text-[15px] font-semibold text-foreground">{row.label}</span>
+              <Icon icon={ArrowRight02Icon} className="size-5 shrink-0 text-primary" strokeWidth={2} />
+            </button>
+          ))}
+        </div>
+
+        <Button
+          variant="destructive-outline"
+          onClick={() => setShowDeleteAcc(true)}
+          className="mt-8 h-12 w-full border border-destructive/40 bg-transparent text-[14px] font-semibold hover:bg-destructive/5 sm:w-[calc(50%-12px)]"
+        >
+          Delete account
+        </Button>
+      </div>
+    </>
+  );
+}
+
+// ── Settings, as internal pages ───────────────────────────────
+// Account is the root. Everything else opens under it with a back arrow,
+// which is how the product navigates. On phones the drill-in chrome in the
+// top bar carries the back control, so the inline header hides there.
 interface SettingsPageProps {
   onClose: () => void;
 }
 
-type SectionId = "account" | "plan" | "meetings" | "invoices" | "privacy" | "terms";
+type SectionId = "account" | "plan" | "meetings" | "system" | "notetaker" | "invoices" | "privacy" | "terms";
 
-interface NavItem {
-  id: SectionId;
-  label: string;
-  icon: typeof User;
-  disabled?: boolean;
-  badge?: string;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { id: "account",  label: "Account",         icon: User },
-  { id: "plan",     label: "Plan management", icon: CreditCardIcon },
-  { id: "meetings", label: "Meetings",        icon: Calendar },
-  { id: "invoices", label: "Invoices",        icon: Invoice01Icon, disabled: true, badge: "Soon" },
-  { id: "privacy",  label: "Privacy policy",  icon: Shield01Icon },
-  { id: "terms",    label: "Terms of use",    icon: LegalDocument01Icon },
-];
+const SECTION_TITLE: Record<SectionId, string> = {
+  account:  "Account",
+  plan:     "Plan Management",
+  meetings: "Meetings",
+  system:   "System",
+  notetaker: "Notetaker",
+  invoices: "Invoices",
+  privacy:  "Privacy Policy",
+  terms:    "Terms of Use",
+};
 
 const MAX_WIDTH: Record<SectionId, string> = {
-  account:  "max-w-[560px]",
-  plan:     "max-w-[880px]",
+  account:  "max-w-[800px]",
+  plan:     "max-w-[788px]",
   meetings: "max-w-[720px]",
+  system:   "max-w-[720px]",
+  notetaker: "max-w-[720px]",
   invoices: "max-w-[560px]",
   privacy:  "max-w-[1080px]",
   terms:    "max-w-[1080px]",
 };
 
 export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
-  const [activeSection, setActiveSection] = useState<SectionId>(() => {
+  const [section, setSection] = useState<SectionId>(() => {
     try {
       const f = localStorage.getItem("ttt_demo_settings_section");
-      if (f === "account" || f === "plan" || f === "meetings" || f === "invoices" || f === "privacy" || f === "terms") {
-        return f as SectionId;
-      }
+      if (f && Object.prototype.hasOwnProperty.call(SECTION_TITLE, f)) return f as SectionId;
     } catch { /* ignore */ }
     return "account";
   });
   const [planState] = usePlanStatePreview();
 
-  const sectionLabel =
-    NAV_ITEMS.find((n) => n.id === activeSection)?.label ?? "Settings";
+  const isRoot = section === "account";
+  const title = SECTION_TITLE[section];
+
+  // Only the phone bars read this store, so it registers at every width and
+  // survives a resize. Gating it on a one-shot media query missed the phone
+  // whenever the app had loaded wide first.
+  useEffect(() => {
+    if (isRoot) { setInnerScreen(null); return; }
+    setInnerScreen({ back: () => setSection("account"), parent: "Account", title, hideNav: true });
+    return () => setInnerScreen(null);
+  }, [isRoot, title]);
 
   return (
-    <div className="flex flex-1 overflow-hidden h-full">
-
-      {/* ── Settings secondary nav ── */}
-      <div className="flex flex-col shrink-0 h-full w-[260px] bg-background border-r border-border">
-        {/* "Settings" heading - aligned with dashboard greeting */}
-        <div className="px-[32px] pt-[28px] pb-6">
-          <p className="whitespace-nowrap text-foreground" style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}>
-            Settings
-          </p>
-        </div>
-
-        {/* Nav items - reusing sidebar navigation components */}
-        <SidebarMenu className="px-[16px]">
-          {NAV_ITEMS.map(({ id, label, icon: NavIcon, disabled, badge }) => (
-            <SidebarMenuItem key={id}>
-              <SidebarMenuButton
-                isActive={!disabled && activeSection === id}
-                aria-disabled={disabled || undefined}
-                onClick={disabled ? undefined : () => setActiveSection(id)}
-                className={
-                  disabled
-                    ? "cursor-not-allowed text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
-                    : ""
-                }
+    <div className="flex h-full flex-1 flex-col overflow-y-auto bg-background">
+      <div className={`${MAX_WIDTH[section]} w-full px-[16px] pb-16 pt-[16px] lg:px-[32px] lg:pt-[28px]`}>
+        <div className={isRoot ? "" : "max-md:hidden"}>
+          <div className="mb-6 flex items-center gap-2 lg:mb-8">
+            {!isRoot && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSection("account")}
+                aria-label="Back to account"
+                className="-ml-2 size-9 shrink-0 text-muted-foreground hover:text-foreground"
               >
-                <Icon icon={NavIcon} strokeWidth={1.3} />
-                <span>{label}</span>
-                {badge && (
-                  <span className="ml-auto text-[10px] font-semibold tracking-wide px-2 py-px rounded-full bg-muted text-muted-foreground">
-                    {badge}
-                  </span>
-                )}
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </div>
-
-      {/* ── Content area ── */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden bg-background">
-
-        {/* Section header */}
-        <div className="flex items-center justify-between gap-4 px-[32px] pt-[28px] pb-5 shrink-0 border-b border-border">
-          <h1 className="font-bold text-[22px] text-foreground tracking-tight">
-            {sectionLabel}
-          </h1>
-        </div>
-
-        {/* Scrollable form */}
-        <div className="flex-1 overflow-y-auto">
-          <div className={`${MAX_WIDTH[activeSection]} px-[32px] pt-6 pb-12`}>
-            {activeSection === "account" && <AccountPage />}
-            {activeSection === "plan" && <PlanManagementPage state={planState} />}
-            {activeSection === "meetings" && <MeetingsSettingsPanel />}
-            {activeSection === "invoices" && <InvoicesComingSoon />}
-            {activeSection === "privacy" && <PrivacyPolicyPage />}
-            {activeSection === "terms" && <TermsOfUsePage />}
+                <Icon icon={ArrowLeft02Icon} className="size-5" strokeWidth={2} />
+              </Button>
+            )}
+            <h1
+              className="text-foreground text-[24px] leading-[30px] tracking-[-0.4px] lg:text-[32px] lg:leading-[38px] lg:tracking-[-0.6px]"
+              style={{ fontWeight: 700 }}
+            >
+              {title}
+            </h1>
           </div>
         </div>
+
+        {section === "account"  && <AccountPage onOpenSection={setSection} />}
+        {section === "plan"     && <PlanManagementPage state={planState} />}
+        {section === "meetings" && <MeetingsSettingsPanel />}
+        {section === "system"   && <SystemSettingsPanel />}
+        {section === "notetaker" && <NotetakerSettingsPanel />}
+        {section === "invoices" && <InvoicesComingSoon />}
+        {section === "privacy"  && <PrivacyPolicyPage />}
+        {section === "terms"    && <TermsOfUsePage />}
       </div>
     </div>
   );

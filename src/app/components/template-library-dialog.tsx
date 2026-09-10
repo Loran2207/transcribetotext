@@ -52,10 +52,10 @@ function StarGlyph({ filled }: { filled: boolean }) {
 
 /* Library card: the Templates-page card plus a hover layer with Preview / Use. */
 function LibraryCard({
-  template, isStarred, onToggleStar, onPreview, onUse, isFree, forceActions = false,
+  template, isStarred, onToggleStar, onPreview, onUse, isFree, forceActions = false, narrow = false,
 }: {
   template: Template; isStarred: boolean; onToggleStar: () => void;
-  onPreview: () => void; onUse: () => void; isFree: boolean; forceActions?: boolean;
+  onPreview: () => void; onUse: () => void; isFree: boolean; forceActions?: boolean; narrow?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const show = hovered || forceActions;
@@ -103,7 +103,7 @@ function LibraryCard({
             type="button"
             onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
             className="flex items-center justify-center"
-            style={{ width: 28, height: 28, borderRadius: 999, background: show ? "rgba(255,255,255,0.6)" : "transparent", opacity: isStarred || show ? 1 : 0, pointerEvents: isStarred || show ? "auto" : "none", transition: "opacity 160ms, background 160ms" }}
+            style={{ width: 28, height: 28, borderRadius: 999, background: show ? "rgba(255,255,255,0.6)" : "transparent", opacity: isStarred || show || narrow ? 1 : 0, pointerEvents: isStarred || show || narrow ? "auto" : "none", transition: "opacity 160ms, background 160ms" }}
             title={isStarred ? "Remove from favorites" : "Add to favorites"}
             aria-label={isStarred ? "Remove from favorites" : "Add to favorites"}
             aria-pressed={isStarred}
@@ -173,14 +173,14 @@ function PreviewPanel({ template, onBack, onUse, isFree }: {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-3 px-6 h-[56px] border-b border-border shrink-0">
+      <div className="flex items-center justify-between gap-3 px-6 h-[56px] border-b border-border shrink-0 max-lg:px-4">
         <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
           Back to template library
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-8 py-7">
+      <div className="flex-1 overflow-y-auto px-8 py-7 max-lg:px-4 max-lg:py-5">
         <div className="flex items-start gap-3.5">
           <div className="flex items-center justify-center shrink-0 rounded-xl" style={{ width: 44, height: 44, background: hue.bg, fontSize: 22 }}>
             <span>{emoji}</span>
@@ -198,7 +198,7 @@ function PreviewPanel({ template, onBack, onUse, isFree }: {
           </div>
         </div>
 
-        <div className="flex gap-9 mt-8 items-start">
+        <div className="flex gap-9 mt-8 max-md:flex-col max-md:gap-6 max-md:mt-6 md:items-start md:gap-7 lg:gap-9">
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-medium text-muted-foreground mb-3">What this template captures</p>
             <div className="flex flex-col gap-2.5">
@@ -218,7 +218,7 @@ function PreviewPanel({ template, onBack, onUse, isFree }: {
             </div>
           </div>
 
-          <div className="w-[420px] shrink-0">
+          <div className="w-[420px] shrink-0 max-md:w-full md:w-[340px] lg:w-[420px]">
             <p className="text-[11px] font-medium text-muted-foreground mb-3">Example summary</p>
             <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ boxShadow: "var(--elevation-md)" }}>
               <div className="px-6 pt-5 pb-3.5 border-b border-border">
@@ -256,7 +256,7 @@ function PreviewPanel({ template, onBack, onUse, isFree }: {
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-3 px-8 h-[72px] border-t border-border shrink-0">
+      <div className="flex items-center justify-end gap-3 px-8 h-[72px] border-t border-border shrink-0 max-lg:px-4 max-lg:h-[64px]">
         <Button variant="pill-outline" className="h-10 px-5 text-[13px] font-medium" onClick={onBack}>Back</Button>
         <Button className="h-10 px-6 rounded-full text-[13px] font-medium gap-1.5" onClick={onUse}>
           {isFree && <Icon icon={Lock} size={14} />}
@@ -272,9 +272,11 @@ interface TemplateLibraryDialogProps {
   onOpenChange: (open: boolean) => void;
   value: string | null;
   onSelect: (templateId: string | null) => void;
+  /* false when the template is only dropped into the notes as headings: nothing to pay for */
+  gate?: boolean;
 }
 
-export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSelect }: TemplateLibraryDialogProps) {
+export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSelect, gate = true }: TemplateLibraryDialogProps) {
   const { templates } = useTemplates();
   const plan = usePlan();
   const isFree = plan === "free";
@@ -284,6 +286,15 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
   const [query, setQuery] = useState("");
   const [previewing, setPreviewing] = useState<Template | null>(null);
   const [activeNav, setActiveNav] = useState<string>("");
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const on = () => setNarrow(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -325,7 +336,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
     });
   };
   const handleUse = (t: Template) => {
-    if (isFree) { toast("Applying templates needs a Pro subscription. Upgrade to unlock."); return; }
+    if (gate && isFree) { toast("Applying templates needs a Pro subscription. Upgrade to unlock."); return; }
     onSelect(t.id);
     onOpenChange(false);
   };
@@ -344,17 +355,17 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1080px] w-[calc(100%-2rem)] h-[86vh] p-0 gap-0 overflow-hidden rounded-2xl flex flex-col">
+      <DialogContent className="p-0 gap-0 overflow-hidden flex flex-col bg-background max-lg:top-0! max-lg:left-0! max-lg:translate-x-0! max-lg:translate-y-0! max-lg:max-w-none! max-lg:w-screen max-lg:h-[100dvh] max-lg:rounded-none! max-lg:border-0 lg:max-w-[1080px] lg:w-[calc(100%-2rem)] lg:h-[86vh] lg:rounded-2xl">
         <DialogTitle className="sr-only">Template library</DialogTitle>
         {previewing ? (
           <PreviewPanel template={previewing} onBack={() => setPreviewing(null)} onUse={() => handleUse(previewing)} isFree={isFree} />
         ) : (
-          <div className="flex h-full min-h-0">
-            <aside className="w-[230px] shrink-0 border-r border-border flex flex-col bg-sidebar">
-              <div className="px-5 h-[60px] flex items-center shrink-0">
+          <div className="flex h-full min-h-0 max-lg:flex-col">
+            <aside className="flex flex-col shrink-0 bg-sidebar border-border lg:w-[230px] lg:border-r max-lg:border-b">
+              <div className="px-5 h-[60px] flex items-center shrink-0 max-lg:h-[52px] max-lg:px-4">
                 <p className="text-[15px] font-semibold text-foreground">Template library</p>
               </div>
-              <nav className="flex-1 overflow-y-auto px-3 pb-4 flex flex-col gap-0.5">
+              <nav className="flex min-w-0 gap-1.5 px-4 pb-3 overflow-x-auto [&::-webkit-scrollbar]:hidden lg:flex-col lg:flex-1 lg:gap-0.5 lg:px-3 lg:pb-4 lg:overflow-x-visible lg:overflow-y-auto">
                 {groups.map((g) => {
                   const active = g.id === activeNav;
                   return (
@@ -362,10 +373,10 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
                       key={g.id}
                       type="button"
                       onClick={() => goTo(g.id)}
-                      className={`flex items-center gap-2 h-9 px-3 rounded-full text-[13px] transition-colors ${active ? "bg-primary/[0.06] text-primary font-medium" : "text-foreground/80 hover:bg-sidebar-accent"}`}
+                      className={`flex items-center gap-2 rounded-full transition-colors shrink-0 whitespace-nowrap px-3.5 py-[7px] text-[12.5px] font-medium lg:px-3 lg:h-9 lg:py-0 lg:text-[13px] ${active ? "bg-primary text-primary-foreground lg:bg-primary/[0.06] lg:text-primary lg:font-medium" : "bg-muted text-muted-foreground hover:text-foreground lg:bg-transparent lg:text-foreground/80 lg:hover:bg-sidebar-accent lg:font-normal"}`}
                     >
-                      {g.id === "favorites" && <span className="shrink-0 -ml-0.5"><StarGlyph filled={false} /></span>}
-                      <span className="flex-1 text-left truncate">{g.label}</span>
+                      
+                      <span className="lg:flex-1 lg:text-left lg:truncate">{g.label}</span>
                       <span className="shrink-0 opacity-50 text-[12px]">{g.items.length}</span>
                     </button>
                   );
@@ -373,8 +384,8 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
               </nav>
             </aside>
 
-            <div className="flex-1 min-w-0 flex flex-col">
-              <div className="px-7 h-[64px] flex items-center shrink-0 border-b border-border">
+            <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+              <div className="px-7 h-[64px] flex items-center shrink-0 border-b border-border max-lg:px-4 max-lg:h-[60px]">
                 <div className="relative w-full max-w-[440px]">
                   <Icon icon={SearchIcon} size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
                   <input
@@ -386,7 +397,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
                 </div>
               </div>
 
-              <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-7 py-6">
+              <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-7 py-6 max-lg:px-4 max-lg:py-5">
                 {groups.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center">
                     <p className="text-[14px] font-medium text-muted-foreground">No templates match your search</p>
@@ -406,7 +417,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
                           <p className="text-[12px] text-muted-foreground mt-1 max-w-[300px]">Tap the star on any template and it will show up here for quick access.</p>
                         </div>
                       ) : (
-                      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 auto-rows-fr">
+                      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 auto-rows-fr">
                         {g.items.map((t, idx) => (
                           <LibraryCard
                             key={t.id}
@@ -417,6 +428,7 @@ export function TemplateLibraryDialog({ open, onOpenChange, value: _value, onSel
                             onUse={() => handleUse(t)}
                             isFree={isFree}
                             forceActions={forceHover && t.id === firstCardId}
+              narrow={narrow}
                           />
                         ))}
                       </div>

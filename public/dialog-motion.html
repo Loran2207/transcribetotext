@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Transcribe To Text - how a dialog opens</title>
+<style>
+  /* ══════════════════════════════════════════════════════════════════════════
+     COPY THIS. It is the whole animation. Paste into src/styles/index.css.
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  :root {
+    /* A real spring, written as a curve: 300ms period, bounce 0.2, sampled to
+       420ms so it settles. It overshoots by 1.5% - not enough to read as a
+       bounce, enough to stop the dialog feeling like a slide projector. */
+    --motion-spring: linear(0 0%, 0.064 4.5%, 0.208 9.1%, 0.375 13.6%, 0.537 18.2%, 0.676 22.7%, 0.787 27.3%, 0.87 31.8%, 0.929 36.4%, 0.969 40.9%, 0.993 45.5%, 1.007 50%, 1.013 54.5%, 1.015 59.1%, 1.014 63.6%, 1.012 68.2%, 1.01 72.7%, 1.007 77.3%, 1.005 81.8%, 1.003 86.4%, 1.002 90.9%, 1.001 95.5%, 1 100%);
+    --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --motion-in: 420ms;
+    --motion-fade: 220ms;
+    --motion-dim: 240ms;
+    --motion-out: 140ms;
+  }
+
+  @keyframes ttt-dim-in  { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(5px); } }
+  @keyframes ttt-dim-out { from { opacity: 1; backdrop-filter: blur(5px); } to { opacity: 0; backdrop-filter: blur(0px); } }
+
+  /* The shape travels on the spring. A centred card carries its own centring
+     translate inside the keyframe, or it jumps to the corner while it animates. */
+  @keyframes ttt-card-move {
+    from { transform: translate(-50%, calc(-50% + 12px)) scale(0.96); }
+    to   { transform: translate(-50%, -50%) scale(1); }
+  }
+  @keyframes ttt-card-move-out {
+    from { transform: translate(-50%, -50%) scale(1); }
+    to   { transform: translate(-50%, calc(-50% + 4px)) scale(0.99); }
+  }
+
+  /* Opacity and focus settle sooner than the shape does, so the dialog is
+     readable before it has finished arriving. */
+  @keyframes ttt-card-fade {
+    from { opacity: 0; filter: blur(3px); }
+    to   { opacity: 1; filter: blur(0); }
+  }
+  @keyframes ttt-card-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+  /* The one thing that makes it feel made rather than generated: the contents
+     arrive after the card, a beat apart, in reading order. */
+  @keyframes ttt-row-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.985); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .ttt-dim[data-state="open"]   { animation: ttt-dim-in  var(--motion-dim) var(--motion-ease) both; }
+  .ttt-dim[data-state="closed"] { animation: ttt-dim-out var(--motion-out) var(--motion-ease) both; }
+
+  .ttt-modal-card[data-state="open"] {
+    animation:
+      ttt-card-move var(--motion-in)   var(--motion-spring) both,
+      ttt-card-fade var(--motion-fade) var(--motion-ease)   both;
+  }
+  .ttt-modal-card[data-state="closed"] {
+    animation:
+      ttt-card-move-out var(--motion-out) var(--motion-ease) both,
+      ttt-card-fade-out var(--motion-out) var(--motion-ease) both;
+  }
+
+  .ttt-modal-card[data-state="open"] > * {
+    animation: ttt-row-in 320ms var(--motion-ease) both;
+    animation-delay: calc(90ms + var(--i, 0) * 34ms);
+  }
+  /* Closing, the contents go with the card. Nothing staggers on the way out. */
+  .ttt-modal-card[data-state="closed"] > * { animation: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ttt-dim, .ttt-modal-card, .ttt-modal-card > * {
+      animation-duration: 120ms !important;
+      animation-delay: 0ms !important;
+      animation-timing-function: linear !important;
+    }
+    .ttt-modal-card[data-state="open"]   { animation-name: ttt-dim-in; }
+    .ttt-modal-card[data-state="closed"] { animation-name: ttt-dim-out; }
+    .ttt-modal-card > * { animation-name: ttt-dim-in; }
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     Demo page below. Not part of the animation.
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #F6F7F9; color: #16181D;
+    font: 15px/1.55 Inter, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 48px 24px 80px; }
+  h1 { font-size: 29px; letter-spacing: -0.4px; margin: 0 0 8px; font-weight: 700; }
+  .lede { color: #5B6170; max-width: 640px; margin: 0 0 24px; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  button.play {
+    appearance: none; border: 0; cursor: pointer; font: 600 13.5px Inter, sans-serif;
+    height: 40px; padding: 0 20px; border-radius: 999px; background: #2563EB; color: #fff;
+  }
+  button.slow {
+    appearance: none; cursor: pointer; font: 600 13.5px Inter, sans-serif;
+    height: 40px; padding: 0 18px; border-radius: 999px;
+    background: #fff; color: #16181D; border: 1px solid #E1E4EA;
+  }
+  button.slow[aria-pressed="true"] { border-color: #2563EB; color: #2563EB; }
+  button:active { transform: scale(0.98); }
+
+  .device {
+    position: relative; overflow: hidden; background: #fff; margin-top: 22px;
+    border: 1px solid #E5E7EB; border-radius: 20px; height: 520px;
+    box-shadow: 0 1px 2px rgba(16,24,40,0.05);
+  }
+  .page { position: absolute; inset: 0; padding: 22px 24px; }
+  .ph { height: 10px; border-radius: 5px; background: #EDEFF3; }
+  .ph + .ph { margin-top: 10px; }
+  .ph.t { height: 15px; width: 42%; background: #DCE0E7; margin-bottom: 18px; }
+
+  .dim { position: absolute; inset: 0; background: rgba(15,23,42,0.55); }
+  .dialog {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 460px; background: #fff; border-radius: 20px; padding: 22px;
+    box-shadow: 0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06);
+  }
+  .dtitle { font-size: 17px; font-weight: 700; margin: 0 0 4px; }
+  .dsub { font-size: 12.5px; color: #6B7280; margin: 0 0 18px; }
+  .field { height: 42px; border-radius: 12px; border: 1px solid #E1E4EA; margin-bottom: 12px; }
+  .frow { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  .pill { height: 36px; padding: 0 18px; border-radius: 999px; display: flex; align-items: center; font-size: 13px; font-weight: 600; }
+  .pill.out { border: 1px solid #E1E4EA; color: #16181D; }
+  .pill.solid { background: #2563EB; color: #fff; }
+
+  h2 { font-size: 18px; margin: 44px 0 6px; font-weight: 700; letter-spacing: -0.2px; }
+  pre {
+    margin: 14px 0 0; padding: 16px 18px; overflow-x: auto;
+    background: #14161B; color: #E6E8EC; border-radius: 14px;
+    font: 12.5px/1.7 "SF Mono", Menlo, Consolas, monospace; white-space: pre;
+  }
+  table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 13.5px; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid #EAECF0; vertical-align: top; }
+  th { font-weight: 600; color: #5B6170; font-size: 12.5px; }
+  code { background: #EEF1F6; border-radius: 5px; padding: 1px 5px; font: 12.5px "SF Mono", Menlo, Consolas, monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>How a dialog opens</h1>
+  <p class="lede">
+    The card arrives on a spring and its contents follow it in, a beat apart, in reading order.
+    Press the button to open it, press it again to close it. Slow it down to see the parts.
+  </p>
+
+  <div class="row">
+    <button class="play" id="play">Open the dialog</button>
+    <button class="slow" id="slow" aria-pressed="false">Third speed</button>
+  </div>
+
+  <div class="device" id="device">
+    <div class="page">
+      <div class="ph t"></div>
+      <div class="ph" style="width:88%"></div>
+      <div class="ph" style="width:74%"></div>
+      <div class="ph" style="width:81%"></div>
+      <div class="ph" style="width:56%"></div>
+    </div>
+  </div>
+
+  <h2>The three parts</h2>
+  <table>
+    <tr><th style="width:150px">Part</th><th>What it does</th></tr>
+    <tr><td>The dim</td><td>Fades and blurs the page behind it, 240ms. It never scales and never moves: it is the room going quiet, not an object arriving.</td></tr>
+    <tr><td>The card</td><td>Rises 12px and scales 0.96 to 1 on a spring over 420ms, overshooting by 1.5%. Its opacity and a 3px blur clear in 220ms, so it is readable well before it has finished settling.</td></tr>
+    <tr><td>The contents</td><td>Each block rises 12px and fades over 320ms, starting 90ms after the card and 34ms apart in reading order. This is the part that makes it feel made.</td></tr>
+  </table>
+
+  <h2>Closing</h2>
+  <p class="lede">
+    140ms, no spring, no stagger, everything at once. Someone who dismissed a dialog is already
+    looking somewhere else, and an exit that performs is an exit in the way.
+  </p>
+
+  <h2>The markup it runs on</h2>
+  <pre>&lt;div class="<span style="color:#8AB4F8">ttt-dim</span>"        data-state="open"&gt;&lt;/div&gt;
+&lt;div class="<span style="color:#8AB4F8">ttt-modal-card</span>" data-state="open"&gt;
+  &lt;div style="--i:0"&gt;title&lt;/div&gt;
+  &lt;div style="--i:1"&gt;first field&lt;/div&gt;
+  &lt;div style="--i:2"&gt;second field&lt;/div&gt;
+  &lt;div style="--i:3"&gt;the buttons&lt;/div&gt;
+&lt;/div&gt;
+
+<span style="color:#7A8494">--i is the position in the queue. Without it every child animates
+together, which still looks fine - the stagger is the polish, not
+the mechanism. Radix writes data-state for you; a portal that mounts
+only while open needs no attribute at all.</span></pre>
+
+  <h2>Where the numbers come from</h2>
+  <table>
+    <tr><th style="width:230px">Value</th><th>Source</th></tr>
+    <tr><td>The spring, bounce 0.2</td><td>Apple's spring API takes a duration and a bounce; 0.1-0.3 is the band Emil Kowalski's animation standards call usable. Written as CSS <code>linear()</code>, which is how a spring is expressed without a JS library.</td></tr>
+    <tr><td><code>scale(0.96)</code>, 12px rise</td><td>Radix Themes ships 0.97 and 5px. A spring travels further than an ease, so the distance goes up a little with it.</td></tr>
+    <tr><td>420ms in, 140ms out</td><td>Inside the 200-500ms band Emil's standards give for modals and drawers. Radix Themes is 200/100, shadcn's own Sheet 500/300.</td></tr>
+    <tr><td>The blur clearing</td><td>Emil's tip: a 2-3px blur smooths a state change that would otherwise pop.</td></tr>
+    <tr><td>The stagger</td><td>Not from a library. It is the difference between a dialog that appears and a dialog that arrives.</td></tr>
+  </table>
+
+  <h2>The same thing in Framer Motion</h2>
+  <pre>const spring = { type: "spring", duration: 0.42, bounce: 0.2 };
+
+// the card
+initial={{ opacity: 0, y: 12, scale: 0.96, filter: "blur(3px)" }}
+animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)",
+           transition: { ...spring, opacity: { duration: 0.22 }, filter: { duration: 0.22 } } }}
+exit=   {{ opacity: 0, y: 4, scale: 0.99, transition: { duration: 0.14 } }}
+
+// each block inside it
+variants={{ show: (i) =&gt; ({ opacity: 1, y: 0,
+  transition: { duration: 0.32, delay: 0.09 + i * 0.034, ease: [0.16, 1, 0.3, 1] } }) }}
+
+const reduce = useReducedMotion();  // and honour it</pre>
+
+</div>
+
+<script>
+  var device = document.getElementById("device");
+  var open = null, slow = false;
+
+  function speed() {
+    var r = document.documentElement.style;
+    r.setProperty("--motion-in",   slow ? "1260ms" : "420ms");
+    r.setProperty("--motion-fade", slow ? "660ms"  : "220ms");
+    r.setProperty("--motion-dim",  slow ? "720ms"  : "240ms");
+    r.setProperty("--motion-out",  slow ? "420ms"  : "140ms");
+  }
+
+  function close() {
+    if (!open) return;
+    open.forEach(function (el) { el.setAttribute("data-state", "closed"); });
+    var gone = open;
+    open = null;
+    setTimeout(function () { gone.forEach(function (el) { el.remove(); }); }, slow ? 520 : 220);
+  }
+
+  function toggle() {
+    if (open) { close(); return; }
+    var dim = document.createElement("div");
+    dim.className = "ttt-dim dim";
+    dim.setAttribute("data-state", "open");
+
+    var box = document.createElement("div");
+    box.className = "ttt-modal-card dialog";
+    box.setAttribute("data-state", "open");
+    box.innerHTML =
+      '<div style="--i:0"><p class="dtitle">Transcribe from URL</p>' +
+      '<p class="dsub">YouTube, Instagram, Dropbox, Google Drive and more</p></div>' +
+      '<div style="--i:1" class="field"></div>' +
+      '<div style="--i:2" class="field"></div>' +
+      '<div style="--i:3" class="frow"><span class="pill out">Cancel</span>' +
+      '<span class="pill solid">Start transcription</span></div>';
+
+    device.appendChild(dim);
+    device.appendChild(box);
+    open = [dim, box];
+  }
+
+  document.getElementById("play").addEventListener("click", toggle);
+  document.getElementById("slow").addEventListener("click", function (e) {
+    slow = !slow; speed();
+    e.target.setAttribute("aria-pressed", String(slow));
+  });
+  speed();
+  window.addEventListener("load", function () { setTimeout(toggle, 400); });
+</script>
+</body>
+</html>

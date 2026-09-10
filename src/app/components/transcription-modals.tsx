@@ -3,7 +3,7 @@ import {
   createContext, useContext,
 } from "react";
 import { createPortal } from "react-dom";
-import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon } from "@hugeicons/core-free-icons";
+import { FolderPlus, AlertCircle, Upload, Trash, X, RefreshIcon, Video01Icon, Loading03Icon, CheckmarkCircle02Icon, Download01Icon, ComputerIcon, AppleIcon, Mic01Icon, VolumeHighIcon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
 import { SourceIcon, type SourceType } from "./source-icons";
@@ -24,12 +24,18 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Layers } from "@hugeicons/core-free-icons";
 import { useTemplates } from "@/hooks/use-templates";
+import type { Template } from "@/lib/templates";
 import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
+import { useShell, useWideScreen } from "./desktop/shell";
 import { motion } from "motion/react";
 import { useIsMobile } from "./ui/use-mobile";
-import { MobileProcessing } from "./processing-mobile";
+import { ToastCard, toastReady, toastManyReady, toastFailed } from "./app-toast";
+import { openQueue } from "./progress-widget";
+import { ProgressWidget } from "./progress-widget";
+import { UpgradeGateModal } from "./upgrade-gate-modal";
+import { usePlan } from "./use-plan";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -47,7 +53,7 @@ export interface TranscriptionJob {
   progress: number;
   uploadProgress?: number;
   transcriptionProgress?: number;
-  status: "uploading" | "connecting" | "recording" | "processing" | "done" | "error";
+  status: "uploading" | "connecting" | "recording" | "processing" | "transcribing" | "done" | "error";
   fileType: "audio" | "video";
   errorType?: "no_audio" | "corrupt" | "too_long" | "network" | "bot_failed";
   noAudioDetected?: boolean;
@@ -55,10 +61,63 @@ export interface TranscriptionJob {
   langBilingual?: string[];
   translationLang?: string;
   folderId?: string;
+  templateId?: string;
+  templateName?: string;
   source?: SourceType;
   kind?: "meeting";
   mediaUrl?: string;
   livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
+}
+
+/* ttt_demo_jobs seeds the widget so its states can be captured:
+   mixed | progress | failed | failed_many. Off by default, and the seeded
+   jobs carry no timers, so a capture never drifts. */
+function demoSeedJobs(): TranscriptionJob[] {
+  let flag = "";
+  try { flag = window.localStorage.getItem("ttt_demo_jobs") || ""; } catch { /* ignore */ }
+  if (!flag) return [];
+  const now = Date.now();
+  const ago = (min: number) => new Date(now - min * 60000).toISOString();
+  const inProgress: TranscriptionJob[] = [
+    { id: "d1", name: "Acme Logistics - onboarding call.mp4", createdAt: ago(2), progress: 45, uploadProgress: 45, status: "uploading", fileType: "video", lang: "English", duration: "43 min" },
+    { id: "d2", name: "Weekly sync - product team.mp3", createdAt: ago(9), progress: 72, transcriptionProgress: 72, status: "transcribing", fileType: "audio", lang: "English", duration: "1 h 12 min" },
+    { id: "d3", name: "Northwind Labs - youtube walkthrough", createdAt: ago(14), progress: 97, transcriptionProgress: 97, status: "processing", fileType: "video", source: "youtube", lang: "English", duration: "2 h 04 min" },
+    { id: "d4", name: "Design review - Wednesday", createdAt: ago(1), progress: 0, status: "connecting", fileType: "video", kind: "meeting", source: "google-meet", lang: "English" },
+    { id: "d5", name: "Sales standup", createdAt: ago(26), progress: 0, status: "recording", fileType: "video", kind: "meeting", source: "zoom", lang: "English" },
+  ];
+  const failed: TranscriptionJob[] = [
+    { id: "f1", name: "Client call - March.m4a", createdAt: ago(48), progress: 0, status: "error", errorType: "no_audio", fileType: "audio", lang: "English" },
+    { id: "f2", name: "Quarterly review.mov", createdAt: ago(190), progress: 0, status: "error", errorType: "too_long", fileType: "video", lang: "English" },
+    { id: "f3", name: "Partner sync", createdAt: ago(320), progress: 0, status: "error", errorType: "bot_failed", fileType: "video", kind: "meeting", source: "teams", lang: "English" },
+  ];
+  if (flag === "progress") return inProgress;
+  if (flag === "uniform") {
+    return inProgress.slice(0, 3).map((job, i) => ({
+      ...job,
+      status: "transcribing" as const,
+      transcriptionProgress: [38, 61, 84][i],
+      progress: [38, 61, 84][i],
+    }));
+  }
+  if (flag === "failed") return failed;
+  if (flag === "failed_many") {
+    const many: TranscriptionJob[] = [];
+    const kinds: Array<TranscriptionJob["errorType"]> = ["no_audio", "corrupt", "too_long", "network"];
+    for (let i = 0; i < 24; i++) {
+      many.push({
+        id: "fm" + i,
+        name: "Recording " + (i + 1) + (i % 2 ? ".mp3" : ".mp4"),
+        createdAt: ago(60 + i * 37),
+        progress: 0,
+        status: "error",
+        errorType: kinds[i % kinds.length],
+        fileType: i % 2 ? "audio" : "video",
+        lang: "English",
+      });
+    }
+    return many;
+  }
+  return [...inProgress, ...failed];
 }
 
 export const ERROR_LABELS: Record<string, string> = {
@@ -116,18 +175,31 @@ type WindowWithSpeechRecognition = Window & {
   webkitSpeechRecognition?: BrowserSpeechRecognitionCtor;
 };
 
-type InstantRecordingSubmitOptions = {
+type TranscriptionJobOptions = {
   lang?: string;
   langBilingual?: string[];
   translationLang?: string;
   folderId?: string;
+  templateId?: string;
+  templateName?: string;
+  source?: SourceType;
+  mediaUrl?: string;
+  livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
+  noAudioDetected?: boolean;
+  kind?: "meeting";
 };
+
+type InstantRecordingSubmitOptions = Pick<
+  TranscriptionJobOptions,
+  "lang" | "langBilingual" | "translationLang" | "folderId" | "templateId" | "templateName"
+>;
 
 interface CtxValue {
   openModal: ModalType;
   setOpenModal: (m: ModalType) => void;
   jobs: TranscriptionJob[];
-  addJob: (name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean }) => string;
+  templates: Template[];
+  addJob: (name: string, fileType: "audio" | "video", opts?: TranscriptionJobOptions) => string;
   retryJob: (id: string) => void;
   reconnectBot: (id: string) => void;
   removeJob: (id: string) => void;
@@ -156,6 +228,7 @@ interface CtxValue {
   consumePreloadedFiles: () => File[];
   setDefaultFolderId: (folderId: string | null) => void;
   consumeDefaultFolderId: () => string | null;
+  guardFreeLimit: () => boolean;
 }
 
 const Ctx = createContext<CtxValue | null>(null);
@@ -174,11 +247,177 @@ export function TranscriptionModalsProvider({
   children, userPlan = "free",
 }: { children: React.ReactNode; userPlan?: UserPlan }) {
   const { assignToFolder } = useFolders();
+  const { templates } = useTemplates();
   const [openModal, setOpenModal] = useState<ModalType>(null);
-  const [jobs, setJobs] = useState<TranscriptionJob[]>([]);
+  const [jobs, setJobs] = useState<TranscriptionJob[]>(demoSeedJobs);
   const jobsRef = useRef<TranscriptionJob[]>([]);
+  const announcedRef = useRef<Set<string>>(new Set());
+  const failedAnnouncedRef = useRef<Set<string>>(new Set());
   const currentUploadBatchIdRef = useRef<string | null>(null);
   const meetingCounterRef = useRef(1);
+
+  /* A finished transcription leaves the widget for the table, and the user may
+     be anywhere in the app, so it says so itself.
+
+     Ten files can land within a second of each other, which is ten toasts and a
+     buried screen. Completions are collected for a beat first: one of them gets
+     its own toast, several share one line. */
+  const readyBufferRef = useRef<{ id: string; name: string }[]>([]);
+  const flushRef = useRef<number | null>(null);
+  const seededRef = useRef(false);
+  useEffect(() => {
+    // First pass: everything already in a terminal state is history, not news.
+    if (!seededRef.current) {
+      seededRef.current = true;
+      jobs.forEach((job) => {
+        if (job.status === "done") announcedRef.current.add(job.id);
+        if (job.status === "error") failedAnnouncedRef.current.add(job.id);
+      });
+      return;
+    }
+    const fresh = jobs.filter((job) => job.status === "done" && !announcedRef.current.has(job.id));
+    if (fresh.length === 0) return;
+    fresh.forEach((job) => announcedRef.current.add(job.id));
+    readyBufferRef.current = readyBufferRef.current.concat(
+      fresh.map((job) => ({ id: job.id, name: job.name }))
+    );
+    if (flushRef.current !== null) window.clearTimeout(flushRef.current);
+    flushRef.current = window.setTimeout(() => {
+      const batch = readyBufferRef.current;
+      readyBufferRef.current = [];
+      flushRef.current = null;
+      if (batch.length === 1) {
+        toastReady(batch[0].name, () => {
+          void router.navigate("/transcriptions/" + batch[0].id);
+        });
+      } else if (batch.length > 1) {
+        toastManyReady(batch.map((entry) => entry.name), () => {
+          void router.navigate("/", { state: { page: "records" } });
+        });
+      }
+    }, 700);
+  }, [jobs]);
+
+  /* A failure is already waiting in the queue, so the toast only points at it.
+     Only for something that broke while the app was open: see the seeding pass
+     above, which marks whatever was already broken at mount. */
+  useEffect(() => {
+    if (!seededRef.current) return;
+    jobs.forEach((job) => {
+      if (job.status !== "error" || failedAnnouncedRef.current.has(job.id)) return;
+      failedAnnouncedRef.current.add(job.id);
+      toastFailed(job.name, openQueue);
+    });
+  }, [jobs]);
+
+  /* ttt_demo_toast parks toasts on screen for captures. The helpers above are
+     the real thing, so the frames use the same card with the timer removed. */
+  useEffect(() => {
+    let flag = "";
+    try { flag = window.localStorage.getItem("ttt_demo_toast") || ""; } catch { /* ignore */ }
+    if (!flag) return;
+    const names = [
+      "Acme Logistics - onboarding call.mp4",
+      "Weekly sync - product team.mp3",
+      "Northwind Labs - youtube walkthrough",
+    ];
+    const park = { duration: 600000 };
+    const open = { label: "Open", onClick: () => {} };
+    if (flag === "many") {
+      names.forEach((name) => {
+        toast.custom(
+          () => <ToastCard title={name} meta="Transcription is ready" action={open} />,
+          park
+        );
+      });
+    } else if (flag === "grouped") {
+      toast.custom(
+        () => (
+          <ToastCard
+            title="7 transcriptions are ready"
+            meta="Acme Logistics, Weekly sync and 5 more"
+            action={{ label: "View all", onClick: () => {} }}
+          />
+        ),
+        park
+      );
+    } else if (flag === "access_removed") {
+      toast.custom(
+        () => (
+          <ToastCard
+            title="Access removed"
+            meta="Emma Larsen"
+            action={{ label: "Undo", onClick: () => {} }}
+          />
+        ),
+        park
+      );
+    } else if (flag === "access_undo") {
+      /* The same toast at the moment the way back is pressed. */
+      toast.custom(
+        () => (
+          <ToastCard
+            title="Access removed"
+            meta="Emma Larsen"
+            action={{ label: "Undo", onClick: () => {}, pressed: true }}
+          />
+        ),
+        park
+      );
+    } else if (flag === "access_revoked") {
+      toast.custom(
+        () => (
+          <ToastCard
+            tone="error"
+            title="Access to this record was removed"
+            meta="Taking you back to Shared with me"
+          />
+        ),
+        park
+      );
+    } else if (flag === "export") {
+      toast.custom(
+        () => (
+          <ToastCard
+            glyph={Download01Icon}
+            title="transcripts-3-files.zip"
+            meta="Archive downloaded"
+          />
+        ),
+        park
+      );
+    } else if (flag === "failed") {
+      toast.custom(
+        () => (
+          <ToastCard
+            tone="error"
+            title={names[2]}
+            meta="Transcription failed"
+            action={{ label: "Details", onClick: () => {} }}
+          />
+        ),
+        park
+      );
+    } else {
+      toast.custom(() => <ToastCard title={names[0]} meta="Transcription is ready" action={open} />, park);
+    }
+  }, []);
+
+  // Free-plan gate on the primary Transcribe actions (demo flag ttt_demo_freegate).
+  const gatePlan = usePlan();
+  const [freeGateOpen, setFreeGateOpen] = useState(false);
+
+  function guardFreeLimit() {
+    let flagOn = false;
+    try {
+      flagOn = window.localStorage.getItem("ttt_demo_freegate") === "1";
+    } catch {
+      flagOn = false;
+    }
+    if (!flagOn || gatePlan !== "free") return false;
+    setFreeGateOpen(true);
+    return true;
+  }
 
   // ── Default folder for modals opened from folder context ──
   const defaultFolderIdRef = useRef<string | null>(null);
@@ -420,7 +659,8 @@ export function TranscriptionModalsProvider({
     }
     if (deviceId) {
       try {
-        return await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId } } });
+        /* `ideal`, not `exact`: a remembered device that is gone must not hang the start */
+        return await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { ideal: deviceId } } });
       } catch {
         return await navigator.mediaDevices.getUserMedia({ audio: true });
       }
@@ -544,7 +784,10 @@ export function TranscriptionModalsProvider({
     setRecordingElapsed(0);
   }
   function submitInstantRecording(opts?: InstantRecordingSubmitOptions) {
-    const name = `Recording ${fmtTime(recordingElapsed)}.wav`;
+    /* a call started from the desktop shell keeps the name it was given */
+    const callTitle = window.sessionStorage.getItem("ttt_live_title");
+    window.sessionStorage.removeItem("ttt_live_title");
+    const name = callTitle || `Recording ${fmtTime(recordingElapsed)}.wav`;
     const previewSegments = [
       ...liveTranscriptSegments,
       ...(liveTranscriptInterim.trim().length > 0
@@ -687,7 +930,7 @@ export function TranscriptionModalsProvider({
     setTimeout(tickUpload, 300);
   }
 
-  function addJob(name: string, fileType: "audio" | "video", opts?: { lang?: string; langBilingual?: string[]; translationLang?: string; folderId?: string; source?: SourceType; mediaUrl?: string; livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>; noAudioDetected?: boolean; kind?: "meeting" }) {
+  function addJob(name: string, fileType: "audio" | "video", opts?: TranscriptionJobOptions) {
     const id = Math.random().toString(36).slice(2, 10);
     const createdAt = new Date().toISOString();
     let batchId: string | undefined;
@@ -743,9 +986,10 @@ export function TranscriptionModalsProvider({
   }
 
   return (
-    <Ctx.Provider value={{ openModal, setOpenModal, jobs, addJob, retryJob, reconnectBot, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId }}>
+    <Ctx.Provider value={{ openModal, setOpenModal, jobs, templates, addJob, retryJob, reconnectBot, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId, guardFreeLimit }}>
       {children}
       <AllModals />
+      <UpgradeGateModal open={freeGateOpen} onOpenChange={setFreeGateOpen} variant="limit" />
       <DemoLeaveAlert />
       <RecordingPill />
       <ProgressWidgetResponsive />
@@ -803,7 +1047,8 @@ export function mapJobToRecordState(job: TranscriptionJob) {
     duration: isDone ? (job.duration ?? "-") : isError ? "Failed" : "In progress",
     dateCreated: dateParts.dateCreated,
     dateGroup: dateParts.dateGroup,
-    template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
+    template: job.templateName ?? (job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary"),
+    templateId: job.templateId,
     language: "en",
     source: normalizeSource(job.source, job.fileType),
     summary: isDone
@@ -882,7 +1127,7 @@ function CreateFolderDialog({
 
   return createPortal(
     <div className="fixed inset-0 z-[180] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
       <div
         className="relative rounded-[20px] w-[400px] overflow-hidden bg-popover"
         style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}
@@ -1065,7 +1310,7 @@ function TemplateSelector({
   onChange: (templateId: string | null) => void;
   compact?: boolean;
 }) {
-  const { templates } = useTemplates();
+  const { templates } = useTranscriptionModals();
   const selected = value ? templates.find((t) => t.id === value) : null;
 
   return (
@@ -1096,9 +1341,17 @@ function TemplateSelector({
   );
 }
 
+function selectedTemplateJobFields(templates: Template[], templateId: string | null) {
+  const selected = templateId ? templates.find((template) => template.id === templateId) : undefined;
+  return {
+    templateId: selected?.id,
+    templateName: selected?.name,
+  };
+}
+
 // ── Languages ──────────────────────────────────────────────
 
-const LANGUAGES = [
+export const LANGUAGES = [
   { id: "auto", label: "Detect automatically", flag: "🌐" },
   { id: "en", label: "English", flag: "🇺🇸" },
   { id: "ru", label: "Russian", flag: "🇷🇺" },
@@ -1121,7 +1374,7 @@ const LANGUAGES = [
   { id: "uk", label: "Ukrainian", flag: "🇺🇦" },
 ];
 
-function LanguageSelector({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
+export function LanguageSelector({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
@@ -1233,7 +1486,7 @@ function TranscriptionModeToggle({ mode, onChange, compact = false }: {
 
 // ── Speaker identification ─────────────────────────────────
 
-function SpeakerSection({ enabled, onToggle, count, onCountChange }: {
+export function SpeakerSection({ enabled, onToggle, count, onCountChange }: {
   enabled: boolean; onToggle: () => void; count: number | "auto"; onCountChange: (v: number | "auto") => void;
 }) {
   const [dropOpen, setDropOpen] = useState(false);
@@ -1471,20 +1724,19 @@ function SharedSettings({ state, onChange, userPlan, onUpgradeClick, hideModeTog
       <div className="flex-1 min-w-0">
         <LanguageSelector value={state.langPrimary} onChange={v => onChange({ langPrimary: v })} label="Transcription language" />
       </div>
-      <AdvancedSection>
-        <div className="pt-[2px]">
-          <SpeakerSection
-            enabled={state.speakerEnabled}
-            onToggle={() => onChange({ speakerEnabled: !state.speakerEnabled })}
-            count={state.speakerCount}
-            onCountChange={v => onChange({ speakerCount: v })}
-          />
-        </div>
-      </AdvancedSection>
+      <SpeakerSection
+        enabled={state.speakerEnabled}
+        onToggle={() => onChange({ speakerEnabled: !state.speakerEnabled })}
+        count={state.speakerCount}
+        onCountChange={v => onChange({ speakerCount: v })}
+      />
     </div>
   );
 }
 
+/* Speaker identification no longer lives behind this door: it is the one setting
+   people came for, so it stands with the language above. What is left here is the
+   rest, and where there is no rest the section is not rendered at all. */
 function AdvancedSection({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
@@ -1517,7 +1769,7 @@ function UpgradePrompt({ open, onClose }: { open: boolean; onClose: () => void }
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
       <div className="relative rounded-[20px] w-[360px] p-[28px] flex flex-col items-center text-center gap-[16px] bg-popover"
         style={{ boxShadow: "0 24px 64px rgba(0,0,0,0.22)" }}>
         <div className="absolute top-[14px] right-[14px]"><XBtn onClick={onClose} /></div>
@@ -1553,10 +1805,10 @@ function ModalShell({ title, subtitle, onClose, onBackdropClick, children, width
   }, [onClose]);
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[3px]" onClick={onBackdropClick} />
-      <div className="relative rounded-[20px] flex flex-col overflow-hidden bg-popover"
-        style={{ width: `min(${width}px, calc(100vw - 32px))`, maxHeight: "calc(100vh - 40px)", boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 md:items-center md:p-4">
+      <div className="ttt-dim absolute inset-0 bg-[rgba(15,23,42,0.55)] backdrop-blur-[3px]" onClick={onBackdropClick} />
+      <div className="ttt-modal-rise ttt-modal-sheet ttt-modal relative flex flex-col overflow-hidden bg-popover w-full max-h-[90vh] rounded-t-[24px] rounded-b-none pb-[env(safe-area-inset-bottom)] md:w-[min(var(--modal-w),calc(100vw_-_32px))] md:max-h-[calc(100vh_-_40px)] md:rounded-[20px] md:pb-0"
+        style={{ "--modal-w": `${width}px`, boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" } as React.CSSProperties}>
         {/* Header */}
         <div className="flex items-center justify-between px-[22px] pt-[18px] pb-[16px] shrink-0">
           <div>
@@ -1684,28 +1936,37 @@ async function detectVideoHasAudioTrack(file: File): Promise<boolean | null> {
 }
 
 function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { startInstantRecording, userPlan, consumeDefaultFolderId } = useTranscriptionModals();
+  const { desktop: onDesktop } = useShell();
+  const { startInstantRecording, templates, userPlan, consumeDefaultFolderId, guardFreeLimit, setOpenModal } = useTranscriptionModals();
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
+  /* the desktop asks nothing here: your voice, typed as you speak, starts at once */
+  useEffect(() => {
+    if (open && onDesktop) void handleStart();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, onDesktop]);
   useEffect(() => {
     if (!open) return;
     setSettings(DEFAULT_SETTINGS);
     setSelectedFolderId(consumeDefaultFolderId());
+    setSelectedTemplateId(null);
     setIsStarting(false);
   }, [open]);
 
   async function handleStart() {
     if (isStarting) return;
+    if (guardFreeLimit()) return;
     setIsStarting(true);
     const started = await startInstantRecording({
       lang: settings.mode === "mono" ? settings.langPrimary : undefined,
       langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
       translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
       folderId: selectedFolderId ?? undefined,
+      ...selectedTemplateJobFields(templates, selectedTemplateId),
     });
     setIsStarting(false);
     if (!started) {
@@ -1716,18 +1977,29 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
     void router.navigate("/transcriptions/live", { state: { liveRecording: true } });
   }
 
-  if (!open) return null;
+  if (!open || onDesktop) return null;
 
   return (
     <>
       <ModalShell
         title="Instant speech"
-        subtitle="Select recognition settings before recording"
+        subtitle={onDesktop ? "Your voice only, typed as you speak. For a call, use Record a call" : "Select recognition settings before recording"}
         onClose={onClose}
         onBackdropClick={onClose}
         width={520}
       >
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
+          {!onDesktop && (
+            /* the web can only hear you; a call needs the app, and the choice is made here, not in a hint */
+            <MethodCards<"voice" | "desktop">
+              cards={[
+                { id: "voice", title: "Your voice, here", line: "Typed as you speak, in the browser", icon: Mic01Icon },
+                { id: "desktop", title: "A call, both sides", line: "No bot. Needs the desktop app", icon: ComputerIcon, badge: "New" },
+              ]}
+              method="voice"
+              onChange={(m) => { if (m === "desktop") { window.sessionStorage.setItem("ttt_meeting_method", "desktop"); onClose(); setOpenModal("meeting"); } }}
+            />
+          )}
           <SharedSettings
             state={settings}
             onChange={(patch) => setSettings((prev) => ({ ...prev, ...patch }))}
@@ -1744,7 +2016,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-[8px]">
+            <div className="sticky bottom-0 z-10 -mx-[22px] mt-[2px] flex items-center justify-end gap-[8px] border-t border-border bg-popover px-[22px] pt-[14px] pb-[4px]">
               <Button variant="pill-outline" onClick={onClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
@@ -1767,7 +2039,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
 }
 
 function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan, consumePreloadedFiles, consumeDefaultFolderId } = useTranscriptionModals();
+  const { addJob, templates, userPlan, consumePreloadedFiles, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
 
   const [files, setFiles] = useState<File[]>([]);
   const [preparing, setPreparing] = useState<Set<string>>(new Set());
@@ -1793,7 +2065,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  function resetForm() { setFiles([]); setPreparing(new Set()); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
+  function resetForm() { setFiles([]); setPreparing(new Set()); setDragActive(false); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); setSelectedTemplateId(null); }
   function handleClose() { resetForm(); onClose(); }
 
   // Newly added files show a short "preparing" state while they are read.
@@ -1824,6 +2096,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
 
   async function handleSubmit() {
     if (!files.length) return;
+    if (guardFreeLimit()) return;
     const prepared = await Promise.all(files.map(async (file) => {
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
       const isAudio = AUDIO_EXTS.includes(ext);
@@ -1844,6 +2117,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
         source: isAudio ? "mp3" : "mp4",
         mediaUrl: isAudio ? undefined : URL.createObjectURL(file),
         noAudioDetected: isAudio ? undefined : noAudioDetected,
+        ...selectedTemplateJobFields(templates, selectedTemplateId),
       });
     });
     handleClose();
@@ -1970,7 +2244,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-[8px]">
+            <div className="sticky bottom-0 z-10 -mx-[22px] mt-[2px] flex items-center justify-end gap-[8px] border-t border-border bg-popover px-[22px] pt-[14px] pb-[4px]">
               <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
@@ -2056,6 +2330,7 @@ function detectLinkSource(url: string): SourceType {
     const host = new URL(url).hostname.toLowerCase();
     if (host.includes("youtube.com") || host.includes("youtu.be")) return "youtube";
     if (host.includes("dropbox.com")) return "dropbox";
+    if (host.includes("instagram.com")) return "instagram";
     if (host.includes("drive.google.com")) return "google-sheets";
   } catch {
     // ignore invalid URL, fallback below
@@ -2079,12 +2354,16 @@ function LinkInputIcons() {
   return (
     <div className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 flex items-center gap-[8px]">
       <SourceIcon source="youtube" />
+      <SourceIcon source="instagram" />
       <SourceIcon source="dropbox" />
       <span className="inline-flex items-center justify-center size-[18px]">
-        <svg viewBox="0 0 24 24" fill="none" className="size-[16px]">
-          <path d="M12 2l6 10H6L12 2z" fill="#0066DA" />
-          <path d="M2 17l4-7h16l-4 7H2z" fill="#00AC47" />
-          <path d="M6 10l6 12H6L2 17l4-7z" fill="#EA4335" />
+        <svg viewBox="0 0 87.3 78" className="size-[16px]">
+          <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da" />
+          <path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44A9.06 9.06 0 000 53h27.5z" fill="#00ac47" />
+          <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335" />
+          <path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d" />
+          <path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc" />
+          <path d="M73.4 26.5l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00" />
         </svg>
       </span>
     </div>
@@ -2092,7 +2371,7 @@ function LinkInputIcons() {
 }
 
 function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, userPlan, consumeDefaultFolderId } = useTranscriptionModals();
+  const { addJob, templates, userPlan, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
 
   const [url, setUrl] = useState("");
   const [urlError, setUrlError] = useState("");
@@ -2109,7 +2388,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  function resetForm() { setUrl(""); setUrlError(""); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); }
+  function resetForm() { setUrl(""); setUrlError(""); setSettings(DEFAULT_SETTINGS); setSelectedFolderId(null); setSelectedTemplateId(null); }
   function handleClose() { resetForm(); onClose(); }
 
   function validateUrl(s: string) {
@@ -2120,12 +2399,14 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 
   function handleSubmit() {
     if (!isValidUrl(url)) { validateUrl(url); return; }
+    if (guardFreeLimit()) return;
     addJob(url.split("/").pop() || "Link transcription", "video", {
       lang: settings.mode === "mono" ? settings.langPrimary : undefined,
       langBilingual: settings.mode === "bi" ? (settings.langBilingual.length ? settings.langBilingual : ["auto"]) : undefined,
       translationLang: settings.realtimeTranslation ? settings.realtimeTranslationLang : undefined,
       folderId: selectedFolderId ?? undefined,
       source: detectLinkSource(url),
+      ...selectedTemplateJobFields(templates, selectedTemplateId),
     });
     handleClose();
   }
@@ -2135,18 +2416,18 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 
   return (
     <>
-      <ModalShell title="Transcribe from link" subtitle="YouTube, Dropbox, Google Drive and more" onClose={handleClose} onBackdropClick={handleClose}>
+      <ModalShell title="Transcribe from URL" subtitle="YouTube, Instagram, Dropbox, Google Drive and more" onClose={handleClose} onBackdropClick={handleClose}>
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
           <div>
-            <SectionLabel>Paste a link</SectionLabel>
+            <SectionLabel>Paste a URL</SectionLabel>
             <div className="relative">
               <svg className="absolute left-[12px] top-1/2 -translate-y-1/2 size-[15px] pointer-events-none text-muted-foreground" fill="none" viewBox="0 0 24 24">
                 <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <Input type="url" placeholder="Paste the link here" value={url}
+              <Input type="url" placeholder="Paste the URL here" value={url}
                 onChange={e => { setUrl(e.target.value); if (urlError) validateUrl(e.target.value); }}
                 onBlur={() => validateUrl(url)}
-                className={`w-full h-[42px] pl-[36px] pr-[108px] rounded-[12px] text-sm ${urlError ? "border-destructive" : ""}`}
+                className={`w-full h-[42px] truncate pl-[36px] pr-[108px] rounded-[12px] text-sm ${urlError ? "border-destructive" : ""}`}
               />
               <LinkInputIcons />
             </div>
@@ -2176,7 +2457,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-[8px]">
+            <div className="sticky bottom-0 z-10 -mx-[22px] mt-[2px] flex items-center justify-end gap-[8px] border-t border-border bg-popover px-[22px] pt-[14px] pb-[4px]">
               <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
@@ -2198,12 +2479,61 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 // Modal 4 - Meeting via bot
 // ════════════════════════════════════════════════════════════
 
+type RecordMethod = "bot" | "desktop";
+
+/* Two ways to record a call, as two cards, the way every step in this product
+   opens (Kirill's law: a step opens with a choice of method, centred cards, and
+   the choice stays changeable in place). On the web the second card leads to
+   the desktop app; in the desktop shell it records right here. */
+type MethodCard<T extends string> = { id: T; title: string; line: string; icon: typeof Video01Icon; badge?: string };
+
+/* Two ways in, as two compact cards (Kirill's law: a step opens with a choice
+   of method, and the choice stays changeable in place). One line each: the
+   detail belongs to the step that follows, not to the choice. */
+function MethodCards<T extends string>({ cards, method, onChange }: { cards: MethodCard<T>[]; method: T; onChange: (m: T) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-[8px] max-sm:grid-cols-1" role="radiogroup">
+      {cards.map((c) => {
+        const on = method === c.id;
+        return (
+          <button key={c.id} type="button" role="radio" aria-checked={on} onClick={() => onChange(c.id)}
+            className={"flex items-center gap-[10px] rounded-[12px] border px-[12px] py-[10px] text-left transition-colors " + (on ? "border-primary bg-primary/5" : "border-border hover:bg-muted/40")}>
+            <span className={"flex size-[30px] shrink-0 items-center justify-center rounded-full " + (on ? "bg-primary text-primary-foreground" : "bg-muted text-foreground")}>
+              <Icon icon={c.icon} className="size-[15px]" strokeWidth={1.8} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-x-[6px] gap-y-[2px] text-[13.5px] font-semibold text-foreground"><span className="min-w-0 truncate">{c.title}</span>{c.badge && <span className="shrink-0 rounded-full bg-primary px-[6px] py-[1px] text-[10px] font-bold uppercase tracking-[0.04em] text-primary-foreground">{c.badge}</span>}</span>
+              <span className="block truncate text-[12px] text-muted-foreground">{c.line}</span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function RecordMethodCards({ method, onChange, desktopShell, machine }: { method: RecordMethod; onChange: (m: RecordMethod) => void; desktopShell: boolean; machine: string }) {
+  const cards: MethodCard<RecordMethod>[] = [
+    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "On your computer", line: desktopShell ? "Both sides of the call, no bot" : "No bot. Needs the desktop app", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
+    { id: "bot", title: "Send a bot", line: "A bot joins by the invite link", icon: Video01Icon },
+  ];
+  return <MethodCards cards={cards} method={method} onChange={onChange} />;
+}
+
 function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addJob, meetingCounterRef, consumeDefaultFolderId } = useTranscriptionModals();
+  const { addJob, templates, meetingCounterRef, consumeDefaultFolderId, guardFreeLimit, startInstantRecording } = useTranscriptionModals();
+  const { desktop: desktopShell, machine, installed } = useShell();
+  const wide = useWideScreen();
+  const [method, setMethod] = useState<RecordMethod>("bot");
+  const offersDesktop = desktopShell || wide;
+  const [isStarting, setIsStarting] = useState(false);
 
   const [meetingUrl, setMeetingUrl] = useState("");
   const [meetingUrlError, setMeetingUrlError] = useState("");
   const [meetingName, setMeetingName] = useState(`Meeting ${meetingCounterRef.current}`);
+  /* the call has no invite link to name it by, so today's date stands in until the note is titled */
+  const todayCallName = () => `Call on ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+  const [callName, setCallName] = useState(todayCallName);
   const [langId, setLangId] = useState("auto");
   const [mode, setMode] = useState<"mono" | "bi">("mono");
   const [langBilingual, setLangBilingual] = useState<string[]>(["auto"]);
@@ -2221,16 +2551,36 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
     if (open) {
       const defaultFolder = consumeDefaultFolderId();
       if (defaultFolder) setSelectedFolderId(defaultFolder);
+      const preset = window.sessionStorage.getItem("ttt_meeting_method");
+      if ((preset === "desktop" && offersDesktop) || preset === "bot") { setMethod(preset); window.sessionStorage.removeItem("ttt_meeting_method"); }
+      else setMethod("bot");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+
+  async function handleStartHere() {
+    if (isStarting) return;
+    if (guardFreeLimit()) return;
+    setIsStarting(true);
+    const started = await startInstantRecording({
+      folderId: selectedFolderId ?? undefined,
+      ...selectedTemplateJobFields(templates, selectedTemplateId),
+    });
+    setIsStarting(false);
+    if (!started) { toast.error("Microphone access is required to start recording."); if (desktopShell) handleClose(); return; }
+    window.sessionStorage.setItem("ttt_live_title", (desktopShell ? callName : meetingName) || "Untitled call");
+    handleClose();
+    void router.navigate("/transcriptions/live", { state: { liveRecording: true } });
+  }
+
   function resetForm() {
     setMeetingUrl(""); setMeetingUrlError(""); meetingCounterRef.current += 1;
-    setMeetingName(`Meeting ${meetingCounterRef.current}`); setLangId("auto"); setMode("mono"); setLangBilingual(["auto"]);
+    setMeetingName(`Meeting ${meetingCounterRef.current}`); setCallName(todayCallName()); setLangId("auto"); setMode("mono"); setLangBilingual(["auto"]);
     setBotName("TranscribeToText Bot"); setRealTimeTranslation(false); setRealTimeTranslationLang("en");
     setSpeakerEnabled(false); setSpeakerCount(2);
     setSelectedFolderId(null);
+    setSelectedTemplateId(null);
     setNotifyParticipants(true);
     setNotifyMessage("I'm recording this meeting with TranscribeToText for note-taking purposes.");
   }
@@ -2243,6 +2593,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   }
   function handleSubmit() {
     if (!isValidUrl(meetingUrl)) { validateMeetingUrl(meetingUrl); return; }
+    if (guardFreeLimit()) return;
     addJob(meetingName || "Meeting", "video", {
       lang: mode === "mono" ? langId : undefined,
       langBilingual: mode === "bi" ? (langBilingual.length ? langBilingual : ["auto"]) : undefined,
@@ -2250,6 +2601,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
       folderId: selectedFolderId ?? undefined,
       source: detectMeetingSource(meetingUrl),
       kind: "meeting",
+      ...selectedTemplateJobFields(templates, selectedTemplateId),
     });
     handleClose();
   }
@@ -2259,8 +2611,92 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
 
   return (
     <>
-      <ModalShell title="Record meeting" subtitle="A bot will join and transcribe your meeting" onClose={handleClose} onBackdropClick={handleClose} width={520}>
+      <ModalShell
+        title={desktopShell ? "Record a call" : "Record meeting"}
+        subtitle={method === "bot" ? "A bot joins the meeting and transcribes it for you" : desktopShell ? "Recorded right here, without a bot in the meeting" : "Record without a bot, with the desktop app"}
+        onClose={handleClose}
+        onBackdropClick={handleClose}
+        width={520}
+      >
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
+          {wide && <RecordMethodCards method={method} onChange={setMethod} desktopShell={desktopShell} machine={machine} />}
+
+          {method === "desktop" && !desktopShell && installed && (
+            <div className="flex flex-col gap-[14px]">
+              <div className="rounded-[12px] border border-primary/15 bg-primary/5 p-[14px]">
+                <p className="text-[13px] leading-relaxed text-primary">
+                  TranscribeToText is installed on your computer. The call is recorded there, with the transcript live beside your notes, and the note lands in this account.
+                </p>
+              </div>
+              <Button className="h-[44px] w-full rounded-full gap-2 text-[14px] font-semibold" onClick={() => { window.location.assign("transcribetotext://record"); toast("Opening TranscribeToText on your computer"); }}>
+                <Icon icon={ComputerIcon} className="size-[16px]" strokeWidth={1.8} />
+                Open the app and record
+              </Button>
+              <p className="text-center text-[12.5px] text-muted-foreground">
+                Nothing opened? <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => toast("The download will start from the release page")}>Download the app again</button>
+              </p>
+            </div>
+          )}
+
+          {method === "desktop" && !desktopShell && !installed && (
+            <div className="flex flex-col gap-[14px]">
+              <div className="rounded-[12px] border border-primary/15 bg-primary/5 p-[14px]">
+                <p className="text-[13px] leading-relaxed text-primary">
+                  The desktop app hears both sides of the call through your computer and writes the note when you press <strong>Generate notes</strong>. Every note lands in this account, with the same folders and templates.
+                </p>
+              </div>
+              <div className="flex gap-[8px] max-sm:flex-col">
+                <Button className="h-[42px] flex-1 rounded-full gap-2" onClick={() => toast("The download will start from the release page")}>
+                  <Icon icon={AppleIcon} className="size-[16px]" strokeWidth={1.8} />
+                  Download for Mac
+                </Button>
+                <Button variant="pill-outline" className="h-[42px] flex-1 rounded-full gap-2" onClick={() => toast("The download will start from the release page")}>
+                  <Icon icon={ComputerIcon} className="size-[16px]" strokeWidth={1.8} />
+                  Download for Windows
+                </Button>
+              </div>
+              <p className="text-center text-[12.5px] text-muted-foreground">
+                Already installed? <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => { window.location.assign("transcribetotext://record"); toast("Opening TranscribeToText on your computer"); }}>Open the app</button>
+              </p>
+            </div>
+          )}
+
+          {method === "desktop" && desktopShell && (<>
+          {/* the same skeleton as the bot form, so switching the method moves nothing:
+              a banner, one field, the template and folder row, the footer */}
+          <div className="rounded-[12px] p-[14px] flex gap-[11px] bg-primary/5 border border-primary/15">
+            <Icon icon={ComputerIcon} className="size-[16px] shrink-0 mt-[2px] text-primary" strokeWidth={1.8} />
+            <p className="text-[13px] text-primary leading-relaxed">
+              Your microphone and the call's sound are recorded on {machine}. <strong>No bot</strong> joins the meeting, and nobody is notified.
+            </p>
+          </div>
+          <div>
+            <SectionLabel>Call name</SectionLabel>
+            <Input value={callName} onChange={(e) => setCallName(e.target.value)} placeholder="Untitled call" className="w-full h-[42px] pl-[14px] rounded-[12px] text-sm" />
+          </div>
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
+              <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
+              </div>
+            </div>
+            <div className="sticky bottom-0 z-10 -mx-[22px] mt-[2px] flex items-center justify-end gap-[8px] border-t border-border bg-popover px-[22px] pt-[14px] pb-[4px]">
+              <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
+                <span className="font-medium text-[13px] text-foreground">Cancel</span>
+              </Button>
+              <Button onClick={handleStartHere} disabled={isStarting}
+                className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <span className="font-semibold text-[13px]">{isStarting ? "Starting..." : "Start recording"}</span>
+              </Button>
+            </div>
+          </div>
+          </>)}
+
+          {method === "bot" && (<>
           {/* Intro banner */}
           <div className="rounded-[12px] p-[14px] flex gap-[11px] bg-primary/5 border border-primary/15">
             <svg className="size-[16px] shrink-0 mt-[2px] text-primary" fill="none" viewBox="0 0 24 24">
@@ -2276,12 +2712,12 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
 
           {/* Meeting link */}
           <div>
-            <SectionLabel>Meeting invite link</SectionLabel>
+            <SectionLabel>Meeting invite URL</SectionLabel>
             <div className="relative">
-              <Input type="url" placeholder="Paste the meeting invite link here" value={meetingUrl}
+              <Input type="url" placeholder="Paste the meeting invite URL here" value={meetingUrl}
                 onChange={e => { setMeetingUrl(e.target.value); if (meetingUrlError) validateMeetingUrl(e.target.value); }}
                 onBlur={() => validateMeetingUrl(meetingUrl)}
-                className={`w-full h-[42px] pl-[14px] pr-[98px] rounded-[12px] text-sm ${meetingUrlError ? "border-destructive" : ""}`}
+                className={`w-full h-[42px] truncate pl-[14px] pr-[98px] rounded-[12px] text-sm ${meetingUrlError ? "border-destructive" : ""}`}
               />
               <div className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 flex items-center gap-[8px]">
                 <SourceIcon source="zoom" />
@@ -2297,7 +2733,9 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
             display: "grid",
             gridTemplateRows: meetingUrl.length > 0 ? "1fr" : "0fr",
             opacity: meetingUrl.length > 0 ? 1 : 0,
-            transition: "grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease",
+            /* folded, it also gives back its gap, so the form is the same height as the other method's */
+            marginTop: meetingUrl.length > 0 ? 0 : -18,
+            transition: "grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, margin-top 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
           }}>
             <div style={{ overflow: "hidden" }}>
               <div className="flex flex-col gap-[18px] pb-[2px]">
@@ -2305,10 +2743,11 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                 <div className="flex-1 min-w-0">
                   <LanguageSelector value={langId} onChange={setLangId} label="Transcription language" />
                 </div>
-                {/* Advanced options */}
+                <SpeakerSection enabled={speakerEnabled} onToggle={() => setSpeakerEnabled(v => !v)} count={speakerCount} onCountChange={setSpeakerCount} />
+                {/* Advanced options: the bot's own settings, and nothing that a
+                    person opening this dialog is looking for straight away. */}
                 <AdvancedSection>
                   <div className="flex flex-col gap-[14px] pt-[2px]">
-                    <SpeakerSection enabled={speakerEnabled} onToggle={() => setSpeakerEnabled(v => !v)} count={speakerCount} onCountChange={setSpeakerCount} />
                     <div>
                       <SectionLabel>Bot display name</SectionLabel>
                       <Input type="text" value={botName} onChange={e => setBotName(e.target.value)}
@@ -2348,7 +2787,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-[8px]">
+            <div className="sticky bottom-0 z-10 -mx-[22px] mt-[2px] flex items-center justify-end gap-[8px] border-t border-border bg-popover px-[22px] pt-[14px] pb-[4px]">
               <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
@@ -2359,6 +2798,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
               </Button>
             </div>
           </div>
+          </>)}
         </div>
       </ModalShell>
     </>
@@ -2434,13 +2874,42 @@ function RecordingMicrophoneSelect({ compact = false }: { compact?: boolean }) {
   );
 }
 
+
+/* The call's own sound comes through an output device; the pill offers the same
+   choice the recording bar does, in the compact size. */
+function RecordingOutputSelect() {
+  const [outputs, setOutputs] = useState<{ id: string; label: string }[]>([]);
+  const [outputId, setOutputId] = useState(() => window.sessionStorage.getItem("ttt_output_device") || "");
+  useEffect(() => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    navigator.mediaDevices.enumerateDevices().then((list) => {
+      setOutputs(list.filter((d) => d.kind === "audiooutput").map((d, i) => ({ id: d.deviceId || `out-${i}`, label: d.label || `Speakers ${i + 1}` })));
+    }).catch(() => {});
+  }, []);
+  const label = outputs.find((o) => o.id === outputId)?.label || outputs[0]?.label || "Speakers";
+  return (
+    <Select value={outputId || outputs[0]?.id} onValueChange={(v) => { setOutputId(v); window.sessionStorage.setItem("ttt_output_device", v); }} disabled={!outputs.length}>
+      <SelectTrigger className="h-[32px] w-full rounded-[10px] border-input bg-transparent px-[9px] gap-[6px]" title="Where the call's sound plays">
+        <span className="flex min-w-0 items-center gap-[6px]">
+          <Icon icon={VolumeHighIcon} className="size-[14px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
+          <span className="truncate text-[12px] text-foreground">{label}</span>
+        </span>
+      </SelectTrigger>
+      <SelectContent className="z-[10000] max-w-[calc(100vw-32px)] rounded-[12px]">
+        {outputs.map((o) => <SelectItem key={o.id} value={o.id} className="text-[13px]"><span className="truncate">{o.label}</span></SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
+
 function RecordingPill() {
   const { recordingPhase, recordingElapsed, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, recordingDetailOpen } = useTranscriptionModals();
+  const { desktop: desktopShell } = useShell();
   const visible = recordingPhase === "recording" || recordingPhase === "paused";
   const isPaused = recordingPhase === "paused";
   if (!visible || recordingDetailOpen) return null;
   return createPortal(
-    <div className="fixed" style={{ bottom: "24px", right: "24px", zIndex: 9999 }}>
+    <div className="ttt-recording-pill fixed" style={{ bottom: "24px", right: "24px", zIndex: 9999 }}>
       <div className="w-[min(372px,calc(100vw-24px))] overflow-hidden rounded-[22px] border border-border bg-background shadow-lg">
         <div className="flex items-center gap-[10px] px-[14px] pt-[11px] pb-[9px]">
           <div className="flex shrink-0 items-center gap-[8px]">
@@ -2499,7 +2968,9 @@ function RecordingPill() {
         </div>
 
         <div className="border-t border-border/70 px-[10px] pt-[8px] pb-[10px]">
-          <div className="w-full">
+          {/* the desktop hears both sides: the speakers the call plays through, and the microphone */}
+          <div className={desktopShell ? "grid grid-cols-2 gap-[8px]" : "w-full"}>
+            {/* the call's sound is a permission, not a device: the pill shows the microphone only */}
             <RecordingMicrophoneSelect compact />
           </div>
         </div>
@@ -2554,7 +3025,7 @@ function RecordingCard({ elapsed, audioUrl, onContinue }: {
       <div className="flex items-center justify-between px-[18px] pt-[14px] pb-[8px]">
         <div className="flex items-center gap-[7px]">
           <span className="size-[7px] rounded-full shrink-0 bg-destructive" />
-          <span className="font-semibold text-[11px] text-muted-foreground tracking-wide uppercase">Recording complete</span>
+          <span className="font-semibold text-[11px] text-muted-foreground tracking-wide">Recording complete</span>
         </div>
         <div className="flex items-center gap-[7px]">
           <span className="font-bold text-[18px] text-foreground tabular-nums">{fmtDuration(elapsed)}</span>
@@ -2654,13 +3125,10 @@ function RecordingReviewModal() {
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
               <div className="flex-1 min-w-0">
-                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
-              </div>
-              <div className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-[8px]">
+            <div className="sticky bottom-0 z-10 -mx-[22px] mt-[2px] flex items-center justify-end gap-[8px] border-t border-border bg-popover px-[22px] pt-[14px] pb-[4px]">
               <Button variant="pill-outline" onClick={handleCancel} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
@@ -2773,464 +3241,18 @@ function AllModals() {
 // Floating Progress Widget
 // ════════════════════════════════════════════════════════════
 
+/* One queue, every width. The phone used to get its own component with a
+   third "History" tab, which is exactly the list that was cut - and its button
+   sat on top of the add button at tablet width. processing-mobile.tsx is left
+   in the tree, out of the way, in case any of it is wanted back. */
 function ProgressWidgetResponsive() {
-  const isMobile = useIsMobile();
-  return isMobile ? <MobileProcessing /> : <FloatingProgressWidget />;
-}
-
-export function FloatingProgressWidget() {
-  const { jobs, retryJob, reconnectBot, removeJob, clearFailedJobs } = useTranscriptionModals();
-  // Demo: ttt_demo_widget=empty_history forces the expanded widget open on an empty History tab.
-  const demoEmptyHistory = (() => { try { return import.meta.env.DEV && window.localStorage.getItem("ttt_demo_widget") === "empty_history"; } catch { return false; } })();
-  const [expanded, setExpanded] = useState(demoEmptyHistory); // false = collapsed pill, true = full widget
-  const [iconOnly, setIconOnly] = useState(false);
-  const [activeTab, setActiveTab] = useState<"uploaded" | "history" | "failed">(demoEmptyHistory ? "history" : "uploaded");
-  const widgetJobs = useMemo(
-    () => jobs.filter((job) => job.source !== "microphone"),
-    [jobs]
-  );
-
-  const hasJobs = widgetJobs.length > 0;
-  const newestJobId = widgetJobs[0]?.id ?? null;
-  const activeCount = widgetJobs.filter((j) => j.status === "uploading" || j.status === "processing" || j.status === "connecting" || j.status === "recording").length;
-
-  const activeBatchIds = useMemo(() => {
-    const ids = new Set<string>();
-    widgetJobs.forEach((job) => {
-      if ((job.status === "uploading" || job.status === "processing") && job.batchId) {
-        ids.add(job.batchId);
-      }
-    });
-    return ids;
-  }, [widgetJobs]);
-
-  const latestBatchId = widgetJobs[0]?.batchId ?? null;
-
-  const uploadedNowJobs = useMemo(() => {
-    if (widgetJobs.length === 0) return [];
-
-    if (activeBatchIds.size > 0) {
-      const activeBatchJobs = widgetJobs.filter((job) => {
-        if (job.batchId) return activeBatchIds.has(job.batchId);
-        return job.status === "uploading" || job.status === "processing";
-      });
-
-      if (activeBatchJobs.length > 0) {
-        return activeBatchJobs;
-      }
-    }
-
-    if (latestBatchId) {
-      const latestBatchJobs = widgetJobs.filter((job) => job.batchId === latestBatchId);
-      if (latestBatchJobs.length > 0) {
-        return latestBatchJobs;
-      }
-    }
-
-    return [widgetJobs[0]];
-  }, [widgetJobs, activeBatchIds, latestBatchId]);
-
-  const historyJobs = widgetJobs;
-  const failedJobs = useMemo(() => historyJobs.filter((job) => job.status === "error"), [historyJobs]);
-  const visibleJobs = activeTab === "history"
-    ? historyJobs
-    : activeTab === "failed"
-      ? failedJobs
-      : uploadedNowJobs;
-  const summaryJobs = uploadedNowJobs.length > 0 ? uploadedNowJobs : widgetJobs;
-  const allDone = summaryJobs.length > 0 && summaryJobs.every((j) => j.status === "done" || j.status === "error");
-  const uploadingCount = summaryJobs.filter((j) => j.status === "uploading").length;
-  const processingCount = summaryJobs.filter((j) => j.status === "processing").length;
-  const doneCount = summaryJobs.filter((j) => j.status === "done" || j.status === "error").length;
-  const errorCount = summaryJobs.filter((j) => j.status === "error").length;
-  const connectingCount = summaryJobs.filter((j) => j.status === "connecting").length;
-  const recordingCount = summaryJobs.filter((j) => j.status === "recording").length;
-
-  // Re-open the floating pill whenever a new upload job is added.
-  useEffect(() => {
-    if (!newestJobId) return;
-    setIconOnly(false);
-    setExpanded(false);
-    setActiveTab("uploaded");
-  }, [newestJobId]);
-
-  if (!hasJobs && !demoEmptyHistory) return null;
-
-  const rowBorder = "1px solid var(--border)";
-
-  // Collapsed pill
-  const pillLabel = allDone
-    ? errorCount > 0
-      ? `Completed with errors (${doneCount}/${summaryJobs.length})`
-      : `Upload complete! (${doneCount}/${summaryJobs.length})`
-    : processingCount > 0
-      ? uploadingCount > 0
-        ? `Uploading ${uploadingCount} | Transcribing ${processingCount}`
-        : `Transcribing... (${doneCount}/${summaryJobs.length})`
-      : `Uploading... (${doneCount}/${summaryJobs.length})`;
-
-  const isErrorPill = allDone && errorCount > 0;
-  const activityLabel = recordingCount > 0 ? `Recording… (${recordingCount})` : connectingCount > 0 ? (connectingCount > 1 ? `Connecting bots… (${connectingCount})` : "Connecting bot…") : pillLabel;
-
-  if (!expanded) {
-    return createPortal(
-      <div className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col items-end gap-[0px]">
-        <div className="relative">
-          <Button
-            onClick={() => {
-              setActiveTab(iconOnly ? "history" : "uploaded");
-              setExpanded(true);
-            }}
-            className={
-              iconOnly
-                ? "size-[42px] rounded-full shadow-md transition-all bg-white text-muted-foreground border border-border hover:bg-accent/40"
-                : isErrorPill
-                  ? "flex items-center gap-[8px] h-[40px] px-[16px] rounded-full transition-all bg-white text-foreground border border-border hover:bg-accent/40"
-                  : "flex items-center gap-[8px] h-[40px] px-[16px] rounded-full shadow-lg transition-all bg-primary text-primary-foreground hover:opacity-90"
-            }
-            style={iconOnly || isErrorPill
-              ? { boxShadow: "0 6px 18px rgba(15,23,42,0.14)" }
-              : { boxShadow: "0 4px 20px rgba(37,99,235,0.35)" }}
-            title={iconOnly ? "Open upload history" : undefined}
-          >
-            {iconOnly ? (
-              <svg className="size-[17px] shrink-0" viewBox="0 0 24 24" fill="none">
-                <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            ) : (
-              <>
-                {/* Status icon */}
-                {allDone ? (
-                  isErrorPill ? (
-                    <span className="inline-flex size-[16px] items-center justify-center rounded-full bg-destructive/15 text-destructive shrink-0">
-                      <Icon icon={AlertCircle} className="size-[11px]" strokeWidth={2} />
-                    </span>
-                  ) : (
-                  <svg className="size-[15px] shrink-0" fill="none" viewBox="0 0 24 24">
-                    <path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  )
-                ) : (
-                  <svg className="size-[14px] shrink-0 animate-spin" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="9" stroke="rgba(255,255,255,0.3)" strokeWidth="2.5" />
-                    <path d="M12 3a9 9 0 019 9" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-                  </svg>
-                )}
-                <span className="font-semibold text-[13px]">{activityLabel}</span>
-                {/* Chevron up */}
-                <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16">
-                  <path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </>
-            )}
-          </Button>
-          {iconOnly && activeCount > 0 && (
-            <span className="absolute -top-[4px] -right-[4px] min-w-[18px] h-[18px] px-[4px] rounded-full bg-destructive text-[10px] leading-[18px] text-white text-center font-semibold">
-              {activeCount > 99 ? "99+" : activeCount}
-            </span>
-          )}
-        </div>
-      </div>,
-      document.body
-    );
-  }
-
-  // Full expanded widget
-  return createPortal(
-    <div
-      className="fixed bottom-[24px] right-[24px] z-[150] flex flex-col rounded-[16px] overflow-hidden bg-popover border border-border"
-      style={{ width: "680px", maxWidth: "calc(100vw - 24px)", boxShadow: "0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.06)" }}
-    >
-      <div className="flex items-end justify-between px-[16px] pt-[8px] shrink-0 border-b border-border">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value === "history" ? "history" : value === "failed" ? "failed" : "uploaded")} className="gap-0 flex-1 min-w-0">
-          <TabsList variant="line" className="gap-6 border-b-0">
-            <TabsTrigger value="uploaded" variant="line" className="text-[13px] font-semibold">
-              Uploaded now <span className="opacity-50 font-[inherit]">{uploadedNowJobs.length}</span>
-            </TabsTrigger>
-            <TabsTrigger value="history" variant="line" className="text-[13px] font-semibold">
-              History <span className="opacity-50 font-[inherit]">{historyJobs.length}</span>
-            </TabsTrigger>
-            <TabsTrigger value="failed" variant="line" className="text-[13px] font-semibold data-[state=active]:text-destructive data-[state=active]:after:bg-destructive">
-              Failed <span className="opacity-50 font-[inherit]">{failedJobs.length}</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <div className="flex items-center gap-[1px] pb-[6px] ml-[8px]">
-          {activeTab === "failed" && failedJobs.length > 0 && (
-            <Button
-              variant="ghost"
-              onClick={clearFailedJobs}
-              title="Clear failed files"
-              className="h-[24px] px-[8px] rounded-full text-[11px] text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center gap-[4px]"
-            >
-              <Icon icon={Trash} className="size-[12px]" strokeWidth={1.7} />
-              <span className="font-medium">Clear</span>
-            </Button>
-          )}
-          {/* Collapse to full pill */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setIconOnly(false);
-              setExpanded(false);
-            }}
-            title="Collapse"
-            className="size-[24px] rounded-full flex items-center justify-center transition-colors hover:bg-accent"
-          >
-            <svg className="size-[11px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
-              <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Button>
-          {/* Minimize to icon */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setIconOnly(true);
-              setExpanded(false);
-            }}
-            title="Minimize to icon"
-            className="size-[24px] rounded-full flex items-center justify-center transition-colors hover:bg-accent"
-          >
-            <svg className="size-[11px] text-muted-foreground" fill="none" viewBox="0 0 16 16">
-              <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-          </Button>
-        </div>
-      </div>
-
-      {/* Column headers (mini table) */}
-      <>
-        <div className="flex items-center px-[14px] h-[32px] shrink-0" style={{ borderBottom: rowBorder }}>
-          <div className="flex-1 min-w-0">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">File</span>
-          </div>
-          <div className="w-[44px] shrink-0 text-center">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Lang</span>
-          </div>
-          <div className="w-[52px] shrink-0 text-center">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Transl.</span>
-          </div>
-          <div className="w-[52px] shrink-0 text-right">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Dur.</span>
-          </div>
-          <div className="w-[160px] shrink-0 text-right">
-            <span className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">Status</span>
-          </div>
-        </div>
-
-        {/* Job rows */}
-        <div style={{ maxHeight: "320px", overflowY: "auto" }}>
-          {visibleJobs.length === 0 && (
-            <div className="px-[16px] py-[20px] text-[12px] text-muted-foreground">
-              {activeTab === "uploaded"
-                ? "No files in the current upload batch yet."
-                : activeTab === "failed"
-                  ? "No failed uploads."
-                  : "History is empty."}
-            </div>
-          )}
-          {visibleJobs.map((job, idx) => {
-            const isActive = job.status === "uploading" || job.status === "processing";
-            const isDone = job.status === "done";
-            const isError = job.status === "error";
-            const isConnecting = job.status === "connecting";
-            const isRecording = job.status === "recording";
-            const isMeeting = job.kind === "meeting";
-            const isBotFailed = isError && job.errorType === "bot_failed";
-            const errLabel = job.errorType ? (ERROR_LABELS[job.errorType] ?? "Upload failed") : "Upload failed";
-            const canRetry = isError && job.errorType !== "no_audio";
-            const uploadPct = Math.max(0, Math.min(100, Math.round(job.uploadProgress ?? (job.status === "uploading" ? job.progress : 100))));
-            const transcribePct = Math.max(0, Math.min(100, Math.round(job.transcriptionProgress ?? (job.status === "processing" ? job.progress : (job.status === "done" ? 100 : 0)))));
-            const statusLabel = job.status === "uploading"
-              ? "Uploading"
-              : job.status === "processing"
-                ? (transcribePct < 15 ? "Processing" : transcribePct < 75 ? "Transcribing" : "Summarizing")
-                : job.status === "done" ? "Completed" : "Failed";
-            const phasePct = job.status === "uploading" ? uploadPct : transcribePct;
-
-            return (
-              <div key={job.id} className="relative" style={{ borderTop: idx > 0 ? rowBorder : "none" }}>
-                {/* Main row */}
-                <div className={`flex items-center gap-[8px] px-[14px] pt-[9px] pb-[10px] ${isError ? "bg-destructive/5" : ""}`}>
-                  {/* File type icon */}
-                  <div className={`size-[26px] rounded-[7px] flex items-center justify-center shrink-0 ${isError ? "bg-destructive/10" : isMeeting ? "bg-primary/5" : job.fileType === "audio" ? "bg-primary/5" : "bg-violet-500/5"}`}>
-                    {isError ? (
-                      <Icon icon={AlertCircle} className="size-[14px] text-destructive" strokeWidth={1.9} />
-                    ) : isMeeting ? (
-                      <Icon icon={Video01Icon} className="size-[13px] text-primary" strokeWidth={1.7} />
-                    ) : job.fileType === "audio" ? (
-                      <svg className="size-[12px] text-primary" fill="none" viewBox="0 0 24 24">
-                        <path d="M9 18V5l12-2v13M9 18a3 3 0 11-3-3 3 3 0 013 3zM21 16a3 3 0 11-3-3 3 3 0 013 3z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    ) : (
-                      <svg className="size-[12px]" fill="none" viewBox="0 0 24 24" style={{ color: "#7c3aed" }}>
-                        <path d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </div>
-
-                  {/* Name */}
-                  <div className="flex-1 min-w-0">
-                    <p className={`truncate font-medium text-xs ${isError ? "text-destructive" : "text-foreground"}`} title={job.name}>
-                      {job.name}
-                    </p>
-                    {isActive && (
-                      <p className="text-[10px] text-muted-foreground mt-[1px]">
-                        {statusLabel} {phasePct}%
-                      </p>
-                    )}
-                    {isError && (
-                      <p className="text-[10px] text-destructive mt-[1px] truncate" title={errLabel}>
-                        {errLabel}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Lang column */}
-                  <div className="w-[44px] shrink-0 flex items-center justify-center">
-                    {job.langBilingual && job.langBilingual.length > 0 ? (
-                      <div className="flex gap-[1px]">
-                        {job.langBilingual.slice(0, 2).map((id) => {
-                          const l = LANGUAGES.find((lang) => lang.id === id);
-                          return <span key={id} className="text-[12px]">{l?.flag ?? id.toUpperCase()}</span>;
-                        })}
-                      </div>
-                    ) : job.lang ? (
-                      <div className="flex items-center gap-[2px]">
-                        <span className="text-[12px]">{LANGUAGES.find((lang) => lang.id === job.lang)?.flag ?? ""}</span>
-                        <span className="font-medium text-[10px] text-muted-foreground">{job.lang === "auto" ? "Auto" : job.lang.toUpperCase()}</span>
-                      </div>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground">-</span>
-                    )}
-                  </div>
-
-                  {/* Translation column */}
-                  <div className="w-[52px] shrink-0 flex items-center justify-center">
-                    {job.translationLang ? (
-                      <div className="flex items-center gap-[2px]">
-                        <span className="text-[12px]">{LANGUAGES.find((lang) => lang.id === job.translationLang)?.flag ?? ""}</span>
-                        <span className="font-medium text-[10px] text-muted-foreground">{job.translationLang.toUpperCase()}</span>
-                      </div>
-                    ) : (
-                      <span className="text-[11px] text-muted-foreground">-</span>
-                    )}
-                  </div>
-
-                  {/* Duration */}
-                  <div className="w-[52px] shrink-0 text-right">
-                    <span className="text-[11px] text-muted-foreground">
-                      {job.duration ?? (isDone || isError ? "-" : "")}
-                    </span>
-                  </div>
-
-                  {/* Status area */}
-                  <div className="w-[160px] shrink-0 flex items-center justify-end gap-[5px]">
-                    {isActive && (
-                      <div className="flex items-center gap-[8px] w-full">
-                        <span className="min-w-[64px] text-[10px] text-muted-foreground text-right">{statusLabel}</span>
-                        <div className="h-[6px] flex-1 rounded-full overflow-hidden bg-muted">
-                          <div
-                            className="h-full transition-all duration-300"
-                            style={{
-                              width: `${phasePct}%`,
-                              background: job.status === "processing"
-                                ? "linear-gradient(90deg,#2563eb,#7c3aed)"
-                                : "var(--primary)",
-                            }}
-                          />
-                        </div>
-                        <span className="font-medium text-[11px] text-primary min-w-[30px] text-right">
-                          {phasePct}%
-                        </span>
-                      </div>
-                    )}
-                    {isConnecting && (
-                      <div className="flex items-center gap-[6px] text-muted-foreground">
-                        <Icon icon={Loading03Icon} className="size-[13px] animate-spin text-primary" strokeWidth={2} />
-                        <span className="text-[11px] font-medium">Connecting…</span>
-                      </div>
-                    )}
-                    {isRecording && (
-                      <div className="flex items-center gap-[6px] text-destructive">
-                        <span className="relative flex size-[8px]"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" /><span className="relative inline-flex size-[8px] rounded-full bg-destructive" /></span>
-                        <span className="text-[11px] font-medium">Recording…</span>
-                      </div>
-                    )}
-                    {isDone && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => {
-                          const recordState = mapJobToRecordState(job);
-                          try {
-                            window.sessionStorage.setItem(`uploaded-record:${job.id}`, JSON.stringify(recordState));
-                          } catch {
-                            // best-effort cache; navigation should still work without it
-                          }
-                          window.location.assign(`/transcriptions/${job.id}`);
-                        }}
-                        title="Open transcription"
-                        className="h-[28px] rounded-full pl-[9px] pr-[12px] flex items-center gap-[6px] transition-colors text-emerald-600 hover:bg-emerald-600/10"
-                      >
-                        <Icon icon={CheckmarkCircle02Icon} className="size-[15px]" strokeWidth={2} />
-                        <span className="font-semibold text-[12px]">Open</span>
-                      </Button>
-                    )}
-                    {isError && (
-                      <>
-                        {isBotFailed ? (
-                          <Button
-                            variant="ghost"
-                            onClick={() => reconnectBot(job.id)}
-                            title="Reconnect the meeting bot"
-                            className="h-[26px] rounded-full px-[10px] flex items-center gap-[5px] transition-colors text-primary hover:bg-primary/10"
-                          >
-                            <Icon icon={RefreshIcon} className="size-[12px]" strokeWidth={1.9} />
-                            <span className="font-semibold text-[11px]">Reconnect bot</span>
-                          </Button>
-                        ) : canRetry ? (
-                          <Button
-                            variant="ghost"
-                            onClick={() => retryJob(job.id)}
-                            title="Retry upload"
-                            className="h-[26px] rounded-full px-[10px] flex items-center gap-[5px] transition-colors text-destructive hover:bg-destructive/10"
-                          >
-                            <Icon icon={RefreshIcon} className="size-[12px]" strokeWidth={1.9} />
-                            <span className="font-semibold text-[11px]">Retry</span>
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            onClick={() => removeJob(job.id)}
-                            title="Remove and upload another file"
-                            className="h-[26px] rounded-full px-[10px] flex items-center gap-[5px] transition-colors text-foreground hover:bg-accent"
-                          >
-                            <Icon icon={Upload} className="size-[12px]" strokeWidth={1.8} />
-                            <span className="font-semibold text-[11px]">Re-upload</span>
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeJob(job.id)}
-                          title="Dismiss"
-                          className="size-[24px] rounded-full flex items-center justify-center hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                        >
-                          <Icon icon={X} className="size-[11px]" strokeWidth={2} />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </>
-    </div>,
-    document.body
+  const { jobs, retryJob, reconnectBot, removeJob } = useTranscriptionModals();
+  return (
+    <ProgressWidget
+      jobs={jobs}
+      onRetry={retryJob}
+      onReconnect={reconnectBot}
+      onRemove={removeJob}
+    />
   );
 }

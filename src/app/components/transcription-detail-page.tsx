@@ -2,8 +2,14 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon } from "@hugeicons/core-free-icons";
+import { useShell, useDemo } from "./desktop/shell";
+import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
+import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { LanguageSelector, SpeakerSection } from "./transcription-modals";
+import { useNotetakerSettings } from "./desktop/notetaker-settings";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import {
@@ -11,6 +17,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
@@ -20,14 +27,20 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "./ui/tooltip";
 import { Slider } from "./ui/slider";
 import { Input } from "./ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
+import { MoveToFolderDialog, FigmaCheckbox } from "./records-table";
 import { ScrollArea } from "./ui/scroll-area";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./ui/collapsible";
 import { useUserProfile } from "./user-profile-context";
 import { useFolders } from "./folder-context";
 import { useStarred } from "./starred-context";
-import { SourceIcon, type SourceType } from "./source-icons";
+import { SourceIcon, getSourceLabel, type SourceType } from "./source-icons";
+import { ActionSheet, ActionSheetItem } from "./action-sheet";
 import { records, type RecordRow } from "./records-table";
 import { TemplatePicker } from "./template-picker";
+import { TemplateLibraryDialog } from "./template-library-dialog";
+import { meetings as calendarMeetings } from "./todays-events";
+import { TemplateSheet, LanguageSheet } from "./result-picker-sheets";
 import { templateEmoji } from "@/lib/template-meta";
 import { Icon } from "./ui/icon";
 import { LottieStage } from "./checkout-loader/lottie-stage";
@@ -36,16 +49,58 @@ import { useTranscriptionModals, type TranscriptionJob } from "./transcription-m
 import { useTemplates } from "@/hooks/use-templates";
 import type { Template } from "@/lib/templates";
 import { ShareDialog } from "./share-dialog";
+import { setInnerScreen } from "./inner-screen";
 import { SharedUsersAvatars } from "./shared-users-avatars";
 import { useShares } from "@/hooks/use-shares";
 import type { Share as ShareRecord } from "@/lib/shares";
 import { ExportDialog } from "./export-dialog";
+import { UpgradeGateModal } from "./upgrade-gate-modal";
 import { records as demoRecords, recordRowToExportable } from "./records-table";
 import {
   exportRecords,
   type ExportableRecord,
   type ExportFormat,
 } from "@/lib/export-formats";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+
+/* A replica used to guess its row count from character length, which assumes a
+   desktop line. On a phone that hid roughly half of every line behind an inner
+   scroll, so the field now measures itself and grows to whatever it holds. */
+function EditableLine({ value, onChange }: { value: string; onChange?: (next: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const fit = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, []);
+  useEffect(() => { fit(); }, [fit, value]);
+  useEffect(() => {
+    const box = ref.current?.parentElement;
+    if (!box || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => fit());
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [fit]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={(e) => onChange?.(e.target.value)}
+      className="mt-1 w-full resize-none overflow-hidden rounded-md border border-border bg-muted/30 px-2 py-1.5 text-sm leading-relaxed text-foreground/90 outline-none focus:border-primary/50 focus:bg-background"
+    />
+  );
+}
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -98,11 +153,85 @@ interface VideoPreviewData {
   poster?: string;
 }
 
+// ttt_demo_playback=1 parks the playhead a minute in, so the active line and
+// the lines already spoken can be captured without the position drifting.
+function demoPlayheadProgress(): number[] {
+  try {
+    const flag = window.localStorage.getItem("ttt_demo_playback");
+    if (flag === "1") return [6.6];
+    /* The cases set parks the playhead inside a replica of a given length: a
+       question, a single word, then the long paragraph. */
+    if (flag === "cases_short") return [0.28];
+    if (flag === "cases_word") return [0.7];
+    if (flag === "cases") return [1.87];
+  } catch { /* ignore */ }
+  return [0];
+}
+
+/* Subtitles highlight the words being spoken, not the paragraph around them.
+   A replica can be one word or a full paragraph, so the unit that lights up is
+   the sentence: short replicas light up whole, long ones move through. */
+function splitSentences(text: string): string[] {
+  const out: string[] = [];
+  let buf = "";
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    buf += ch;
+    if (ch === "." || ch === "!" || ch === "?") {
+      const next = text[i + 1];
+      if (next === undefined || next === " ") {
+        if (next === " ") { buf += " "; i++; }
+        out.push(buf);
+        buf = "";
+      }
+    }
+  }
+  if (buf.length) out.push(buf);
+  return out.length ? out : [text];
+}
+
+/* Words, keeping the spaces, so a rebuilt sentence still reads as one line. */
+function splitWords(text: string): string[] {
+  const out: string[] = [];
+  let buf = "";
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === " ") {
+      if (buf.length) { out.push(buf); buf = ""; }
+      out.push(" ");
+    } else {
+      buf += ch;
+    }
+  }
+  if (buf.length) out.push(buf);
+  return out;
+}
+
+/* One way to mark the line being spoken: the sentence turns blue, and the word
+   being said right now carries a wash of the same blue.
+
+   The wash is painted with a spread shadow rather than padding. Padding makes
+   the word six pixels wider than it is when silent, so the paragraph re-wraps
+   at every step of the playhead; cancelling that with a negative margin leaves
+   the box wider than the text advances, and the Figma converter turns the
+   difference into a gap in front of the word. A shadow paints outside the box
+   and changes no measurement at all.
+
+   Solid token, not an opacity modifier - those compile to color-mix() and the
+   capture drops them. Nothing changes the font weight, for the same reason
+   padding is avoided. */
+const ACTIVE_SENTENCE = "bg-transparent text-primary";
+const ACTIVE_WORD = "rounded-[3px] bg-primary-wash py-[2px] text-primary";
+
 function timestampToSeconds(timestamp: string) {
   const parts = timestamp.split(":").map((part) => Number(part));
   if (parts.some((part) => Number.isNaN(part))) return 0;
   if (parts.length === 1) return parts[0];
-  return parts.slice(0, -1).reduce((acc, value) => acc * 60 + value, 0) + parts[parts.length - 1];
+  // Everything left of the seconds is minutes (and hours), so it has to be
+  // carried up by 60. Without that "4:30" came back as 34 seconds, which threw
+  // off both the timecode jump and the active line.
+  const head = parts.slice(0, -1).reduce((acc, value) => acc * 60 + value, 0);
+  return head * 60 + parts[parts.length - 1];
 }
 
 function pad2(n: number) {
@@ -145,10 +274,11 @@ function mapJobToDetailRecord(job: TranscriptionJob): RecordRow {
     name: job.name,
     iconColor: "#3B82F6",
     iconType: "square",
-    duration: isDone ? (job.duration ?? "\u2014") : isError ? "Failed" : "In progress",
+    duration: isDone ? (job.duration ?? "-") : isError ? "Failed" : "In progress",
     dateCreated: dateParts.dateCreated,
     dateGroup: dateParts.dateGroup,
-    template: job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary",
+    template: job.templateName ?? (job.langBilingual && job.langBilingual.length > 1 ? "1 by 1" : "Summary"),
+    templateId: job.templateId,
     language: normalizeJobLanguage(job.lang, job.langBilingual),
     source: normalizeJobSource(job.source, job.fileType),
     summary: isDone
@@ -187,14 +317,14 @@ const LIVE_RECORDING_SPEAKER: Speaker = {
 };
 
 const MOCK_SEGMENTS: Segment[] = [
-  { id: 1, speaker: SPEAKERS[0], timestamp: "0:01", text: "Good morning everyone. Let's get started with the weekly sync. I wanted to cover three main topics today \u2014 the product roadmap update, the Q2 planning timeline, and a quick review of the design handoff process." },
+  { id: 1, speaker: SPEAKERS[0], timestamp: "0:01", text: "Good morning everyone. Let's get started with the weekly sync. I wanted to cover three main topics today - the product roadmap update, the Q2 planning timeline, and a quick review of the design handoff process." },
   { id: 2, speaker: SPEAKERS[1], timestamp: "0:32", text: "Sounds good. Before we dive in, I just want to flag that the design team finished the new onboarding flow mockups yesterday. I'll share the Figma link in Slack after this call." },
   { id: 3, speaker: SPEAKERS[2], timestamp: "0:58", text: "Great, that's actually related to what I wanted to bring up. The engineering team has been waiting on those mockups to start the sprint planning for next week. We'll need to review them by Thursday at the latest." },
   { id: 4, speaker: SPEAKERS[0], timestamp: "1:24", text: "Perfect. Let's make sure we schedule a quick design review session tomorrow or Wednesday. Maria, can you coordinate that with the design leads?" },
   { id: 5, speaker: SPEAKERS[1], timestamp: "1:45", text: "Absolutely. I'll set something up for Wednesday morning. That gives us a day to incorporate any feedback before James's team picks it up on Thursday." },
   { id: 6, speaker: SPEAKERS[2], timestamp: "2:10", text: "Works for me. On the roadmap side, we're about 80% through the current milestone. The remaining items are mostly backend API work and some performance optimizations. I don't see any blockers at this point." },
   { id: 7, speaker: SPEAKERS[0], timestamp: "2:42", text: "That's encouraging. Let's keep the momentum going. Any questions or concerns before we move on to Q2 planning?" },
-  { id: 8, speaker: SPEAKERS[1], timestamp: "3:05", text: "One thing \u2014 we should probably discuss the user research findings from last week. Some of the feedback might influence the Q2 priorities, especially around the notification system." },
+  { id: 8, speaker: SPEAKERS[1], timestamp: "3:05", text: "One thing - we should probably discuss the user research findings from last week. Some of the feedback might influence the Q2 priorities, especially around the notification system." },
   { id: 9, speaker: SPEAKERS[2], timestamp: "3:28", text: "Agreed. The data shows that about 40% of users are finding the current notification settings confusing. That's a significant usability issue we should address sooner rather than later." },
   { id: 10, speaker: SPEAKERS[0], timestamp: "3:55", text: "Good point. Let's add that to the Q2 discussion. I'll create a separate agenda item for the next planning meeting. Anything else?" },
   { id: 11, speaker: SPEAKERS[1], timestamp: "4:18", text: "Nothing from my side. I think we're in good shape overall." },
@@ -212,6 +342,19 @@ const MONO_SEGMENTS: Segment[] = [
   { id: 106, speaker: MONO_SPEAKER, timestamp: "2:09", text: "That's it for this week. If you have feedback, drop it in the product channel and I'll fold it into the planning notes. Thanks for listening." },
 ];
 
+// Limited-access demo: how many speaker turns stay readable before the paywall.
+const LIMITED_FREE_TURNS = 3;
+
+/* Replicas run from a single word to a full paragraph, and the highlight has
+   to survive both. */
+const CASE_SEGMENTS: Segment[] = [
+  { id: 201, speaker: SPEAKERS[0], timestamp: "0:00", text: "So where did we land on the export flow?" },
+  { id: 202, speaker: SPEAKERS[1], timestamp: "0:06", text: "Done." },
+  { id: 203, speaker: SPEAKERS[2], timestamp: "0:09", text: "Not quite. The dialog is in staging and QA looks good, but we still owe the archive switch. Right now every batch export packs a zip, and that makes the server pull each file out of storage before anything reaches the user. If we ship the switch off by default, most people never pay for the archive at all. I would rather land that this week than carry it into the next milestone." },
+  { id: 204, speaker: SPEAKERS[0], timestamp: "0:42", text: "Agreed. Let us get it in." },
+  { id: 205, speaker: SPEAKERS[1], timestamp: "0:48", text: "One more thing: the toast on completion should say the record name, not just that something finished." },
+];
+
 const MOCK_OUTLINE: OutlineSection[] = [
   { id: "o1", title: "Opening & Agenda", timestamp: "0:01", segmentId: 1, bullets: [{ text: "Three topics: roadmap update, Q2 planning, design handoff", segmentId: 1 }, { text: "Design team completed onboarding flow mockups", segmentId: 2 }] },
   { id: "o2", title: "Design Handoff & Sprint Planning", timestamp: "0:58", segmentId: 3, bullets: [{ text: "Engineering waiting on mockups for sprint planning", segmentId: 3 }, { text: "Design review session planned for Wednesday", segmentId: 4 }, { text: "Feedback integration before Thursday sprint start", segmentId: 5 }] },
@@ -221,7 +364,7 @@ const MOCK_OUTLINE: OutlineSection[] = [
 ];
 
 const MOCK_COMMENTS: Comment[] = [
-  { id: "c1", segmentId: 3, quote: "The engineering team has been waiting on those mockups...", timestamp: "0:58", author: "Alex Johnson", avatarColor: "#3b82f6", avatarInitial: "A", text: "We should track this dependency more formally going forward.", createdAt: "2h ago", replies: [{ id: "r1", author: "James Chen", avatarColor: "#10b981", avatarInitial: "J", text: "Agreed \u2014 I'll add it to our sprint retro.", createdAt: "1h ago" }] },
+  { id: "c1", segmentId: 3, quote: "The engineering team has been waiting on those mockups...", timestamp: "0:58", author: "Alex Johnson", avatarColor: "#3b82f6", avatarInitial: "A", text: "We should track this dependency more formally going forward.", createdAt: "2h ago", replies: [{ id: "r1", author: "James Chen", avatarColor: "#10b981", avatarInitial: "J", text: "Agreed - I'll add it to our sprint retro.", createdAt: "1h ago" }] },
   { id: "c2", segmentId: 9, quote: "40% of users are finding the current notification settings confusing", timestamp: "3:28", author: "Maria Garcia", avatarColor: "#8b5cf6", avatarInitial: "M", text: "This aligns with what we saw in the support tickets last month. Definitely needs attention.", createdAt: "45m ago", replies: [] },
 ];
 
@@ -252,6 +395,72 @@ const MOCK_SUMMARY = `## Key Discussion Points
 - Sprint planning: Thursday
 - Q2 planning meeting: TBD (with notification system as agenda item)
 `;
+
+// Clean Russian demo translations for the "translation applied" design captures
+// (ttt_demo_translate=done). Speaker names + timestamps stay untranslated by design.
+const RU_DEMO_SEGMENTS: Record<number, string> = {
+  1: "Доброе утро всем. Давайте начнём еженедельную синхронизацию. Сегодня я хочу разобрать три основные темы: обновление дорожной карты продукта, сроки планирования на второй квартал и краткий обзор процесса передачи макетов в разработку.",
+  2: "Звучит хорошо. Прежде чем мы начнём, хочу отметить, что вчера команда дизайна закончила макеты нового онбординга. Я скину ссылку на Figma в Slack после звонка.",
+  3: "Отлично, это как раз связано с тем, о чём я хотел сказать. Команда разработки ждала эти макеты, чтобы начать планирование спринта на следующую неделю. Нам нужно рассмотреть их не позднее четверга.",
+  4: "Отлично. Давайте назначим короткую встречу по ревью дизайна на завтра или среду. Мария, ты сможешь согласовать это с ведущими дизайнерами?",
+  5: "Конечно. Организую что-нибудь на утро среды. Это даст нам день, чтобы учесть замечания, прежде чем команда Джеймса возьмёт задачу в четверг.",
+  6: "Меня устраивает. По дорожной карте: текущий этап пройден примерно на 80%. Оставшиеся задачи, в основном работа над backend API и оптимизация производительности. На данный момент блокеров не вижу.",
+  7: "Это обнадёживает. Давайте сохраним темп. Есть вопросы или сомнения, прежде чем перейти к планированию на второй квартал?",
+  8: "Один момент: наверное, стоит обсудить результаты исследования пользователей за прошлую неделю. Часть отзывов может повлиять на приоритеты второго квартала, особенно по системе уведомлений.",
+  9: "Согласен. Данные показывают, что около 40% пользователей считают текущие настройки уведомлений запутанными. Это серьёзная проблема удобства, которую лучше решить раньше, чем позже.",
+  10: "Справедливо. Давайте добавим это в обсуждение второго квартала. Я вынесу отдельный пункт в повестку следующей встречи по планированию. Что-то ещё?",
+  11: "С моей стороны всё. Думаю, в целом мы в хорошей форме.",
+  12: "У меня тоже. Давайте закругляться и вернёмся к работе. Спасибо всем.",
+};
+
+const RU_DEMO_SUMMARY = `## Ключевые моменты обсуждения
+
+- **Обновление дорожной карты**: команда прошла примерно 80% текущего этапа, оставшаяся работа сосредоточена на разработке backend API и оптимизации производительности. Блокеров пока нет.
+
+- **Передача дизайна**: команда дизайна закончила макеты нового онбординга. На утро среды запланировано ревью дизайна, чтобы учесть замечания до планирования спринта в четверг.
+
+- **Планирование на 2 квартал**: обсуждение приоритетов на второй квартал с упором на удобство системы уведомлений по итогам недавнего исследования пользователей.
+
+## Задачи
+
+- Мария поделится ссылкой на макеты онбординга в Figma через Slack
+- Мария назначит ревью дизайна на утро среды
+- Алекс вынесет вопрос о системе уведомлений в повестку следующей встречи
+- Команда разработки Джеймса начнёт планирование спринта в четверг после ревью дизайна
+
+## Выводы исследования пользователей
+
+- Около 40% пользователей считают текущие настройки уведомлений запутанными
+- Это серьёзная проблема удобства, которую стоит приоритизировать во втором квартале
+- Рекомендуется решить вопрос с UX уведомлений до остальных задач второго квартала
+
+## Дальнейшие шаги
+
+- Ревью дизайна: среда, утро
+- Планирование спринта: четверг
+- Встреча по планированию 2 квартала: дата уточняется (с пунктом о системе уведомлений)
+`;
+
+/* The language a record was spoken in. TRANSLATION_LANGUAGES is what you can
+   translate INTO, which is a different list: it has no English in it. */
+const SOURCE_LANGUAGES: Record<string, { flag: string; label: string }> = {
+  en: { flag: "\u{1F1FA}\u{1F1F8}", label: "English" },
+  ru: { flag: "\u{1F1F7}\u{1F1FA}", label: "Russian" },
+  es: { flag: "\u{1F1EA}\u{1F1F8}", label: "Spanish" },
+  de: { flag: "\u{1F1E9}\u{1F1EA}", label: "German" },
+  fr: { flag: "\u{1F1EB}\u{1F1F7}", label: "French" },
+  ja: { flag: "\u{1F1EF}\u{1F1F5}", label: "Japanese" },
+  it: { flag: "\u{1F1EE}\u{1F1F9}", label: "Italian" },
+  pt: { flag: "\u{1F1F5}\u{1F1F9}", label: "Portuguese" },
+  zh: { flag: "\u{1F1E8}\u{1F1F3}", label: "Chinese" },
+};
+
+type CopyMenuModel = {
+  original: { flag: string; label: string };
+  translation: { code: string; flag: string; label: string } | null;
+  summaryTranslated: boolean;
+  hasSummary: boolean;
+};
 
 const TRANSLATION_LANGUAGES = [
   { code: "ru", label: "Russian", flag: "🇷🇺", short: "RU" },
@@ -435,6 +644,9 @@ function TranscriptSegment({
   onEditChange,
   highlighted,
   isPlaybackActive,
+  isPlayed,
+  activeSentence,
+  activeWord,
   segmentRef,
   isSegHighlighted,
   onToggleHighlight,
@@ -459,6 +671,9 @@ function TranscriptSegment({
   onEditChange?: (text: string) => void;
   highlighted: boolean;
   isPlaybackActive: boolean;
+  isPlayed?: boolean;
+  activeSentence?: number | null;
+  activeWord?: number | null;
   segmentRef: (el: HTMLDivElement | null) => void;
   isSegHighlighted: boolean;
   onToggleHighlight: (id: number) => void;
@@ -483,8 +698,10 @@ function TranscriptSegment({
     : isSegHighlighted
       ? "bg-amber-300/80"
       : isPlaybackActive
-        ? "bg-primary/65"
-        : "bg-border/80";
+        ? "bg-primary"
+        : isPlayed
+          ? "bg-border/50"
+          : "bg-border/80";
 
   // Render text with inline highlights
   function renderText(text: string) {
@@ -506,14 +723,12 @@ function TranscriptSegment({
     <div
       ref={segmentRef}
       data-segment-id={segment.id}
-      className={`group/seg relative -mx-2 grid ${hideSpeaker ? "grid-cols-1" : "grid-cols-[minmax(160px,220px)_1fr] max-md:grid-cols-1"} gap-4 rounded-xl px-2 py-4 transition-colors duration-200 max-md:gap-2 ${
+      className={`group/seg relative -mx-2 grid ${hideSpeaker ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[minmax(160px,220px)_1fr]"} gap-4 rounded-xl px-2 py-4 transition-colors duration-200 max-lg:gap-2 ${
         highlighted
           ? "bg-primary/8"
           : isSegHighlighted
             ? "bg-amber-50"
-            : isPlaybackActive
-              ? "bg-primary/6 ring-1 ring-primary/20"
-              : "hover:bg-muted/45"
+            : "hover:bg-muted/45"
       }`}
     >
       {showActions && !isEditing && (
@@ -541,35 +756,96 @@ function TranscriptSegment({
         </div>
       )}
 
-      <div className="relative min-w-0 pl-5 pr-28 max-md:pr-16">
+      <div className="relative min-w-0 pl-5 pr-28 max-lg:pr-16">
         <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-full transition-colors ${lineTone}`} />
         {!hideTimecodes && (onSeekTimecode ? (
           <button
             type="button"
             onClick={() => onSeekTimecode(segment.timestamp)}
-            className="inline-flex items-center gap-1 text-xs text-muted-foreground tabular-nums transition-colors hover:text-primary"
+            className={`inline-flex items-center gap-1 text-xs tabular-nums transition-colors hover:text-primary ${
+              isPlaybackActive
+                ? "font-semibold text-primary"
+                : isPlayed
+                  ? "text-muted-foreground/70"
+                  : "text-muted-foreground"
+            }`}
             title="Play from here"
           >
             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="opacity-0 transition-opacity group-hover/seg:opacity-100"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg>
             {segment.timestamp}
           </button>
         ) : (
-          <span className="text-xs text-muted-foreground tabular-nums">{segment.timestamp}</span>
+          <span
+            className={`text-xs tabular-nums ${
+              isPlaybackActive
+                ? "font-semibold text-primary"
+                : isPlayed
+                  ? "text-muted-foreground/70"
+                  : "text-muted-foreground"
+            }`}
+          >
+            {segment.timestamp}
+          </span>
         ))}
 
         {isEditing ? (
-          <textarea
-            value={segmentText}
-            onChange={(e) => onEditChange?.(e.target.value)}
-            className="mt-1 w-full resize-none rounded-md border border-border bg-muted/30 px-2 py-1.5 text-sm leading-relaxed text-foreground/90 outline-none focus:border-primary/50 focus:bg-background"
-            rows={Math.max(2, Math.ceil(segmentText.length / 90))}
-          />
+          <EditableLine value={segmentText} onChange={onEditChange} />
         ) : (
-          <p className={`mt-1 text-sm leading-relaxed cursor-text ${isPlaybackActive ? "text-foreground" : "text-foreground/85"}`}>
-            {renderText(segmentText)}
+          <p
+            data-transcript-line=""
+            className={`mt-1 cursor-text text-sm leading-relaxed transition-colors ${
+              isPlaybackActive
+                ? "text-foreground"
+                : isPlayed
+                  ? "text-foreground/55"
+                  : "text-foreground/85"
+            }`}
+          >
+            {isPlaybackActive && activeSentence !== null && activeSentence !== undefined ? (
+              splitSentences(segmentText).map((part, i) => {
+                // Already said: dimmed, so the eye lands on the live line.
+                if (i < activeSentence) {
+                  return <span key={i} className="text-foreground/45">{part}</span>;
+                }
+                // Still to come: plain.
+                if (i > activeSentence) return <span key={i}>{part}</span>;
+                // Word by word, the sentence stays plain and one word carries it.
+                if (activeWord !== null && activeWord !== undefined) {
+                  /* Three nodes, not one per word. A span around every word and
+                     every space is invisible in the browser and a minefield in
+                     the frame: the converter lays every inline box out on its
+                     own, and the rounding between them adds up to a visible gap
+                     in front of the word being spoken. */
+                  const parts = splitWords(part);
+                  let seen = -1;
+                  let cut = -1;
+                  for (let k = 0; k < parts.length; k++) {
+                    if (parts[k] === " ") continue;
+                    seen += 1;
+                    if (seen === activeWord) { cut = k; break; }
+                  }
+                  if (cut >= 0) {
+                    return (
+                      <span key={i} className="text-primary">
+                        {parts.slice(0, cut).join("")}
+                        <mark className={ACTIVE_WORD}>{parts[cut]}</mark>
+                        {parts.slice(cut + 1).join("")}
+                      </span>
+                    );
+                  }
+                }
+                return (
+                  <mark key={i} className={ACTIVE_SENTENCE}>
+                    {part}
+                  </mark>
+                );
+              })
+            ) : (
+              renderText(segmentText)
+            )}
           </p>
         )}
-        {!hideTimecodes && <span className="mt-2 block text-xs text-muted-foreground tabular-nums">{segmentEndTimestamp}</span>}
+        {!hideTimecodes && <span className="mt-2 block text-xs text-muted-foreground tabular-nums max-lg:hidden">{segmentEndTimestamp}</span>}
 
         {/* Inline comment input */}
         {inlineComment && (
@@ -683,7 +959,14 @@ function SummaryErrorState({ onRegenerate }: { onRegenerate: () => void }) {
   );
 }
 
-function SummaryTab({ summaryText, template }: { summaryText: string; template?: Template | null }) {
+function SummaryTab({ summaryText, template, highlight = "" }: { summaryText: string; template?: Template | null; highlight?: string }) {
+  /* a search term lights up in place; the text itself never moves */
+  const q = highlight.trim();
+  const hl = (t: string): React.ReactNode => {
+    if (!q) return t;
+    const parts = t.split(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig"));
+    return parts.map((part, i) => (part.toLowerCase() === q.toLowerCase() ? <mark key={i} className="rounded-[3px] bg-primary/15 px-[2px] text-foreground">{part}</mark> : part));
+  };
   // If a template is selected, use its sections for headings with icons
   const sectionIcons: Record<string, string | undefined> = {};
   if (template?.sections) {
@@ -712,16 +995,16 @@ function SummaryTab({ summaryText, template }: { summaryText: string; template?:
               return (
                 <div key={i} className="flex gap-2 py-1 pl-4 text-sm text-foreground/90">
                   <span className="shrink-0 text-muted-foreground">{"\u2022"}</span>
-                  <span><strong className="font-medium text-foreground">{match[1]}</strong>{match[2] ? `: ${match[2]}` : ""}</span>
+                  <span><strong className="font-medium text-foreground">{hl(match[1])}</strong>{match[2] ? <>: {hl(match[2])}</> : ""}</span>
                 </div>
               );
             }
           }
           if (line.startsWith("- ")) {
-            return <div key={i} className="flex gap-2 py-1 pl-4 text-sm text-foreground/90"><span className="shrink-0 text-muted-foreground">{"\u2022"}</span><span>{line.replace("- ", "")}</span></div>;
+            return <div key={i} className="flex gap-2 py-1 pl-4 text-sm text-foreground/90"><span className="shrink-0 text-muted-foreground">{"\u2022"}</span><span>{hl(line.replace("- ", ""))}</span></div>;
           }
           if (line.trim() === "") return <div key={i} className="h-2" />;
-          return <p key={i} className="text-sm text-foreground/90">{line}</p>;
+          return <p key={i} className="text-sm text-foreground/90">{hl(line)}</p>;
         })}
       </div>
     </div>
@@ -1090,6 +1373,7 @@ function MediaPlayer({
   onSpeedChange,
   currentTimeSeconds,
   durationSeconds,
+  trailing,
 }: {
   duration: string;
   progress: number[];
@@ -1100,6 +1384,8 @@ function MediaPlayer({
   onSpeedChange: (rate: number) => void;
   currentTimeSeconds: number;
   durationSeconds: number;
+  /* the desktop puts Continue recording here, beside Play: the bar is where the recording lives */
+  trailing?: React.ReactNode;
 }) {
   const totalSeconds = Math.max(1, durationSeconds);
   const currentSeconds = Math.round(Math.max(0, currentTimeSeconds));
@@ -1113,9 +1399,14 @@ function MediaPlayer({
   return (
     <div className="shrink-0 border-t border-border bg-background px-4 py-3 lg:px-6">
       <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="mb-3 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
-      <div className="flex items-center justify-between">
+      {/* Three columns, and Play is the middle one. The speed control used to be
+          a fourth element inside the transport group, which had no mirror on the
+          left and pushed Play about twenty pixels off the centre of the bar; it
+          now sits with the total time on the right. The side columns are equal
+          fractions, so Play stays centred whatever the label does. */}
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center">
         <span className="min-w-[50px] text-xs tabular-nums text-muted-foreground">{formatTime(currentSeconds)}</span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-center gap-1.5">
           <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.max(0, progress[0] - (5 / totalSeconds) * 100))])} title="Back 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 19l-7-7 7-7" /><text x="14" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
@@ -1131,12 +1422,15 @@ function MediaPlayer({
           <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])} title="Forward 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l7 7-7 7" /><text x="2" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="ml-0.5 h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
-          </DropdownMenu>
         </div>
-        <span className="min-w-[50px] text-right text-xs tabular-nums text-muted-foreground">{duration}</span>
+        <div className="flex items-center justify-end gap-2">
+          {trailing}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
+          </DropdownMenu>
+          <span className="text-xs tabular-nums text-muted-foreground">{duration}</span>
+        </div>
       </div>
     </div>
   );
@@ -1185,7 +1479,329 @@ function LiveRecordingWaveform({ active }: { active: boolean }) {
   );
 }
 
-function LiveRecordingBar({
+
+/* What used to be the Instant speech dialog, folded into the bar: the language
+   the call is in and whether speakers are told apart. Opens on demand, never
+   before the recording, and defaults come from Notetaker settings. */
+function RecordingOptions({ compact }: { compact: boolean }) {
+  const { settings, update } = useNotetakerSettings();
+  const optsFlag = useDemo("opts");
+  const [open, setOpen] = useState(optsFlag === "1");
+  useEffect(() => { if (optsFlag === "1") setOpen(true); }, [optsFlag]);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button type="button" title="Preferences" className={`flex h-[36px] shrink-0 items-center gap-[8px] rounded-[12px] border border-input bg-transparent text-[13px] text-foreground transition-colors hover:bg-muted data-[state=open]:bg-muted ${compact ? "w-[44px] justify-center" : "px-[12px]"}`}>
+          <Icon icon={Settings02Icon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.8} />
+          {!compact && <span className="truncate">Preferences</span>}
+          {!compact && <Icon icon={ArrowDown01Icon} className="size-[13px] shrink-0 text-muted-foreground" strokeWidth={2} />}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" sideOffset={10} className="z-[120] w-[340px] rounded-[16px] p-[16px]">
+        <p className="text-[14px] font-semibold text-foreground">Preferences for this recording</p>
+        <p className="mt-[2px] text-[12.5px] text-muted-foreground">Changes apply from here on. Defaults live in Notetaker settings.</p>
+        <div className="mt-[14px] flex flex-col gap-[14px]">
+          <LanguageSelector value={settings.language} onChange={(v) => update({ language: v })} label="Transcription language" />
+          <SpeakerSection enabled={settings.speakers} onToggle={() => update({ speakers: !settings.speakers })} count={settings.speakerCount} onCountChange={(v) => update({ speakerCount: v })} />
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+
+/* A folder drawn in its own colour: the glyph the Move menu uses, so a folder
+   looks the same wherever it is named. */
+export function FolderGlyph({ color, className = "size-4" }: { color: string; className?: string }) {
+  return (
+    <svg className={`${className} shrink-0`} fill="none" viewBox="0 0 16 16" aria-hidden>
+      <path d="M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z" fill={color} />
+    </svg>
+  );
+}
+
+/* The live note's folder and title live in the session while the call runs, so
+   the full window and the half-width panel show and edit the same facts. */
+const LIVE_META_EVENT = "ttt-live-meta";
+function useSessionValue(key: string): [string | null, (v: string | null) => void] {
+  const [value, setValue] = useState<string | null>(() => window.sessionStorage.getItem(key));
+  useEffect(() => {
+    const sync = () => setValue(window.sessionStorage.getItem(key));
+    window.addEventListener(LIVE_META_EVENT, sync);
+    return () => window.removeEventListener(LIVE_META_EVENT, sync);
+  }, [key]);
+  const set = (v: string | null) => {
+    if (v === null) window.sessionStorage.removeItem(key); else window.sessionStorage.setItem(key, v);
+    window.dispatchEvent(new Event(LIVE_META_EVENT));
+  };
+  return [value, set];
+}
+
+export function FolderChip({ folderId, onChange }: { folderId: string | null; onChange: (id: string | null) => void }) {
+  const { folders } = useFolders();
+  const current = folders.find((f) => f.id === folderId);
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" className="inline-flex items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary">
+          {current ? <FolderGlyph color={current.color} className="size-[14px]" /> : <Icon icon={FolderOpen} className="size-[13px] text-muted-foreground" strokeWidth={1.7} />}
+          {current?.name ?? "Add to folder"}
+          <Icon icon={ArrowDown01Icon} className="size-[11px] text-muted-foreground" strokeWidth={2} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="z-[120] w-[220px]">
+        {folders.map((folder) => (
+          <DropdownMenuItem key={folder.id} className="gap-2" onClick={() => onChange(folder.id)}>
+            <FolderGlyph color={folder.color} />
+            <span className="truncate">{folder.name}</span>
+          </DropdownMenuItem>
+        ))}
+        {folderId && <><DropdownMenuSeparator /><DropdownMenuItem className="gap-2" onClick={() => onChange(null)}><Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />No folder</DropdownMenuItem></>}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+export function LiveFolderChip() {
+  const [folderId, setFolderId] = useSessionValue("ttt_live_folder");
+  return <FolderChip folderId={folderId} onChange={setFolderId} />;
+}
+
+/* The calendar event this note belongs to, and who was on it, the way Granola's
+   "Today · Me" chip opens: pick the event (with search), see its link, Join or open
+   the calendar, and the people on the invite, grouped by company. When the app
+   thinks a meeting is on right now, the chip offers it and asks first. */
+const MEETING_PEOPLE: Record<string, { name: string; email: string }[]> = {
+  "1": [{ name: "Maria Garcia", email: "maria@nexora.com" }, { name: "Alex Chen", email: "alex@nexora.com" }, { name: "Sam Ortiz", email: "sam@ql-instance.io" }],
+  "2": [{ name: "Maria Garcia", email: "maria@nexora.com" }, { name: "Alex Chen", email: "alex@nexora.com" }, { name: "Priya Nair", email: "priya@nexora.com" }, { name: "Tom Becker", email: "tom@nexora.com" }, { name: "Lena Fischer", email: "lena@nexora.com" }],
+  "3": [{ name: "Maria Garcia", email: "maria@nexora.com" }, { name: "Alex Chen", email: "alex@nexora.com" }],
+};
+const MEETING_LINK: Record<string, string> = { "1": "meet.google.com/nex-daily-sync", "2": "meet.google.com/nex-product", "3": "teams.microsoft.com/l/meetup-join/nexora" };
+const PLATFORM_SOURCE = { meet: "google-meet", zoom: "zoom", teams: "teams" } as const;
+const PLATFORM_LABEL = { meet: "Google Meet", zoom: "Zoom", teams: "Teams" } as const;
+export function meetingPeopleCount(meetingId: string | null) { return meetingId ? (MEETING_PEOPLE[meetingId]?.length ?? 0) + 1 : 1; }
+
+export function MeetingCard({ meetingId, onChange, dateLabel = "Today", suggestedId = null, onDismissSuggestion }: {
+  meetingId: string | null; onChange: (id: string | null) => void; dateLabel?: string;
+  /* a meeting the calendar says is on right now: offered on the chip, linked only after a Yes */
+  suggestedId?: string | null; onDismissSuggestion?: () => void;
+}) {
+  const { displayName, avatarSrc } = useUserProfile();
+  const meeting = calendarMeetings.find((m) => m.id === meetingId) ?? null;
+  const suggested = !meeting && suggestedId ? calendarMeetings.find((m) => m.id === suggestedId) ?? null : null;
+  const [open, setOpen] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const [query, setQuery] = useState("");
+  const [extra, setExtra] = useState<string[]>([]);
+  const [draft, setDraft] = useState("");
+  const people = meeting ? MEETING_PEOPLE[meeting.id] ?? [] : [];
+  const groups = new Map<string, { name: string; email: string }[]>();
+  for (const person of [...people, ...extra.map((e) => ({ name: e.split("@")[0], email: e }))]) { const d = person.email.split("@")[1] ?? "other"; groups.set(d, [...(groups.get(d) ?? []), person]); }
+  const list = calendarMeetings.filter((m) => m.title.toLowerCase().includes(query.toLowerCase()));
+  const count = 1 + people.length + extra.length;
+  const initials = (n: string) => n.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  const chipClass = "inline-flex items-center gap-1.5 rounded-full border px-2 py-[3px] text-xs transition-colors";
+  return (
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setPicking(false); setQuery(""); } }}>
+      {suggested ? (
+        /* the offer: the meeting on the chip, a tick to take it, a cross to leave it */
+        <span className={`${chipClass} border-dashed border-primary/60 bg-primary/[0.04] text-primary`}>
+          <PopoverTrigger asChild>
+            <button type="button" className="inline-flex items-center gap-1.5"><Icon icon={Calendar03Icon} className="size-[13px]" strokeWidth={1.8} /><span className="max-w-[220px] truncate">{suggested.title}</span></button>
+          </PopoverTrigger>
+          <button type="button" aria-label="Not this meeting" onClick={onDismissSuggestion} className="rounded-full p-[2px] text-primary/60 hover:text-primary"><Icon icon={CloseIcon} className="size-[11px]" strokeWidth={2.2} /></button>
+          <button type="button" aria-label="Yes, this meeting" onClick={() => onChange(suggested.id)} className="rounded-full p-[2px] text-primary hover:text-primary/80"><Icon icon={Tick02Icon} className="size-[12px]" strokeWidth={2.4} /></button>
+        </span>
+      ) : (
+        <PopoverTrigger asChild>
+          <button type="button" className={`${chipClass} border-border text-foreground hover:bg-muted/60 data-[state=open]:bg-muted/60`}>
+            <Icon icon={Calendar03Icon} className="size-[13px] text-muted-foreground" strokeWidth={1.8} />
+            <span className="max-w-[220px] truncate">{meeting ? meeting.title : dateLabel}</span>
+            <Icon icon={UserGroupIcon} className="ml-0.5 size-[13px] text-muted-foreground" strokeWidth={1.8} />
+            <span>{count === 1 ? "Me" : count}</span>
+          </button>
+        </PopoverTrigger>
+      )}
+      <PopoverContent align="start" sideOffset={8} className="z-[120] w-[360px] overflow-hidden rounded-[16px] p-0">
+        {suggested ? (
+          <div className="p-[14px]">
+            <p className="text-[12.5px] text-muted-foreground">Is this your current meeting?</p>
+            <div className="mt-[10px] flex items-start gap-3">
+              <span className="mt-[5px] size-[9px] shrink-0 rounded-[3px] bg-primary" />
+              <span className="min-w-0"><span className="block truncate text-[14px] font-semibold text-foreground">{suggested.title}</span><span className="block text-[12.5px] text-muted-foreground">{suggested.dayLabel} · {suggested.time}</span></span>
+            </div>
+            <div className="mt-[14px] grid grid-cols-2 gap-2">
+              <Button className="h-9 rounded-full text-[13px] font-semibold" onClick={() => { onChange(suggested.id); setOpen(false); }}>Yes</Button>
+              <Button variant="pill-outline" className="h-9 rounded-full text-[13px] font-medium" onClick={() => { onDismissSuggestion?.(); setOpen(false); }}>No</Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="p-[10px]">
+              <button type="button" onClick={() => setPicking((v) => !v)} className="flex w-full items-center gap-3 rounded-[12px] bg-muted/50 px-[12px] py-[9px] text-left transition-colors hover:bg-muted">
+                {meeting && <span className="size-[9px] shrink-0 rounded-[3px] bg-primary" />}
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13.5px] font-semibold text-foreground">{meeting ? meeting.title : "Select calendar event"}</span>
+                  <span className="block text-[12px] text-muted-foreground">{meeting ? `${meeting.dayLabel} · ${meeting.time}` : `${dateLabel} · ${new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}</span>
+                </span>
+                <Icon icon={ArrowDown01Icon} className={`size-[14px] shrink-0 text-muted-foreground transition-transform ${picking ? "rotate-180" : ""}`} strokeWidth={2} />
+              </button>
+              {picking && (
+                <div className="mt-[6px] rounded-[12px] border border-border bg-popover p-[6px] shadow-sm">
+                  <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search event..." className="h-8 w-full rounded-[8px] bg-transparent px-[8px] text-[13px] text-foreground outline-none placeholder:text-muted-foreground" />
+                  <div className="my-[4px] h-px bg-border" />
+                  {meeting && <button type="button" onClick={() => { onChange(null); setPicking(false); }} className="flex w-full items-center gap-2 rounded-[8px] px-[8px] py-[7px] text-left text-[13px] text-foreground hover:bg-muted"><Icon icon={CloseIcon} className="size-[13px] text-muted-foreground" strokeWidth={2} />Remove calendar event</button>}
+                  <div className="max-h-[220px] overflow-y-auto">
+                    {list.map((m) => (
+                      <button key={m.id} type="button" onClick={() => { onChange(m.id); setPicking(false); setQuery(""); }} className="flex w-full items-center gap-3 rounded-[8px] px-[8px] py-[7px] text-left hover:bg-muted">
+                        <span className="size-[9px] shrink-0 rounded-[3px] bg-primary/70" />
+                        <span className="min-w-0 flex-1"><span className="block truncate text-[13px] text-foreground">{m.title}</span><span className="block text-[11.5px] text-muted-foreground">{m.dayLabel} · {m.time}</span></span>
+                        {m.id === meetingId && <Icon icon={Tick02Icon} className="size-[14px] shrink-0 text-primary" strokeWidth={2.4} />}
+                      </button>
+                    ))}
+                    {!list.length && <p className="px-[8px] py-[10px] text-[12.5px] text-muted-foreground">Nothing on the calendar matches.</p>}
+                  </div>
+                </div>
+              )}
+              {meeting && !picking && (
+                <>
+                  <a href={`https://${MEETING_LINK[meeting.id]}`} target="_blank" rel="noopener" className="mt-[8px] flex items-center gap-2 px-[4px] text-[12.5px] text-muted-foreground hover:text-primary hover:underline"><Icon icon={Link01Icon} className="size-[13px]" strokeWidth={1.8} /><span className="truncate">{MEETING_LINK[meeting.id]}</span></a>
+                  <div className="mt-[10px] grid grid-cols-2 gap-2">
+                    <Button variant="pill-outline" className="h-9 gap-2 rounded-full text-[13px] font-medium" onClick={() => toast(`Opening ${PLATFORM_LABEL[meeting.platform]}`)}><span className="scale-[0.9]"><SourceIcon source={PLATFORM_SOURCE[meeting.platform]} /></span>Join</Button>
+                    <Button variant="pill-outline" className="h-9 gap-2 rounded-full text-[13px] font-medium" onClick={() => toast("Opening the calendar")}><Icon icon={Calendar03Icon} className="size-[14px]" strokeWidth={1.8} />Calendar</Button>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="border-t border-border">
+              <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && draft.trim()) { setExtra((x) => [...x, draft.trim().includes("@") ? draft.trim() : `${draft.trim().toLowerCase().replace(/\s+/g, ".")}@guest`]); setDraft(""); } }} placeholder="Add attendees..." className="h-10 w-full bg-transparent px-[14px] text-[13px] text-foreground outline-none placeholder:text-muted-foreground" />
+            </div>
+            <div className="max-h-[260px] overflow-y-auto border-t border-border px-[6px] py-[6px]">
+              <p className="px-[8px] pb-[4px] pt-[6px] text-[11.5px] text-muted-foreground">{displayName.split(" ").pop()?.replace(/[()]/g, "") || "Me"}</p>
+              <div className="flex items-center gap-2.5 rounded-[8px] px-[8px] py-[5px] text-[13px] text-foreground"><Avatar className="size-6"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>{displayName} <span className="text-muted-foreground">(me)</span></div>
+              {[...groups.entries()].map(([domain, members]) => (
+                <div key={domain}>
+                  <p className="px-[8px] pb-[4px] pt-[8px] text-[11.5px] text-muted-foreground">{domain}</p>
+                  {members.map((m) => (
+                    <div key={m.email} className="group/att flex items-center gap-2.5 rounded-[8px] px-[8px] py-[5px] text-[13px] text-foreground hover:bg-muted/60">
+                      <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">{initials(m.name)}</span>
+                      <span className="min-w-0 flex-1 truncate">{m.name}</span>
+                      <button type="button" onClick={() => toast(`Notes shared with ${m.name}`)} className="hidden shrink-0 rounded-full border border-border px-[8px] py-[2px] text-[11.5px] text-foreground group-hover/att:inline-flex hover:bg-muted">Share notes</button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+export function LiveMeetingChips() {
+  const [meetingId, setMeetingId] = useSessionValue("ttt_live_meeting");
+  const [dismissed, setDismissed] = useSessionValue("ttt_live_meeting_dismissed");
+  return <MeetingCard meetingId={meetingId} onChange={setMeetingId} suggestedId={dismissed ? null : calendarMeetings[0].id} onDismissSuggestion={() => setDismissed("1")} />;
+}
+/* the record's event, remembered on this machine */
+function useRecordMeeting(recordId: string) {
+  /* eslint-disable-next-line react-hooks/rules-of-hooks */
+  const key = `ttt_record_meeting_${recordId}`;
+  const [id, setId] = useState<string | null>(() => { try { return window.localStorage.getItem(key); } catch { return null; } });
+  useEffect(() => { try { setId(window.localStorage.getItem(key)); } catch { setId(null); } }, [key]);
+  const set = (v: string | null) => { try { if (v) window.localStorage.setItem(key, v); else window.localStorage.removeItem(key); } catch { /* private mode */ } setId(v); };
+  return [id, set] as const;
+}
+
+/* A template dropped into My thoughts is only structure: one heading per section,
+   an empty line under each, nothing bound to the summary (Kirill, 10.09). */
+export function padWithTemplate(lines: PadLine[], template: Template): PadLine[] {
+  const blocks: PadLine[] = template.sections.flatMap((sec, i) => [{ kind: "h", text: sec.title || `Section ${i + 1}` }, { kind: "p", text: "" }]);
+  const last = lines[lines.length - 1];
+  const base = last && last.kind === "p" && !last.text ? lines.slice(0, -1) : lines;
+  return base.length ? [...base, ...blocks] : blocks;
+}
+function AuthorChip() {
+  const { displayName, avatarSrc } = useUserProfile();
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
+      <span className="whitespace-nowrap">Me</span>
+    </span>
+  );
+}
+
+/* The title of the live note: click it and type, the way a finished record's
+   title has always worked. */
+export function LiveTitle({ className }: { className: string }) {
+  const [stored, setStored] = useSessionValue("ttt_live_title");
+  const value = stored || "Untitled call";
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editing && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); } }, [editing]);
+  return (
+    <div className={`-ml-2 min-w-0 max-w-full rounded-xl px-2 py-1 transition-colors ${editing ? "bg-muted/55" : "w-fit cursor-text hover:bg-muted/45"}`} onClick={() => { if (!editing) setEditing(true); }} title={editing ? undefined : "Click to rename"}>
+      {editing ? (
+        <Input ref={inputRef} value={value} onChange={(e) => setStored(e.target.value)} onBlur={() => setEditing(false)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") setEditing(false); }} className={`h-auto border-none bg-transparent p-0 shadow-none focus-visible:ring-0 ${className}`} />
+      ) : (
+        <h1 className={`truncate ${className}`}>{value}</h1>
+      )}
+    </div>
+  );
+}
+
+/* What the transcript shows besides the words: two independent checkboxes,
+   kept on this machine (Kirill, 20.08: checkboxes, never a Select). */
+const VIEW_KEY = "ttt_transcript_view";
+const VIEW_EVENT = "ttt-transcript-view";
+type TranscriptView = { speakers: boolean; timestamps: boolean };
+function readView(): TranscriptView {
+  try { const raw = window.localStorage.getItem(VIEW_KEY); return { speakers: true, timestamps: true, ...(raw ? JSON.parse(raw) : {}) }; } catch { return { speakers: true, timestamps: true }; }
+}
+export function useTranscriptView() {
+  const [view, setView] = useState<TranscriptView>(readView);
+  useEffect(() => { const sync = () => setView(readView()); window.addEventListener(VIEW_EVENT, sync); return () => window.removeEventListener(VIEW_EVENT, sync); }, []);
+  const toggle = (k: keyof TranscriptView) => {
+    const next = { ...readView(), [k]: !readView()[k] };
+    try { window.localStorage.setItem(VIEW_KEY, JSON.stringify(next)); } catch { /* private mode */ }
+    window.dispatchEvent(new Event(VIEW_EVENT));
+  };
+  return { view, toggle };
+}
+export function TranscriptViewChecks() {
+  const { view, toggle } = useTranscriptView();
+  return (
+    <div className="flex items-center gap-3">
+      {([["speakers", "Speakers"], ["timestamps", "Timestamps"]] as const).map(([k, label]) => (
+        <label key={k} className="flex h-7 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
+          <FigmaCheckbox checked={view[k]} onChange={() => toggle(k)} />
+          <span onClick={() => toggle(k)}>{label}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
+/* The warning sits on the device it is about: an orange ring around the picker
+   and a triangle on its corner. The words and the Allow button live one click
+   away, so the bar stays as quiet as before. */
+function BlockedBadge({ warning }: { warning: { title: string; body: string; action: string; onAllow: () => void } }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button type="button" title={warning.title} className="absolute -right-[7px] -top-[7px] z-[1] flex size-[20px] items-center justify-center rounded-full border-2 border-background bg-warning text-white shadow-sm transition-transform hover:scale-105">
+          <Icon icon={Alert02Icon} className="size-[11px]" strokeWidth={2.4} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="end" sideOffset={10} className="z-[120] w-[320px] rounded-[16px] p-[16px]">
+        <p className="flex items-start gap-2 text-[14px] font-semibold text-foreground"><Icon icon={Alert02Icon} className="mt-[2px] size-[16px] shrink-0 text-warning" strokeWidth={2} />{warning.title}</p>
+        <p className="mt-[6px] text-[12.5px] text-muted-foreground">{warning.body}</p>
+        <Button variant="warning" onClick={warning.onAllow} className="mt-[12px] h-8 rounded-full px-[14px] text-[13px] font-semibold">{warning.action}</Button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function LiveRecordingBar({
   isPaused,
   elapsedSeconds,
   onPauseResume,
@@ -1194,23 +1810,59 @@ function LiveRecordingBar({
   selectedMicrophoneId,
   onSwitchMicrophone,
   isSwitchingMicrophone,
+  generate = false,
+  showGenerate = true,
+  showDevices = true,
+  caption = true,
+  warning,
+  join,
 }: {
+  /* the linked meeting, offered above the bar: one tap to join it, a cross to put it away */
+  join?: { label: string; source: "zoom" | "google-meet" | "teams"; onJoin: () => void; onDismiss: () => void };
   isPaused: boolean;
+  /* after the note is written the bar only offers Resume; nothing new to generate yet */
+  showGenerate?: boolean;
+  showDevices?: boolean;
+  /* the half-width panel has no room for the caption; the dot and the timer say enough */
+  caption?: boolean;
+  /* a permission is missing: a triangle in the bar, the words on demand */
+  warning?: { title: string; body: string; action: string; onAllow: () => void; mic: boolean; sys: boolean };
   elapsedSeconds: number;
   onPauseResume: () => void;
   onStop: () => void;
+  /* the desktop shell ends a call with the note itself: one blue verb, no Stop */
+  generate?: boolean;
   microphoneDevices: { id: string; label: string }[];
   selectedMicrophoneId: string;
   onSwitchMicrophone: (deviceId: string) => void;
   isSwitchingMicrophone: boolean;
 }) {
   const selectedMic = microphoneDevices.find((device) => device.id === selectedMicrophoneId);
+  /* without the caption the bar is in the half-width panel: the device pickers shrink to their icons */
+  const compact = !caption;
+  /* with the warning triangle in the row the pickers give up a little width so Pause stays centred */
+  const pickerW = "md:w-[200px]";
   const triggerLabel = isSwitchingMicrophone
     ? "Switching microphone..."
     : (selectedMic?.label || (microphoneDevices.length ? "Select microphone" : "No microphone detected"));
 
   return (
-    <div className="shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-[2px]">
+    <div className="relative shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-[2px]">
+      {generate && !isPaused && join && (
+        /* the meeting is linked: the way into it floats above the bar until it is dismissed (Granola's "Join Google Meet ×") */
+        <span className="absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+10px)] items-center gap-1 rounded-full bg-[#1B1F27] pl-3 pr-1.5 text-[13px] font-medium text-white shadow-md">
+          <button type="button" onClick={join.onJoin} className="flex items-center gap-2"><span className="scale-[0.9]"><SourceIcon source={join.source} /></span>Join {join.label}</button>
+          <button type="button" aria-label="Put away" onClick={join.onDismiss} className="ml-1 flex size-6 items-center justify-center rounded-full text-white/70 hover:bg-white/15 hover:text-white"><Icon icon={CloseIcon} className="size-[12px]" strokeWidth={2.2} /></button>
+        </span>
+      )}
+      {generate && isPaused && showGenerate && (
+        /* Granola's grammar: the call is on hold, and only now the note can be
+           written. One glowing verb above the bar, nothing else changes. */
+        <button type="button" onClick={onStop} className="ttt-glow absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+10px)] items-center gap-1.5 rounded-full bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]" title="End the call here and write the note">
+          <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.8} />
+          Generate notes
+        </button>
+      )}
       <div className="grid items-center gap-3 md:grid-cols-[1fr_auto_1fr]">
         <div className="flex min-w-0 items-center gap-2">
           <span className="relative flex size-[8px] shrink-0">
@@ -1224,24 +1876,22 @@ function LiveRecordingBar({
           </span>
           <span className="font-semibold text-[14px] text-foreground tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
           <LiveRecordingWaveform active={!isPaused} />
-          <span className="hidden text-xs text-muted-foreground md:inline">
-            {isPaused ? "Recording on hold" : "Live transcript is running"}
-          </span>
+          {caption && <span className="hidden whitespace-nowrap text-xs text-muted-foreground md:inline">
+            {isPaused ? (generate ? (showGenerate ? "On hold. Resume, or generate the notes" : "Resume to add more") : "Recording on hold") : "Live transcript is running"}
+          </span>}
         </div>
 
         <div className="order-3 md:order-2 flex items-center justify-center gap-2">
           <Button
             variant="pill-outline"
-            className="h-9 rounded-full px-3 gap-1.5"
+            className={`h-9 rounded-full gap-1.5 ${generate ? "px-4" : "px-3"}`}
             onClick={onPauseResume}
             title={isPaused ? "Resume recording" : "Pause recording"}
           >
-            {isPaused
-              ? <svg className="size-[14px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
-              : <svg className="size-[14px] text-foreground" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-            }
+            <Icon icon={isPaused ? PlayIcon : PauseIcon} className="size-[14px] text-foreground" strokeWidth={2} />
             <span className="text-[13px] font-medium text-foreground">{isPaused ? "Resume" : "Pause"}</span>
           </Button>
+          {generate ? null : (
           <Button
             variant="destructive"
             className="h-9 rounded-full px-3 gap-1.5"
@@ -1251,18 +1901,38 @@ function LiveRecordingBar({
             <svg className="size-[12px] text-white" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
             <span className="text-[13px] font-semibold text-white">Stop</span>
           </Button>
+          )}
         </div>
 
-        <div className="order-2 md:order-3 md:justify-self-end w-full md:w-auto md:min-w-[260px] md:max-w-[320px]">
+        {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? (compact ? "flex gap-2" : "flex gap-2 md:max-w-[560px]") : "md:min-w-[260px] md:max-w-[320px]"}`}>
+          {generate && <RecordingOptions compact={compact} />}
+          {generate && warning?.sys && (
+            /* the other side of the call is not a device to pick, it is a permission: when it is missing, it says so here */
+            <Popover>
+              <PopoverTrigger asChild>
+                <button type="button" title={warning.title} className={`flex h-[36px] shrink-0 items-center gap-[8px] rounded-[12px] border border-warning bg-warning/[0.06] text-[13px] text-warning transition-colors hover:bg-warning/[0.12] ${compact ? "w-[44px] justify-center" : "px-[12px]"}`}>
+                  <Icon icon={Alert02Icon} className="size-[16px] shrink-0" strokeWidth={2} />
+                  {!compact && <span className="truncate">Call sound not allowed</span>}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={10} className="z-[120] w-[320px] rounded-[16px] p-[16px]">
+                <p className="flex items-start gap-2 text-[14px] font-semibold text-foreground"><Icon icon={Alert02Icon} className="mt-[2px] size-[16px] shrink-0 text-warning" strokeWidth={2} />{warning.title}</p>
+                <p className="mt-[6px] text-[12.5px] text-muted-foreground">{warning.body}</p>
+                <Button variant="warning" onClick={warning.onAllow} className="mt-[12px] h-8 rounded-full px-[14px] text-[13px] font-semibold">{warning.action}</Button>
+              </PopoverContent>
+            </Popover>
+          )}
+          <div className="relative">
+          {warning?.mic && <BlockedBadge warning={warning} />}
           <Select
             value={selectedMicrophoneId || undefined}
             onValueChange={onSwitchMicrophone}
             disabled={!microphoneDevices.length || isSwitchingMicrophone}
           >
-            <SelectTrigger className="h-[36px] w-full rounded-[12px] border-input bg-transparent px-[12px] gap-[8px]">
+            <SelectTrigger className={`h-[36px] w-full rounded-[12px] bg-transparent px-[12px] gap-[8px] ${warning?.mic ? "border-warning bg-warning/[0.06]" : "border-input"} ${compact ? "md:w-[44px] justify-center [&>svg:last-child]:hidden" : generate ? pickerW : ""}`} title={compact ? triggerLabel : undefined}>
               <span className="flex min-w-0 items-center gap-[8px]">
-                <SourceIcon source="microphone" />
-                <span className="truncate text-[13px] text-foreground">{triggerLabel}</span>
+                {compact ? <Icon icon={Mic01Icon} className={`size-[16px] shrink-0 ${warning?.mic ? "text-warning" : "text-muted-foreground"}`} strokeWidth={1.8} /> : <SourceIcon source="microphone" />}
+                {!compact && <span className={`truncate text-[13px] ${warning?.mic ? "text-warning" : "text-foreground"}`}>{warning?.mic ? "Not allowed" : triggerLabel}</span>}
               </span>
             </SelectTrigger>
             <SelectContent align="start" className="z-[120] max-w-[calc(100vw-32px)] rounded-[12px]">
@@ -1276,7 +1946,8 @@ function LiveRecordingBar({
               ))}
             </SelectContent>
           </Select>
-        </div>
+          </div>
+        </div>}
       </div>
     </div>
   );
@@ -1294,14 +1965,6 @@ interface PageHeaderMeta {
   screenshotsCount: number;
 }
 
-function getSourceLabel(source: SourceType | undefined) {
-  if (!source) return "Source";
-  if (source === "google-meet") return "Google Meet";
-  if (source === "google-sheets") return "Google Sheets";
-  if (source === "microphone") return "Microphone";
-  return source.toUpperCase().replace("-", " ");
-}
-
 interface PageHeaderProps {
   title: string;
   onTitleChange: (t: string) => void;
@@ -1311,16 +1974,25 @@ interface PageHeaderProps {
   shares: ShareRecord[];
   onShare: () => void;
   onCopyLink: () => void;
-  onCopySummary: () => void;
+  onCopySummary: (lang?: string) => void;
   hasSummary: boolean;
   onSetTemplate: () => void;
   onMoveToFolder: (folderId: string) => void;
+  /* the folder and the calendar event, as chips in the meta line (Move left the overflow menu) */
+  chips?: React.ReactNode;
   onCreateFolderAndMove: () => void;
   onExport: () => void;
   onRematchSpeakers: () => void;
   onRegenerateSummary: () => void;
   onSyncTextToAudio: () => void;
   onDelete: () => void;
+  onCopyTranscript: (lang?: string) => void;
+  copyMenu: CopyMenuModel;
+  isTranscriptTab: boolean;
+  onOpenMore: () => void;
+  onTranslateTo: (code: string) => void;
+  activeTranslationLang: string | null;
+  translationDisabled: boolean;
 }
 
 function PageHeader({
@@ -1336,142 +2008,267 @@ function PageHeader({
   hasSummary,
   onSetTemplate,
   onMoveToFolder,
+  chips,
   onCreateFolderAndMove,
   onExport,
   onRematchSpeakers,
   onRegenerateSummary,
   onSyncTextToAudio,
   onDelete,
+  onCopyTranscript,
+  copyMenu,
+  isTranscriptTab,
+  onOpenMore,
+  onTranslateTo,
+  activeTranslationLang,
+  translationDisabled,
 }: PageHeaderProps) {
   const [editingTitle, setEditingTitle] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { displayName, avatarSrc } = useUserProfile();
+  /* The second state of this page: the record belongs to somebody else. */
+  const sharedOwner = useMemo(() => readSharedRecordOwner(), []);
 
   useEffect(() => {
     if (editingTitle && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); }
   }, [editingTitle]);
 
   return (
-    <div className="px-4 pt-6 pb-0 lg:px-8">
-      <div className="mb-2 flex items-start justify-between gap-4 max-md:flex-col max-md:items-start">
+    <div className="px-4 pt-4 pb-0 lg:px-8 lg:pt-6">
+      <div className="mb-2 flex items-start justify-between gap-4">
         <div
-          className={`min-w-0 flex-1 max-md:w-full rounded-xl py-2 pr-2 pl-0 transition-colors ${
-            editingTitle ? "bg-muted/55" : "cursor-text hover:bg-muted/45"
+          className={`min-w-0 flex-1 rounded-xl py-2 pr-2 pl-0 transition-colors ${
+            sharedOwner ? "" : editingTitle ? "bg-muted/55" : "cursor-text hover:bg-muted/45"
           }`}
-          onClick={() => { if (!editingTitle) setEditingTitle(true); }}
+          onClick={() => { if (!sharedOwner && !editingTitle) setEditingTitle(true); }}
         >
-          {editingTitle ? (
+          {editingTitle && !sharedOwner ? (
             <Input ref={inputRef} value={title} onChange={(e) => onTitleChange(e.target.value)} onBlur={() => setEditingTitle(false)} onKeyDown={(e) => { if (e.key === "Enter") setEditingTitle(false); }} className="h-auto border-none bg-transparent p-0 text-2xl font-bold shadow-none focus-visible:ring-0" style={{ fontSize: "24px", lineHeight: "1.3" }} />
           ) : (
-            <h1 className="text-2xl font-bold text-foreground leading-tight">{title}</h1>
+            <h1 className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal">{title}</h1>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 max-md:w-full max-md:justify-start">
-          <SharedUsersAvatars shares={shares} />
-          <Button size="sm" className="h-8 rounded-full gap-2 px-4 text-sm" onClick={onShare}>
-            <Icon icon={Share} className="size-4" strokeWidth={1.7} />
-            Share
-          </Button>
-          {hasSummary ? (
-            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer" onClick={onCopySummary}>
-              <Icon icon={Copy} className="size-[14px] text-foreground" strokeWidth={1.5} />
-              <span className="font-medium text-[13px] text-foreground">Copy summary</span>
-            </Button>
-          ) : (
-            <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer" onClick={onSetTemplate}>
-              <Icon icon={Zap} className="size-[14px] text-foreground" strokeWidth={1.5} />
-              <span className="font-medium text-[13px] text-foreground">Apply template</span>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          {!sharedOwner && <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>}
+          {!hasSummary && !sharedOwner && (
+            <Button className="order-first flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
+              <span className="font-medium text-[13px]">Apply template</span>
             </Button>
           )}
+          {/* 1. The first entry point in the spec, and it was the one missing:
+              the result page carried a Share handler with nothing to press. It
+              sits beside Copy rather than in the overflow, because a record is
+              shared far more often than it is exported. */}
+          {!sharedOwner && (
+            <Button
+              variant="pill-outline"
+              data-qa-label="Share"
+              className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden"
+              onClick={onShare}
+            >
+              <Icon icon={Share} className="size-[14px]" strokeWidth={1.7} />
+              <span className="font-medium text-[13px]">Share</span>
+            </Button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden">
+                <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
+                <span className="font-medium text-[13px]">Copy</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={6} className={"z-[120] " + (copyMenu.translation ? "w-[236px]" : "w-[190px]")}>
+              {copyMenu.translation ? (
+                <>
+                  {/* With a translation on the record, "Copy transcript" no longer
+                      names one thing, so the language is the choice and the flag
+                      carries it. */}
+                  <DropdownMenuLabel className="text-[11.5px] font-medium text-muted-foreground">Transcript</DropdownMenuLabel>
+                  <DropdownMenuItem className="gap-2" onClick={() => onCopyTranscript()}>
+                    <span className="w-4 text-center text-[14px] leading-none">{copyMenu.original.flag}</span>
+                    {copyMenu.original.label}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="gap-2" onClick={() => onCopyTranscript(copyMenu.translation.code)}>
+                    <span className="w-4 text-center text-[14px] leading-none">{copyMenu.translation.flag}</span>
+                    {copyMenu.translation.label}
+                  </DropdownMenuItem>
+                  {copyMenu.hasSummary && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-[11.5px] font-medium text-muted-foreground">Summary</DropdownMenuLabel>
+                      <DropdownMenuItem className="gap-2" onClick={() => onCopySummary()}>
+                        <span className="w-4 text-center text-[14px] leading-none">{copyMenu.original.flag}</span>
+                        {copyMenu.original.label}
+                      </DropdownMenuItem>
+                      {/* Only offered once the summary itself came back translated:
+                          the transcript can be done while this one is still running. */}
+                      {copyMenu.summaryTranslated && (
+                        <DropdownMenuItem className="gap-2" onClick={() => onCopySummary(copyMenu.translation.code)}>
+                          <span className="w-4 text-center text-[14px] leading-none">{copyMenu.translation.flag}</span>
+                          {copyMenu.translation.label}
+                        </DropdownMenuItem>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem className="gap-2" onClick={() => onCopyTranscript()}>
+                    <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                    Copy transcript
+                  </DropdownMenuItem>
+                  {copyMenu.hasSummary && (
+                    <DropdownMenuItem className="gap-2" onClick={() => onCopySummary()}>
+                      <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                      Copy summary
+                    </DropdownMenuItem>
+                  )}
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" onClick={onExport} aria-label="Export">
+            <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} />
+          </Button>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-8 rounded-full" onClick={onCopyLink} aria-label="Copy link">
+              <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" onClick={onCopyLink} aria-label="Copy link">
                 <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.8} />
               </Button>
             </TooltipTrigger>
             <TooltipContent>Copy link</TooltipContent>
           </Tooltip>
+          <button
+            type="button"
+            aria-label="More actions"
+            className="max-md:hidden lg:hidden inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            onClick={onOpenMore}
+          >
+            <Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} />
+          </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
                 aria-label="More actions"
-                className="inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="max-lg:hidden inline-flex size-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 <Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" sideOffset={8} className="z-[120] w-[230px]">
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2">
-                  <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                  Move
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="w-[220px]">
-                  {folders.length > 0 ? (
-                    folders.map((folder) => (
-                      <DropdownMenuItem key={folder.id} className="gap-2" onClick={() => onMoveToFolder(folder.id)}>
-                        <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16">
-                          <path d="M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z" fill={folder.color} />
-                        </svg>
-                        <span className="truncate">{folder.name}</span>
-                      </DropdownMenuItem>
-                    ))
-                  ) : (
-                    <DropdownMenuItem disabled>No folders yet</DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="gap-2" onClick={onCreateFolderAndMove}>
-                    <Icon icon={FolderOpen} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                    Create folder and move
+              {/* Mobile only: actions relocated from the header row + translate picker */}
+              {copyMenu.translation && (
+                <>
+                  <DropdownMenuLabel className="max-md:hidden lg:hidden text-[11.5px] font-medium text-muted-foreground">Copy transcript</DropdownMenuLabel>
+                  <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={() => onCopyTranscript()}>
+                    <span className="w-4 text-center text-[14px] leading-none">{copyMenu.original.flag}</span>
+                    {copyMenu.original.label}
                   </DropdownMenuItem>
+                  <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={() => onCopyTranscript(copyMenu.translation.code)}>
+                    <span className="w-4 text-center text-[14px] leading-none">{copyMenu.translation.flag}</span>
+                    {copyMenu.translation.label}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="max-md:hidden lg:hidden" />
+                </>
+              )}
+              {hasSummary ? (
+                <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={() => onCopySummary()}>
+                  <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  Copy summary
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={onSetTemplate}>
+                  Apply template
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={onCopyLink}>
+                <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                Copy link
+              </DropdownMenuItem>
+              {!sharedOwner && (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2 max-md:hidden lg:hidden">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-4 text-muted-foreground"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
+                  Translate to
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-[200px]">
+                  {TRANSLATION_LANGUAGES.map((language) => (
+                    <DropdownMenuItem
+                      key={language.code}
+                      className="gap-2"
+                      disabled={translationDisabled}
+                      onClick={() => onTranslateTo(language.code)}
+                    >
+                      <span>{language.flag}</span>
+                      <span className="flex-1">{language.label}</span>
+                      {activeTranslationLang === language.code ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="ml-auto size-3.5 text-primary"><path d="M20 6L9 17l-5-5" /></svg>
+                      ) : null}
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuItem className="gap-2" onSelect={() => onExport()}>
-                Export…
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2" onClick={onRematchSpeakers}>
-                <Icon icon={User} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                Rematch speakers
-              </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2" onClick={onRegenerateSummary}>
-                <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                Regenerate summary
-              </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2" onClick={onSyncTextToAudio}>
-                <Icon icon={Mic} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                Sync text to audio
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" className="gap-2" onClick={onDelete}>
-                <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
-                Delete
-              </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator className="max-md:hidden lg:hidden" />
+              {sharedOwner ? (
+                /* The only thing a reader may do to somebody else's record: stop
+                   keeping it on their own list. It does not touch the original. */
+                <DropdownMenuItem className="gap-2" data-qa-label="remove-shared">
+                  <Icon icon={Cancel01Icon} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  Remove from Shared
+                </DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuItem className="gap-2" onClick={onRegenerateSummary}>
+                    <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                    Regenerate summary
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" className="gap-2" onClick={onDelete}>
+                    <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
+                    Delete
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
       <div className="flex items-center gap-3 text-xs text-muted-foreground max-lg:flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
-          <span>{displayName}</span>
-        </div>
+        {/* Whose record this is survives on a phone: it is the first thing a
+            reader needs and it used to be the first thing hidden. On a narrow
+            screen it takes the whole line rather than wrapping mid-sentence. */}
+        {sharedOwner ? (
+          <div className="flex items-center gap-1.5 max-md:w-full">
+            <Avatar className="size-5">
+              <AvatarFallback className="text-[10px]" style={{ background: sharedOwner.tint, color: sharedOwner.ink }}>
+                {sharedOwner.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-foreground">{sharedOwner.name}</span>
+            <span>shared this with you</span>
+          </div>
+        ) : chips ? null : (
+          <div className="flex items-center gap-1.5 max-md:hidden">
+            <Avatar className="size-5"><AvatarImage src={avatarSrc} alt={displayName} /><AvatarFallback className="text-[10px]">{displayName.charAt(0)}</AvatarFallback></Avatar>
+            <span className="whitespace-nowrap">Me</span>
+          </div>
+        )}
+        {chips}
         {source && (
           <>
-            <span className="text-border">{"\u2022"}</span>
+            <span className="text-border max-md:hidden">{"\u2022"}</span>
             <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
               <span className="scale-[0.9]"><SourceIcon source={source} /></span>
               <span>{getSourceLabel(source)}</span>
             </span>
           </>
         )}
-        <span className="text-border">{"\u2022"}</span>
-        <span>{meta.dateLabel}</span>
+        {!chips && <><span className="text-border">{"\u2022"}</span><span>{meta.dateLabel}</span></>}
         <span className="text-border">{"\u2022"}</span>
         <span>{meta.durationLabel}</span>
-        <span className="text-border">{"\u2022"}</span>
-        <span>{meta.screenshotsCount} {meta.screenshotsCount === 1 ? "screenshot" : "screenshots"}</span>
       </div>
     </div>
   );
@@ -1483,6 +2280,9 @@ function PageHeader({
 
 export function TranscriptionDetailPage() {
   const navigate = useNavigate();
+  /* Somebody else's record: the page still reads and exports, but every control
+     that would change the owner's copy is not on it. */
+  const sharedOwner = useMemo(() => readSharedRecordOwner(), []);
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const { folders, folderAssignments, addFolder, assignToFolder } = useFolders();
@@ -1494,6 +2294,7 @@ export function TranscriptionDetailPage() {
     pauseInstantRecording,
     resumeInstantRecording,
     stopInstantRecording,
+    startInstantRecording,
     microphoneDevices,
     selectedMicrophoneId,
     switchRecordingMicrophone,
@@ -1507,6 +2308,28 @@ export function TranscriptionDetailPage() {
   const routeState = location.state as { record?: RecordRow; liveRecording?: boolean; fromRecordingStop?: boolean } | null;
   const routeStateRecord = routeState?.record;
   const isLiveRecordingRoute = id === "live" || Boolean(routeState?.liveRecording);
+  /* the desktop shell: your notes beside the live transcript, kept with the record */
+  const { desktop: desktopShell, machine } = useShell();
+  const padKey = isLiveRecordingRoute ? "live" : (id ?? "live");
+  const [liveTab, setLiveTab] = useState<"notes" | "transcript" | "summary">("notes");
+  const [padLibraryOpen, setPadLibraryOpen] = useState(false);
+  const [liveMeetingId] = useSessionValue("ttt_live_meeting");
+  const [joinDismissed, setJoinDismissed] = useSessionValue("ttt_live_join_dismissed");
+  const liveMeeting = calendarMeetings.find((m) => m.id === liveMeetingId) ?? null;
+  const [recordMeetingId, setRecordMeetingId] = useRecordMeeting(id ?? "live");
+  const [liveTemplateId, setLiveTemplateId] = useState<string | null>(() => window.sessionStorage.getItem("ttt_live_template"));
+  const pickLiveTemplate = (id: string | null) => { setLiveTemplateId(id); if (id) window.sessionStorage.setItem("ttt_live_template", id); else window.sessionStorage.removeItem("ttt_live_template"); };
+  const insertTemplate = (id: string) => { const t = templates.find((x) => x.id === id); if (!t) return; setPad((prev) => padWithTemplate(prev, t)); toast(`${t.name} added to your notes`); };
+  const [pad, setPad] = useState<PadLine[]>(() => {
+    if (!isLiveRecordingRoute && routeState?.fromRecordingStop) {
+      const moved = loadPad("live");
+      if (moved.some((l) => l.text)) { savePad(id ?? "live", moved); window.localStorage.removeItem("ttt_notes:live"); return moved; }
+    }
+    return loadPad(padKey);
+  });
+  useEffect(() => { savePad(padKey, pad); }, [pad, padKey]);
+  const liveTitle = window.sessionStorage.getItem("ttt_live_title") || "Untitled call";
+  const generatedRef = useRef(false);
   const persistedRecord = useMemo<RecordRow | null>(() => {
     if (!id || typeof window === "undefined") return null;
     try {
@@ -1538,7 +2361,7 @@ export function TranscriptionDetailPage() {
   const previewSegments = selectedJob?.livePreviewSegments ?? [];
 
 
-  const fallbackTitle = isLiveRecordingRoute ? "Live note" : "Weekly Team Sync \u2014 Product & Engineering";
+  const fallbackTitle = isLiveRecordingRoute ? (desktopShell ? liveTitle : "Live note") : "Weekly Team Sync - Product & Engineering";
   const recordTitle = selectedRecord ? getName(selectedRecord.id, selectedRecord.name) : fallbackTitle;
   const selectedFolder = useMemo(() => {
     if (!selectedRecord) return null;
@@ -1546,22 +2369,65 @@ export function TranscriptionDetailPage() {
     if (!folderId) return null;
     return folders.find((folder) => folder.id === folderId) ?? null;
   }, [selectedRecord, folderAssignments, folders]);
+  /* Phone chrome: the top bar becomes back + the nesting path (no hamburger/search). */
+  const fromMeetings = (location.state as { from?: string } | null)?.from === "meetings";
+  useEffect(() => {
+    setInnerScreen({
+      back: () => (fromMeetings ? navigate("/", { state: { page: "calendar" } }) : navigate("/")),
+      parent: sharedOwner ? undefined : fromMeetings || !selectedFolder ? undefined : "My records",
+      title: sharedOwner ? "Shared with me" : fromMeetings ? "Meetings" : (selectedFolder ? selectedFolder.name : "My records"),
+    });
+    return () => setInnerScreen(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromMeetings, selectedFolder]);
   const [title, setTitle] = useState(recordTitle);
+  const { view: transcriptView } = useTranscriptView();
   const [editMode, setEditMode] = useState(false);
   const [activeTab, setActiveTab] = useState("transcript");
   const [highlightedSegment, setHighlightedSegment] = useState<number | null>(null);
-  const [playerProgress, setPlayerProgress] = useState([0]);
+  const [playerProgress, setPlayerProgress] = useState(demoPlayheadProgress);
   const [isFallbackPlaying, setIsFallbackPlaying] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoPlaybackRate, setVideoPlaybackRate] = useState(1);
   const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
+    selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null,
+  );
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [summaryQuery, setSummaryQuery] = useState("");
+  /* the desktop shell: which permission the demo pretends is missing (`?perm=1|mic`) */
+  const permFlag = useDemo("perm");
+  const [permDemo, setPermDemo] = useState<string | null>(() => (permFlag === "1" || permFlag === "mic" ? permFlag : null));
+  useEffect(() => { setPermDemo(permFlag === "1" || permFlag === "mic" ? permFlag : null); }, [permFlag]);
   const [summaryStage, setSummaryStage] = useState("");
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [langSheetOpen, setLangSheetOpen] = useState(false);
+  const [belowLg, setBelowLg] = useState(false);
+  const [belowMd, setBelowMd] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const sync = () => setBelowLg(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => setBelowMd(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const { templates } = useTemplates();
+
+  useEffect(() => {
+    /* a note just written on the desktop keeps the template it was written with */
+    if (!(desktopShell && routeState?.fromRecordingStop && generatedRef.current)) setActiveTemplateId(selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null);
+  }, [id, selectedJob?.templateId, routeStateRecord?.templateId, persistedRecord?.templateId]);
 
   // PRO "Apply template" deep-link: a record opened with a template to apply.
   const appliedFromRouteRef = useRef(false);
@@ -1638,9 +2504,20 @@ export function TranscriptionDetailPage() {
     })),
     [previewSegments],
   );
+  /* ttt_demo_playback=cases* swaps in replicas of very different lengths, so
+     the highlight can be judged on a one-word answer as well as on a paragraph.
+     The three parking spots sit in a question, in that one word, and in the
+     paragraph - all of which need this set, not only the first. */
+  const showCases = (() => {
+    try { return (window.localStorage.getItem("ttt_demo_playback") || "").startsWith("cases"); } catch { return false; }
+  })();
   const contentSegments = useMemo<Segment[]>(
-    () => (selectedJob?.source === "microphone" && previewDetailSegments.length > 0 ? previewDetailSegments : MOCK_SEGMENTS),
-    [previewDetailSegments, selectedJob?.source],
+    () => (showCases
+      ? CASE_SEGMENTS
+      : selectedJob?.source === "microphone" && previewDetailSegments.length > 0
+        ? previewDetailSegments
+        : MOCK_SEGMENTS),
+    [previewDetailSegments, selectedJob?.source, showCases],
   );
   // Single-speaker / monologue mode: hide the speaker column when there's only one voice.
   // Demo flag forces it with dedicated monologue content for design captures.
@@ -1653,6 +2530,32 @@ export function TranscriptionDetailPage() {
   }, []);
   const displaySegments = (forceSingleSpeaker || forcePlainMono) ? MONO_SEGMENTS : contentSegments;
   const isSingleSpeaker = forceSingleSpeaker || forcePlainMono || new Set(displaySegments.map((seg) => seg.speaker.id)).size <= 1;
+
+  // Demo: ttt_demo_limited=1|modal renders the limited-access transcript state.
+  const [limitedFlag] = useState<"1" | "modal" | null>(() => {
+    try {
+      const value = window.localStorage.getItem("ttt_demo_limited");
+      return value === "1" || value === "modal" ? value : null;
+    } catch {
+      return null;
+    }
+  });
+  const [limitedModalOpen, setLimitedModalOpen] = useState(false);
+  const limitedModalShownRef = useRef(false);
+  const limitedActive = limitedFlag !== null && displaySegments.length > 1;
+  // The free portion stops after the first few turns, so the cut, the fade and the
+  // unlock card all land inside the first screen instead of far below the fold.
+  const limitedFreeSegments = limitedActive ? displaySegments.slice(0, LIMITED_FREE_TURNS) : displaySegments;
+
+  useEffect(() => {
+    if (limitedFlag !== "modal" || limitedModalShownRef.current) return;
+    const timer = window.setTimeout(() => {
+      limitedModalShownRef.current = true;
+      setLimitedModalOpen(true);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [limitedFlag]);
+
   const activeTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
 
   const contentSummary = useMemo(() => {
@@ -1728,9 +2631,34 @@ export function TranscriptionDetailPage() {
   const { texts, update, undo, redo, canUndo, canRedo, reset } = useEditHistory(initialTexts);
   const savedTextsRef = useRef(initialTexts);
 
+  const originalTextsRef = useRef(initialTexts);
+  const [discardOpen, setDiscardOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+
+  function sameTexts(a: Record<number, string>, b: Record<number, string>) {
+    for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if ((a[Number(key)] ?? "") !== (b[Number(key)] ?? "")) return false;
+    }
+    return true;
+  }
+  // Leaving without saving is only worth a question when there is something to lose,
+  // and the way back is only offered while the transcript still differs from the text
+  // that came out of the transcription.
+  const hasUnsavedEdits = !sameTexts(texts, savedTextsRef.current);
+  const differsFromOriginal = !sameTexts(texts, originalTextsRef.current);
+
   function handleToggleEdit() { savedTextsRef.current = { ...texts }; setEditMode(true); }
-  function handleSave() { savedTextsRef.current = { ...texts }; setEditMode(false); console.log("Saved transcript texts:", texts); toast.success("Transcript saved"); }
-  function handleCancel() { reset(savedTextsRef.current); setEditMode(false); }
+  function handleSave() { savedTextsRef.current = { ...texts }; setEditMode(false); toast.success("Transcript saved"); }
+  function leaveEdit() { reset(savedTextsRef.current); setDiscardOpen(false); setEditMode(false); }
+  function handleCancel() { if (hasUnsavedEdits) { setDiscardOpen(true); return; } leaveEdit(); }
+  function handleResetToOriginal() {
+    const original = { ...originalTextsRef.current };
+    reset(original);
+    savedTextsRef.current = original;
+    setResetOpen(false);
+    setEditMode(false);
+    toast.success("Transcript restored to the original");
+  }
 
   useEffect(() => {
     setTitle(recordTitle);
@@ -1838,15 +2766,75 @@ export function TranscriptionDetailPage() {
   const isPlayerPlaying = hasVideo ? isVideoPlaying : isFallbackPlaying;
 
   const activePlaybackSegmentId = useMemo<number | null>(() => {
-    if (!hasVideo) return null;
-    const current = videoCurrentTime;
+    const current = effectiveCurrentSeconds;
+    if (current <= 0) return null;
     const currentSegment = segmentTimings.find((segment) => current >= segment.start && current < segment.end);
     if (currentSegment) return currentSegment.id;
     if (segmentTimings.length > 0 && current >= segmentTimings[segmentTimings.length - 1].start) {
       return segmentTimings[segmentTimings.length - 1].id;
     }
     return null;
-  }, [hasVideo, videoCurrentTime, segmentTimings]);
+  }, [effectiveCurrentSeconds, segmentTimings]);
+
+  // Everything above the active line has already been spoken. Marking it lets
+  // the eye find the live line on a transcript that runs for pages.
+  const playedSegmentIds = useMemo<Set<number>>(() => {
+    const ids = new Set<number>();
+    if (activePlaybackSegmentId === null) return ids;
+    for (const timing of segmentTimings) {
+      if (timing.id === activePlaybackSegmentId) break;
+      ids.add(timing.id);
+    }
+    return ids;
+  }, [activePlaybackSegmentId, segmentTimings]);
+
+  /* Which sentence of the active replica is being spoken. There are no word
+     timings, so the replica time is shared out by sentence length: close
+     enough to read along with, and it moves the way subtitles move. */
+  const activeSentenceIndex = useMemo<number | null>(() => {
+    if (activePlaybackSegmentId === null) return null;
+    const timing = segmentTimings.find((t) => t.id === activePlaybackSegmentId);
+    const segment = contentSegments.find((seg) => seg.id === activePlaybackSegmentId);
+    if (!timing || !segment) return null;
+    const parts = splitSentences(segment.text);
+    if (parts.length <= 1) return 0;
+    const span = Math.max(1, timing.end - timing.start);
+    const ratio = Math.max(0, Math.min(0.999, (effectiveCurrentSeconds - timing.start) / span));
+    const total = segment.text.length || 1;
+    let seen = 0;
+    for (let i = 0; i < parts.length; i++) {
+      seen += parts[i].length;
+      if (ratio < seen / total) return i;
+    }
+    return parts.length - 1;
+  }, [activePlaybackSegmentId, segmentTimings, contentSegments, effectiveCurrentSeconds]);
+
+  /* And one step finer for the word-by-word treatment: the same share-by-length
+     trick, applied inside the sentence that is currently lit. */
+  const activeWordIndex = useMemo<number | null>(() => {
+    if (activePlaybackSegmentId === null || activeSentenceIndex === null) return null;
+    const timing = segmentTimings.find((t) => t.id === activePlaybackSegmentId);
+    const segment = contentSegments.find((seg) => seg.id === activePlaybackSegmentId);
+    if (!timing || !segment) return null;
+    const parts = splitSentences(segment.text);
+    const sentence = parts[activeSentenceIndex] ?? "";
+    if (!sentence) return null;
+    const before = parts.slice(0, activeSentenceIndex).reduce((n, part) => n + part.length, 0);
+    const total = segment.text.length || 1;
+    const span = Math.max(1, timing.end - timing.start);
+    const elapsed = Math.max(0, Math.min(1, (effectiveCurrentSeconds - timing.start) / span));
+    const inside = (elapsed * total - before) / Math.max(1, sentence.length);
+    const words = splitWords(sentence).filter((w) => w !== " ");
+    if (words.length === 0) return null;
+    const ratio = Math.max(0, Math.min(0.999, inside));
+    return Math.min(words.length - 1, Math.floor(ratio * words.length));
+  }, [
+    activePlaybackSegmentId,
+    activeSentenceIndex,
+    segmentTimings,
+    contentSegments,
+    effectiveCurrentSeconds,
+  ]);
 
   const handleVideoElementReady = useCallback((node: HTMLVideoElement | null) => {
     videoElementRef.current = node;
@@ -1926,13 +2914,14 @@ export function TranscriptionDetailPage() {
   }, [fallbackDurationSeconds, hasVideo, isFallbackPlaying]);
 
   useEffect(() => {
-    setActiveTab("transcript");
+    /* a note that was just written opens on what was written */
+    setActiveTab(desktopShell && routeState?.fromRecordingStop ? "summary" : "transcript");
     setIsFallbackPlaying(false);
     setIsVideoPlaying(false);
     setVideoCurrentTime(0);
     setVideoDuration(0);
     setVideoPlaybackRate(1);
-    setPlayerProgress([0]);
+    setPlayerProgress(demoPlayheadProgress());
     lastAutoScrolledSegmentRef.current = null;
     setActiveTranslationLang(null);
     setSelectedTranslationLang("");
@@ -1966,6 +2955,17 @@ export function TranscriptionDetailPage() {
       setTranslatedSegments(Object.fromEntries(MOCK_SEGMENTS.map((seg) => [seg.id, makeFallbackTranslation(seg.text, lang)])));
       setTranslationSummaryStatus(flag === "loading" ? "loading" : "error");
       setActiveTab("summary-translated");
+    }
+
+    if (flag === "done") {
+      const lang = "ru";
+      setSelectedTranslationLang(lang);
+      setActiveTranslationLang(lang);
+      setTranslatedSegments(RU_DEMO_SEGMENTS);
+      setTranslatedSummary(RU_DEMO_SUMMARY);
+      setTranslationTranscriptStatus("done");
+      setTranslationSummaryStatus("done");
+      setActiveTab("transcript-translated");
     }
 
     // Transcript translation: loading / error (in the translated transcript tab)
@@ -2071,22 +3071,26 @@ export function TranscriptionDetailPage() {
     return makeFallbackTranslation(contentSummary, targetLanguage);
   }
 
-  async function handleTranslate() {
-    if (!canApplyTranslation) return;
+  async function handleTranslate(langOverride?: string) {
+    const targetLang = langOverride ?? selectedTranslationLang;
+    if (!targetLang || isTranslationLoading || isJobTranscribing) return;
+    if (!langOverride && !canApplyTranslation) return;
+    if (targetLang === activeTranslationLang) { setActiveTab("transcript-translated"); return; }
+    if (langOverride && langOverride !== selectedTranslationLang) setSelectedTranslationLang(langOverride);
     setIsTranslationLoading(true);
 
     try {
       const [nextTranscript, nextSummary] = await Promise.all([
-        translateTranscriptBatch(selectedTranslationLang),
-        translateSummaryBatch(selectedTranslationLang),
+        translateTranscriptBatch(targetLang),
+        translateSummaryBatch(targetLang),
       ]);
 
       setTranslatedSegments(nextTranscript);
       setTranslatedSummary(nextSummary);
       setTranslationSummaryStatus("done");
-      setActiveTranslationLang(selectedTranslationLang);
+      setActiveTranslationLang(targetLang);
       setActiveTab("transcript-translated");
-      toast.success(`Translated to ${selectedTranslationLang.toUpperCase()}`);
+      toast.success(`Translated to ${targetLang.toUpperCase()}`);
     } finally {
       setIsTranslationLoading(false);
     }
@@ -2154,13 +3158,39 @@ export function TranscriptionDetailPage() {
     toast.success("Link copied");
   }
 
-  function copySummary() {
-    navigator.clipboard.writeText(contentSummary);
-    toast.success("Summary copied");
+  function copySummary(lang?: string) {
+    const translated = lang && lang === activeTranslationLang && translatedSummary;
+    navigator.clipboard.writeText(translated ? translatedSummary : contentSummary);
+    toast.success(translated ? "Translated summary copied" : "Summary copied");
   }
+
+  function copyTranscript(lang?: string) {
+    const translated = lang && lang === activeTranslationLang && Object.keys(translatedSegments).length > 0;
+    const text = contentSegments
+      .map((seg) => (translated ? translatedSegments[seg.id] ?? texts[seg.id] ?? seg.text : texts[seg.id] ?? seg.text))
+      .join(String.fromCharCode(10, 10));
+    navigator.clipboard.writeText(text);
+    toast.success(translated ? "Translated transcript copied" : "Transcript copied");
+  }
+
+  /* What the Copy menu is allowed to offer. Built from the record itself, so a
+     record with no translation still shows the two plain lines. */
+  const copyMenu: CopyMenuModel = useMemo(() => {
+    const activeLang = TRANSLATION_LANGUAGES.find((l) => l.code === activeTranslationLang) ?? null;
+    const transcriptReady = !!activeLang && Object.keys(translatedSegments).length > 0;
+    return {
+      original: SOURCE_LANGUAGES[selectedRecord?.language ?? "en"] ?? { flag: "\u{1F310}", label: "Original" },
+      translation: transcriptReady && activeLang ? { code: activeLang.code, flag: activeLang.flag, label: activeLang.label } : null,
+      summaryTranslated: !!translatedSummary && translationSummaryStatus === "done",
+      hasSummary: !!contentSummary,
+    };
+  }, [activeTranslationLang, translatedSegments, translatedSummary, translationSummaryStatus, contentSummary, selectedRecord?.language]);
 
   const [exportDialogOpen, setExportDialogOpen] = useState(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("export") === "1");
+  const [copySheetOpen, setCopySheetOpen] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   function exportTranscript() {
     setExportDialogOpen(true);
   }
@@ -2308,31 +3338,166 @@ export function TranscriptionDetailPage() {
     window.getSelection()?.removeAllRanges();
   }
 
+  const runGeneration = (selected: Template) => {
+    setActiveTab("summary");
+    setIsSummaryLoading(true);
+    setSummaryStage("Analyzing the transcript");
+    setTimeout(() => setSummaryStage("Generating sections"), 1300);
+    setTimeout(() => setSummaryStage("Polishing the summary"), 2600);
+    setTimeout(() => {
+      setIsSummaryLoading(false);
+      toast.success(`Template "${selected.name}" applied`);
+    }, 3600);
+  };
+  /* Generate notes on the desktop shell: the recording ends and the note is
+     written straight away, in the template chosen for the call or the first one */
+  useEffect(() => {
+    if (!desktopShell || !routeState?.fromRecordingStop || generatedRef.current || !templates.length || isJobTranscribing) return;
+    generatedRef.current = true;
+    const preset = window.sessionStorage.getItem("ttt_live_template"); window.sessionStorage.removeItem("ttt_live_template");
+    const chosen = (activeTemplateId && templates.find((t) => t.id === activeTemplateId)) || (preset && templates.find((t) => t.id === preset)) || templates[0];
+    setActiveTemplateId(chosen.id);
+    runGeneration(chosen);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [desktopShell, routeState?.fromRecordingStop, templates.length, isJobTranscribing]);
+
   if (isLiveRecordingDetail) {
     const isPaused = recordingPhase === "paused";
     const hasTranscript = liveTranscriptSegments.length > 0 || liveTranscriptInterim.trim().length > 0;
     return (
+      <>
+      <TemplateLibraryDialog open={padLibraryOpen} onOpenChange={setPadLibraryOpen} value={null} onSelect={(tid) => { if (tid) insertTemplate(tid); }} gate={false} />
+      <ShareDialog open={shareDialogOpen} onOpenChange={setShareDialogOpen} resourceType="transcription" resourceId="live" resourceName={window.sessionStorage.getItem("ttt_live_title") || "Untitled call"} />
       <div ref={pageRef} className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-          <div className="border-b border-border px-8 pt-6 pb-5">
-            <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
-            <h1 className="mt-1 text-[30px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
-              {title || "Live note"}
-            </h1>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className={(desktopShell ? "" : "border-b border-border ") + (desktopShell ? "px-4 pt-[18px] pb-5 lg:px-8" : "px-4 pt-6 pb-5 lg:px-8")}>
+            {/* the same top row, title row and action row as a finished note, in the same
+                places: what cannot happen yet is disabled, nothing moves when the call ends */}
+            <div className="flex h-7 items-center justify-between text-xs text-muted-foreground">
+              <span>{desktopShell ? "Recording a call" : "My record"}</span>
+              {desktopShell && (<div className="flex items-center gap-2">
+                <div className="mr-1 flex items-center max-lg:hidden">
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Previous note" disabled><Icon icon={ArrowLeft01Icon} className="size-[16px]" strokeWidth={2} /></Button>
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button>
+                </div>
+                <div className="max-lg:hidden mr-1 inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
+                  <Select disabled>
+                    <SelectTrigger size="sm" className="h-8 w-[190px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0" title="Translate the transcript once the call has ended"><SelectValue placeholder="Translate to..." /></SelectTrigger>
+                  </Select>
+                </div>
+              </div>)}
+            </div>
+            {desktopShell ? (
+              <div className="mt-[26px] flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1 py-1"><LiveTitle className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal" /></div>
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                  {/* the window docks beside the call: notes on one half, the meeting on the other */}
+                  <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }} title="Put the notes beside the call">
+                    <Icon icon={LayoutRightIcon} className="size-[14px]" strokeWidth={1.9} />
+                    <span className="text-[13px] font-medium">Side by side</span>
+                  </Button>
+                  <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden" onClick={() => setShareDialogOpen(true)}>
+                    <Icon icon={Share} className="size-[14px]" strokeWidth={1.7} />
+                    <span className="text-[13px] font-medium">Share</span>
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden">
+                        <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
+                        <span className="text-[13px] font-medium">Copy</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[190px]">
+                      <DropdownMenuItem className="gap-2" onClick={() => { void navigator.clipboard?.writeText(liveDetailSegments.map((sg) => `${sg.speaker.name}: ${sg.text}`).join("\n")); toast("Transcript copied"); }}><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy transcript</DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2" onClick={() => { void navigator.clipboard?.writeText(padToText(pad)); toast("My thoughts copied"); }}><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy my thoughts</DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2" disabled><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy summary</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" aria-label="Export" disabled title="Export once the call has ended"><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} /></Button>
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" aria-label="Copy link" disabled title="The link appears once the call has ended"><Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.8} /></Button>
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" aria-label="More actions" disabled><Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} /></Button>
+                </div>
+              </div>
+            ) : (
+              <h1 className="mt-1 text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]">
+                {title || "Live note"}
+              </h1>
+            )}
+            <div className={(desktopShell ? "mt-2 " : "mt-3 ") + "flex flex-wrap items-center gap-2 text-xs text-muted-foreground"}>
+              {desktopShell && <><LiveMeetingChips /><span className="text-border">{"\u2022"}</span><LiveFolderChip /><span className="text-border">{"\u2022"}</span></>}
               <span className="inline-flex items-center gap-1.5">
                 <span className="scale-[0.9]"><SourceIcon source="microphone" /></span>
-                <span>Microphone</span>
+                <span>{desktopShell ? (permDemo === "1" ? "Notetaker, nothing allowed yet" : permDemo === "mic" ? "Notetaker, microphone only" : "Notetaker") : "Microphone"}</span>
               </span>
               <span className="text-border">{"\u2022"}</span>
               <span>{isPaused ? "Paused - live transcript is on hold" : "Recording in real time"}</span>
-              <span className="text-border">{"\u2022"}</span>
-              <span>{new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+              {!desktopShell && <><span className="text-border">{"\u2022"}</span><span>{new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span></>}
             </div>
           </div>
 
+          {desktopShell && (
+            <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript" | "summary")} className="mt-3">
+              <div className="flex items-end border-b border-border px-4 lg:px-8">
+                <TabsList variant="line" className="border-b-0">
+                  <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">My thoughts</TabsTrigger>
+                  <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">
+                    {!isPaused && (
+                      /* the transcript is alive: three green bars breathe on the tab while sound comes in */
+                      <span className="mr-1.5 inline-flex h-[12px] items-center gap-[2px]" aria-hidden>{[0.55, 1, 0.7].map((h, i) => <span key={i} className="ttt-bar w-[2.5px] rounded-full bg-[#34C759]" style={{ height: `${h * 100}%`, animationDelay: `${i * 0.18}s` }} />)}</span>
+                    )}
+                    Transcript
+                  </TabsTrigger>
+                  <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px]">Summary</TabsTrigger>
+                </TabsList>
+                <div className={`mb-1 ml-auto flex items-center gap-2 max-md:hidden ${liveTab === "transcript" ? "" : "invisible pointer-events-none"}`}>
+                  <TranscriptViewChecks />
+                  <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled title="Edit the transcript once the call has ended"><Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />Edit transcript</Button>
+                </div>
+              </div>
+            </Tabs>
+          )}
+
           <div className="flex-1 overflow-auto">
+            {desktopShell && liveTab === "notes" ? (
+              <div className="mx-auto flex min-h-full w-full max-w-[980px] flex-col px-4 py-6 lg:px-8">
+                <NotesPad
+                  lines={pad}
+                  onChange={setPad}
+                  templates={templates}
+                  onTemplate={(tid) => { if (tid === "all") setPadLibraryOpen(true); else insertTemplate(tid); }}
+                  autoFocus
+                  hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
+                />
+              {/* on hold, Generate notes floats over the bar, so the footer line steps up out of its way */}
+              <p className={`sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px] ${isPaused || (liveMeeting && !joinDismissed) ? "pb-[54px]" : ""}`}>My thoughts won't be included when you share this note.</p>
+              </div>
+            ) : desktopShell && liveTab === "summary" ? (
+              /* the summary is written when the call ends; until then the tab is where the template is chosen */
+              <div className="flex flex-col items-center justify-center px-8 py-24 text-center">
+                <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5">
+                  <Icon icon={AiMagicIcon} className="size-6 text-primary" strokeWidth={1.6} />
+                </div>
+                <h3 className="text-[16px] font-semibold text-foreground">The summary is written when the call ends</h3>
+                <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">Press Generate notes when you are done. Pick a template while you wait, or leave it to the first one.</p>
+                <div className="mt-5">
+                  <TemplatePicker value={liveTemplateId} onSelect={pickLiveTemplate} onManageTemplates={() => navigate("/")} align="center"
+                    trigger={<Button variant={liveTemplateId ? "pill-outline" : "default"} className="h-9 gap-1.5 rounded-full px-5 text-[13px] font-medium">{liveTemplateId ? <><span>{templateEmoji(templates.find((t) => t.id === liveTemplateId)?.name ?? "")}</span>{templates.find((t) => t.id === liveTemplateId)?.name}</> : "Choose a template"}<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg></Button>} />
+                </div>
+              </div>
+            ) : (
             <div className="mx-auto w-full max-w-[980px] px-8 py-6">
+              {desktopShell && permDemo && (
+                /* the transcript is where the missing sound would have shown up, so the warning stands here too */
+                <div className="mb-4 flex items-center gap-3 rounded-[14px] border border-warning/30 bg-warning/[0.07] px-4 py-3">
+                  <Icon icon={Alert02Icon} className="size-[18px] shrink-0 text-warning" strokeWidth={2} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[13.5px] font-semibold text-foreground">{permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `The call's sound isn't allowed on ${machine}`}</span>
+                    <span className="block text-[12.5px] text-muted-foreground">{permDemo === "1" ? "Nothing is being transcribed until you allow them." : "Only your side is transcribed. The other side won't appear here."}</span>
+                  </span>
+                  <Button variant="warning" onClick={() => setPermDemo(null)} className="h-8 shrink-0 rounded-full px-[14px] text-[13px] font-semibold">{permDemo === "1" ? "Allow both" : "Allow system audio"}</Button>
+                </div>
+              )}
               {!hasTranscript && (
                 <div className="mt-4 rounded-[16px] border border-dashed border-border bg-muted/20 px-6 py-8">
                   <p className="text-sm font-medium text-foreground">
@@ -2354,6 +3519,8 @@ export function TranscriptionDetailPage() {
                   isEditing={false}
                   highlighted={false}
                   isPlaybackActive={!isPaused && index === liveDetailSegments.length - 1}
+                  hideSpeaker={!transcriptView.speakers}
+                  hideTimecodes={!transcriptView.timestamps}
                   segmentRef={(el) => { segmentRefs.current[segment.id] = el; }}
                   isSegHighlighted={false}
                   onToggleHighlight={() => {}}
@@ -2391,48 +3558,110 @@ export function TranscriptionDetailPage() {
               )}
               <div ref={liveTranscriptEndRef} />
             </div>
+            )}
           </div>
 
           <LiveRecordingBar
+            join={desktopShell && liveMeeting && !joinDismissed ? { label: PLATFORM_LABEL[liveMeeting.platform], source: PLATFORM_SOURCE[liveMeeting.platform], onJoin: () => toast(`Opening ${PLATFORM_LABEL[liveMeeting.platform]}`), onDismiss: () => setJoinDismissed("1") } : undefined}
             isPaused={isPaused}
             elapsedSeconds={recordingElapsed}
             onPauseResume={isPaused ? resumeInstantRecording : pauseInstantRecording}
             onStop={stopInstantRecording}
+            generate={desktopShell}
+            warning={desktopShell && permDemo ? {
+              title: permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `The call's sound isn't allowed on ${machine}`,
+              body: permDemo === "1" ? "Nothing is being recorded until you allow them." : "Only your microphone is recorded, so the other side won't be in the transcript.",
+              action: permDemo === "1" ? "Allow both" : "Allow system audio",
+              onAllow: () => setPermDemo(null),
+              mic: permDemo === "1",
+              sys: true,
+            } : undefined}
             microphoneDevices={microphoneDevices}
             selectedMicrophoneId={selectedMicrophoneId}
             onSwitchMicrophone={(deviceId) => { void switchRecordingMicrophone(deviceId); }}
             isSwitchingMicrophone={isSwitchingMicrophone}
           />
         </div>
+        {desktopShell && (
+          /* the same right panel as a finished note, so the note does not widen when the call ends */
+          <div className="relative hidden shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center lg:flex" style={{ width: rightPanelWidth }}>
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/5">
+              <MessageSquarePlus className="size-5 text-primary/70" strokeWidth={1.7} />
+            </span>
+            <p className="mt-3 text-[13px] font-medium text-foreground">Outline & comments</p>
+            <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">They appear here once the call has ended and the notes are written.</p>
+          </div>
+        )}
       </div>
+      </>
     );
   }
+
+  /* a finished note is not a closed door: the next part of the same call goes
+     into the same note, with the notes already written kept */
+  const recIdx = records.findIndex((r) => r.id === id);
+
+  const continueRecording = async () => {
+    const ok = await startInstantRecording();
+    if (!ok) { toast.error("Microphone access is required to start recording."); return; }
+    window.sessionStorage.setItem("ttt_live_title", recordTitle);
+    savePad("live", pad);
+    navigate("/transcriptions/live", { state: { liveRecording: true } });
+  };
+
+  const handleTemplateSelect = (id: string | null) => {
+    if (id === null) {
+      if (activeTemplateId !== null) toast("Template removed");
+      setActiveTemplateId(null);
+      return;
+    }
+    setActiveTemplateId(id);
+    const selected = templates.find((t) => t.id === id);
+    if (selected) runGeneration(selected);
+  };
+  const barActiveTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
+  const isTranscriptTab = activeTab === "transcript" || activeTab === "transcript-translated";
+  const templateCta = barActiveTemplate ? (
+    <Button variant="pill-outline" onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] gap-1.5 px-3 justify-between text-[14px] font-medium">
+      <span className="flex items-center gap-1.5 min-w-0">
+        <Icon icon={Zap} className="size-[16px] text-muted-foreground shrink-0" strokeWidth={1.6} />
+        <span className="truncate">{barActiveTemplate.name}</span>
+      </span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
+    </Button>
+  ) : (
+    <Button onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] text-[14px] font-semibold">
+      Apply template
+    </Button>
+  );
 
   return (
     <div ref={pageRef} className="flex flex-1 overflow-hidden">
       {/* Left column */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <div className="flex items-center justify-between gap-3 px-4 pt-4 lg:px-8">
+        <div className="max-md:hidden flex items-center justify-between gap-3 px-4 pt-4 lg:px-8">
           <div className="min-w-0">
             {(location.state as { from?: string } | null)?.from === "meetings" ? (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <button
                   type="button"
-                  className="rounded-full px-1.5 py-0.5 transition-colors hover:bg-muted/45 hover:text-foreground"
+                  className="rounded-full px-1.5 py-0.5 transition-colors hover:bg-muted/45 hover:text-foreground max-lg:inline-flex max-lg:items-center max-lg:gap-1"
                   onClick={() => navigate("/", { state: { page: "calendar" } })}
                 >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3.5 lg:hidden"><path d="M15 18l-6-6 6-6" /></svg>
                   Meetings
                 </button>
-                <span className="text-muted-foreground/50">/</span>
-                <span className="truncate text-xs text-muted-foreground">{title}</span>
+                <span className="text-muted-foreground/50 max-lg:hidden">/</span>
+                <span className="truncate text-xs text-muted-foreground max-lg:hidden">{title}</span>
               </div>
-            ) : selectedFolder ? (
+            ) : selectedFolder && !sharedOwner ? (
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <button
                   type="button"
-                  className="rounded-full px-1.5 py-0.5 transition-colors hover:bg-muted/45 hover:text-foreground"
+                  className="rounded-full px-1.5 py-0.5 transition-colors hover:bg-muted/45 hover:text-foreground max-lg:inline-flex max-lg:items-center max-lg:gap-1"
                   onClick={() => navigate("/")}
                 >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3.5 lg:hidden"><path d="M15 18l-6-6 6-6" /></svg>
                   My records
                 </button>
                 <span className="text-muted-foreground/50">/</span>
@@ -2440,14 +3669,30 @@ export function TranscriptionDetailPage() {
                   <span className="size-1.5 rounded-full" style={{ backgroundColor: selectedFolder.color }} />
                   <span>{selectedFolder.name}</span>
                 </span>
-                <span className="text-muted-foreground/50">/</span>
-                <span className="truncate text-xs text-muted-foreground">{title}</span>
+                <span className="text-muted-foreground/50 max-lg:hidden">/</span>
+                <span className="truncate text-xs text-muted-foreground max-lg:hidden">{title}</span>
+              </div>
+            ) : sharedOwner ? (
+              /* The trail says where the record came from. A record somebody
+                 shared did not come from your records, and pretending it did
+                 sends the reader back to a list it is not in. */
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="rounded-full px-1.5 py-0.5">Shared with me</span>
+                <span className="text-muted-foreground/50 max-lg:hidden">/</span>
+                <span className="truncate text-xs text-muted-foreground max-lg:hidden">{title}</span>
               </div>
             ) : (
               <div className="flex h-7 items-center text-xs text-muted-foreground">My record</div>
             )}
           </div>
-          <div className="inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
+          {desktopShell && (
+            /* leaf through the notes without going back to the list */
+            <div className="ml-auto mr-1 max-lg:hidden flex items-center">
+              <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Previous note" disabled={recIdx === 0} onClick={() => navigate(`/transcriptions/${records[recIdx > 0 ? recIdx - 1 : 0].id}`)}><Icon icon={ArrowLeft01Icon} className="size-[16px]" strokeWidth={2} /></Button>
+              <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled={recIdx < 0 || recIdx >= records.length - 1} onClick={() => navigate(`/transcriptions/${records[recIdx + 1].id}`)}><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button>
+            </div>
+          )}
+          <div className={"max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
             <Select
               value={selectedTranslationLang || undefined}
               onValueChange={setSelectedTranslationLang}
@@ -2501,16 +3746,41 @@ export function TranscriptionDetailPage() {
           onShare={() => setShareDialogOpen(true)}
           onCopyLink={copyTranscriptLink}
           onCopySummary={copySummary}
+          onCopyTranscript={copyTranscript}
+          copyMenu={copyMenu}
+          isTranscriptTab={activeTab === "transcript" || activeTab === "transcript-translated"}
+          onOpenMore={() => setMoreSheetOpen(true)}
           hasSummary={activeTemplateId !== null}
           onSetTemplate={() => { setActiveTab("summary"); setTemplatePickerOpen(true); }}
           onMoveToFolder={moveToFolder}
+          chips={desktopShell ? (<>
+            <MeetingCard meetingId={recordMeetingId} onChange={setRecordMeetingId} dateLabel={(selectedRecord?.dateCreated ?? "Mar 24, 2026 · 10:30 AM").split(/[,·]/)[0].trim()} />
+            <span className="text-border">{"\u2022"}</span>
+            <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />
+          </>) : undefined}
           onCreateFolderAndMove={createFolderAndMove}
           onExport={exportTranscript}
           onRematchSpeakers={rematchSpeakers}
           onRegenerateSummary={regenerateSummary}
           onSyncTextToAudio={syncTextToAudio}
           onDelete={deleteTranscript}
+          onTranslateTo={(code) => { void handleTranslate(code); }}
+          activeTranslationLang={activeTranslationLang}
+          translationDisabled={isTranslationLoading || isJobTranscribing}
         />
+        {/* Translating somebody else's record is not one of the things a reader
+            may do - the spec hides it, and the desktop row already did. */}
+        {!isJobTranscribing && !sharedOwner && (
+          <div className="md:hidden flex items-center gap-2 px-4 pt-3">
+            <Button variant="pill-outline" onClick={() => setLangSheetOpen(true)} disabled={isTranslationLoading || isJobTranscribing} className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0">
+              <span className="flex items-center gap-1.5 min-w-0">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-[14px] text-muted-foreground shrink-0"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
+                <span className="truncate">{activeTranslationMeta ? activeTranslationMeta.flag + " " + activeTranslationMeta.short : "Translate"}</span>
+              </span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
+            </Button>
+          </div>
+        )}
         <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
 
         <ShareDialog
@@ -2521,20 +3791,25 @@ export function TranscriptionDetailPage() {
           resourceName={title}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8 flex flex-1 flex-col overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
+        <UpgradeGateModal open={limitedModalOpen} onOpenChange={setLimitedModalOpen} variant="done" />
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
+          <div className="flex items-end justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
             <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
-              <TabsTrigger value="transcript" variant="line">Transcript</TabsTrigger>
-              <TabsTrigger value="summary" variant="line">Summary</TabsTrigger>
+              {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
+              <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
+              <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
+              <TabsTrigger value="outline" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Outline</TabsTrigger>
+              <TabsTrigger value="comments" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Comments</TabsTrigger>
               {activeTranslationMeta && !isJobTranscribing ? (
                 <>
-                  <TabsTrigger value="transcript-translated" variant="line">
+                  <TabsTrigger value="transcript-translated" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">
                     <span className="inline-flex items-center gap-1.5">
                       <span>{activeTranslationMeta.flag}</span>
                       <span>Transcript {activeTranslationMeta.short}</span>
                     </span>
                   </TabsTrigger>
-                  <TabsTrigger value="summary-translated" variant="line">
+                  <TabsTrigger value="summary-translated" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">
                     <span className="inline-flex items-center gap-1.5">
                       <span>{activeTranslationMeta.flag}</span>
                       <span>Summary {activeTranslationMeta.short}</span>
@@ -2545,49 +3820,70 @@ export function TranscriptionDetailPage() {
             </TabsList>
 
             {/* Right side of tab row: context-dependent */}
-            <div className="flex items-center gap-2 max-lg:shrink-0">
+            <div className="mb-1 flex items-center gap-2 max-md:hidden md:max-lg:mb-2">
+              <div className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
+                <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing}>
+                  <SelectTrigger size="sm" className="h-8 w-[168px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
+                    <SelectValue placeholder="Translate to..." />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {TRANSLATION_LANGUAGES.map((language) => (
+                      <SelectItem key={language.code} value={language.code}>
+                        <span className="inline-flex items-center gap-2"><span>{language.flag}</span><span>{language.label}</span></span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className={"overflow-hidden transition-all duration-200 ease-out " + (showTranslateAction ? "ml-1 max-w-[120px] opacity-100" : "ml-0 max-w-0 opacity-0 pointer-events-none")}>
+                  <Button variant="ghost" size="sm" disabled={!canApplyTranslation} onClick={() => { void handleTranslate(); }} className={"h-8 rounded-full px-3 text-sm " + (canApplyTranslation ? "font-medium text-primary" : "text-muted-foreground")}>
+                    {isTranslationLoading ? "Translating..." : isTranslationApplied ? "Translated" : "Translate"}
+                  </Button>
+                </div>
+              </div>
               {isJobTranscribing ? null : activeTab === "transcript" ? (
                 editMode ? (
                   <>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-7 rounded-full" disabled={!canUndo} onClick={undo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button></TooltipTrigger><TooltipContent>Undo</TooltipContent></Tooltip>
-                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-7 rounded-full" disabled={!canRedo} onClick={redo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button></TooltipTrigger><TooltipContent>Redo</TooltipContent></Tooltip>
-                    <Button variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-xs text-muted-foreground" onClick={handleCancel}>Cancel</Button>
-                    <Button size="sm" className="h-7 rounded-full px-3 text-xs" onClick={handleSave}>Save</Button>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-9 rounded-full lg:size-7" disabled={!canUndo} onClick={undo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button></TooltipTrigger><TooltipContent>Undo</TooltipContent></Tooltip>
+                    <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-9 rounded-full lg:size-7" disabled={!canRedo} onClick={redo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button></TooltipTrigger><TooltipContent>Redo</TooltipContent></Tooltip>
+                    {differsFromOriginal && (
+                      <Button variant="ghost" size="sm" className="h-9 shrink-0 rounded-full px-3 text-[13px] text-muted-foreground lg:h-7 lg:px-2.5 lg:text-xs" onClick={() => setResetOpen(true)}>
+                        <span className="lg:hidden">Reset</span>
+                        <span className="max-lg:hidden">Reset to original</span>
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" className="h-9 rounded-full px-3 text-[13px] text-muted-foreground lg:h-7 lg:px-2.5 lg:text-xs" onClick={handleCancel}>Cancel</Button>
+                    <Button size="sm" className="h-9 rounded-full px-4 text-[13px] lg:h-7 lg:px-3 lg:text-xs" onClick={handleSave}>Save</Button>
                   </>
                 ) : (
+                  <>
+                  <TranscriptViewChecks />
+                  {sharedOwner ? null : (
                   <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
                     <Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />
                     Edit transcript
                   </Button>
+                  )}
+                  </>
                 )
               ) : (
+                <div className="flex items-center gap-2">
+                  {activeTab === "summary" && activeTemplateId && !isSummaryLoading && (
+                    <>
+                      <label className="hidden h-7 items-center gap-1.5 px-2 text-xs text-muted-foreground lg:flex">
+                        <Icon icon={Search01Icon} className="size-[13px]" strokeWidth={2} />
+                        <input value={summaryQuery} onChange={(e) => setSummaryQuery(e.target.value)} placeholder="Search the summary" className="w-[130px] bg-transparent text-foreground outline-none placeholder:text-muted-foreground" />
+                      </label>
+                    </>
+                  )}
                 <TemplateSelectorButton
                   activeTemplateId={activeTemplateId}
                   templates={templates}
                   open={templatePickerOpen}
                   onOpenChange={setTemplatePickerOpen}
-                  onSelect={(id) => {
-                    if (id === null) {
-                      if (activeTemplateId !== null) toast("Template removed");
-                      setActiveTemplateId(null);
-                      return;
-                    }
-                    setActiveTemplateId(id);
-                    const selected = templates.find((t) => t.id === id);
-                    if (selected) {
-                      setActiveTab("summary");
-                      setIsSummaryLoading(true);
-                      setSummaryStage("Analyzing the transcript");
-                      setTimeout(() => setSummaryStage("Generating sections"), 1300);
-                      setTimeout(() => setSummaryStage("Polishing the summary"), 2600);
-                      setTimeout(() => {
-                        setIsSummaryLoading(false);
-                        toast.success(`Template "${selected.name}" applied`);
-                      }, 3600);
-                    }
-                  }}
+                  onSelect={handleTemplateSelect}
                   onNavigateToTemplates={() => navigate("/")}
                 />
+                </div>
               )}
             </div>
           </div>
@@ -2597,24 +3893,62 @@ export function TranscriptionDetailPage() {
             </div>
           ) : null}
 
+                    <TabsContent value="outline" className="lg:hidden flex-1 overflow-auto flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="text-primary"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+            </div>
+            <h3 className="text-[15px] font-semibold text-foreground">Outline</h3>
+            <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
+            <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-muted-foreground">Auto-generated chapters and a jump-to-section outline are on the way.</p>
+          </TabsContent>
+          <TabsContent value="comments" className="lg:hidden flex-1 overflow-auto flex flex-col items-center justify-center px-6 py-16 text-center">
+            <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
+              <MessageSquarePlus className="size-6 text-primary" strokeWidth={1.6} />
+            </div>
+            <h3 className="text-[15px] font-semibold text-foreground">Comments</h3>
+            <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
+            <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-muted-foreground">Time-stamped comments and team discussion will live here soon.</p>
+          </TabsContent>
+          {desktopShell && (
+            <TabsContent value="notes" className="flex-1 overflow-auto">
+              <div className="mx-auto flex min-h-full w-full max-w-[980px] flex-col px-4 py-6 lg:px-8">
+                <NotesPad
+                  lines={pad}
+                  onChange={setPad}
+                  templates={templates}
+                  onTemplate={(tid) => { if (tid === "all") setPadLibraryOpen(true); else insertTemplate(tid); }}
+                  hint="Your own notes from the call. Nothing here is rewritten."
+                />
+              <p className="sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
+              </div>
+            </TabsContent>
+          )}
           <TabsContent value="transcript" className="flex-1 overflow-auto relative">
             {isJobTranscribing ? (
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (
               <div className="animate-in fade-in duration-300 px-4 pb-4 lg:px-8">
-                {displaySegments.map((seg, index) => (
+                <div className="relative">
+                {limitedFreeSegments.map((seg, index) => {
+                  // The last free turn is the one dissolving under the fade. At that
+                  // point it is decoration, so it takes no hover, clicks or selection.
+                  const isFadingOut = limitedActive && index === limitedFreeSegments.length - 1;
+                  const segmentNode = (
                   <TranscriptSegment
                     key={seg.id}
                     segment={seg}
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
-                    hideSpeaker={isSingleSpeaker}
-                    hideTimecodes={forcePlainMono && !editMode}
+                    hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
+                    hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
                     editText={texts[seg.id]}
                     onEditChange={(t) => update(seg.id, t)}
                     highlighted={highlightedSegment === seg.id}
                     isPlaybackActive={activePlaybackSegmentId === seg.id}
+                    isPlayed={playedSegmentIds.has(seg.id)}
+                    activeSentence={activePlaybackSegmentId === seg.id ? activeSentenceIndex : null}
+                    activeWord={activePlaybackSegmentId === seg.id ? activeWordIndex : null}
                     segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
                     isSegHighlighted={segHighlights.has(seg.id)}
                     onToggleHighlight={toggleHighlight}
@@ -2628,7 +3962,52 @@ export function TranscriptionDetailPage() {
                     commentValue={commentText}
                     textHighlights={textHighlights[seg.id] ?? []}
                   />
-                ))}
+                  );
+                  return isFadingOut ? (
+                    <div key={`fading-${seg.id}`} className="pointer-events-none select-none">
+                      {segmentNode}
+                    </div>
+                  ) : (
+                    segmentNode
+                  );
+                })}
+                {limitedActive ? (
+                  <div className="pointer-events-none absolute -inset-x-2 bottom-0 h-[248px] bg-[linear-gradient(to_bottom,rgba(255,255,255,0),rgb(255,255,255)_47%,rgb(255,255,255))]" />
+                ) : null}
+                </div>
+                {limitedActive ? (
+                  <div className="relative z-10 -mt-[62px] md:-mt-[117px]">
+                    <div className="flex justify-center">
+                      <div className="w-full max-w-[460px] rounded-2xl border border-border bg-card px-[14px] py-[11px] text-left shadow-md md:px-8 md:py-5 md:text-center">
+                        {/* A phone screen is mostly transcript, and the card was
+                            taking a third of it. Here the lock, the line and the
+                            button share one row; from md up the original card
+                            comes back unchanged. */}
+                        <div className="flex items-center gap-[10px] md:block">
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 md:mx-auto md:size-10">
+                            <Icon icon={SquareLock01Icon} size={15} strokeWidth={1.8} className="text-primary md:hidden" />
+                            <Icon icon={SquareLock01Icon} size={18} strokeWidth={1.8} className="hidden text-primary md:block" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-[13px] font-semibold leading-[17px] text-foreground md:mt-3.5 md:text-[16px] md:leading-normal">
+                              <span className="md:hidden">The rest is locked</span>
+                              <span className="hidden md:inline">The rest of this transcript is locked</span>
+                            </h3>
+                            <p className="mt-[3px] text-[11.5px] leading-[15px] text-muted-foreground md:hidden">First 10 minutes are free.</p>
+                            <p className="mx-auto mt-1.5 hidden max-w-[400px] text-[13px] leading-relaxed text-muted-foreground md:block">
+                              You are hearing the first 10 minutes. Unlock the full 43 minute transcript, the AI summary and every export format.
+                            </p>
+                          </div>
+                          <Button className="h-[30px] shrink-0 px-[13px] text-[12.5px] md:mt-4 md:h-10 md:px-6 md:text-[14px]" onClick={() => navigate("/checkout")}>
+                            <span className="md:hidden">Unlock</span>
+                            <span className="hidden md:inline">Unlock full access</span>
+                          </Button>
+                        </div>
+                        <p className="mt-2.5 hidden text-[12px] text-muted-foreground md:block">Free plan includes the first 10 minutes of every file.</p>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </TabsContent>
@@ -2654,7 +4033,7 @@ export function TranscriptionDetailPage() {
                 </Button>
               </div>
             ) : (
-              <SummaryTab summaryText={contentSummary} template={activeTemplate} />
+              <SummaryTab summaryText={contentSummary} template={activeTemplate} highlight={summaryQuery} />
             )}
           </TabsContent>
           {(activeTranslationMeta || translationTranscriptStatus === "loading" || translationTranscriptStatus === "error") && !isJobTranscribing ? (
@@ -2674,12 +4053,16 @@ export function TranscriptionDetailPage() {
                     key={`${seg.id}-translated`}
                     segment={seg}
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
-                    hideSpeaker={isSingleSpeaker}
+                    hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
+                    hideTimecodes={!transcriptView.timestamps}
                     onSeekTimecode={seekTo}
                     isEditing={false}
                     editText={translatedSegments[seg.id] ?? (texts[seg.id] ?? seg.text)}
                     highlighted={highlightedSegment === seg.id}
                     isPlaybackActive={activePlaybackSegmentId === seg.id}
+                    isPlayed={playedSegmentIds.has(seg.id)}
+                    activeSentence={activePlaybackSegmentId === seg.id ? activeSentenceIndex : null}
+                    activeWord={activePlaybackSegmentId === seg.id ? activeWordIndex : null}
                     segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
                     isSegHighlighted={false}
                     onToggleHighlight={() => {}}
@@ -2708,13 +4091,117 @@ export function TranscriptionDetailPage() {
               ) : translationSummaryStatus === "error" ? (
                 <TranslationErrorState onRetry={() => { void handleTranslate(); }} />
               ) : (
-                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} />
+                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} highlight={summaryQuery} />
               )}
             </TabsContent>
           ) : null}
         </Tabs>
 
-        {isJobTranscribing ? null : (
+        <Drawer open={copySheetOpen} onOpenChange={setCopySheetOpen}>
+          <DrawerContent className="md:hidden [&>div:first-child]:hidden">
+            <DrawerHeader className="pb-1 flex-row items-center justify-between text-left"><DrawerTitle>Copy</DrawerTitle><button type="button" onClick={() => setCopySheetOpen(false)} aria-label="Close" className="size-8 shrink-0 rounded-full inline-flex items-center justify-center text-muted-foreground hover:bg-muted/60"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></button></DrawerHeader>
+            <div className="px-1 pb-[calc(16px+env(safe-area-inset-bottom))] flex flex-col gap-0.5">
+              {copyMenu.translation ? (
+                <>
+                  <p className="px-3 pt-1.5 pb-1 text-[12.5px] font-medium text-muted-foreground">Transcript</p>
+                  <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscript(); setCopySheetOpen(false); }}>
+                    <span className="w-[18px] text-center text-[16px] leading-none">{copyMenu.original.flag}</span> {copyMenu.original.label}
+                  </button>
+                  <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscript(copyMenu.translation.code); setCopySheetOpen(false); }}>
+                    <span className="w-[18px] text-center text-[16px] leading-none">{copyMenu.translation.flag}</span> {copyMenu.translation.label}
+                  </button>
+                  {copyMenu.hasSummary && (
+                    <>
+                      <p className="px-3 pt-3 pb-1 text-[12.5px] font-medium text-muted-foreground">Summary</p>
+                      <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(); setCopySheetOpen(false); }}>
+                        <span className="w-[18px] text-center text-[16px] leading-none">{copyMenu.original.flag}</span> {copyMenu.original.label}
+                      </button>
+                      {copyMenu.summaryTranslated && (
+                        <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(copyMenu.translation.code); setCopySheetOpen(false); }}>
+                          <span className="w-[18px] text-center text-[16px] leading-none">{copyMenu.translation.flag}</span> {copyMenu.translation.label}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {copyMenu.hasSummary && (
+                    <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copySummary(); setCopySheetOpen(false); }}>
+                      <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy summary
+                    </button>
+                  )}
+                  <button type="button" className="flex items-center gap-3 rounded-xl px-3 py-3 text-left text-[15px] active:bg-muted/60" onClick={() => { copyTranscript(); setCopySheetOpen(false); }}>
+                    <Icon icon={Copy} className="size-[18px] text-muted-foreground" strokeWidth={1.6} /> Copy transcript
+                  </button>
+                </>
+              )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+        {/* The record's own actions, in the sheet every object in the product
+            opens: the record at the top with its name and where it came from,
+            then one plain list. */}
+        <ActionSheet
+          open={moreSheetOpen && belowLg}
+          onOpenChange={setMoreSheetOpen}
+          mark={selectedRecord?.source ? <SourceIcon source={selectedRecord.source} /> : null}
+          title={title}
+          kind={getSourceLabel(selectedRecord?.source)}
+        >
+          {!sharedOwner && (
+            <ActionSheetItem icon={Share} label="Share" onClick={() => { setMoreSheetOpen(false); setShareDialogOpen(true); }} />
+          )}
+          {!sharedOwner && (
+            <ActionSheetItem icon={Edit} label="Edit transcript" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }} />
+          )}
+          <ActionSheetItem icon={Link} label="Copy link" onClick={() => { copyTranscriptLink(); setMoreSheetOpen(false); }} />
+          {/* Regenerating and deleting change the owner's copy, so a reader of
+              somebody else's record does not get them - the same line the
+              desktop menu already draws. */}
+          {!sharedOwner && (
+            <ActionSheetItem icon={Zap} label="Regenerate summary" onClick={() => { setMoreSheetOpen(false); regenerateSummary(); }} />
+          )}
+          <ActionSheetItem icon={FolderOpen} label="Move to folder" onClick={() => { setMoreSheetOpen(false); setMoveDialogOpen(true); }} />
+          {/* Leaving the object comes last, wherever the sheet is opened. */}
+          {sharedOwner ? (
+            <ActionSheetItem icon={Cancel01Icon} label="Remove from Shared" onClick={() => setMoreSheetOpen(false)} />
+          ) : (
+            <ActionSheetItem icon={Trash} label="Delete" destructive onClick={() => { setMoreSheetOpen(false); deleteTranscript(); }} />
+          )}
+        </ActionSheet>
+        <TemplateSheet open={templatePickerOpen && belowMd} onOpenChange={setTemplatePickerOpen} value={activeTemplateId} onSelect={handleTemplateSelect} />
+        <TemplateLibraryDialog open={padLibraryOpen} onOpenChange={setPadLibraryOpen} value={null} onSelect={(tid) => { if (tid) insertTemplate(tid); }} gate={false} />
+        <LanguageSheet open={langSheetOpen && belowLg} onOpenChange={setLangSheetOpen} languages={TRANSLATION_LANGUAGES} activeLang={activeTranslationLang} disabled={isTranslationLoading || isJobTranscribing} onPick={(code) => { void handleTranslate(code); }} />
+        <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={1} onMove={(id) => moveToFolder(id)} onCreateFolder={() => { setMoveDialogOpen(false); createFolderAndMove(); }} folders={folders} />
+
+        <AlertDialog open={discardOpen} onOpenChange={setDiscardOpen}>
+          <AlertDialogContent className="max-w-[420px] rounded-[18px] max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:w-full max-md:max-w-none! max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-b-none max-md:rounded-t-[22px] max-md:p-[20px]">
+            <AlertDialogHeader className="text-left">
+              <AlertDialogTitle className="text-[17px] font-bold tracking-tight">Leave without saving?</AlertDialogTitle>
+              <AlertDialogDescription className="mt-1.5 text-[13px] leading-[1.55]">The edits you made to this transcript will be lost.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-row justify-end gap-2">
+              <AlertDialogCancel className="h-9 px-4 text-[13px] font-medium">Keep editing</AlertDialogCancel>
+              <AlertDialogAction onClick={leaveEdit} className="h-9 bg-destructive px-5 text-[13px] font-semibold text-destructive-foreground hover:bg-destructive/90">Discard</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={resetOpen} onOpenChange={setResetOpen}>
+          <AlertDialogContent className="max-w-[420px] rounded-[18px] max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:w-full max-md:max-w-none! max-md:translate-x-0 max-md:translate-y-0 max-md:rounded-b-none max-md:rounded-t-[22px] max-md:p-[20px]">
+            <AlertDialogHeader className="text-left">
+              <AlertDialogTitle className="text-[17px] font-bold tracking-tight">Restore the original transcript?</AlertDialogTitle>
+              <AlertDialogDescription className="mt-1.5 text-[13px] leading-[1.55]">Every edit goes away, including the ones you already saved. You get back the text exactly as the transcription produced it.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-row justify-end gap-2">
+              <AlertDialogCancel className="h-9 px-4 text-[13px] font-medium">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleResetToOriginal} className="h-9 bg-destructive px-5 text-[13px] font-semibold text-destructive-foreground hover:bg-destructive/90">Restore original</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {isJobTranscribing ? null : (<>
           <MediaPlayer
             duration={`${Math.floor(Math.max(0, effectiveDurationSeconds) / 60)}:${String(Math.floor(Math.max(0, effectiveDurationSeconds)) % 60).padStart(2, "0")}`}
             progress={playerProgress}
@@ -2725,7 +4212,55 @@ export function TranscriptionDetailPage() {
             onSpeedChange={handlePlaybackRateChange}
             currentTimeSeconds={effectiveCurrentSeconds}
             durationSeconds={effectiveDurationSeconds}
+            trailing={desktopShell ? (
+              <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full border-border px-3 text-[13px] font-medium" onClick={() => { void continueRecording(); }} title="Record more into this note">
+                <Icon icon={Mic01Icon} className="size-[14px]" strokeWidth={2} />
+                Resume recording
+              </Button>
+            ) : undefined}
           />
+        </>)}
+        {/* Mobile bottom action bar: Copy + Export + More (md:hidden) */}
+        {!isJobTranscribing && (
+          <div className="md:hidden shrink-0 border-t border-border bg-background px-4 pt-[10px] pb-[calc(12px+env(safe-area-inset-bottom))]">
+            {editMode ? (
+              <div className="flex flex-col gap-3.5">
+                {differsFromOriginal && (
+                  <div className="flex items-center justify-between gap-3">
+                    {/* The reset sits on the left, over undo and redo. Right-aligned it
+                        stood directly above Save, and a thumb reaching for it landed on
+                        the one button that must not be pressed by accident. The padding
+                        gives it a tap area without making the strip any taller. */}
+                    <button type="button" className="-my-2 shrink-0 py-2 text-[13px] font-medium text-primary" onClick={() => setResetOpen(true)}>Reset to original</button>
+                    <span className="text-[13px] text-muted-foreground">{hasUnsavedEdits ? "Unsaved changes" : "Edited"}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="size-[46px] rounded-full shrink-0" disabled={!canUndo} onClick={undo} aria-label="Undo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button>
+                <Button variant="ghost" size="icon" className="size-[46px] rounded-full shrink-0" disabled={!canRedo} onClick={redo} aria-label="Redo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button>
+                <Button variant="pill-outline" className="flex-1 h-[46px]" onClick={handleCancel}>Cancel</Button>
+                <Button className="flex-1 h-[46px] font-semibold" onClick={handleSave}>Save</Button>
+                </div>
+              </div>
+            ) : (
+              /* One rule for every phone action bar in the product: the
+                 secondary actions read first, the one blue action sits at the
+                 right edge under the thumb. The template screen already read
+                 this way, the record screen did not. */
+              <div className="flex items-center gap-2">
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setCopySheetOpen(true)} aria-label="Copy">
+                  <Icon icon={Copy} className="size-[18px]" strokeWidth={1.7} />
+                </Button>
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
+                  <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
+                </Button>
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
+                  <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
+                </Button>
+                {templateCta}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

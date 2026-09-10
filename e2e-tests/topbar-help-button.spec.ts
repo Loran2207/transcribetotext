@@ -159,7 +159,7 @@ test.describe("TopBar Support Email Link", () => {
     await page.waitForTimeout(300);
 
     // Profile dropdown opens
-    const profileBtn = page.locator("button", { hasText: "Free Plan" });
+    const profileBtn = page.locator("button", { hasText: "admin@test.com" });
     await profileBtn.click();
     await expect(page.getByText("Settings", { exact: false }).first()).toBeVisible({ timeout: 3000 });
     await shot(page, "05-profile-dropdown-open");

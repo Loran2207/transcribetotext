@@ -58,9 +58,9 @@
   /* The color for focus rings, outlines, and other focus indicators. */
   --ring: var(--primary);
   /* Shadow for small elevations, such as cards or modals. */
-  --elevation-sm: 0px 1px 2px 0px rgba(16, 24, 40, 0.05);
+  --elevation-sm: 0px 1px 3px 0px rgba(16, 24, 40, 0.035);
   /* Shadow for medium elevations, such as modals, popovers, and dropdowns. */
-  --elevation-md: 0px 8px 24px rgba(0, 0, 0, 0.08), 0px 2px 8px rgba(0, 0, 0, 0.04);
+  --elevation-md: 0px 12px 32px rgba(16, 24, 40, 0.055), 0px 3px 10px rgba(16, 24, 40, 0.028);
   /* The color for chart elements, such as a bar or line in a chart. */
   --chart-1: oklch(0.871 0.006 286.286);
   /* The color for another chart element, such as a bar or line in a chart. */
@@ -92,6 +92,22 @@
   /* Password strength indicator colors */
   --strength-medium: oklch(0.795 0.184 86.047);
   --strength-strong: oklch(0.723 0.219 149.579);
+  /* Golden accent, the same colour as --strength-medium above. Kept in rgb because
+     the Figma capture pipeline drops oklch and the fill lands empty. */
+  --warning: rgb(217, 119, 6);
+  --warning-hover: rgb(194, 106, 5);
+  --warning-foreground: rgb(255, 255, 255);
+  /* The bright gold the status tints still use. */
+  --warning-tint: rgb(240, 177, 0);
+  /* A finished job. In rgb like the warm accent above, and with its own solid
+     wash: an opacity modifier on a token compiles to color-mix(), which the
+     Figma capture can drop and leave the chip empty. */
+  --success: rgb(4, 146, 100);
+  --success-wash: rgb(226, 246, 239);
+  --destructive-wash: rgb(253, 234, 234);
+  /* The word being spoken sits on this. Same reason it is solid: the accent at
+     fifteen percent compiles to color-mix() and the capture drops it. */
+  --primary-wash: rgb(222, 232, 252);
   /* Dark neutral used for OAuth / "on-brand" dark buttons. Slate-tinted so it harmonizes with --primary. */
   --oauth: oklch(0.208 0.042 265.755);
   --oauth-hover: oklch(0.279 0.041 260.031);
@@ -117,6 +133,14 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
+  --color-warning-hover: var(--warning-hover);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-tint: var(--warning-tint);
+  --color-success: var(--success);
+  --color-success-wash: var(--success-wash);
+  --color-destructive-wash: var(--destructive-wash);
+  --color-primary-wash: var(--primary-wash);
   --color-oauth: var(--oauth);
   --color-oauth-hover: var(--oauth-hover);
   --color-oauth-foreground: var(--oauth-foreground);

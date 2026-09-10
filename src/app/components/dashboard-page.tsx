@@ -7,12 +7,16 @@ import { RecordsTable } from "./records-table";
 import { RightPanel } from "./right-panel";
 import { motion } from "motion/react";
 import { useLanguage } from "./language-context";
+import { DesktopAppBanner } from "./desktop/desktop-app-banner";
+import { useShell } from "./desktop/shell";
 import { useTranscriptionModals } from "./transcription-modals";
 import { useUserProfile } from "./user-profile-context";
 import { RecordsListMobile } from "./records-list-mobile";
-import { AnalyticsStrip } from "./analytics-strip";
+import { DashboardInsights } from "./dashboard-insights";
 import { ScrollFade } from "./scroll-fade";
 import { UpgradeBanner } from "./upgrade-banner";
+import { usePlan } from "./use-plan";
+import { PromoCard } from "./right-panel";
 
 /* ═══════════════════════════════════════════
    Card 1: Instant Speach
@@ -140,7 +144,8 @@ function TeamsIcon() {
   );
 }
 
-function MeetingRecorderCard() {
+function MeetingRecorderCard({ label }: { label?: string }) {
+  const { t } = useLanguage();
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -178,7 +183,7 @@ function MeetingRecorderCard() {
       </div>
       {/* Label */}
       <div className="w-full px-[20px] pb-[20px]">
-        <p className="text-center text-foreground font-heading" style={{ fontWeight: 500, fontSize: "16px", lineHeight: 1.3 }}>{useLanguage().t("dash.card.meetingRecorder")}</p>
+        <p className="text-center text-foreground font-heading" style={{ fontWeight: 500, fontSize: "16px", lineHeight: 1.3 }}>{label ?? t("dash.card.meetingRecorder")}</p>
       </div>
     </div>
   );
@@ -196,24 +201,38 @@ function TranscribeFromLinkCard() {
       onMouseLeave={() => setHovered(false)}
     >
       <div className="flex-1 w-full relative overflow-hidden">
+        {/* Instagram card (behind, far left) */}
+        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% - 52px), calc(-50% + 3px))", width: "48px" }}>
+        <motion.div className="flex flex-col h-[70px] items-start justify-between p-[5px] rounded-[4px] relative" style={{ backgroundColor: "#fbf1f6", width: "48px" }} animate={hovered ? { x: -17, y: -3, rotate: -7 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
+          <div className="absolute inset-[-1.4px] pointer-events-none rounded-[5.4px]" style={{ border: "1.4px solid white" }} />
+          <div className="flex flex-col items-center justify-center p-[2px] rounded-full shrink-0 size-[15px] bg-white">
+            <img src="/instagram-logo.webp" alt="" width={10} height={10} className="size-[10px] rounded-[2px] object-contain" draggable={false} />
+          </div>
+        </motion.div>
+        </div>
+
         {/* Dropbox card (behind, left) */}
-        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% - 33.86px), calc(-50% + 2px))", width: "57.273px" }}>
-        <motion.div className="flex flex-col h-[81px] items-start justify-between p-[6px] rounded-[4.909px] opacity-60 relative" style={{ backgroundColor: "#e3f0fe", width: "57.273px" }} animate={hovered ? { x: -10.14, y: -4, rotate: -4 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
+        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% - 24px), calc(-50% + 2px))", width: "57.273px" }}>
+        <motion.div className="flex flex-col h-[81px] items-start justify-between p-[6px] rounded-[4.909px] relative" style={{ backgroundColor: "#eef5fe", width: "57.273px" }} animate={hovered ? { x: -10.14, y: -4, rotate: -4 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22 }}>
           <div className="absolute inset-[-1.636px] pointer-events-none rounded-[6.545px]" style={{ border: "1.636px solid white" }} />
           <div className="flex flex-col items-center justify-center p-[2px] rounded-full shrink-0 size-[17px] bg-white">
             <div className="relative shrink-0 size-[10px]"><svg className="block size-full" fill="none" viewBox="0 0 11 8.9375"><path d={svgCardPaths.pd852f80} fill="#0061FF" /></svg></div>
           </div>
-          <p style={{ fontWeight: 500, fontSize: "9.818px", lineHeight: 1.2, color: "#0a3380", whiteSpace: "nowrap" }}>Dropbox</p>
         </motion.div>
         </div>
 
         {/* Google Drive card (middle) */}
-        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% - 10.36px), calc(-50% + 2px))", width: "70px" }}>
+        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% + 1px), calc(-50% + 2px))", width: "70px" }}>
         <motion.div className="flex flex-col h-[99px] items-start justify-between p-[7px] rounded-[6px] relative" style={{ backgroundColor: "#fff3d5", width: "70px" }} animate={hovered ? { y: -5, scale: 1.04 } : { y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 22, delay: 0.03 }}>
           <div className="absolute inset-[-2px] pointer-events-none rounded-[8px]" style={{ border: "2px solid white" }} />
           <div className="flex flex-col items-center justify-center p-[4px] rounded-full shrink-0 size-[26px] bg-white">
-            <svg className="size-[14px]" fill="none" viewBox="0 0 14 14">
-              <path d={svgCardPaths.p36aae932} fill="#0066DA" /><path d={svgCardPaths.p68d8080} fill="#00AC47" /><path d={svgCardPaths.p80f7a80} fill="#EA4335" /><path d={svgCardPaths.p185b5480} fill="#00832D" /><path d={svgCardPaths.p230cab00} fill="#2684FC" /><path d={svgCardPaths.p1e6a9c80} fill="#FFBA00" />
+            <svg className="size-[14px]" viewBox="0 0 87 78" aria-hidden="true">
+              <path d="M6.6 66.85 10.45 73.5c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066DA" />
+              <path d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5C.4 49.9 0 51.45 0 53h27.5z" fill="#00AC47" />
+              <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.55l5.85 11.5z" fill="#EA4335" />
+              <path d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832D" />
+              <path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684FC" />
+              <path d="M73.4 26.5 60.7 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#FFBA00" />
             </svg>
           </div>
           <p style={{ fontWeight: 500, fontSize: "12px", lineHeight: 1.2, color: "#602706", width: "44px" }}>Google Drive</p>
@@ -221,7 +240,7 @@ function TranscribeFromLinkCard() {
         </div>
 
         {/* YouTube card (front, right) */}
-        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% + 22.75px), calc(-50% + 0.5px))", width: "82px" }}>
+        <div className="absolute" style={{ left: "50%", top: "50%", transform: "translate(calc(-50% + 34px), calc(-50% + 0.5px))", width: "82px" }}>
         <motion.div className="flex flex-col h-[110px] items-start justify-between p-[8px] rounded-[6px] relative" style={{ backgroundColor: "#feeceb", width: "82px" }} animate={hovered ? { x: 10.25, y: -3.5, rotate: 3 } : { x: 0, y: 0, rotate: 0 }} transition={{ type: "spring", stiffness: 300, damping: 22, delay: 0.05 }}>
           <div className="absolute inset-[-2px] pointer-events-none rounded-[8px]" style={{ border: "2px solid white" }} />
           <div className="flex flex-col items-center justify-center p-[6px] rounded-full shrink-0 size-[30px] bg-white">
@@ -346,6 +365,7 @@ function useGreeting() {
 export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page: string) => void; onOpenFolder?: (folderId: string) => void } = {}) {
   const greeting = useGreeting();
   const { setOpenModal, openUploadWithFiles } = useTranscriptionModals();
+  const plan = usePlan();
   const [dragOver, setDragOver] = useState(false);
   const dragCounterRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -357,12 +377,13 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
     transition: { duration: 0.9, ease, delay },
   });
 
+  const { desktop: desktopShell } = useShell();
   const cards = [
     { card: <AudioVideoFilesCard />, key: "1", modal: "upload" as const },
     { card: <InstantSpeachCard />, key: "2", modal: "record" as const },
-    { card: <MeetingRecorderCard />, key: "3", modal: "meeting" as const },
+    { card: <MeetingRecorderCard label={desktopShell ? "Record a call" : undefined} />, key: "3", modal: "meeting" as const },
     { card: <TranscribeFromLinkCard />, key: "4", modal: "link" as const },
-  ];
+  ].map((c, i) => ({ ...c, key: String(i + 1) }));
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -406,16 +427,16 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
       )}
 
       <div ref={scrollRef} className="flex-1 overflow-auto min-w-0">
-        <div className="px-[16px] pt-[16px] pb-[96px] md:px-[24px] md:pt-[20px] md:pb-[40px] lg:px-[32px] lg:pt-[28px] lg:pb-0">
+        <div className="px-[16px] pt-[16px] pb-[112px] md:px-[24px] md:pt-[20px] md:pb-[40px] lg:px-[32px] lg:pt-[28px] lg:pb-0">
           <motion.p
-            className="text-foreground font-bold text-[22px] leading-[28px] tracking-[-0.4px] md:text-[26px] md:leading-[32px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap"
+            className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap"
             {...fadeUp(0.72, 30)}
           >
             {greeting}
           </motion.p>
 
           {/* Tablet: the four illustrated cards in a 2x2 grid (no kbd) */}
-          <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[22px]">
+          <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[16px]">
             {cards.map(({ card, key, modal }) => (
               <div key={key} className="relative cursor-pointer" onClick={() => setOpenModal(modal)}>
                 {card}
@@ -443,21 +464,13 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
               </div>
             ))}
           </motion.div>
-          {/* Desktop: full records table */}
-          <motion.div className="hidden lg:block" {...fadeUp(0.18, 70)}>
-            <RecordsTable onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />
+          
+          <DesktopAppBanner />
+          <div className="max-lg:mt-[16px]"><DashboardInsights onNavigate={onNavigate} /></div>
+          {/* Records: folder chips + tabs + cards on mobile, full table on desktop */}
+          <motion.div {...fadeUp(0.18, 70)}>
+            <RecordsTable surface="home" onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />
           </motion.div>
-
-          {/* Mobile + tablet: analytics banner (all plans), expands to the full card */}
-          <AnalyticsStrip />
-
-          {/* Mobile + tablet: upgrade banner (free users only) */}
-          <UpgradeBanner />
-
-          {/* Mobile + tablet: recent records as a flat list, rendered directly */}
-          <div className="mt-[20px] lg:hidden">
-            <RecordsListMobile onNavigateToRecords={() => onNavigate?.("records")} embedded />
-          </div>
 
           {/* Mobile + tablet: bottom scroll-fade hint */}
           <ScrollFade scrollRef={scrollRef} />

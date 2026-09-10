@@ -11,6 +11,8 @@ import { ResetPasswordPage } from "./components/reset-password-page";
 import { ProtectedRoute } from "./components/protected-route";
 import { ShareViewPage } from "./components/share-view-page";
 import { CheckoutPage } from "./components/checkout-page";
+import { MiniRecorderPage } from "./components/desktop/mini-recorder";
+import { DeskPage } from "./components/desktop/desk-page";
 
 function ProtectedAppLayout() {
   return (
@@ -28,6 +30,8 @@ export const router = createBrowserRouter([
       { path: "transcriptions/:id", Component: TranscriptionDetailPage },
     ],
   },
+  { path: "/widget", Component: () => (<ProtectedRoute><MiniRecorderPage /></ProtectedRoute>) },
+  { path: "/desk", Component: () => (<ProtectedRoute><DeskPage /></ProtectedRoute>) },
   { path: "/login", Component: LoginPage },
   { path: "/signup", Component: SignupPage },
   { path: "/check-email", Component: EmailConfirmationPage },
@@ -36,7 +40,15 @@ export const router = createBrowserRouter([
   { path: "/reset-password", Component: ResetPasswordPage },
   { path: "/share/:token", Component: ShareViewPage },
   { path: "/design-system", Component: DesignSystemPage },
+  {
+    path: "/email-preview",
+    lazy: async () => ({ Component: (await import("./components/email-preview-page")).EmailPreviewPage }),
+  },
   { path: "/checkout", Component: CheckoutPage },
+  {
+    path: "/checkout-75",
+    lazy: async () => ({ Component: (await import("./components/checkout-promo-page")).CheckoutPromoPage }),
+  },
   {
     path: "/checkout-loader",
     lazy: async () => ({

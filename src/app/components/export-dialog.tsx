@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/app/components/ui/dialog";
+import { Sheet, SheetContent } from "@/app/components/ui/sheet";
 import { Button } from "@/app/components/ui/button";
 import { Switch } from "@/app/components/ui/switch";
 import { Checkbox } from "@/app/components/ui/checkbox";
@@ -9,12 +10,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/app/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/app/components/ui/command";
 import { Icon } from "@/app/components/ui/icon";
-import { toast } from "sonner";
-import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { toastExported } from "./app-toast";
+import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon, PencilEdit02Icon } from "@hugeicons/core-free-icons";
 import { usePlan } from "./use-plan";
 import { LANGUAGES } from "./language-context";
 import {
@@ -96,6 +98,51 @@ function safeName(s: string): string {
   return (s.replace(/[\\/:*?"<>|]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "transcript");
 }
 
+/* The shared useIsMobile draws the line at 1024, because it means "compact
+   layout" and a tablet belongs there. A bottom sheet does not: the adaptives
+   put a centred card on a tablet and keep the sheet for the phone. */
+function useIsPhone() {
+  const [phone, setPhone] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 767px)");
+    const onChange = () => setPhone(mql.matches);
+    onChange();
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return phone;
+}
+
+/* On a phone this project puts a modal on the bottom edge, full width, with
+   only its top corners rounded - the sort sheet and the move-to-folder sheet
+   are both built that way. On a tablet and up it is a centred card. The body
+   is written once and the shell changes under it. */
+function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  sheetClass?: string;
+  dialogClass?: string;
+  children: React.ReactNode;
+}) {
+  const isPhone = useIsPhone();
+  if (isPhone) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className={"rounded-t-[22px] p-0 gap-0 flex flex-col " + (sheetClass || "")}>
+          {children}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={"p-0 gap-0 overflow-hidden flex flex-col " + (dialogClass || "")} aria-describedby={undefined}>
+        {children}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function SectionRow({ title, enabled, onToggle, disabled, children }: {
   title: string; enabled: boolean; onToggle: (v: boolean) => void; disabled?: boolean; children?: React.ReactNode;
 }) {
@@ -126,7 +173,7 @@ function TranscriptPreview({ record, options }: { record: ExportableRecord; opti
   return (
     <div className="flex flex-col">
       <div className="mb-[16px] pb-[14px] border-b border-border/70">
-        <p className="font-semibold text-[14px] text-foreground leading-[20px]">{record.title}</p>
+        <p className="font-semibold text-[14px] text-foreground leading-[20px] max-lg:hidden">{record.title}</p>
         <p className="mt-[3px] text-[11.5px] text-muted-foreground">
           {[record.metadata?.duration, record.metadata?.date, record.metadata?.language?.toUpperCase()].filter(Boolean).join("  ·  ")}
         </p>
@@ -160,9 +207,19 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   const [shared, setShared] = useState<FileSettings>(DEFAULT_SETTINGS);
   const [exportName, setExportName] = useState("");
   const [nameTouched, setNameTouched] = useState(false);
+  // Off by default: a zip costs the server a full download-and-pack pass.
+  const [zipEnabled, setZipEnabled] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [manifest, setManifest] = useState<ExportManifest | null>(null);
+  /* Below lg there is no room for the file column, so it becomes what it is on
+     a desktop anyway - a panel you open. A labelled button reveals it over the
+     dialog, with the same remove and the same add inside. */
+  const [filesOpen, setFilesOpen] = useState(false);
+  const [addOpenMobile, setAddOpenMobile] = useState(false);
+  /* Below lg there is room for one pane at a time. Settings is what the export
+     is for, so it opens there; the transcript is one tap away rather than gone. */
+  const [mobilePane, setMobilePane] = useState<"settings" | "transcript">("settings");
   const [progress, setProgress] = useState(0);
 
   const multi = items.length > 1;
@@ -176,6 +233,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     const demo = typeof window !== "undefined" ? window.localStorage.getItem("ttt_export_demo") : null;
     // ttt_export_full: design-capture flag - every toggle on, options expanded (off by default)
     const full = typeof window !== "undefined" && window.localStorage.getItem("ttt_export_full") === "1";
+    // ttt_export_zip=1 opens the dialog with the archive switch on (design captures).
+    const zipOn = typeof window !== "undefined" && window.localStorage.getItem("ttt_export_zip") === "1";
+    setZipEnabled(zipOn);
     setItems(records);
     setActiveId(records[0]?.id ?? "");
     setShared(full ? { ...DEFAULT_SETTINGS, includeSummary: true, includeAudio: true, includeTranslation: true } : DEFAULT_SETTINGS);
@@ -243,8 +303,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     if (shared.includeSummary) mix.push(`${items.length}× summary`);
     if (shared.includeTranslation) mix.push(`${items.length}× ${shared.translationLanguage} translation`);
     if (shared.includeAudio) mix.push(`${items.length}× mp3`);
-    return `${mix.join(" · ")}  →  ${zipFileName}`;
-  }, [items, shared, fileCount, nothingSelected, zipFileName]);
+    return `${mix.join(" · ")}  →  ${zipEnabled ? zipFileName : "separate files"}`;
+  }, [items, shared, fileCount, nothingSelected, zipFileName, zipEnabled]);
 
   async function handleExport() {
     setPhase("processing");
@@ -254,9 +314,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         await new Promise((r) => setTimeout(r, Math.min(350, 900 / items.length)));
         setProgress(i + 1);
       }
-      const m = await runExportPlan(plans, zipFileName);
+      const m = await runExportPlan(plans, zipFileName, { zip: multi && zipEnabled });
       // Single-file export: no confirmation screen - download and close.
-      if (m.files.length === 1) { toast.success(m.downloadName + " downloaded"); onClose(); return; }
+      if (m.files.length === 1) { toastExported(m.downloadName, "Downloaded to your device"); onClose(); return; }
       setManifest(m);
       setPhase("success");
     } catch {
@@ -266,11 +326,25 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
 
   /* ── settings panel (right) - one set of settings, applied to every file ── */
   const settingsPanel = (
-    <div className="w-[340px] shrink-0 overflow-y-auto px-[24px] py-[6px]">
-      {multi && (
-        <div className="border-b border-border py-[16px]">
-          <p className="font-semibold text-[14.5px] text-foreground">Export name</p>
-          <div className="relative mt-[10px]">
+    <div className="w-[340px] shrink-0 overflow-y-auto px-[24px] py-[6px] max-lg:w-full max-lg:shrink max-lg:overflow-visible max-lg:pb-[20px]">
+      {/* How the files are handed over. Off by default: packing an archive
+          makes the server pull every file out of storage first. */}
+      <div className="border-b border-border py-[16px]">
+        <div className="flex items-center justify-between gap-[12px]">
+          <span className={multi ? "font-semibold text-[14.5px] text-foreground" : "font-semibold text-[14.5px] text-muted-foreground"}>
+            Download as ZIP archive
+          </span>
+          <Switch checked={multi && zipEnabled} onCheckedChange={setZipEnabled} disabled={!multi} />
+        </div>
+        <p className="mt-[8px] text-[11.5px] leading-[16px] text-muted-foreground">
+          {!multi
+            ? "A single file downloads on its own. An archive is only worth it for several files."
+            : zipEnabled
+              ? `All ${items.length} files are packed into one archive.`
+              : `Each of the ${items.length} files downloads on its own.`}
+        </p>
+        {multi && zipEnabled && (
+          <div className="relative mt-[12px]">
             <Input
               value={exportName}
               onChange={(e) => { setExportName(e.target.value); setNameTouched(true); }}
@@ -279,9 +353,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
             />
             <span className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 text-[12.5px] text-muted-foreground">.zip</span>
           </div>
-          <p className="mt-[8px] text-[11.5px] leading-[16px] text-muted-foreground">Settings below apply to all {items.length} files. They are packed into one zip archive.</p>
-        </div>
-      )}
+        )}
+        {multi && (
+          <p className="mt-[8px] text-[11.5px] leading-[16px] text-muted-foreground">Settings below apply to all {items.length} files.</p>
+        )}
+      </div>
 
       <SectionRow title="Transcript" enabled={shared.includeTranscript} onToggle={(v) => patchShared({ includeTranscript: v })}>
         <div className={shared.includeTranscript ? "mt-[12px] flex flex-col gap-[12px]" : "hidden"}>
@@ -352,14 +428,29 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   );
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="p-0 gap-0 overflow-hidden sm:max-w-[960px]" aria-describedby={undefined}>
-        <div className="flex items-center justify-between px-[24px] h-[52px] border-b border-border">
+    <Modal
+      open={open}
+      onOpenChange={(o) => { if (!o) onClose(); }}
+      sheetClass="bg-background h-[84dvh]"
+      dialogClass="bg-background lg:max-w-[960px]! sm:max-w-[560px] max-lg:h-[74dvh]"
+    >
+        <div className="flex items-center gap-[10px] px-[20px] h-[52px] border-b border-border shrink-0 max-md:h-[58px]">
           <DialogTitle className="font-semibold text-[17px] text-foreground">Export</DialogTitle>
+          {/* Which files are in the export is an edit, not a row of its own:
+              a chip next to the title opens the list. Only below lg, because
+              the desktop keeps the list as a column. */}
+          <button
+            type="button"
+            onClick={() => setFilesOpen(true)}
+            className="flex shrink-0 items-center gap-[6px] h-[26px] pl-[9px] pr-[11px] rounded-full border border-border bg-card text-muted-foreground active:bg-muted/50 transition-colors lg:hidden"
+          >
+            <Icon icon={PencilEdit02Icon} size={13} strokeWidth={1.9} />
+            <span className="text-[12px] font-medium text-foreground">{items.length === 1 ? "1 file" : `${items.length} files`}</span>
+          </button>
         </div>
 
         {/* Body - fixed height so toggling options never resizes the dialog */}
-        <div className="h-[520px]">
+        <div className="h-[520px] max-lg:h-auto max-lg:flex-1 max-lg:min-h-0 max-lg:overflow-hidden">
           {phase === "processing" ? (
             <div className="flex h-full flex-col items-center justify-center px-[24px]">
               <div className="size-[64px] rounded-full bg-primary/5 flex items-center justify-center mb-[18px]">
@@ -367,11 +458,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               </div>
               <p className="font-semibold text-[16px] text-foreground mb-[4px]">Preparing your export…</p>
               <p className="text-[13px] text-muted-foreground mb-[18px]">{multi ? `File ${Math.min(progress + 1, items.length)} of ${items.length}` : "This only takes a moment"}</p>
-              <div className="w-[320px] h-[6px] rounded-full bg-muted overflow-hidden mb-[24px]">
+              <div className="w-[320px] max-w-full h-[6px] rounded-full bg-muted overflow-hidden mb-[24px]">
                 <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${Math.max(8, (progress / Math.max(1, items.length)) * 100)}%` }} />
               </div>
               {multi && (
-                <div className="w-[380px] max-h-[180px] overflow-y-auto flex flex-col gap-[2px]">
+                <div className="w-[380px] max-w-full max-h-[180px] overflow-y-auto flex flex-col gap-[2px]">
                   {items.map((r, i) => (
                     <div key={r.id} className="flex items-center gap-[10px] h-[30px]">
                       {i < progress
@@ -408,9 +499,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               <p className="text-[13px] text-muted-foreground mb-[18px]">
                 {manifest.zipped
                   ? <>{manifest.files.length} files packed into <span className="font-medium text-foreground">{manifest.downloadName}</span></>
-                  : <><span className="font-medium text-foreground">{manifest.downloadName}</span> has been downloaded</>}
+                  : manifest.files.length > 1
+                    ? <><span className="font-medium text-foreground">{manifest.files.length} files</span> downloaded separately</>
+                    : <><span className="font-medium text-foreground">{manifest.downloadName}</span> has been downloaded</>}
               </p>
-              <div className="w-[520px] max-h-[240px] overflow-y-auto rounded-[12px] border border-border divide-y divide-border">
+              <div className="w-[520px] max-w-full max-h-[240px] overflow-y-auto rounded-[12px] border border-border divide-y divide-border">
                 {manifest.files.map((f) => (
                   <div key={f.name} className="flex items-center gap-[12px] h-[42px] px-[14px]">
                     <FormatIcon format={f.format} size={24} />
@@ -425,9 +518,28 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               </button>
             </div>
           ) : (
-            <div className="flex h-full">
+            <div className="flex h-full max-lg:flex-col max-lg:overflow-y-auto">
+              {/* Which file you are looking at, and which of its two panes.
+                  Both sit clear of the dividers: an underline that lands on a
+                  border reads as one thick line and the tabs stop looking like
+                  tabs. */}
+              <div className="flex w-full shrink-0 items-end gap-[12px] border-b border-border px-[16px] pt-[10px] lg:hidden">
+                <span className="min-w-0 flex-1 truncate pb-[10px] text-[13px] font-medium text-foreground">
+                  {activeRecord ? activeRecord.title : ""}
+                </span>
+                <Tabs
+                  value={mobilePane}
+                  onValueChange={(v) => setMobilePane(v === "transcript" ? "transcript" : "settings")}
+                  className="shrink-0"
+                >
+                  <TabsList variant="line" className="gap-[16px] border-b-0">
+                    <TabsTrigger value="settings" variant="line" className="text-[13px]">Settings</TabsTrigger>
+                    <TabsTrigger value="transcript" variant="line" className="text-[13px]">Transcript</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
               {showNav && (
-                <nav className="export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px]">
+                <nav className="export-tabs w-[212px] shrink-0 border-r border-border bg-muted/30 flex flex-col py-[12px] max-lg:hidden">
                   <p className="px-[18px] pb-[8px] text-[11px] font-medium text-muted-foreground">{items.length === 1 ? "1 file" : `${items.length} files`}</p>
                   <div className="flex-1 min-h-0 overflow-y-auto px-[8px] flex flex-col gap-[2px]">
                     {items.map((r) => {
@@ -448,7 +560,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                               type="button"
                               aria-label="Remove from export"
                               onClick={(e) => { e.stopPropagation(); removeItem(r.id); }}
-                              className="shrink-0 size-[20px] rounded-full inline-flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-foreground/[0.06] hover:text-foreground transition-opacity"
+                              className="shrink-0 size-[20px] rounded-full inline-flex items-center justify-center text-muted-foreground/70 transition-colors hover:bg-foreground/[0.06] hover:text-foreground group-hover:text-muted-foreground"
                             >
                               <Icon icon={Cancel01Icon} size={11} strokeWidth={2} />
                             </button>
@@ -457,16 +569,21 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                       );
                     })}
                   </div>
-                  {addable.length > 0 && (
-                    <div className="px-[8px] pt-[8px] mt-[8px] border-t border-border">
-                      <Popover open={addOpen} onOpenChange={setAddOpen}>
+                  {/* Always here, so the export never looks like a closed list.
+                      Spent, it says why rather than disappearing. */}
+                  <div className="px-[8px] pt-[8px] mt-[8px] border-t border-border">
+                      <Popover open={addOpen && addable.length > 0} onOpenChange={setAddOpen}>
                         <PopoverTrigger asChild>
-                          <button type="button" className="flex w-full items-center gap-[8px] h-[34px] px-[14px] rounded-full text-[12.5px] font-medium text-primary hover:bg-primary/5 transition-colors">
+                          <button
+                            type="button"
+                            disabled={addable.length === 0}
+                            className="flex w-full items-center gap-[8px] h-[34px] px-[14px] rounded-full text-[12.5px] font-medium text-primary transition-colors hover:bg-primary/5 disabled:cursor-default disabled:text-muted-foreground disabled:hover:bg-transparent"
+                          >
                             <Icon icon={Add01Icon} size={13} strokeWidth={2} />
-                            Add files to export
+                            <span className="truncate">{addable.length === 0 ? "Nothing left to add" : "Add files to export"}</span>
                           </button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-[248px] p-0" align="start" side="top" sideOffset={6}>
+                        <PopoverContent className="w-[248px] max-w-[calc(100vw-32px)] p-0 max-lg:w-[300px]" align="end" side="bottom" sideOffset={6}>
                           <Command>
                             <CommandInput placeholder="Search records…" />
                             <CommandList>
@@ -482,28 +599,115 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                           </Command>
                         </PopoverContent>
                       </Popover>
-                    </div>
-                  )}
+                  </div>
                 </nav>
               )}
               {/* Center pane - live preview of the selected file */}
-              <div className="flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px]">
+              <div className={"flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px] max-lg:px-[16px] max-lg:py-[14px] " + (mobilePane === "transcript" ? "" : "max-lg:hidden")}>
                 {activeRecord && <TranscriptPreview record={activeRecord} options={shared.options} />}
               </div>
-              {settingsPanel}
+              <div className={mobilePane === "transcript" ? "max-lg:hidden contents" : "contents"}>{settingsPanel}</div>
             </div>
           )}
         </div>
 
+        {/* Below lg the file column moves into its own modal: it keeps what the
+            desktop column has - which file is selected and the remove - and the
+            adding is a separate button that opens the picker with its search. */}
+        <Modal
+          open={filesOpen}
+          onOpenChange={setFilesOpen}
+          sheetClass="h-[72dvh] lg:hidden"
+          dialogClass="sm:max-w-[440px] max-lg:h-[62dvh] lg:hidden"
+        >
+            <div className="flex shrink-0 items-center px-[20px] h-[52px] max-md:h-[58px] border-b border-border">
+              <DialogTitle className="text-[16px] font-semibold text-foreground">Files in this export</DialogTitle>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-[10px] py-[8px] flex flex-col gap-[2px]">
+              {items.map((r) => {
+                const isActive = activeId === r.id;
+                return (
+                  <div
+                    key={r.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setActiveId(r.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setActiveId(r.id); }}
+                    className={"flex w-full items-center gap-[8px] h-[40px] pl-[14px] pr-[8px] rounded-full text-[13px] cursor-pointer " +
+                      (isActive ? "bg-primary/5 text-primary font-medium" : "text-foreground/85")}
+                  >
+                    <span className="flex-1 min-w-0 truncate text-left">{r.title}</span>
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        aria-label="Remove from export"
+                        onClick={(e) => { e.stopPropagation(); removeItem(r.id); }}
+                        className="shrink-0 size-[26px] rounded-full inline-flex items-center justify-center text-muted-foreground"
+                      >
+                        <Icon icon={Cancel01Icon} size={12} strokeWidth={2} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="shrink-0 border-t border-border p-[12px]">
+              <Button
+                variant="pill-outline"
+                disabled={addable.length === 0}
+                onClick={() => setAddOpenMobile(true)}
+                className="w-full h-[38px] gap-[8px] text-[13px] font-medium"
+              >
+                <Icon icon={Add01Icon} size={14} strokeWidth={2} />
+                {addable.length === 0 ? "Nothing left to add" : "Add files to export"}
+              </Button>
+            </div>
+        </Modal>
+
+        {/* The picker, the same Command with its search that the desktop opens
+            in a popover - on a phone a popover would be a postage stamp. */}
+        <Modal
+          open={addOpenMobile}
+          onOpenChange={setAddOpenMobile}
+          sheetClass="h-[72dvh] lg:hidden"
+          dialogClass="sm:max-w-[440px] max-lg:h-[62dvh] lg:hidden"
+        >
+            <DialogTitle className="px-[20px] pt-[18px] pb-[8px] text-[16px] font-semibold text-foreground">Add files to export</DialogTitle>
+            <Command className="flex-1 min-h-0 flex flex-col">
+              <CommandInput placeholder="Search records…" />
+              <CommandList className="flex-1 min-h-0 max-h-none pb-[8px] max-md:pb-[18px]">
+                <CommandEmpty>No records found.</CommandEmpty>
+                <CommandGroup>
+                  {addable.map((r) => (
+                    <CommandItem key={r.id} value={r.title} onSelect={() => { addItem(r); setAddOpenMobile(false); }}>
+                      <span className="truncate">{r.title}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+        </Modal>
+
         {/* Footer */}
-        <div className="flex items-center gap-[12px] px-[24px] h-[60px] border-t border-border bg-background">
+        <div className="flex items-center gap-[12px] px-[24px] h-[60px] border-t border-border bg-background max-lg:shrink-0">
           {phase === "success" && manifest ? (
             <>
               <div className="flex items-center gap-[8px] flex-1 min-w-0">
                 {manifest.zipped && <FormatIcon format="zip" size={22} />}
                 <p className="truncate text-[12.5px] text-muted-foreground">{manifest.downloadName}</p>
               </div>
-              <Button onClick={onClose} className="h-[36px] px-[18px]">
+              <Button
+                onClick={() => {
+                  toastExported(
+                    manifest.downloadName,
+                    manifest.zipped
+                      ? "Archive downloaded"
+                      : manifest.files.length + " files downloaded"
+                  );
+                  onClose();
+                }}
+                className="h-[36px] px-[18px]"
+              >
                 <span className="font-semibold text-[13px]">Done</span>
               </Button>
             </>
@@ -529,7 +733,6 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
             </>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+    </Modal>
   );
 }

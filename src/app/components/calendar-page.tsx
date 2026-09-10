@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from "@/app/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { cn } from "@/app/components/ui/utils";
 import { useLanguage, type LangCode } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
@@ -264,16 +265,17 @@ export function CalendarPage() {
   /* ── Disconnected: full-page connect screen ── */
   if (isDisconnected) {
     return (
-      <div className="flex-1 flex flex-col overflow-hidden px-8 pt-7 pb-0">
+      <div className="flex-1 flex flex-col overflow-hidden px-4 pt-4 md:px-6 md:pt-5 lg:px-8 lg:pt-7 pb-0">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-foreground font-bold text-[28px] leading-[33.6px] tracking-[-0.56px]">
+          <h1 className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px]">
             Meetings
           </h1>
           <Button
             className="rounded-full h-9 px-4 text-[13px] font-medium"
             onClick={() => setOpenModal("meeting")}
           >
-            Record a meeting
+            <span className="lg:hidden">Record</span>
+            <span className="max-lg:hidden">Record a meeting</span>
           </Button>
         </div>
         <CalendarConnectScreen connecting={connecting} onConnect={connectAccount} />
@@ -283,10 +285,10 @@ export function CalendarPage() {
 
   return (
     <TooltipProvider>
-      <div className="flex-1 flex flex-col overflow-hidden px-8 pt-7 pb-0">
+      <div className="flex-1 flex flex-col overflow-hidden px-4 pt-4 md:px-6 md:pt-5 lg:px-8 lg:pt-7 pb-0">
         {/* Row 1: Title + Today + Record button (full width) */}
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-foreground font-bold text-[28px] leading-[33.6px] tracking-[-0.56px]">
+          <h1 className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px]">
             Meetings
           </h1>
           <div className="flex items-center gap-3 shrink-0">
@@ -313,33 +315,36 @@ export function CalendarPage() {
               className="rounded-full h-9 px-4 text-[13px] font-medium"
               onClick={() => setOpenModal("meeting")}
             >
-              Record a meeting
+              <span className="lg:hidden">Record</span>
+              <span className="max-lg:hidden">Record a meeting</span>
             </Button>
           </div>
         </div>
 
         {/* Tabs + connected calendars indicator - full width so the line reaches the edge */}
         <div className="flex items-end justify-between border-b border-border mt-4">
-            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as MeetingsTab)} className="gap-0">
-              <TabsList variant="line" className="gap-6 justify-start border-0">
-                <TabsTrigger value="upcoming" variant="line">
-                  Upcoming meetings
+            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as MeetingsTab)} className="gap-0 min-w-0">
+              <TabsList variant="line" className="gap-5 lg:gap-6 justify-start border-0 max-lg:overflow-x-auto scrollbar-hide">
+                <TabsTrigger value="upcoming" variant="line" className="max-lg:shrink-0 max-lg:text-[13px]">
+                  <span className="lg:hidden">Upcoming</span><span className="max-lg:hidden">Upcoming meetings</span>
                   <span className="opacity-50 font-[inherit]">{upcomingCount}</span>
                 </TabsTrigger>
-                <TabsTrigger value="past" variant="line">
-                  Past meetings
+                <TabsTrigger value="past" variant="line" className="max-lg:shrink-0 max-lg:text-[13px]">
+                  <span className="lg:hidden">Past</span><span className="max-lg:hidden">Past meetings</span>
                   <span className="opacity-50 font-[inherit]">{pastCount}</span>
                 </TabsTrigger>
-                <TabsTrigger value="settings" variant="line">
+                <TabsTrigger value="settings" variant="line" className="max-lg:shrink-0 max-lg:text-[13px]">
                   Settings
                 </TabsTrigger>
               </TabsList>
             </Tabs>
 
-            <ConnectedCalendarsIndicator
-              accounts={accounts}
-              onClick={() => setActiveTab("settings")}
-            />
+            <div className="max-md:hidden">
+              <ConnectedCalendarsIndicator
+                accounts={accounts}
+                onClick={() => setActiveTab("settings")}
+              />
+            </div>
         </div>
 
         {/* Week strip - full width */}
@@ -387,7 +392,17 @@ export function CalendarPage() {
             <>
               {/* Auto-record bar - full content width, upcoming only */}
               {activeTab === "upcoming" && (
-                <div className="mt-4 flex items-center rounded-xl border border-border bg-card px-4 py-2.5">
+                <div className="md:hidden mt-4 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                  <Icon icon={FlashIcon} size={14} className="text-primary shrink-0" />
+                  <span className="text-[13px] font-medium text-foreground shrink-0">Auto-record</span>
+                  <Select value={autoRecordMode} onValueChange={(v) => handleAutoRecordModeChange(v as AutoRecordMode)}>
+                    <SelectTrigger className="h-8 flex-1 min-w-0 rounded-lg text-[13px] border-0 bg-muted/50"><SelectValue /></SelectTrigger>
+                    <SelectContent>{AUTO_RECORD_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.barLabel}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              )}
+              {activeTab === "upcoming" && (
+                <div className="max-md:hidden mt-4 flex items-center rounded-xl border border-border bg-card px-4 py-2.5">
                   <div className="flex items-center gap-1.5 text-[13px] font-medium text-foreground shrink-0 pr-3">
                     <Icon icon={FlashIcon} size={14} className="text-primary" />
                     Auto-record:

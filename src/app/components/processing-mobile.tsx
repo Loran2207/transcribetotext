@@ -7,6 +7,7 @@ import { Drawer, DrawerContent, DrawerTitle } from "./ui/drawer";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { SourceIcon } from "./source-icons";
 import { useTranscriptionModals, ERROR_LABELS, mapJobToRecordState, type TranscriptionJob } from "./transcription-modals";
+import { HISTORY_FAB_RIGHT, HISTORY_FAB_SIZE } from "./mobile-fab-layout";
 
 /* Mobile (<768) upload-processing surface. The 680px desktop FloatingProgressWidget
    is unusable on a phone, so below md we show a slim status pill docked above the
@@ -127,11 +128,9 @@ export function MobileProcessing() {
   const failedJobs = useMemo(() => historyJobs.filter((j) => j.status === "error"), [historyJobs]);
 
   const summaryJobs = uploadedNowJobs.length > 0 ? uploadedNowJobs : widgetJobs;
-  const allDone = summaryJobs.length > 0 && summaryJobs.every((j) => j.status === "done" || j.status === "error");
   const uploadingCount = summaryJobs.filter((j) => j.status === "uploading").length;
   const processingCount = summaryJobs.filter((j) => j.status === "processing").length;
   const doneCount = summaryJobs.filter((j) => j.status === "done" || j.status === "error").length;
-  const errorCount = summaryJobs.filter((j) => j.status === "error").length;
   const connectingCount = summaryJobs.filter((j) => j.status === "connecting").length;
   const recordingCount = summaryJobs.filter((j) => j.status === "recording").length;
   const activeCount = widgetJobs.filter((j) => j.status === "uploading" || j.status === "processing" || j.status === "connecting" || j.status === "recording").length;
@@ -146,47 +145,43 @@ export function MobileProcessing() {
     : connectingCount > 0
       ? (connectingCount > 1 ? "Connecting bots (" + connectingCount + ")" : "Connecting bot")
       : pillLabel;
-  const isErrorPill = allDone && errorCount > 0;
 
   if (!hasJobs) return null;
 
   const visibleJobs = activeTab === "history" ? historyJobs : activeTab === "failed" ? failedJobs : uploadedNowJobs;
-  const showPill = activeCount > 0;
+  /* The upload-history FAB replaces the old full-width status pill: a spinner
+     ring while uploads are actively processing, and a count badge for active
+     jobs (primary) or failed jobs (destructive). It stacks directly above the
+     create "+" FAB in bottom-nav.tsx, sharing the same right edge and offsets
+     from mobile-fab-layout.ts. */
+  const showSpinner = activeCount > 0;
+  const errorBadge = failedJobs.length;
+  const badgeCount = activeCount > 0 ? activeCount : errorBadge;
+  const badgeIsError = activeCount === 0 && errorBadge > 0;
 
   return (
     <>
-      {!open && showPill && createPortal(
-        <div className="fixed left-[16px] right-[16px] z-[45] flex" style={{ bottom: "calc(82px + env(safe-area-inset-bottom))" }}>
-          <button
-            onClick={() => { setActiveTab("uploaded"); setOpen(true); }}
-            className={"w-full flex items-center gap-[10px] h-[46px] px-[16px] rounded-full " + (isErrorPill ? "bg-card text-foreground border border-border" : "bg-primary text-primary-foreground")}
-            style={{ boxShadow: isErrorPill ? "0 8px 22px -8px rgba(16,24,40,0.18)" : "0 8px 22px -8px rgba(37,99,235,0.45)" }}
-          >
-            <svg className="size-[15px] shrink-0 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2.5" /><path d="M12 3a9 9 0 019 9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
-            <span className="flex-1 text-left truncate" style={{ fontWeight: 600, fontSize: 13.5 }}>{activityLabel}</span>
-            {activeCount > 0 && (
-              <span className={"inline-flex items-center justify-center min-w-[20px] h-[20px] px-[6px] rounded-full text-[11px] font-semibold shrink-0 " + (isErrorPill ? "bg-muted text-foreground" : "bg-white/20 text-white")}>{activeCount}</span>
-            )}
-            <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M4 10l4-4 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          </button>
-        </div>,
-        document.body
-      )}
-
-      {!open && !showPill && createPortal(
+      {!open && createPortal(
         <button
-          onClick={() => { setActiveTab(errorCount > 0 ? "failed" : "history"); setOpen(true); }}
-          className={"fixed right-[16px] z-[45] flex items-center justify-center size-[50px] rounded-full bg-card border " + (errorCount > 0 ? "border-destructive/30" : "border-border")}
-          style={{ bottom: "calc(82px + env(safe-area-inset-bottom))", boxShadow: "0 8px 20px rgba(16,24,40,0.12)" }}
-          aria-label="Upload history"
+          onClick={() => { setActiveTab(activeCount > 0 ? "uploaded" : errorBadge > 0 ? "failed" : "history"); setOpen(true); }}
+          data-mobile-fab="history"
+          className={"lg:hidden fixed z-[45] max-md:bottom-[calc(92px+env(safe-area-inset-bottom))] md:bottom-[calc(24px+env(safe-area-inset-bottom))] flex items-center justify-center rounded-full bg-card active:scale-95 transition-transform motion-reduce:transition-none motion-reduce:active:scale-100 border " + (badgeIsError ? "border-destructive/30" : "border-border")}
+          style={{ right: HISTORY_FAB_RIGHT, width: HISTORY_FAB_SIZE, height: HISTORY_FAB_SIZE, boxShadow: "0 8px 20px -6px rgba(16,24,40,0.16), 0 2px 6px -2px rgba(16,24,40,0.08)" }}
+          aria-label={showSpinner ? activityLabel : "Upload history"}
         >
-          <svg className="size-[20px] text-foreground" viewBox="0 0 24 24" fill="none">
+          {showSpinner && (
+            <svg className="absolute animate-spin motion-reduce:animate-none" style={{ inset: -3 }} viewBox="0 0 54 54" fill="none">
+              <circle cx="27" cy="27" r="25" stroke="var(--primary)" strokeOpacity="0.2" strokeWidth="2.5" />
+              <path d="M27 2a25 25 0 0125 25" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+          )}
+          <svg className="size-[24px] text-foreground" viewBox="0 0 24 24" fill="none">
             <path d="M12 16V8M8.5 11.5L12 8l3.5 3.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M5 16.5A2.5 2.5 0 007.5 19h9a2.5 2.5 0 002.5-2.5" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {errorCount > 0 && (
-            <span className="absolute -top-[4px] -right-[4px] min-w-[20px] h-[20px] px-[5px] rounded-full text-[11px] font-semibold flex items-center justify-center text-white bg-destructive">
-              {errorCount}
+          {badgeCount > 0 && (
+            <span className={"absolute -top-[3px] -right-[3px] min-w-[20px] h-[20px] px-[5px] rounded-full text-[11px] font-semibold flex items-center justify-center text-white " + (badgeIsError ? "bg-destructive" : "bg-primary")}>
+              {badgeCount}
             </span>
           )}
         </button>,

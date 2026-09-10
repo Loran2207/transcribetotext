@@ -1,4 +1,6 @@
-import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
+import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon, Mic01Icon } from "@hugeicons/core-free-icons";
+import { useShell } from "./desktop/shell";
+
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -9,6 +11,8 @@ import svgPaths from "../../imports/svg-i3wf63n6gj";
 import { ShareDialog } from "./share-dialog";
 const imgEllipse52 = "/images/avatar.png";
 import { useStarred } from "./starred-context";
+import { usePlan } from "./use-plan";
+import { useNavigate } from "react-router";
 import { SourceIcon } from "./source-icons";
 import { useFolders } from "./folder-context";
 import { useLanguage, LANGUAGES } from "./language-context";
@@ -104,8 +108,8 @@ function CreateFolderDialog({ open, onClose, onCreate }: { open: boolean; onClos
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[16px] w-[400px] overflow-hidden bg-popover shadow-md">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative rounded-[16px] w-[400px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover shadow-md">
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="text-[17px] font-semibold text-foreground">Create New Folder</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full"><svg className="size-[16px] text-muted-foreground" fill="none" viewBox="0 0 16 16"><path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg></Button>
@@ -232,7 +236,36 @@ const NAV_ITEMS = [
   { id: "templates", labelKey: "nav.templates", icon: Layers },
 ] as const;
 
+/* Free-plan quota, the way the old design carried it: the sidebar is the only
+   place a free user sees their usage on screens without a right panel. Pro users
+   get nothing here. */
+function SidebarPlanPlaque() {
+  const plan = usePlan();
+  const navigate = useNavigate();
+  if (plan !== "free") return null;
+  const used = 0;
+  const total = 1;
+  const pct = Math.round((used / total) * 100);
+  return (
+    <div className="mx-2 mb-1 rounded-2xl border border-border bg-primary/5 p-3 group-data-[collapsible=icon]:hidden">
+      <p className="text-[12px] font-medium text-sidebar-foreground">
+        {used} of {total} daily transcriptions used
+      </p>
+      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-primary/15">
+        <div className="h-full rounded-full bg-primary" style={{ width: pct + "%" }} />
+      </div>
+      <Button
+        onClick={() => navigate("/checkout")}
+        className="mt-3 h-8 w-full text-[12.5px] font-semibold"
+      >
+        Get Premium
+      </Button>
+    </div>
+  );
+}
+
 export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarProps) {
+  
   const [starredOpen, setStarredOpen] = useState(true);
   const [foldersOpen, setFoldersOpen] = useState(true);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
@@ -240,8 +273,9 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
   const [shareFolderName, setShareFolderName] = useState<string | null>(null);
   const { starredRecords } = useStarred();
   const { folders: userFolders, addFolder } = useFolders();
+  const { desktop: desktopShell } = useShell();
   const { t } = useLanguage();
-  const { toggleSidebar } = useSidebar();
+  const { toggleSidebar, setOpenMobile } = useSidebar();
 
   const defaultFolders: { id: string; name: string; color: string }[] = [
     { id: "f1", name: "Client Meetings", color: "#3B82F6" },
@@ -263,11 +297,13 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
         {/* ── Primary Navigation ── */}
         <SidebarGroup>
           <SidebarMenu>
+            {/* Full navigation lives in the drawer (there is no bottom tab bar); phone
+                and tablet both open this overlay for every destination. */}
             {NAV_ITEMS.map(({ id, labelKey, icon: NavIcon }) => (
               <SidebarMenuItem key={id}>
                 <SidebarMenuButton
                   isActive={activePage === id}
-                  onClick={() => onNavigate(id)}
+                  onClick={() => { onNavigate(id); setOpenMobile(false); }}
                   tooltip={t(labelKey)}
                 >
                   <Icon icon={NavIcon} strokeWidth={1.3} />
@@ -275,6 +311,15 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
+            {/* The desktop app's own tab: calls recorded on this machine */}
+            {desktopShell && (
+              <SidebarMenuItem>
+                <SidebarMenuButton isActive={activePage === "notetaker"} onClick={() => { onNavigate("notetaker"); setOpenMobile(false); }} tooltip="Notetaker">
+                  <Icon icon={Mic01Icon} strokeWidth={1.3} />
+                  <span>Notetaker</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarGroup>
 
@@ -332,7 +377,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
               {folders.map((folder) => (
                 <SidebarMenuSubItem key={folder.id} className="group/folder">
                   <SidebarMenuSubButton
-                    onClick={userFolders.length > 0 ? () => { onNavigate("records"); onOpenFolder?.(folder.id); } : undefined}
+                    onClick={userFolders.length > 0 ? () => { onNavigate("records"); onOpenFolder?.(folder.id); setOpenMobile(false); } : undefined}
                     className={`${userFolders.length > 0 ? "cursor-pointer" : ""} pr-8`}
                   >
                     <svg className="size-4 shrink-0" fill="none" viewBox="0 0 16 16">
@@ -363,12 +408,13 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
 
       {/* ═══════════ Footer ═══════════ */}
       <SidebarFooter>
+        <SidebarPlanPlaque />
         <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={activePage === "integrations"}
-              onClick={() => onNavigate("integrations")}
+              onClick={() => { onNavigate("integrations"); setOpenMobile(false); }}
               tooltip={t("nav.integrations")}
             >
               <Icon icon={Puzzle} strokeWidth={1.3} />

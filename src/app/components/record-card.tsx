@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Clock, MoreHorizontal, Copy, FolderOpen, Upload, Share, Edit, StarIcon, Trash, X } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
@@ -31,19 +31,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-import { SourceIcon } from "./source-icons";
+import { SourceIcon, getSourceLabel } from "./source-icons";
+import { ActionSheet, ActionSheetItem } from "./action-sheet";
+import { getInitials } from "@/lib/format";
 import { useStarred } from "./starred-context";
 import { useFolders } from "./folder-context";
 import { useLanguage } from "./language-context";
 import { ShareDialog } from "./share-dialog";
 import { ExportDialog } from "./export-dialog";
-import { LanguageBadge, MoveToFolderDialog, recordRowToExportable, type RecordRow } from "./records-table";
+import { LanguageBadge, MoveToFolderDialog, recordRowToExportable, type RecordRow, FigmaCheckbox, INLINE_FOLDER_PATH, SharedBadge } from "./records-table";
 
 /* A single recording rendered as a card (mobile + tablet replacement for the
    desktop records table). The whole card opens the transcript; the kebab
-   exposes the same per-record actions the desktop table offers. Below md
-   (<768) the kebab opens a bottom-sheet Drawer (action grid + list, Notta
-   style); on tablet (768-1023) it opens a shadcn DropdownMenu. Both surfaces
+   exposes the same per-record actions the desktop table offers. Below lg the
+   kebab opens the product's one ActionSheet; at lg and above (the desktop card
+   view) it opens a shadcn DropdownMenu. Both surfaces
    share one action set and one set of lazily mounted dialogs, so a long list
    never renders N dialog copies. Meta row mirrors the desktop table columns
    (duration, template, language). */
@@ -71,12 +73,27 @@ function RenameForm({ initial, onSave, onCancel }: { initial: string; onSave: (n
   );
 }
 
-export function RecordCard({ record }: { record: RecordRow }) {
+export interface CardOwner { name: string; tint: string; ink: string; avatar?: string }
+
+/* `owner` marks the card as somebody else's. It shows who it came from and takes
+   away every action that would change their record: sharing it on, renaming it,
+   throwing it away. What is left is what a reader is allowed to do. */
+export function RecordCard({ record, isTrash = false, selected = false, selectionMode = false, isShared = false, showOwner = true, onToggleSelect, owner, onRemoveShared }: { record: RecordRow; isTrash?: boolean; selected?: boolean; selectionMode?: boolean; isShared?: boolean; showOwner?: boolean; onToggleSelect?: () => void; owner?: CardOwner; onRemoveShared?: () => void }) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { t } = useLanguage();
   const { starred, toggleStar, renameRecord, getName } = useStarred();
-  const { folders, assignToFolder } = useFolders();
+  const { folders, assignToFolder, folderAssignments } = useFolders();
+
+  /* Which folder this record sits in. The tree is shallow, so one walk is cheap. */
+  const cardFolder = useMemo(() => {
+    const target = folderAssignments[record.id];
+    if (!target) return null;
+    let found: { name: string; color: string } | null = null;
+    const walk = (list: typeof folders) => list.forEach((f) => { if (f.id === target) found = f; walk(f.children ?? []); });
+    walk(folders);
+    return found as { name: string; color: string } | null;
+  }, [folders, folderAssignments, record.id]);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
@@ -84,10 +101,13 @@ export function RecordCard({ record }: { record: RecordRow }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmForever, setConfirmForever] = useState(false);
 
   const isStarred = starred.has(record.id);
   const displayName = getName(record.id, record.name);
   const open = () => navigate(`/transcriptions/${record.id}`);
+  const selectEnabled = !!onToggleSelect && !isTrash;
+  const toggle = onToggleSelect ?? (() => {});
 
   const doStar = () =>
     toggleStar(record.id, {
@@ -105,36 +125,95 @@ export function RecordCard({ record }: { record: RecordRow }) {
     );
   };
 
+  const doRestore = () => toast.success("Restored to My Records");
+
   const starLabel = isStarred ? t("common.unstar") : t("common.star");
   const starIconClass = isStarred ? "text-amber-500" : "text-muted-foreground";
 
   return (
     <div
-      onClick={open}
-      className="group flex items-start gap-[12px] px-[14px] py-[12px] rounded-[16px] bg-card border border-border/60 active:bg-muted/60 transition-colors cursor-pointer"
+      onClick={() => { if (selectEnabled && selectionMode) toggle(); else open(); }}
+      className={"group flex items-start gap-[10px] px-[14px] py-[12px] rounded-[16px] border transition-colors cursor-pointer " + (selected ? "bg-primary/[0.05] border-primary/40" : "bg-card border-border/60 active:bg-muted/60")}
     >
+      {selectEnabled && (
+        <div className="shrink-0 self-center" onClick={(e) => e.stopPropagation()}>
+          <FigmaCheckbox checked={selected} onChange={toggle} />
+        </div>
+      )}
       <div className="shrink-0 mt-[1px] flex items-center justify-center size-[40px] rounded-[12px] bg-muted">
         <SourceIcon source={record.source} />
       </div>
 
       <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
-        <p className="truncate text-foreground" style={{ fontWeight: 600, fontSize: 14, lineHeight: "19px" }}>{displayName}</p>
-        <div className="flex items-center gap-[8px] mt-[3px] text-muted-foreground" style={{ fontSize: 11.5 }}>
+        {/* The same mark the desktop row carries. A card that drops it makes
+            the phone say less about the object than the table does. It never
+            shows on Shared with me, where the owner line already says who can
+            see this and the mark would be a second answer to one question. */}
+        <div className="flex min-w-0 items-center gap-[6px]">
+          <p className="truncate text-foreground" style={{ fontWeight: 500, fontSize: 14, lineHeight: "19px" }}>{displayName}</p>
+          {isShared && !owner && !isTrash && <SharedBadge />}
+        </div>
+        <div className="flex items-center gap-[8px] mt-[3px] text-muted-foreground" style={{ fontSize: 12, lineHeight: "16px" }}>
           <span className="inline-flex items-center gap-[4px] shrink-0 whitespace-nowrap">
             <Icon icon={Clock} className="size-[12px]" strokeWidth={1.7} />
             {record.duration}
           </span>
           <span className="min-w-0 inline-flex items-center h-[18px] px-[7px] rounded-[5px] bg-muted">
-            <span className="truncate text-[11px]">{record.template}</span>
+            <span className="truncate text-[12px]">{record.template}</span>
           </span>
           <span className="shrink-0 leading-none">
             <LanguageBadge lang={record.language} />
           </span>
+          {cardFolder && !owner && (
+            <span className="flex min-w-0 shrink-0 items-center gap-[5px]" title={cardFolder.name}>
+              <svg className="size-[13px] shrink-0" fill="none" viewBox="0 0 16 16"><path d={INLINE_FOLDER_PATH} fill={cardFolder.color} /></svg>
+              <span className="hidden truncate text-[12px] md:inline">{cardFolder.name}</span>
+            </span>
+          )}
         </div>
+        {/* Whose record this is gets its own line. Squeezed onto the meta row it
+            took the space the template needed, and the template collapsed to an
+            ellipsis - so the card could not say what kind of note it was. The
+            name stands alone: the page is called Shared with me, so a card that
+            also said "shared this with you" said it for the eighth time and
+            clipped the one word that mattered. */}
+        {owner && showOwner && (
+          <div className="mt-[4px] flex min-w-0 items-center gap-[5px] text-muted-foreground" style={{ fontSize: 12, lineHeight: "16px" }}>
+            <span className="flex size-[16px] shrink-0 items-center justify-center overflow-hidden rounded-full text-[8px] font-medium" style={{ background: owner.tint, color: owner.ink }}>
+              {owner.avatar ? <img src={owner.avatar} alt="" className="size-full object-cover" /> : getInitials(owner.name)}
+            </span>
+            <span className="truncate">{owner.name}</span>
+          </div>
+        )}
       </div>
 
       {/* Wrapper stops the click bubbling to the card */}
       <div onClick={(e) => e.stopPropagation()} className="shrink-0 -mr-[4px] self-center">
+        {isTrash ? (
+          <div className="flex items-center gap-[6px]">
+            <Button variant="pill-outline" onClick={doRestore} className="h-[30px] px-[11px] gap-[5px] text-[12.5px] font-medium">
+              <svg className="size-[13px] text-foreground" fill="none" viewBox="0 0 16 16"><path d="M2 7.333A6 6 0 018 2a6 6 0 016 6 6 6 0 01-6 6 5.98 5.98 0 01-4.243-1.757" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /><path d="M2 3.333v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              {t("common.restore")}
+            </Button>
+            <Button variant="pill-outline" size="icon" onClick={() => setConfirmForever(true)} aria-label="Delete forever" className="size-[30px] border-destructive/30 text-destructive hover:bg-destructive/5">
+              <Icon icon={Trash} className="size-[15px]" strokeWidth={1.7} />
+            </Button>
+            {confirmForever && (
+              <AlertDialog open onOpenChange={(o) => { if (!o) setConfirmForever(false); }}>
+                <AlertDialogContent>
+                  <AlertDialogHeader className="text-left">
+                    <AlertDialogTitle>Delete record forever?</AlertDialogTitle>
+                    <AlertDialogDescription>"{displayName}" and its transcript will be permanently deleted. This action cannot be undone.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex-row justify-end gap-[8px]">
+                    <AlertDialogCancel className="px-[18px] text-[13px]">{t("common.cancel")}</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => { toast.success("Record deleted forever"); setConfirmForever(false); }} className="px-[18px] text-[13px] font-semibold bg-destructive text-white hover:bg-destructive/90">Delete forever</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </div>
+        ) : (<>
         {isMobile ? (
           <Button variant="ghost" size="icon" onClick={() => setSheetOpen(true)} className="size-[32px] text-muted-foreground" aria-label="Record actions">
             <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={1.8} />
@@ -159,79 +238,72 @@ export function RecordCard({ record }: { record: RecordRow }) {
                 <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.5} />
                 {t("common.export")}
               </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2" onSelect={() => setShareOpen(true)}>
-                <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                {t("common.share")}
-              </DropdownMenuItem>
+              {!owner && (
+                <DropdownMenuItem className="gap-2" onSelect={() => setShareOpen(true)}>
+                  <Icon icon={Share} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  {t("common.share")}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2" onSelect={() => setRenameOpen(true)}>
-                <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
-                {t("common.rename")}
-              </DropdownMenuItem>
+              {!owner && (
+                <DropdownMenuItem className="gap-2" onSelect={() => setRenameOpen(true)}>
+                  <Icon icon={Edit} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  {t("common.rename")}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem className="gap-2" onSelect={doStar}>
                 <Icon icon={StarIcon} className={`size-4 ${starIconClass}`} fill={isStarred ? "currentColor" : "none"} strokeWidth={1.6} />
                 {starLabel}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive" className="gap-2" onSelect={() => setConfirmDelete(true)}>
-                <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
-                {t("table.moveToTrash")}
-              </DropdownMenuItem>
+              {owner ? (
+                <DropdownMenuItem className="gap-2" onSelect={() => onRemoveShared?.()}>
+                  <Icon icon={X} className="size-4 text-muted-foreground" strokeWidth={1.6} />
+                  {t("shared.removeFromShared")}
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem variant="destructive" className="gap-2" onSelect={() => setConfirmDelete(true)}>
+                  <Icon icon={Trash} className="size-4" strokeWidth={1.6} />
+                  {t("table.moveToTrash")}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
 
-        {/* Mobile bottom sheet - same action set as the tablet dropdown */}
-        <Drawer open={sheetOpen} onOpenChange={setSheetOpen}>
-          <DrawerContent className="[&>div:first-child]:hidden">
-            <div className="flex items-center gap-[10px] px-[18px] pt-[18px] pb-[10px]">
-              <div className="shrink-0 flex items-center justify-center size-[36px] rounded-[10px] bg-muted">
-                <SourceIcon source={record.source} />
-              </div>
-              <DrawerTitle className="flex-1 min-w-0 truncate" style={{ fontSize: 15, fontWeight: 600 }}>{displayName}</DrawerTitle>
-              <button onClick={() => setSheetOpen(false)} aria-label="Close" className="-mr-[4px] size-[32px] rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
-                <Icon icon={X} className="size-[18px]" strokeWidth={2} />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-4 gap-[8px] px-[16px] pt-[6px] pb-[14px]">
-              {[
-                { key: "copy", icon: Copy, label: t("table.copySummary"), run: doCopy },
-                { key: "move", icon: FolderOpen, label: t("table.moveToFolder"), run: () => setMoveOpen(true) },
-                { key: "export", icon: Upload, label: t("common.export"), run: () => setExportOpen(true) },
-                { key: "share", icon: Share, label: t("common.share"), run: () => setShareOpen(true) },
-              ].map(({ key, icon, label, run }) => (
-                <button
-                  key={key}
-                  onClick={() => { setSheetOpen(false); run(); }}
-                  className="flex flex-col items-center gap-[7px] py-[12px] rounded-[14px] bg-muted active:bg-muted/70 transition-colors"
-                >
-                  <span className="flex items-center justify-center size-[40px] rounded-full bg-background">
-                    <Icon icon={icon} className="size-[19px] text-foreground" strokeWidth={1.7} />
-                  </span>
-                  <span className="text-[11px] leading-[13px] text-muted-foreground text-center px-[2px]">{label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="h-px mx-[16px] bg-border" />
-
-            <div className="px-[10px] py-[8px] flex flex-col" style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
-              <button onClick={() => { setSheetOpen(false); setRenameOpen(true); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
-                <Icon icon={Edit} className="size-[19px] text-muted-foreground" strokeWidth={1.7} />
-                <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>{t("common.rename")}</span>
-              </button>
-              <button onClick={() => { setSheetOpen(false); doStar(); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-muted transition-colors text-left">
-                <Icon icon={StarIcon} className={`size-[19px] ${starIconClass}`} fill={isStarred ? "currentColor" : "none"} strokeWidth={1.7} />
-                <span className="flex-1 text-foreground" style={{ fontSize: 14, fontWeight: 500 }}>{starLabel}</span>
-              </button>
-              <button onClick={() => { setSheetOpen(false); setConfirmDelete(true); }} className="flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] active:bg-destructive/10 transition-colors text-left">
-                <Icon icon={Trash} className="size-[19px] text-destructive" strokeWidth={1.7} />
-                <span className="flex-1 text-destructive" style={{ fontSize: 14, fontWeight: 500 }}>{t("table.moveToTrash")}</span>
-              </button>
-            </div>
-          </DrawerContent>
-        </Drawer>
+        {/* The record's actions, in the product's one sheet: the record at the
+            top with its name and where it came from, then a plain list. The
+            grid of four tiles that used to sit above the list is gone - the
+            same four things are rows now, like everywhere else. */}
+        <ActionSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          mark={<SourceIcon source={record.source} />}
+          title={displayName}
+          kind={getSourceLabel(record.source)}
+        >
+          <ActionSheetItem icon={Copy} label={t("sheet.copy")} onClick={() => { setSheetOpen(false); doCopy(); }} />
+          <ActionSheetItem icon={FolderOpen} label={t("sheet.moveTo")} onClick={() => { setSheetOpen(false); setMoveOpen(true); }} />
+          <ActionSheetItem icon={Upload} label={t("common.export")} onClick={() => { setSheetOpen(false); setExportOpen(true); }} />
+          {!owner && (
+            <ActionSheetItem icon={Share} label={t("common.share")} onClick={() => { setSheetOpen(false); setShareOpen(true); }} />
+          )}
+          {!owner && (
+            <ActionSheetItem icon={Edit} label={t("common.rename")} onClick={() => { setSheetOpen(false); setRenameOpen(true); }} />
+          )}
+          <ActionSheetItem
+            icon={StarIcon}
+            label={starLabel}
+            iconClassName={`size-[19px] ${starIconClass}`}
+            iconFill={isStarred ? "currentColor" : "none"}
+            onClick={() => { setSheetOpen(false); doStar(); }}
+          />
+          {owner ? (
+            <ActionSheetItem icon={X} label={t("shared.removeFromShared")} onClick={() => { setSheetOpen(false); onRemoveShared?.(); }} />
+          ) : (
+            <ActionSheetItem icon={Trash} label={t("table.moveToTrash")} destructive onClick={() => { setSheetOpen(false); setConfirmDelete(true); }} />
+          )}
+        </ActionSheet>
 
         {/* Lazily mounted dialogs - only the currently open one exists in the tree */}
         {moveOpen && (
@@ -297,6 +369,7 @@ export function RecordCard({ record }: { record: RecordRow }) {
             </AlertDialogContent>
           </AlertDialog>
         )}
+        </>)}
       </div>
     </div>
   );

@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { useAuth } from "./auth-context";
 import { toast } from "sonner";
+import {
+  CancelSubscriptionFlow,
+  type CancelFlowInitialStep,
+} from "./cancel-subscription-flow";
 
 export type PlanState = "never" | "active" | "expired";
 
@@ -41,10 +45,14 @@ const BENEFITS = [
   { title: "Unlimited transcriptions", desc: "No daily caps, no queue." },
   { title: "Up to 4 hours per file", desc: "Long meetings, long lectures - no limits." },
   { title: "AI meeting agent", desc: "Joins Zoom, Meet & Teams to take notes for you." },
-  { title: "Transcribe from links", desc: "Paste any URL - YouTube, Drive, Dropbox." },
+  { title: "Transcribe from links", desc: "Paste any URL - YouTube, Instagram, Drive, Dropbox." },
   { title: "Priority processing", desc: "Files are processed first, even at peak times." },
   { title: "Premium support", desc: "Direct line to our team, faster responses." },
 ];
+
+// A non-breaking space. Written by code point because the character itself is
+// invisible in an editor.
+const NBSP = String.fromCharCode(160);
 
 function CheckBadge() {
   return (
@@ -153,7 +161,7 @@ function HeroPrice({
   note?: string;
 }) {
   return (
-    <div className="text-right shrink-0 pl-6 border-l border-border">
+    <div className="shrink-0 max-md:w-full max-md:border-t max-md:border-border max-md:pt-4 md:border-l md:border-border md:pl-6 md:text-right">
       <div className="text-[30px] font-bold leading-none -tracking-[0.5px]">
         {amount}
       </div>
@@ -171,13 +179,13 @@ function HeroMeta({
   cells: { label: string; value: string }[];
 }) {
   return (
-    <div className="grid grid-cols-3 mt-6 pt-5 border-t border-border">
+    <div className="mt-6 grid grid-cols-1 gap-y-3.5 border-t border-border pt-5 md:grid-cols-3 md:gap-y-0">
       {cells.map((c, i) => (
         <div
           key={c.label}
-          className={`flex flex-col gap-1 px-5 ${
-            i === 0 ? "pl-0 border-l-0" : "border-l border-border"
-          } ${i === cells.length - 1 ? "pr-0" : ""}`}
+          className={`flex flex-col gap-1 max-md:px-0 md:px-5 ${
+            i === 0 ? "md:border-l-0 md:pl-0" : "md:border-l md:border-border"
+          } ${i === cells.length - 1 ? "md:pr-0" : ""}`}
         >
           <div className="text-[12px] text-muted-foreground">{c.label}</div>
           <div className="text-[14.5px] font-semibold -tracking-[0.1px]">
@@ -216,7 +224,7 @@ function TrustLine({ children }: { children: React.ReactNode }) {
 function HeroFree({ onUpgrade }: { onUpgrade: () => void }) {
   return (
     <HeroShell tone="primary">
-      <div className="flex justify-between items-start gap-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
         <div className="flex-1 min-w-0">
           <HeroEyebrow tone="primary">Free plan</HeroEyebrow>
           <h3 className="text-[22px] font-bold -tracking-[0.3px] mb-1.5 leading-[1.25]">
@@ -228,7 +236,7 @@ function HeroFree({ onUpgrade }: { onUpgrade: () => void }) {
             agent join your meetings for you.
           </p>
         </div>
-        <HeroPrice amount="$29.99" per="per month" note="Cancel anytime" />
+        <HeroPrice amount="$19.99" per="per month" note="Cancel anytime" />
       </div>
 
       <div className="flex gap-2.5 mt-6 items-center flex-wrap">
@@ -242,18 +250,18 @@ function HeroFree({ onUpgrade }: { onUpgrade: () => void }) {
   );
 }
 
-function HeroActive({
-  memberSince,
-  nextRenewal,
-  paymentMethod,
+export function HeroActive({
+  billingEmail,
+  duration,
+  price,
 }: {
-  memberSince: string;
-  nextRenewal: string;
-  paymentMethod: string;
+  billingEmail: string;
+  duration: string;
+  price: string;
 }) {
   return (
     <HeroShell tone="emerald">
-      <div className="flex justify-between items-start gap-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
         <div className="flex-1 min-w-0">
           <HeroEyebrow tone="emerald" pulse>
             Premium · active
@@ -266,14 +274,14 @@ function HeroActive({
             automatically - manage payment and billing below.
           </p>
         </div>
-        <HeroPrice amount="$29.99" per="per month" />
+        <HeroPrice amount="$19.99" per="per month" />
       </div>
 
       <HeroMeta
         cells={[
-          { label: "Member since", value: memberSince },
-          { label: "Next renewal", value: nextRenewal },
-          { label: "Payment method", value: paymentMethod },
+          { label: "email", value: billingEmail },
+          { label: "duration", value: duration },
+          { label: "price", value: price },
         ]}
       />
     </HeroShell>
@@ -283,7 +291,7 @@ function HeroActive({
 function HeroExpired({ onRenew }: { onRenew: () => void }) {
   return (
     <HeroShell tone="amber">
-      <div className="flex justify-between items-start gap-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
         <div className="flex-1 min-w-0">
           <HeroEyebrow tone="amber">Premium · expired</HeroEyebrow>
           <h3 className="text-[22px] font-bold -tracking-[0.3px] mb-1.5 leading-[1.25]">
@@ -295,7 +303,7 @@ function HeroExpired({ onRenew }: { onRenew: () => void }) {
             transcriptions.
           </p>
         </div>
-        <HeroPrice amount="$29.99" per="per month" note="Same price as before" />
+        <HeroPrice amount="$19.99" per="per month" note="Same price as before" />
       </div>
 
       <HeroMeta
@@ -320,6 +328,192 @@ function HeroExpired({ onRenew }: { onRenew: () => void }) {
   );
 }
 
+function PauseCard({ onPause }: { onPause: () => void }) {
+  return (
+    <div className="mb-6 flex flex-col gap-5 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
+      <div className="flex flex-col gap-2">
+        <CardTitle>Need a break?</CardTitle>
+        <p className="text-[13.5px] leading-[1.55] text-muted-foreground">
+          Pause your subscription and come back whenever you're{NBSP}ready
+        </p>
+      </div>
+      <Button
+        variant="warning"
+        onClick={onPause}
+        className="h-12 w-full text-[14px] font-semibold"
+      >
+        Pause Subscription
+      </Button>
+    </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="mb-3.5 text-[20px] font-bold -tracking-[0.3px]">{children}</h3>;
+}
+
+function CardTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-balance text-[18px] font-bold leading-[1.3] -tracking-[0.2px]">
+      {children}
+    </h3>
+  );
+}
+
+// ── Plan card ────────────────────────────────────────────────
+// Badge plus the three facts the product states: who is billed, how often,
+// how much.
+type PlanStatus = "active" | "paused" | "cancelled" | "expired";
+
+// The tinted edge is written in rgba on purpose: the Figma capture pipeline
+// drops oklch and color-mix, and a Tailwind gradient here comes back grey.
+const PLAN_BADGE: Record<
+  PlanStatus,
+  { label: string; heading: string; cls: string; wash: string; dot: string }
+> = {
+  active: {
+    label: "Active",
+    heading: "You're on Premium",
+    cls: "bg-emerald-500/15 text-emerald-700",
+    wash: "linear-gradient(135deg, rgba(16,185,129,0.42) 0%, rgba(16,185,129,0.16) 45%, rgba(16,185,129,0.06) 100%)",
+    dot: "bg-emerald-500",
+  },
+  paused: {
+    label: "Paused",
+    heading: "Your plan is on pause",
+    cls: "bg-warning/15 text-amber-700",
+    wash: "linear-gradient(135deg, rgba(240,177,0,0.45) 0%, rgba(240,177,0,0.16) 45%, rgba(240,177,0,0.06) 100%)",
+    dot: "bg-warning",
+  },
+  cancelled: {
+    label: "Cancelled",
+    heading: "Your plan is cancelled",
+    cls: "bg-destructive/10 text-destructive",
+    wash: "linear-gradient(135deg, rgba(238,26,26,0.30) 0%, rgba(238,26,26,0.10) 45%, rgba(238,26,26,0.04) 100%)",
+    dot: "bg-destructive",
+  },
+  expired: {
+    label: "Expired",
+    heading: "Your Premium has expired",
+    cls: "bg-muted text-muted-foreground",
+    wash: "linear-gradient(135deg, rgba(113,113,122,0.30) 0%, rgba(113,113,122,0.10) 45%, rgba(113,113,122,0.04) 100%)",
+    dot: "bg-muted-foreground",
+  },
+};
+
+function PlanCard({
+  status,
+  rows,
+}: {
+  status: PlanStatus;
+  rows: { label: string; value: string }[];
+}) {
+  const badge = PLAN_BADGE[status];
+  return (
+    <div
+      className="mb-9 max-w-[600px] rounded-[22px] p-[6px] shadow-[0px_10px_28px_rgba(16,24,40,0.06)]"
+      style={{ background: badge.wash }}
+    >
+      <div className="flex flex-col gap-6 rounded-[17px] bg-card px-7 py-6 shadow-[var(--elevation-sm)]">
+        <div className="flex flex-col items-start gap-3.5">
+          <span
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[12.5px] font-semibold ${badge.cls}`}
+          >
+            <span className={`size-1.5 rounded-full ${badge.dot}`} />
+            {badge.label}
+          </span>
+          <h3 className="text-[26px] font-bold leading-[1.15] -tracking-[0.6px]">
+            {badge.heading}
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 gap-y-4 border-t border-border pt-5 sm:grid-cols-[1.5fr_1fr_1fr] sm:gap-y-0">
+          {rows.map((r, i) => (
+            <div
+              key={r.label}
+              className={`flex min-w-0 flex-col gap-1 sm:px-5 ${
+                i === 0 ? "sm:pl-0" : "sm:border-l sm:border-border"
+              } ${i === rows.length - 1 ? "sm:pr-0" : ""}`}
+            >
+              <span className="text-[12px] text-muted-foreground">{r.label}</span>
+              <span className="truncate text-[14.5px] font-semibold -tracking-[0.1px]">
+                {r.value}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Premium benefits, the product's own list ─────────────────
+const PREMIUM_BENEFITS = [
+  {
+    title: "Unlimited audio & video transcriptions",
+    desc: "Unlock unlimited transcriptions with up to 4 hours per conversation. Easily import audio and video files, no limits, no stress",
+  },
+  {
+    title: "AI Meeting Agent",
+    desc: "Let AI join your Zoom, Google Meet, or MS Teams calls to take notes, record audio, and instantly share everything, so you never miss a thing",
+  },
+  {
+    title: "Transcribe from Links",
+    desc: "Turn YouTube videos, Google Drive, and Dropbox files into clear, accurate transcripts in seconds",
+  },
+];
+
+function PremiumBenefitsCard() {
+  return (
+    <div className="mb-6 flex flex-col gap-5 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
+      <CardTitle>Transcribetotext.ai Premium membership gives you</CardTitle>
+      <div className="flex flex-col gap-4">
+        {PREMIUM_BENEFITS.map((b) => (
+          <div key={b.title} className="flex items-start gap-3">
+            <CheckBadge />
+            <div className="min-w-0 text-[13.5px] leading-[1.55]">
+              <strong className="block font-semibold">{b.title}</strong>
+              <span className="mt-0.5 block text-[13px] text-muted-foreground">{b.desc}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Cancelling block, worded the way the product words it
+function CancellingCard({ onCancel }: { onCancel: () => void }) {
+  return (
+    <div className="mb-6 flex flex-col gap-5 rounded-[18px] border border-border bg-card px-6 py-6 shadow-[var(--elevation-sm)]">
+      <div className="flex flex-col gap-2">
+        <CardTitle>Cancelling Subscription?</CardTitle>
+        <p className="text-[13.5px] leading-[1.55] text-muted-foreground">
+          Canceling your subscription will stop your access to all premium transcription features
+          and stored transcripts. If you have purchased or generated any files, please make sure
+          to download them before canceling
+        </p>
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Button
+          variant="pill-outline"
+          onClick={onCancel}
+          className="h-12 w-full text-[14px] font-semibold"
+        >
+          Cancel Subscription
+        </Button>
+        <Button
+          onClick={() => {
+            window.location.href = "mailto:support@transcribetotext.ai";
+          }}
+          className="h-12 w-full text-[14px] font-semibold"
+        >
+          Contact Support
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // ── Manage subscription card ─────────────────────────────────
 
 function ManageRow({
@@ -332,7 +526,7 @@ function ManageRow({
   action: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-4 px-6 py-[18px] border-b border-border last:border-b-0">
+    <div className="flex flex-col items-start gap-3 border-b border-border px-5 py-4 last:border-b-0 md:flex-row md:items-center md:gap-4 md:px-6 md:py-[18px]">
       <div className="flex-1 min-w-0">
         <div className="text-[14px] font-semibold">{title}</div>
         <div className="text-[13px] text-muted-foreground mt-0.5">{desc}</div>
@@ -342,7 +536,7 @@ function ManageRow({
   );
 }
 
-function ManageSubscriptionCard({
+export function ManageSubscriptionCard({
   billingEmail,
   endDate,
   onUpdatePayment,
@@ -389,26 +583,28 @@ function ManageSubscriptionCard({
             </Button>
           }
         />
-        <ManageRow
-          title="Cancel subscription"
-          desc={`You'll keep Premium until ${endDate}, then move to Free.`}
-          action={
-            <Button
-              variant="link"
-              size="sm"
-              className="h-9 px-1 text-[13.5px] text-primary"
-              onClick={onCancel}
-            >
-              Cancel
-            </Button>
-          }
-        />
+
       </div>
     </section>
   );
 }
 
 // ── Page ─────────────────────────────────────────────────────
+
+const CANCEL_DEMO_STEPS: Record<string, CancelFlowInitialStep> = {
+  confirm: "confirm",
+  pause: "pause",
+  pausedone: "pauseDone",
+  before: "before",
+  files: "files",
+  survey: "survey",
+  survey_other: "surveyDetails",
+  survey_details: "surveyDetails",
+  discount: "discount",
+  loading: "loading",
+  kept: "kept",
+  gone: "gone",
+};
 
 interface PlanManagementPageProps {
   state: PlanState;
@@ -417,6 +613,36 @@ interface PlanManagementPageProps {
 export function PlanManagementPage({ state }: PlanManagementPageProps) {
   const { user } = useAuth();
   const billingEmail = user?.email || "you@example.com";
+  const [cancelFlowOpen, setCancelFlowOpen] = useState(false);
+  const [cancelFlowStep, setCancelFlowStep] = useState<CancelFlowInitialStep>("confirm");
+  const [planStatus, setPlanStatus] = useState<PlanStatus>("active");
+
+  // Demo/capture flag: ttt_demo_plan_status=<status> shows the plan card in one of
+  // its four states. Only the card changes, which is what the product does: the
+  // sections under it read the same whatever the subscription is doing.
+  useEffect(() => {
+    try {
+      const flag = localStorage.getItem("ttt_demo_plan_status");
+      if (flag === "paused" || flag === "cancelled" || flag === "expired" || flag === "active") {
+        setPlanStatus(flag);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Demo/capture flag: ttt_demo_cancel=<step> auto-opens the cancel flow at that step.
+  useEffect(() => {
+    try {
+      const flag = localStorage.getItem("ttt_demo_cancel");
+      if (flag && Object.prototype.hasOwnProperty.call(CANCEL_DEMO_STEPS, flag)) {
+        setCancelFlowStep(CANCEL_DEMO_STEPS[flag]);
+        setCancelFlowOpen(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   function handleUpgrade() {
     toast("Upgrading is not enabled in this preview.");
@@ -424,18 +650,22 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
   function handleRenew() {
     toast("Renewal is not enabled in this preview.");
   }
-  function handleUpdatePayment() {
-    toast("Payment management is not enabled in this preview.");
-  }
-  function handleChangeBillingEmail() {
-    toast("Billing email change is not enabled in this preview.");
-  }
   function handleCancel() {
-    toast("Cancellation is not enabled in this preview.");
+    setCancelFlowStep("confirm");
+    setCancelFlowOpen(true);
+  }
+  function handlePause() {
+    setCancelFlowStep("pause");
+    setCancelFlowOpen(true);
   }
 
   return (
     <div className="flex flex-col">
+      <CancelSubscriptionFlow
+        open={cancelFlowOpen}
+        onOpenChange={setCancelFlowOpen}
+        initialStep={cancelFlowStep}
+      />
       {state === "never" && (
         <>
           <HeroFree onUpgrade={handleUpgrade} />
@@ -455,19 +685,18 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
 
       {state === "active" && (
         <>
-          <HeroActive
-            memberSince="Jan 12, 2026"
-            nextRenewal="May 12, 2026"
-            paymentMethod="Visa · 4242"
+          <SectionTitle>My plans</SectionTitle>
+          <PlanCard
+            status={planStatus}
+            rows={[
+              { label: "email", value: billingEmail },
+              { label: "duration", value: "week" },
+              { label: "price", value: "$19.99" },
+            ]}
           />
-          <ManageSubscriptionCard
-            billingEmail={billingEmail}
-            endDate="May 12, 2026"
-            onUpdatePayment={handleUpdatePayment}
-            onChangeEmail={handleChangeBillingEmail}
-            onCancel={handleCancel}
-          />
-          <BenefitsCard title="What your plan includes" />
+          <PremiumBenefitsCard />
+          <PauseCard onPause={handlePause} />
+          <CancellingCard onCancel={handleCancel} />
         </>
       )}
 

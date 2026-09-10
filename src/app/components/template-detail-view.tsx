@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { PencilEdit01Icon, StarsIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
@@ -22,6 +22,7 @@ import { sectionIcon } from "./templates-page";
 import type { Template } from "@/lib/templates";
 import { templateEmoji, categorize, hueForCategory, type CategoryId } from "@/lib/template-meta";
 import { getTemplateSample } from "@/lib/template-samples";
+import { TranscriptRow } from "./transcript-row";
 
 /* View-only template detail page (first iteration: no editing).
    Header: title + compact actions top-right (Edit with a Soon badge, star,
@@ -37,6 +38,8 @@ function loadStarred(): Set<string> {
 function saveStarred(s: Set<string>) {
   localStorage.setItem(STARRED_KEY, JSON.stringify([...s]));
 }
+
+import { setInnerScreen } from "./inner-screen";
 
 const AVATAR_COLORS = ["#2E68EE", "#0E918A", "#D96823", "#6D44E0", "#D14E8D"];
 
@@ -76,6 +79,15 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   const sample = getTemplateSample(template);
 
   const [isStarred, setIsStarred] = useState(() => loadStarred().has(template.id));
+  const [detailTab, setDetailTab] = useState<"summary" | "example">("summary");
+
+  /* Phone chrome: back + "Templates / <name>" replaces the top bar; the bottom
+     nav hides so the pinned Apply bar owns the bottom edge. */
+  useEffect(() => {
+    setInnerScreen({ back: onBack, parent: "Templates", title: template.name, hideNav: true });
+    return () => setInnerScreen(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template.name]);
 
   const [appliedFiles, setAppliedFiles] = useState<typeof records>([]);
   const usageIds = USAGE_BY_CATEGORY[categorize(template)] ?? [];
@@ -109,10 +121,10 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   return (
     <TooltipProvider>
     <div className="flex-1 overflow-auto min-w-0">
-      <div className="px-[32px] pt-[28px] pb-[48px]">
+      <div className="px-4 lg:px-[32px] pt-[16px] lg:pt-[28px] pb-[48px] max-md:pb-[104px]">
 
         {/* Breadcrumb */}
-        <Breadcrumb>
+        <Breadcrumb className="max-md:hidden">
           <BreadcrumbList className="text-[13px]">
             <BreadcrumbItem>
               <BreadcrumbLink asChild>
@@ -125,7 +137,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         </Breadcrumb>
 
         {/* Title + compact actions (aligned with the file detail page) */}
-        <div className="mt-5 mb-7 flex items-start justify-between gap-6">
+        <div className="max-md:mt-1 mt-5 max-md:mb-5 mb-7 flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-6">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <div
@@ -134,7 +146,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
               >
                 <span>{emoji}</span>
               </div>
-              <h1 className="text-2xl font-bold text-foreground leading-tight truncate">
+              <h1 className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground truncate lg:text-2xl lg:leading-tight lg:tracking-normal">
                 {template.name}
               </h1>
             </div>
@@ -143,7 +155,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
             )}
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 pt-0.5">
+          <div className="max-md:hidden flex items-center gap-2 shrink-0 pt-0.5">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -179,7 +191,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
             {isFree ? (
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button className="rounded-full h-9 px-5 text-[13px] font-medium">Apply template</Button>
+                  <Button className="rounded-full h-9 px-5 text-[13px] font-medium max-md:hidden">Apply template</Button>
                 </PopoverTrigger>
                 <PopoverContent align="end" side="bottom" className="w-[300px] p-5">
                   <div className="flex flex-col items-center text-center">
@@ -204,7 +216,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                 </PopoverContent>
               </Popover>
             ) : (
-              <Button className="rounded-full h-9 px-5 text-[13px] font-medium" onClick={handleApply}>
+              <Button className="rounded-full h-9 px-5 text-[13px] font-medium max-md:hidden" onClick={handleApply}>
                 Apply template
               </Button>
             )}
@@ -212,11 +224,26 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         </div>
 
         {/* Two-column: large example (left) + summary card (right) */}
-        <div className="flex gap-10 items-start">
+        {/* Phone/tablet: line tabs (matches the category tabs) to compare Summary vs Example */}
+        <div className="lg:hidden mb-5 flex items-center gap-6 border-b border-border">
+          {(["summary", "example"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setDetailTab(tab)}
+              className={`relative -mb-px pb-2.5 text-[13px] font-medium transition-colors ${detailTab === tab ? "text-primary" : "text-muted-foreground"}`}
+            >
+              {tab === "summary" ? "Summary" : "Example"}
+              {detailTab === tab && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-8 lg:flex-row lg:gap-10 lg:items-start">
 
           {/* Left - the source recording example, full width */}
-          <div className="flex-1 min-w-0">
-            <div className="rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="flex-1 min-w-0 flex flex-col gap-6 max-lg:order-2">
+            <div className={`relative rounded-2xl border border-border bg-card overflow-hidden ${detailTab === "example" ? "" : "max-lg:hidden"}`}>
               <div className="px-7 pt-6 pb-5 border-b border-border/60">
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium text-muted-foreground mb-0.5">Example recording</p>
@@ -233,21 +260,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                   return sample.source.segments.map((seg, i) => {
                     const color = speakerColor.get(seg.speaker);
                     return (
-                      <div key={i} className="flex gap-3.5">
-                        <div
-                          className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white mt-0.5"
-                          style={{ backgroundColor: color }}
-                        >
-                          {seg.speaker.charAt(0)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-[13px] font-semibold text-foreground/85">{seg.speaker}</span>
-                            <span className="text-[11px] text-muted-foreground/60 tabular-nums">{seg.time}</span>
-                          </div>
-                          <p className="text-[14px] text-muted-foreground leading-[1.75] mt-0.5">{seg.text}</p>
-                        </div>
-                      </div>
+                      <TranscriptRow key={i} name={seg.speaker} initial={seg.speaker.charAt(0)} color={color} time={seg.time} text={seg.text} />
                     );
                   });
                 })()}
@@ -258,7 +271,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
             </div>
 
             {/* Usage history */}
-            <div className="mt-6">
+            <div>
               <h3 className="text-[14px] font-semibold text-foreground mb-1">Recently used in</h3>
               <p className="text-[12px] text-muted-foreground mb-3">
                 Files where this template generated the summary.
@@ -298,47 +311,28 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                   </Popover>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="pl-5 text-[11px]">Name</TableHead>
-                        <TableHead className="text-[11px]">Template</TableHead>
-                        <TableHead className="text-[11px]">Duration</TableHead>
-                        <TableHead className="pr-5 text-[11px]">Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {usedIn.map((r) => (
-                        <TableRow
-                          key={r.id}
-                          className="cursor-pointer"
-                          onClick={() => navigate(`/transcriptions/${r.id}`)}
-                        >
-                          <TableCell className="pl-5 max-w-[340px]">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <SourceIcon source={r.source} />
-                              <span className="text-[13px] font-medium text-foreground truncate">{r.name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-[3px] text-[11px] text-muted-foreground whitespace-nowrap">
-                              {template.name}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-[12px] text-muted-foreground whitespace-nowrap">{r.duration}</TableCell>
-                          <TableCell className="pr-5 text-[12px] text-muted-foreground whitespace-nowrap">{r.dateCreated}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                <div className="rounded-2xl border border-border bg-card overflow-hidden divide-y divide-border">
+                  {usedIn.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => navigate(`/transcriptions/${r.id}`)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-muted/50 hover:bg-muted/30 transition-colors"
+                    >
+                      <span className="shrink-0"><SourceIcon source={r.source} /></span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[13px] font-medium text-foreground truncate">{r.name}</span>
+                        <span className="block text-[12px] text-muted-foreground truncate">{r.duration} · {r.dateCreated}</span>
+                      </span>
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
           {/* Right - the summary this template produces */}
-          <div className="w-[480px] shrink-0">
+          <div className={`w-full lg:w-[480px] lg:shrink-0 max-lg:order-1 ${detailTab === "summary" ? "" : "max-lg:hidden"}`}>
             <div className="rounded-2xl border border-border bg-card overflow-hidden" style={{ boxShadow: "var(--elevation-md)" }}>
               <div className="px-7 pt-6 pb-4 border-b border-border">
                 <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground mb-2">
@@ -376,6 +370,51 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
             </div>
           </div>
         </div>
+      </div>
+    </div>
+    {/* Phone: the primary action pinned to the bottom edge (bottom nav hides here) */}
+    <div
+      className="md:hidden fixed inset-x-0 bottom-0 z-50 bg-background border-t border-border px-[16px] pt-[10px]"
+      style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
+    >
+      <div className="flex items-center gap-[8px]">
+        <Button variant="pill-outline" className="h-[46px] px-[14px] gap-1.5 text-[13px] font-medium shrink-0" onClick={() => toast("Template editing is coming soon")}>
+          <Icon icon={PencilEdit01Icon} size={14} />
+          Edit
+        </Button>
+        <Button variant="pill-outline" className="size-[46px] p-0 shrink-0" onClick={handleStar} aria-label={isStarred ? "Remove from starred" : "Add to starred"}>
+          <svg width={17} height={17} fill="none" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </Button>
+      {isFree ? (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold">Apply template</Button>
+          </PopoverTrigger>
+          <PopoverContent align="center" side="top" sideOffset={10} className="w-[300px] p-5">
+            <div className="flex flex-col items-center text-center">
+              <div className="size-11 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+                <Icon icon={StarsIcon} size={20} className="text-primary" />
+              </div>
+              <h4 className="text-[14px] font-semibold text-foreground">A Pro feature</h4>
+              <p className="text-[12px] text-muted-foreground leading-relaxed mt-1">
+                Applying templates to your recordings is available on the Pro plan.
+              </p>
+              <Button
+                className="w-full rounded-full h-9 mt-4 text-[13px] font-medium"
+                onClick={() => {
+                  try { localStorage.setItem("ttt_plan", "pro"); } catch { /* ignore */ }
+                  toast.success("Pro trial activated");
+                  window.setTimeout(() => window.location.reload(), 700);
+                }}
+              >
+                Upgrade to Pro
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold" onClick={handleApply}>Apply template</Button>
+      )}
       </div>
     </div>
     <ApplyTemplateDialog open={applyOpen} onOpenChange={setApplyOpen} template={template} />

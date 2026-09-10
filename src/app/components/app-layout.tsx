@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { Puzzle } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { SharedWithMePage } from "./shared-with-me-page";
 import { AppSidebar } from "./app-sidebar";
 import { DashboardPage } from "./dashboard-page";
 import { CalendarPage } from "./calendar-page";
@@ -11,9 +12,14 @@ import { useLanguage } from "./language-context";
 import { TopBar } from "./top-bar";
 import { MobileTopBar } from "./mobile-top-bar";
 import { BottomNav } from "./bottom-nav";
+import { InnerScreenBottomBar } from "./inner-screen";
 import { SettingsPage } from "./settings-modal";
 import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
+import { DesktopWindowFrame, useShell } from "./desktop/shell";
+import { NotetakerPage } from "./desktop/notetaker-page";
+import { DemoSwitcher } from "./desktop/demo-switcher";
+import { DesktopNotice } from "./desktop/desktop-notice";
 
 export function AppLayout() {
   const [activePage, setActivePage] = useState("dashboard");
@@ -52,10 +58,13 @@ export function AppLayout() {
     handleNavigate("records");
   }
 
+  const { desktop } = useShell();
+
   return (
     <UserProfileProvider>
+     <DesktopWindowFrame>
       <SidebarProvider className="h-screen !min-h-0 overflow-hidden bg-sidebar">
-        <AppSidebar activePage={activePage} onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />
+        <AppSidebar activePage={isSubRoute ? "" : activePage} onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />
         <SidebarInset className="overflow-hidden bg-sidebar">
           <TopBar onNavigate={handleNavigate} />
           <MobileTopBar onNavigate={handleNavigate} />
@@ -69,18 +78,23 @@ export function AppLayout() {
                 )}
                 {!isSettings && activePage === "dashboard" && <DashboardPage onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />}
                 {!isSettings && activePage === "records" && <MyRecordsPage initialFolderId={initialFolderId} onFolderConsumed={() => setInitialFolderId(null)} />}
-                {!isSettings && activePage === "shared" && <PagePlaceholder activePage="shared with me" />}
+                {!isSettings && activePage === "shared" && <SharedWithMePage />}
                 {!isSettings && activePage === "calendar" && <CalendarPage />}
                 {!isSettings && activePage === "templates" && <TemplatesPage />}
-                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && (
+                {!isSettings && desktop && activePage === "notetaker" && <NotetakerPage onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />}
+                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && activePage !== "notetaker" && (
                   <PagePlaceholder activePage={activePage} />
                 )}
               </>
             )}
           </main>
-          {!isSubRoute && <BottomNav activePage={activePage} onNavigate={handleNavigate} />}
+          <BottomNav />
+          <InnerScreenBottomBar />
         </SidebarInset>
       </SidebarProvider>
+       <DesktopNotice />
+       <DemoSwitcher />
+     </DesktopWindowFrame>
     </UserProfileProvider>
   );
 }

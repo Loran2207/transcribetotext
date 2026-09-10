@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import { ScrollFade } from "./scroll-fade";
 import {
   Add01Icon,
   Copy01Icon,
@@ -181,7 +182,7 @@ export function sectionIcon(title: string, iconId?: string) {
 // `auto-rows-fr` makes every card in a row stretch to the tallest card, which
 // combined with the card's internal `flex flex-col` + `flex-1` on the preview
 // block keeps the footer pinned to the bottom.
-const CARD_GRID_CLASS = "grid gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 auto-rows-fr";
+const CARD_GRID_CLASS = "grid gap-[10px] lg:gap-5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 lg:auto-rows-fr";
 
 // ---------------------------------------------------------------------------
 // Template card
@@ -241,7 +242,7 @@ function TemplateCard({
         }
       } : undefined}
       className={cn(
-        "relative rounded-[18px] transition-all overflow-hidden outline-none flex flex-col h-full",
+        "relative rounded-[18px] lg:min-h-[236px] transition-all overflow-hidden outline-none flex flex-col h-full",
         "focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2",
         clickable ? "cursor-pointer" : "cursor-default",
       )}
@@ -249,7 +250,6 @@ function TemplateCard({
         background: cardBg,
         boxShadow: cardShadow,
         padding: "18px",
-        minHeight: 236,
         transform: hovered ? "translateY(-2px)" : "translateY(0)",
         transitionDuration: "180ms",
         transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
@@ -272,7 +272,7 @@ function TemplateCard({
           <span>{emoji}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="truncate font-semibold text-[15px] text-foreground leading-snug">
+          <p className="truncate font-semibold text-[14px] lg:text-[15px] text-foreground leading-snug">
             {template.name}
           </p>
           {template.description && (
@@ -993,9 +993,9 @@ function TemplateDetailLegacy({
 
 function LoadingSkeleton() {
   return (
-    <div className="flex-1 overflow-auto min-w-0"><div className="px-[32px] pt-[28px] pb-[48px]">
+    <div className="flex-1 overflow-auto min-w-0"><div className="px-4 lg:px-[32px] pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between mb-[24px]"><Skeleton className="h-[34px] w-[160px]" /></div>
-      <div className="flex items-center gap-5 border-b border-border pb-3 mb-8">
+      <div className="flex items-center gap-5 border-b border-border pb-3 mb-8 overflow-x-auto [&::-webkit-scrollbar]:hidden">
         {Array.from({ length: 5 }).map((_, i) => (<Skeleton key={i} className="h-[16px] w-[70px]" />))}
       </div>
       <Skeleton className="h-[18px] w-[120px] mb-5" />
@@ -1054,6 +1054,7 @@ const CATEGORY_TAB_IDS = TEMPLATE_CATEGORIES
   .map((c) => c.id) as CategoryTabId[];
 
 export function TemplatesPage() {
+  const tplScrollRef = useRef<HTMLDivElement>(null);
   const { templates, isLoading, create, update, remove } = useTemplates();
   const [detailTarget, setDetailTarget] = useState<Template | "new" | null>(null);
 
@@ -1243,20 +1244,21 @@ export function TemplatesPage() {
   };
 
   return (
-    <div className="flex-1 overflow-auto min-w-0"><div className="px-[32px] pt-[28px] pb-[48px]">
+    <div ref={tplScrollRef} className="flex-1 overflow-auto min-w-0"><ScrollFade scrollRef={tplScrollRef} /><div className="px-4 lg:px-[32px] pt-[16px] lg:pt-[28px] pb-[48px]">
       <div className="flex items-center justify-between gap-[12px] mb-[24px]">
-        <p className="whitespace-nowrap text-foreground" style={{ fontWeight: 700, fontSize: "28px", lineHeight: "33.6px", letterSpacing: "-0.56px" }}>Templates</p>
+        <p className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px] lg:whitespace-nowrap">Templates</p>
         
       </div>
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex-1 min-w-0 gap-0">
-        <div className="overflow-x-auto -mx-[32px] px-[32px] border-b border-border [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+        <div className="overflow-x-auto -mx-4 px-4 lg:-mx-[32px] lg:px-[32px] border-b border-border [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
           <TabsList variant="line" className="gap-5 whitespace-nowrap w-max border-0">
-            <TabsTrigger value="all" variant="line">All <span className="opacity-50 font-[inherit] ml-1">{allCount}</span></TabsTrigger>
-            <TabsTrigger value="starred" variant="line">Starred <span className="opacity-50 font-[inherit] ml-1">{starredCount}</span></TabsTrigger>
+            <TabsTrigger value="all" variant="line" className="max-lg:text-[13px]">All <span className="opacity-50 font-[inherit] ml-1">{allCount}</span></TabsTrigger>
+            <TabsTrigger value="starred" variant="line" className="max-lg:text-[13px]">Starred <span className="opacity-50 font-[inherit] ml-1">{starredCount}</span></TabsTrigger>
+            <TabsTrigger value="custom" variant="line" className="max-lg:text-[13px]">My templates <span className="opacity-50 font-[inherit] ml-1">{customCount}</span></TabsTrigger>
             {CATEGORY_TAB_IDS.map((catId) => {
               const meta = CATEGORY_META_BY_ID[catId];
               return (
-                <TabsTrigger key={catId} value={catId} variant="line">
+                <TabsTrigger key={catId} value={catId} variant="line" className="max-lg:text-[13px]">
                   {meta.label}
                   <span className="opacity-50 font-[inherit] ml-1">{countByCategory[catId] ?? 0}</span>
                 </TabsTrigger>

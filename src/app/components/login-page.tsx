@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { DesktopWindowFrame } from "./desktop/shell";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate, Navigate, useLocation } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import { EyeIcon, ViewOffIcon, Loading01Icon } from "@hugeicons/core-free-icons";
+import { ViewIcon, ViewOffSlashIcon, Loading01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
@@ -89,6 +90,7 @@ export function LoginPage() {
         };
 
   return (
+    <DesktopWindowFrame>
     <AuthLayout>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
         <motion.div {...animProps(0)}>
@@ -208,7 +210,7 @@ export function LoginPage() {
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
               <Icon
-                icon={showPassword ? ViewOffIcon : EyeIcon}
+                icon={showPassword ? ViewOffSlashIcon : ViewIcon}
                 size={16}
               />
             </button>
@@ -254,5 +256,6 @@ export function LoginPage() {
         </motion.p>
       </form>
     </AuthLayout>
+    </DesktopWindowFrame>
   );
 }

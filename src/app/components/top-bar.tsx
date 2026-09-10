@@ -44,13 +44,13 @@ export function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => 
         <div className="size-[28px] rounded-full overflow-hidden shrink-0">
           <img src={avatarSrc} alt="Avatar" className="size-full object-cover" />
         </div>
-        <div className="hidden md:flex flex-col items-start">
-          <span className="flex items-center gap-[4px] font-medium text-[12.5px] text-foreground whitespace-nowrap">
-            {userEmail}
-            <Icon icon={ChevronDown} className="size-[10px] text-muted-foreground" strokeWidth={2} />
-          </span>
-          <span className="font-normal text-[10.5px] text-muted-foreground whitespace-nowrap">{plan === "pro" ? "Pro Plan" : "Free Plan"}</span>
-        </div>
+        {/* The plan belongs to the plan screen, not to the name badge: the
+            second line repeated what the sidebar plaque and the trial button
+            already say. The email stands alone. */}
+        <span className="hidden md:flex items-center gap-[4px] font-medium text-[12.5px] text-foreground whitespace-nowrap">
+          {userEmail}
+          <Icon icon={ChevronDown} className="size-[10px] text-muted-foreground" strokeWidth={2} />
+        </span>
       </Button>
 
       {open && (
@@ -113,7 +113,7 @@ export function TopBar({ onNavigate }: TopBarProps) {
   }, []);
 
   return (
-    <div className="shrink-0 hidden lg:flex items-center px-[16px] h-[56px] gap-[12px] bg-sidebar">
+    <div className="ttt-topbar shrink-0 hidden lg:flex items-center px-[16px] h-[56px] gap-[12px] bg-sidebar">
       {/* Search trigger */}
       <Button variant="ghost"
         onClick={() => setSearchOpen(true)}

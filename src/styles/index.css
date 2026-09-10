@@ -94,3 +94,158 @@
   to   { opacity: 1; transform: scale(1); }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   Upload queue — CSS Keyframes
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* A ring that leaves the button and fades. The button itself never moves, so
+   the counters stay readable while the queue is working. */
+@keyframes queue-halo {
+  0%   { transform: scale(1);    opacity: 0.5; }
+  70%  { transform: scale(1.32); opacity: 0; }
+  100% { transform: scale(1.32); opacity: 0; }
+}
+
+/* For work that reports no percentage - a bot connecting, a call recording -
+   the sweep says it is alive without claiming a figure. */
+@keyframes queue-sweep {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* The same idea one row down: a band travelling along the hairline. */
+@keyframes queue-drift {
+  0%   { transform: translateX(-70%); }
+  100% { transform: translateX(230%); }
+}
+
+.queue-halo  { animation: queue-halo 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+.queue-sweep { animation: queue-sweep 1.5s linear infinite; }
+.queue-drift { animation: queue-drift 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .queue-halo  { animation: none; opacity: 0; }
+  .queue-sweep { animation: none; }
+  .queue-drift { animation: none; transform: translateX(0); width: 100%; opacity: 0.45; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Overlay motion — one animation for every dialog, sheet and the search
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Three parts, and the third is the one that makes it feel made: the dim goes
+   quiet and blurs the page, the card arrives on a spring, and the contents
+   follow it in a beat apart in reading order. Closing is flat and quick.
+
+   The spring is Apple's shape written as a curve - a 300ms period with bounce
+   0.2, sampled to 420ms so it settles. Distances and the exit are in the band
+   Radix Themes and Emil Kowalski's standards use for a modal. The working
+   demonstration is public/dialog-motion.html. */
+
+:root {
+  --motion-spring: linear(0 0%, 0.064 4.5%, 0.208 9.1%, 0.375 13.6%, 0.537 18.2%, 0.676 22.7%, 0.787 27.3%, 0.87 31.8%, 0.929 36.4%, 0.969 40.9%, 0.993 45.5%, 1.007 50%, 1.013 54.5%, 1.015 59.1%, 1.014 63.6%, 1.012 68.2%, 1.01 72.7%, 1.007 77.3%, 1.005 81.8%, 1.003 86.4%, 1.002 90.9%, 1.001 95.5%, 1 100%);
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-sheet-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --motion-in: 420ms;
+  --motion-fade: 220ms;
+  --motion-dim: 240ms;
+  --motion-sheet: 400ms;
+  --motion-out: 140ms;
+  --motion-sheet-out: 200ms;
+}
+
+@keyframes ttt-dim-in  { from { opacity: 0; backdrop-filter: blur(0px); } to { opacity: 1; backdrop-filter: blur(5px); } }
+@keyframes ttt-dim-out { from { opacity: 1; backdrop-filter: blur(5px); } to { opacity: 0; backdrop-filter: blur(0px); } }
+
+/* A card centred with translate(-50%, -50%) carries that translate inside the
+   keyframe, or it jumps to the corner for the length of the animation. */
+/* The card is centred by Tailwind's translate-x-[-50%] translate-y-[-50%], and
+   in Tailwind v4 those compile to the CSS `translate` property, not `transform`.
+   The two are separate steps of the same transform pipeline, so a keyframe that
+   also said translate(-50%, -50%) moved the card half its own width and half its
+   own height a SECOND time: at 1440 the dialog sat with its right edge on the
+   screen's centre line, and the animation's `both` fill made it stay there.
+   These keyframes now carry only the movement that is theirs - the rise and the
+   scale - and leave the centring to the property that owns it. */
+@keyframes ttt-card-move     { from { transform: translateY(12px) scale(0.96); } to { transform: none; } }
+@keyframes ttt-card-move-out { from { transform: none; } to { transform: translateY(4px) scale(0.99); } }
+
+/* The same movement for a card its flex parent centres. */
+@keyframes ttt-rise-move     { from { transform: translateY(12px) scale(0.96); } to { transform: translateY(0) scale(1); } }
+@keyframes ttt-rise-move-out { from { transform: translateY(0) scale(1); } to { transform: translateY(4px) scale(0.99); } }
+
+/* Opacity and focus settle sooner than the shape does, so the dialog is
+   readable well before it has finished arriving. */
+@keyframes ttt-card-fade     { from { opacity: 0; filter: blur(3px); } to { opacity: 1; filter: blur(0); } }
+@keyframes ttt-card-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* The contents, a beat behind the card. */
+@keyframes ttt-row-in { from { opacity: 0; transform: translateY(12px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+/* A sheet has an edge to arrive from, so it travels its own height on the iOS
+   curve instead of scaling. No fade: two things at once reads as neither. */
+@keyframes ttt-sheet-in  { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes ttt-sheet-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
+
+/* Search is summoned from the top bar, so it arrives from above. */
+@keyframes ttt-search-in  { from { opacity: 0; transform: translateY(-10px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes ttt-search-out { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-6px) scale(0.99); } }
+
+.ttt-dim,        .ttt-dim[data-state="open"]          { animation: ttt-dim-in  var(--motion-dim) var(--motion-ease) both; }
+                 .ttt-dim[data-state="closed"]        { animation: ttt-dim-out var(--motion-out) var(--motion-ease) both; }
+
+.ttt-modal-card, .ttt-modal-card[data-state="open"]   { animation: ttt-card-move var(--motion-in) var(--motion-spring) both, ttt-card-fade var(--motion-fade) var(--motion-ease) both; }
+                 .ttt-modal-card[data-state="closed"] { animation: ttt-card-move-out var(--motion-out) var(--motion-ease) both, ttt-card-fade-out var(--motion-out) var(--motion-ease) both; }
+
+.ttt-modal-rise, .ttt-modal-rise[data-state="open"]   { animation: ttt-rise-move var(--motion-in) var(--motion-spring) both, ttt-card-fade var(--motion-fade) var(--motion-ease) both; }
+                 .ttt-modal-rise[data-state="closed"] { animation: ttt-rise-move-out var(--motion-out) var(--motion-ease) both, ttt-card-fade-out var(--motion-out) var(--motion-ease) both; }
+
+.ttt-search,     .ttt-search[data-state="open"]       { animation: ttt-search-in  var(--motion-fade) var(--motion-ease) both; }
+                 .ttt-search[data-state="closed"]     { animation: ttt-search-out var(--motion-out)  var(--motion-ease) both; }
+
+/* Opt a dialog's blocks into the stagger by giving each one --i. Without it
+   they arrive together, which still reads fine - the stagger is the polish. */
+.ttt-stagger > * { animation: ttt-row-in 320ms var(--motion-ease) both; animation-delay: calc(90ms + var(--i, 0) * 34ms); }
+[data-state="closed"].ttt-stagger > * { animation: none; }
+
+/* The sheet rules come last on purpose: one element carries a card class and a
+   sheet class, and the width decides which of them is allowed to speak. */
+@media (max-width: 767px) {
+  .ttt-modal-sheet,    .ttt-modal-sheet[data-state="open"]      { animation: ttt-sheet-in  var(--motion-sheet) var(--motion-sheet-ease) both; }
+                       .ttt-modal-sheet[data-state="closed"]    { animation: ttt-sheet-out var(--motion-sheet-out) var(--motion-sheet-ease) both; }
+}
+@media (max-width: 639px) {
+  .ttt-modal-sheet-sm, .ttt-modal-sheet-sm[data-state="open"]   { animation: ttt-sheet-in  var(--motion-sheet) var(--motion-sheet-ease) both; }
+                       .ttt-modal-sheet-sm[data-state="closed"] { animation: ttt-sheet-out var(--motion-sheet-out) var(--motion-sheet-ease) both; }
+}
+
+/* Asked for less movement, the product still says something arrived. */
+@media (prefers-reduced-motion: reduce) {
+  .ttt-dim, .ttt-modal-card, .ttt-modal-rise, .ttt-modal-sheet, .ttt-modal-sheet-sm, .ttt-search, .ttt-stagger > * {
+    animation-duration: 120ms !important;
+    animation-delay: 0ms !important;
+    animation-timing-function: linear !important;
+  }
+  .ttt-modal-card, .ttt-modal-rise, .ttt-modal-sheet, .ttt-modal-sheet-sm, .ttt-search, .ttt-stagger > * { animation-name: ttt-dim-in; }
+  .ttt-modal-card[data-state="closed"], .ttt-modal-rise[data-state="closed"],
+  .ttt-modal-sheet[data-state="closed"], .ttt-modal-sheet-sm[data-state="closed"],
+  .ttt-search[data-state="closed"] { animation-name: ttt-dim-out; }
+}
+
+/* The desktop shell keeps the portal's height: the window controls sit in the
+   top row, so the logo steps right on macOS and the top bar ends earlier on
+   Windows. */
+html[data-shell="desktop"][data-os="mac"] [data-slot="sidebar-header"] { padding-left: 76px; }
+html[data-shell="desktop"][data-os="mac"] [data-slot="sidebar-header"] svg { width: 156px; height: 26px; }
+@keyframes ttt-feature-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.ttt-feature-in { animation: ttt-feature-in 0.35s ease-out both; }
+@keyframes ttt-glow { 0%, 100% { box-shadow: 0 6px 18px color-mix(in oklch, var(--primary) 38%, transparent); } 50% { box-shadow: 0 8px 24px color-mix(in oklch, var(--primary) 55%, transparent); } }
+.ttt-glow { animation: ttt-glow 2.2s ease-in-out infinite; }
+html[data-shell="desktop"][data-os="win"] .ttt-topbar { padding-right: 150px; }
+
+/* the desk scene draws its own widget; the in-app pill stays off it */
+html[data-desk="1"] .ttt-recording-pill { display: none; }
+
+/* the recording capsule's sound bars: each bar breathes on its own beat */
+@keyframes ttt-bar { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+.ttt-bar { transform-origin: center; animation: ttt-bar 0.9s ease-in-out infinite; }
