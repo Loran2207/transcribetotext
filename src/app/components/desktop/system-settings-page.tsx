@@ -1,9 +1,8 @@
 import { Mic01Icon, VolumeHighIcon } from "@hugeicons/core-free-icons";
 import { Switch } from "../ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { SettingsCard, SettingsCardTitle } from "../calendar-settings";
 import { useDemo, useShell } from "./shell";
-import { useSystemSettings, type SystemSettings } from "./notetaker-settings";
+import { useSystemSettings } from "./notetaker-settings";
 import { Row, Rows } from "./notetaker-settings-page";
 
 const APP_VERSION = "1.0.0";
@@ -16,28 +15,13 @@ export function SystemSettingsPanel() {
   const perm = useDemo("perm");
   const mac = os !== "win";
   const allowed = { mic: perm !== "1", sys: !mac || (perm !== "1" && perm !== "mic") };
-  const shortcuts: Record<SystemSettings["shortcut"], string> = mac
-    ? { primary: "\u2325 \u2318 R", secondary: "\u2303 \u2325 R", tertiary: "\u21E7 \u2318 R" }
-    : { primary: "Ctrl + Alt + R", secondary: "Ctrl + Shift + R", tertiary: "Alt + R" };
   return (
     <div className="flex flex-col gap-4">
       <SettingsCard>
         <SettingsCardTitle title="Startup" subtitle={`How the app behaves on ${machine}.`} />
         <Rows>
           <Row title="Open at login" desc={`Starts with ${machine}, ready before the first call.`}><Switch checked={settings.openAtLogin} onCheckedChange={(v) => update({ openAtLogin: v })} /></Row>
-          <Row title="Keep running when the window is closed" desc={mac ? "Stays in the menu bar, so calls are still noticed and the shortcut still works." : "Stays in the tray, so calls are still noticed and the shortcut still works."}><Switch checked={settings.keepRunning} onCheckedChange={(v) => update({ keepRunning: v })} /></Row>
-        </Rows>
-      </SettingsCard>
-
-      <SettingsCard>
-        <SettingsCardTitle title="Shortcut" />
-        <Rows>
-          <Row title="Start or stop a recording" desc="Works from any app while this one is running.">
-            <Select value={settings.shortcut} onValueChange={(v) => update({ shortcut: v as SystemSettings["shortcut"] })}>
-              <SelectTrigger className="h-[34px] w-[160px] rounded-[10px] text-[13px]"><SelectValue /></SelectTrigger>
-              <SelectContent className="z-[120]">{(Object.keys(shortcuts) as SystemSettings["shortcut"][]).map((k) => <SelectItem key={k} value={k} className="text-[13px]">{shortcuts[k]}</SelectItem>)}</SelectContent>
-            </Select>
-          </Row>
+          <Row title="Keep running when the window is closed" desc={mac ? "Stays in the menu bar, so calls are still noticed." : "Stays in the tray, so calls are still noticed."}><Switch checked={settings.keepRunning} onCheckedChange={(v) => update({ keepRunning: v })} /></Row>
         </Rows>
       </SettingsCard>
 
