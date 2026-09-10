@@ -40,6 +40,8 @@ import { records, type RecordRow } from "./records-table";
 import { TemplatePicker } from "./template-picker";
 import { TemplateLibraryDialog } from "./template-library-dialog";
 import { meetings as calendarMeetings } from "./todays-events";
+import { ProviderLogo } from "./calendar-connect";
+import { useCalendarAccounts, PROVIDER_NAMES } from "./calendar-accounts";
 import { TemplateSheet, LanguageSheet } from "./result-picker-sheets";
 import { templateEmoji } from "@/lib/template-meta";
 import { Icon } from "./ui/icon";
@@ -1543,7 +1545,7 @@ export function FolderChip({ folderId, onChange }: { folderId: string | null; on
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="inline-flex items-center gap-1.5 rounded-full text-xs text-foreground transition-colors hover:text-primary">
+        <button type="button" className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-[3px] text-xs text-foreground transition-colors hover:bg-muted/60 data-[state=open]:bg-muted/60">
           {current ? <FolderGlyph color={current.color} className="size-[14px]" /> : <Icon icon={FolderOpen} className="size-[13px] text-muted-foreground" strokeWidth={1.7} />}
           {current?.name ?? "Add to folder"}
           <Icon icon={ArrowDown01Icon} className="size-[11px] text-muted-foreground" strokeWidth={2} />
@@ -1585,6 +1587,9 @@ export function MeetingCard({ meetingId, onChange, dateLabel = "Today", suggeste
   /* a meeting the calendar says is on right now: offered on the chip, linked only after a Yes */
   suggestedId?: string | null; onDismissSuggestion?: () => void;
 }) {
+  /* the connected calendar draws its own logo: the event came from there and the Calendar button opens it */
+  const { accounts: calendarAccounts } = useCalendarAccounts();
+  const calendarProvider = calendarAccounts[0]?.provider ?? "google";
   const { displayName, avatarSrc } = useUserProfile();
   const meeting = calendarMeetings.find((m) => m.id === meetingId) ?? null;
   const suggested = !meeting && suggestedId ? calendarMeetings.find((m) => m.id === suggestedId) ?? null : null;
@@ -1667,7 +1672,7 @@ export function MeetingCard({ meetingId, onChange, dateLabel = "Today", suggeste
                   <a href={`https://${MEETING_LINK[meeting.id]}`} target="_blank" rel="noopener" className="mt-[8px] flex items-center gap-2 px-[4px] text-[12.5px] text-muted-foreground hover:text-primary hover:underline"><Icon icon={Link01Icon} className="size-[13px]" strokeWidth={1.8} /><span className="truncate">{MEETING_LINK[meeting.id]}</span></a>
                   <div className="mt-[10px] grid grid-cols-2 gap-2">
                     <Button variant="pill-outline" className="h-9 gap-2 rounded-full text-[13px] font-medium" onClick={() => toast(`Opening ${PLATFORM_LABEL[meeting.platform]}`)}><span className="scale-[0.9]"><SourceIcon source={PLATFORM_SOURCE[meeting.platform]} /></span>Join</Button>
-                    <Button variant="pill-outline" className="h-9 gap-2 rounded-full text-[13px] font-medium" onClick={() => toast("Opening the calendar")}><Icon icon={Calendar03Icon} className="size-[14px]" strokeWidth={1.8} />Calendar</Button>
+                    <Button variant="pill-outline" className="h-9 gap-2 rounded-full text-[13px] font-medium" onClick={() => toast(`Opening ${PROVIDER_NAMES[calendarProvider]}`)}><ProviderLogo provider={calendarProvider} size={15} />Calendar</Button>
                   </div>
                 </>
               )}
@@ -1863,8 +1868,8 @@ export function LiveRecordingBar({
           Generate notes
         </button>
       )}
-      <div className="grid items-center gap-3 md:grid-cols-[1fr_auto_1fr]">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="@container grid items-center gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <span className="relative flex size-[8px] shrink-0">
             <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${!isPaused ? "animate-ping" : ""}`}
               style={{ backgroundColor: isPaused ? undefined : "#f87171" }} />
@@ -1876,7 +1881,7 @@ export function LiveRecordingBar({
           </span>
           <span className="font-semibold text-[14px] text-foreground tabular-nums">{formatElapsedTime(elapsedSeconds)}</span>
           <LiveRecordingWaveform active={!isPaused} />
-          {caption && <span className="hidden whitespace-nowrap text-xs text-muted-foreground md:inline">
+          {caption && <span className="hidden whitespace-nowrap text-xs text-muted-foreground @[980px]:inline">
             {isPaused ? (generate ? (showGenerate ? "On hold. Resume, or generate the notes" : "Resume to add more") : "Recording on hold") : "Live transcript is running"}
           </span>}
         </div>
@@ -1915,7 +1920,7 @@ export function LiveRecordingBar({
                   {!compact && <span className="truncate">Call sound not allowed</span>}
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="end" sideOffset={10} className="z-[120] w-[320px] rounded-[16px] p-[16px]">
+              <PopoverContent align="end" sideOffset={10} className="z-[120] w-[380px] rounded-[16px] p-[16px]">
                 <p className="flex items-start gap-2 text-[14px] font-semibold text-foreground"><Icon icon={Alert02Icon} className="mt-[2px] size-[16px] shrink-0 text-warning" strokeWidth={2} />{warning.title}</p>
                 <p className="mt-[6px] text-[12.5px] text-muted-foreground">{warning.body}</p>
                 <Button variant="warning" onClick={warning.onAllow} className="mt-[12px] h-8 rounded-full px-[14px] text-[13px] font-semibold">{warning.action}</Button>
@@ -3380,22 +3385,19 @@ export function TranscriptionDetailPage() {
                   <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Previous note" disabled><Icon icon={ArrowLeft01Icon} className="size-[16px]" strokeWidth={2} /></Button>
                   <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button>
                 </div>
-                <div className="max-lg:hidden mr-1 inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
+                <div className="max-lg:hidden inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
                   <Select disabled>
                     <SelectTrigger size="sm" className="h-8 w-[190px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0" title="Translate the transcript once the call has ended"><SelectValue placeholder="Translate to..." /></SelectTrigger>
                   </Select>
                 </div>
+                {/* the window docks beside the call: notes on one half, the meeting on the other */}
+                <span className="max-lg:hidden"><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Side by side with the call" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }}><Icon icon={LayoutRightIcon} className="size-4" strokeWidth={1.9} /></Button></TooltipTrigger><TooltipContent>Side by side with the call</TooltipContent></Tooltip></span>
               </div>)}
             </div>
             {desktopShell ? (
               <div className="mt-[26px] flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 py-1"><LiveTitle className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal" /></div>
                 <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                  {/* the window docks beside the call: notes on one half, the meeting on the other */}
-                  <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }} title="Put the notes beside the call">
-                    <Icon icon={LayoutRightIcon} className="size-[14px]" strokeWidth={1.9} />
-                    <span className="text-[13px] font-medium">Side by side</span>
-                  </Button>
                   <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden" onClick={() => setShareDialogOpen(true)}>
                     <Icon icon={Share} className="size-[14px]" strokeWidth={1.7} />
                     <span className="text-[13px] font-medium">Share</span>
@@ -3492,7 +3494,7 @@ export function TranscriptionDetailPage() {
                 <div className="mb-4 flex items-center gap-3 rounded-[14px] border border-warning/30 bg-warning/[0.07] px-4 py-3">
                   <Icon icon={Alert02Icon} className="size-[18px] shrink-0 text-warning" strokeWidth={2} />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[13.5px] font-semibold text-foreground">{permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `The call's sound isn't allowed on ${machine}`}</span>
+                    <span className="block text-[13.5px] font-semibold text-foreground">{permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `Call sound isn't allowed on ${machine}`}</span>
                     <span className="block text-[12.5px] text-muted-foreground">{permDemo === "1" ? "Nothing is being transcribed until you allow them." : "Only your side is transcribed. The other side won't appear here."}</span>
                   </span>
                   <Button variant="warning" onClick={() => setPermDemo(null)} className="h-8 shrink-0 rounded-full px-[14px] text-[13px] font-semibold">{permDemo === "1" ? "Allow both" : "Allow system audio"}</Button>
@@ -3569,7 +3571,7 @@ export function TranscriptionDetailPage() {
             onStop={stopInstantRecording}
             generate={desktopShell}
             warning={desktopShell && permDemo ? {
-              title: permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `The call's sound isn't allowed on ${machine}`,
+              title: permDemo === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `Call sound isn't allowed on ${machine}`,
               body: permDemo === "1" ? "Nothing is being recorded until you allow them." : "Only your microphone is recorded, so the other side won't be in the transcript.",
               action: permDemo === "1" ? "Allow both" : "Allow system audio",
               onAllow: () => setPermDemo(null),
@@ -3666,7 +3668,7 @@ export function TranscriptionDetailPage() {
                 </button>
                 <span className="text-muted-foreground/50">/</span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-muted/45 px-2 py-0.5 text-xs text-foreground/80">
-                  <span className="size-1.5 rounded-full" style={{ backgroundColor: selectedFolder.color }} />
+                  <FolderGlyph color={selectedFolder.color} className="size-[13px]" />
                   <span>{selectedFolder.name}</span>
                 </span>
                 <span className="text-muted-foreground/50 max-lg:hidden">/</span>
@@ -3734,6 +3736,7 @@ export function TranscriptionDetailPage() {
               </Button>
             </div>
           </div>
+          {desktopShell && <span className="max-lg:hidden"><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Side by side with the call" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }}><Icon icon={LayoutRightIcon} className="size-4" strokeWidth={1.9} /></Button></TooltipTrigger><TooltipContent>Side by side with the call</TooltipContent></Tooltip></span>}
         </div>
 
         <PageHeader
@@ -3875,14 +3878,15 @@ export function TranscriptionDetailPage() {
                       </label>
                     </>
                   )}
-                <TemplateSelectorButton
+                {/* the template shapes the summary only: on My thoughts there is nothing for it to do */}
+                {activeTab === "summary" && <TemplateSelectorButton
                   activeTemplateId={activeTemplateId}
                   templates={templates}
                   open={templatePickerOpen}
                   onOpenChange={setTemplatePickerOpen}
                   onSelect={handleTemplateSelect}
                   onNavigateToTemplates={() => navigate("/")}
-                />
+                />}
                 </div>
               )}
             </div>

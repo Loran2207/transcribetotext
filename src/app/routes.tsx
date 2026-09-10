@@ -13,6 +13,7 @@ import { ShareViewPage } from "./components/share-view-page";
 import { CheckoutPage } from "./components/checkout-page";
 import { MiniRecorderPage } from "./components/desktop/mini-recorder";
 import { DeskPage } from "./components/desktop/desk-page";
+import { UserProfileProvider } from "./components/user-profile-context";
 
 function ProtectedAppLayout() {
   return (
@@ -31,7 +32,7 @@ export const router = createBrowserRouter([
     ],
   },
   { path: "/widget", Component: () => (<ProtectedRoute><MiniRecorderPage /></ProtectedRoute>) },
-  { path: "/desk", Component: () => (<ProtectedRoute><DeskPage /></ProtectedRoute>) },
+  { path: "/desk", Component: () => (<ProtectedRoute><UserProfileProvider><DeskPage /></UserProfileProvider></ProtectedRoute>) },
   { path: "/login", Component: LoginPage },
   { path: "/signup", Component: SignupPage },
   { path: "/check-email", Component: EmailConfirmationPage },
