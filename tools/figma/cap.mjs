@@ -46,6 +46,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   else if (op === "wait") await p.waitForTimeout(+arg);
   else if (op === "fill") { const [sel, text] = arg.split("|"); await p.fill(sel, text); }
   else if (op === "hover") await p.hover(arg);
+  /* focus=<sel>: a tooltip opened by focus stays open after the pointer leaves */
+  else if (op === "focus") await p.focus(arg);
   /* the pointer is moved away before the capture, so a hover state is HELD
      instead: the browser is told the element is :hover until the frame is cut */
   else if (op === "force") {
