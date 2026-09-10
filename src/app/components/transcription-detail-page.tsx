@@ -1604,11 +1604,11 @@ export function MeetingCard({ meetingId, onChange, dateLabel = "Today", suggeste
     <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setPicking(false); setQuery(""); } }}>
       {suggested ? (
         /* the offer: the meeting on the chip, a tick to take it, a cross to leave it */
-        <span className={`${chipClass} border-primary/30 bg-primary/[0.06] text-foreground`}>
+        <span className={`${chipClass} border-dashed border-primary/60 bg-primary/[0.04] text-primary`}>
           <PopoverTrigger asChild>
-            <button type="button" className="inline-flex items-center gap-1.5"><Icon icon={Calendar03Icon} className="size-[13px] text-primary" strokeWidth={1.8} /><span className="max-w-[220px] truncate">{suggested.title}</span></button>
+            <button type="button" className="inline-flex items-center gap-1.5"><Icon icon={Calendar03Icon} className="size-[13px]" strokeWidth={1.8} /><span className="max-w-[220px] truncate">{suggested.title}</span></button>
           </PopoverTrigger>
-          <button type="button" aria-label="Not this meeting" onClick={onDismissSuggestion} className="rounded-full p-[2px] text-muted-foreground hover:text-foreground"><Icon icon={CloseIcon} className="size-[11px]" strokeWidth={2.2} /></button>
+          <button type="button" aria-label="Not this meeting" onClick={onDismissSuggestion} className="rounded-full p-[2px] text-primary/60 hover:text-primary"><Icon icon={CloseIcon} className="size-[11px]" strokeWidth={2.2} /></button>
           <button type="button" aria-label="Yes, this meeting" onClick={() => onChange(suggested.id)} className="rounded-full p-[2px] text-primary hover:text-primary/80"><Icon icon={Tick02Icon} className="size-[12px]" strokeWidth={2.4} /></button>
         </span>
       ) : (
@@ -3370,7 +3370,9 @@ export function TranscriptionDetailPage() {
       <ShareDialog open={shareDialogOpen} onOpenChange={setShareDialogOpen} resourceType="transcription" resourceId="live" resourceName={window.sessionStorage.getItem("ttt_live_title") || "Untitled call"} />
       <div ref={pageRef} className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-          <div className={(desktopShell ? "" : "border-b border-border ") + "px-4 pt-6 pb-5 lg:px-8"}>
+          <div className={(desktopShell ? "" : "border-b border-border ") + (desktopShell ? "px-4 pt-[18px] pb-5 lg:px-8" : "px-4 pt-6 pb-5 lg:px-8")}>
+            {/* the same top row, title row and action row as a finished note, in the same
+                places: what cannot happen yet is disabled, nothing moves when the call ends */}
             <div className="flex h-7 items-center justify-between text-xs text-muted-foreground">
               <span>{desktopShell ? "Recording a call" : "My record"}</span>
               {desktopShell && (<div className="flex items-center gap-2">
@@ -3378,30 +3380,51 @@ export function TranscriptionDetailPage() {
                   <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Previous note" disabled><Icon icon={ArrowLeft01Icon} className="size-[16px]" strokeWidth={2} /></Button>
                   <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button>
                 </div>
-                {/* the note can be shared and copied while it is still being written, Granola's way */}
-                <Button variant="pill-outline" className="h-7 gap-1.5 rounded-full px-[10px] text-[12px] font-medium" onClick={() => setShareDialogOpen(true)}><Icon icon={Share} className="size-[13px]" strokeWidth={1.8} />Share</Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button variant="pill-outline" className="h-7 gap-1.5 rounded-full px-[10px] text-[12px] font-medium"><Icon icon={Copy} className="size-[13px]" strokeWidth={1.8} />Copy<Icon icon={ArrowDown01Icon} className="size-[11px] text-muted-foreground" strokeWidth={2} /></Button></DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="z-[120] w-[200px]">
-                    <DropdownMenuItem onClick={() => { void navigator.clipboard?.writeText(liveDetailSegments.map((sg) => `${sg.speaker.name}: ${sg.text}`).join("\n")); toast("Transcript copied"); }}>Copy transcript</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => { void navigator.clipboard?.writeText(padToText(pad)); toast("My thoughts copied"); }}>Copy my thoughts</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {/* the window docks beside the call: notes on one half, the meeting on the other */}
-                <button type="button" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }} className="flex h-7 items-center gap-[6px] rounded-full border border-border px-[10px] text-[12px] font-medium text-foreground transition-colors hover:bg-muted" title="Put the notes beside the call">
-                  <Icon icon={LayoutRightIcon} className="size-[13px]" strokeWidth={1.9} />
-                  Side by side
-                </button>
+                <div className="max-lg:hidden mr-1 inline-flex h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
+                  <Select disabled>
+                    <SelectTrigger size="sm" className="h-8 w-[190px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0" title="Translate the transcript once the call has ended"><SelectValue placeholder="Translate to..." /></SelectTrigger>
+                  </Select>
+                </div>
               </div>)}
             </div>
             {desktopShell ? (
-              <div className="mt-1"><LiveTitle className="text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]" /></div>
+              <div className="mt-[26px] flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1 py-1"><LiveTitle className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal" /></div>
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                  {/* the window docks beside the call: notes on one half, the meeting on the other */}
+                  <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }} title="Put the notes beside the call">
+                    <Icon icon={LayoutRightIcon} className="size-[14px]" strokeWidth={1.9} />
+                    <span className="text-[13px] font-medium">Side by side</span>
+                  </Button>
+                  <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden" onClick={() => setShareDialogOpen(true)}>
+                    <Icon icon={Share} className="size-[14px]" strokeWidth={1.7} />
+                    <span className="text-[13px] font-medium">Share</span>
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden">
+                        <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
+                        <span className="text-[13px] font-medium">Copy</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[190px]">
+                      <DropdownMenuItem className="gap-2" onClick={() => { void navigator.clipboard?.writeText(liveDetailSegments.map((sg) => `${sg.speaker.name}: ${sg.text}`).join("\n")); toast("Transcript copied"); }}><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy transcript</DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2" onClick={() => { void navigator.clipboard?.writeText(padToText(pad)); toast("My thoughts copied"); }}><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy my thoughts</DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2" disabled><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy summary</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" aria-label="Export" disabled title="Export once the call has ended"><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} /></Button>
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" aria-label="Copy link" disabled title="The link appears once the call has ended"><Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.8} /></Button>
+                  <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" aria-label="More actions" disabled><Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} /></Button>
+                </div>
+              </div>
             ) : (
               <h1 className="mt-1 text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]">
                 {title || "Live note"}
               </h1>
             )}
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <div className={(desktopShell ? "mt-2 " : "mt-3 ") + "flex flex-wrap items-center gap-2 text-xs text-muted-foreground"}>
               {desktopShell && <><LiveMeetingChips /><span className="text-border">{"\u2022"}</span><LiveFolderChip /><span className="text-border">{"\u2022"}</span></>}
               <span className="inline-flex items-center gap-1.5">
                 <span className="scale-[0.9]"><SourceIcon source="microphone" /></span>
@@ -3414,7 +3437,7 @@ export function TranscriptionDetailPage() {
           </div>
 
           {desktopShell && (
-            <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript" | "summary")} className="mt-2 lg:mt-4">
+            <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript" | "summary")} className="mt-3">
               <div className="flex items-end border-b border-border px-4 lg:px-8">
                 <TabsList variant="line" className="border-b-0">
                   <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">My thoughts</TabsTrigger>
@@ -3427,7 +3450,10 @@ export function TranscriptionDetailPage() {
                   </TabsTrigger>
                   <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px]">Summary</TabsTrigger>
                 </TabsList>
-                <div className={`mb-1 ml-auto max-md:hidden ${liveTab === "transcript" ? "" : "invisible pointer-events-none"}`}><TranscriptViewChecks /></div>
+                <div className={`mb-1 ml-auto flex items-center gap-2 max-md:hidden ${liveTab === "transcript" ? "" : "invisible pointer-events-none"}`}>
+                  <TranscriptViewChecks />
+                  <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled title="Edit the transcript once the call has ended"><Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />Edit transcript</Button>
+                </div>
               </div>
             </Tabs>
           )}
@@ -3556,6 +3582,16 @@ export function TranscriptionDetailPage() {
             isSwitchingMicrophone={isSwitchingMicrophone}
           />
         </div>
+        {desktopShell && (
+          /* the same right panel as a finished note, so the note does not widen when the call ends */
+          <div className="relative hidden shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center lg:flex" style={{ width: rightPanelWidth }}>
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/5">
+              <MessageSquarePlus className="size-5 text-primary/70" strokeWidth={1.7} />
+            </span>
+            <p className="mt-3 text-[13px] font-medium text-foreground">Outline & comments</p>
+            <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">They appear here once the call has ended and the notes are written.</p>
+          </div>
+        )}
       </div>
       </>
     );
