@@ -5,7 +5,8 @@ import { Icon } from "../ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { NotesPad, type PadLine } from "./notes-pad";
 import { useTranscriptionModals } from "../transcription-modals";
-import { LiveRecordingBar, LiveTitle, LiveFolderChip, LiveMeetingChips, padWithTemplate } from "../transcription-detail-page";
+import { LiveRecordingBar, LiveTitle, LiveFolderChip, LiveMeetingChips, LiveHeaderActions, padWithTemplate } from "../transcription-detail-page";
+import { ShareDialog } from "../share-dialog";
 import { useTemplates } from "@/hooks/use-templates";
 import { TemplateLibraryDialog } from "../template-library-dialog";
 import { useShell } from "./shell";
@@ -27,6 +28,7 @@ export function SplitNotetaker() {
   const [tab, setTab] = useState("notes");
   const { templates } = useTemplates();
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const insertTemplate = (id: string) => { const t = templates.find((x) => x.id === id); if (t) setPad((prev) => padWithTemplate(prev, t)); };
   const { recordingElapsed, recordingPhase, pauseInstantRecording, resumeInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone } = useTranscriptionModals();
   const elapsed = recordingPhase === "idle" ? 754 : recordingElapsed;
@@ -40,7 +42,12 @@ export function SplitNotetaker() {
             Full window
           </button>
         </div>
-        <div className="mt-1"><LiveTitle className="text-[22px] font-semibold leading-[28px] tracking-[-0.3px] text-foreground" /></div>
+        <div className="mt-1 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1"><LiveTitle className="text-[22px] font-semibold leading-[28px] tracking-[-0.3px] text-foreground" /></div>
+          {/* the same verbs as the full window, in the same order: what waits, waits here too */}
+          <LiveHeaderActions compact onShare={() => setShareOpen(true)} transcriptText={() => "Maria: The export is owned by our ops team, I can send the owner today.\nYou: Great, then the pricing tiers go out before Thursday."} thoughtsText={() => pad.map((l) => l.text).join("\n")} />
+        </div>
+        <ShareDialog open={shareOpen} onOpenChange={setShareOpen} resourceType="transcription" resourceId="live" resourceName={window.sessionStorage.getItem("ttt_live_title") || "Untitled call"} />
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5"><span className="scale-[0.9]"><SourceIcon source="microphone" /></span><span>Notetaker on {machine}</span></span>
           <span className="text-border">{"\u2022"}</span>

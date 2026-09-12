@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { DesktopAppCard, useBannerVariant } from "./desktop/desktop-app-banner";
+import { useShell } from "./desktop/shell";
 import { useNavigate } from "react-router";
 import { SourceIcon } from "./source-icons";
 import { useLanguage } from "./language-context";
@@ -370,6 +372,9 @@ const DEFAULT_WIDTH = 360;
 export function RightPanel() {
   const { t } = useLanguage();
   const plan = usePlan();
+  const { desktop: desktopShell } = useShell();
+  const bannerVariant = useBannerVariant();
+  const appCardHere = !desktopShell && bannerVariant === "panel";
 
   const meetingGrouped = [
     { day: "03/16", dayLabel: "Monday", items: meetings.filter((m) => m.day === "03/16") },
@@ -385,8 +390,8 @@ export function RightPanel() {
       <div className="h-full flex flex-col overflow-y-auto transition-colors duration-200 bg-background" style={{ width: DEFAULT_WIDTH }}>
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-[18px] py-[18px] flex flex-col gap-[14px]">
-          {/* Widget Cards */}
-          {plan === "free" && <PromoCard />}
+          {/* Widget Cards: on the web the desktop app takes the ticket's slot (Artem, 10.09) */}
+          {appCardHere ? <DesktopAppCard /> : plan === "free" && <PromoCard />}
           {plan === "pro" && <AnalyticsCard />}
           <TipsCarousel />
           {plan === "free" && <FreePlanCard />}
