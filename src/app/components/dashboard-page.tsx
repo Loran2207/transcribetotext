@@ -7,7 +7,7 @@ import { RecordsTable } from "./records-table";
 import { RightPanel } from "./right-panel";
 import { motion } from "motion/react";
 import { useLanguage } from "./language-context";
-import { DesktopAppBanner, DesktopAppMobileNote } from "./desktop/desktop-app-banner";
+import { DesktopAppBanner } from "./desktop/desktop-app-banner";
 import { useShell } from "./desktop/shell";
 import { useTranscriptionModals } from "./transcription-modals";
 import { useUserProfile } from "./user-profile-context";
@@ -466,7 +466,6 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           </motion.div>
           
           <DesktopAppBanner />
-          <DesktopAppMobileNote />
           <div className="max-lg:mt-[16px]"><DashboardInsights onNavigate={onNavigate} /></div>
           {/* Records: folder chips + tabs + cards on mobile, full table on desktop */}
           <motion.div {...fadeUp(0.18, 70)}>
