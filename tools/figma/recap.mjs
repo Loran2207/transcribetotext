@@ -1,4 +1,4 @@
-/* Runs cap.mjs for every job in a JSON file, five at a time.
+/* Runs cap.mjs for every job in a JSON file, three at a time.
    A job: { cid, route, name, w, h, steps }. node tools/figma/recap.mjs jobs.json */
 import { readFileSync } from "fs";
 import { spawn } from "child_process";
@@ -16,5 +16,5 @@ const runOne = (j) => new Promise((res) => {
   c.on("close", () => { console.log(j.name, "|", j.w || 1440, "|", out.trim().split("\n").pop()); res(); });
 });
 const next = async () => { while (i < jobs.length) { const j = jobs[i++]; await runOne(j); } };
-await Promise.all(Array.from({ length: 5 }, next));
+await Promise.all(Array.from({ length: 3 }, next));
 console.log("RECAP_DONE");

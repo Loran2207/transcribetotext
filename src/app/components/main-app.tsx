@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from "react";
-import { DesktopAppStrip } from "./desktop/desktop-app-banner";
 import { AppSidebar } from "./app-sidebar";
 import { DashboardPage } from "./dashboard-page";
 import { CalendarPage } from "./calendar-page";
@@ -36,7 +35,6 @@ export function MainApp() {
       <SidebarProvider className="h-screen !min-h-0 overflow-hidden bg-sidebar">
         <AppSidebar activePage={activePage} onNavigate={handleNavigate} />
         <SidebarInset className="overflow-hidden bg-sidebar">
-          <DesktopAppStrip />
           <TopBar onNavigate={handleNavigate} />
           <main className="flex flex-1 overflow-hidden rounded-tl-[32px] bg-background">
             {isSettings && (

@@ -27,6 +27,12 @@ function readFlag<T extends string>(param: string, key: string, allowed: T[], fa
 /* States only the real app reaches (the OS saw a call start, the note finished
    in the background, first-run permissions) are drawn from a demo flag on the
    address, kept for the tab only: `?notice=call|ready`, `?perm=1`. */
+/* Every demo flag on the address is kept for the tab the moment the module loads,
+   so a flag given on the login address still holds after the app navigates. */
+if (typeof window !== "undefined") {
+  const q = new URLSearchParams(window.location.search);
+  for (const p of ["notice", "perm", "desk", "widget", "banner"]) { const v = q.get(p); if (v) window.sessionStorage.setItem("ttt_demo_" + p, v); }
+}
 export function readDemo(param: string): string | null {
   if (typeof window === "undefined") return null;
   const key = "ttt_demo_" + param;
