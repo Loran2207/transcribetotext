@@ -22,7 +22,7 @@ const PORT = process.env.PORT || "5173";
    the microphone is stood in for with a quiet tone, because a scripted browser
    on macOS hangs asking for the real one - everything after getUserMedia runs
    for real. */
-const b = await chromium.launch({ channel: "chromium", args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
+const b = await chromium.launch({ channel: "chrome", args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
 const p = await b.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: 2 });
 await p.addInitScript(() => {
   navigator.mediaDevices.getUserMedia = async () => {
