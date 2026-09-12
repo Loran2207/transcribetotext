@@ -22,6 +22,8 @@ const PORT = process.env.PORT || "5173";
    the microphone is stood in for with a quiet tone, because a scripted browser
    on macOS hangs asking for the real one - everything after getUserMedia runs
    for real. */
+/* a job that has not finished in five minutes is stuck, not slow */
+setTimeout(() => { console.log("submitted watchdog-timeout"); process.exit(2); }, 300000).unref();
 const b = await chromium.launch({ channel: "chrome", args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
 const p = await b.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: 2 });
 await p.addInitScript(() => {
@@ -90,5 +92,6 @@ const posted = p.waitForResponse((r) => r.url().includes("/submit") && r.request
 await p.evaluate(([c, ep]) => { window.figma.captureForDesign({ captureId: c, endpoint: ep, selector: "body" }); }, [cid, endpoint]);
 const res = await posted;
 console.log("submitted", res ? res.status() : "no POST seen in 240s");
-await b.close();
+/* the system Chrome sometimes never answers close(): give it five seconds, then leave anyway */
+await Promise.race([b.close().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]);
 process.exit(0);
