@@ -52,7 +52,8 @@ export function DesktopAppBanner({ onGet }: { onGet?: () => void }) {
   const { on, hide, installed } = useBannerOn("home");
   if (!on) return null;
   const cta = installed ? "Open the app" : "Get the app";
-  return (
+  return (<>
+    <div className="mt-[12px] lg:hidden"><DesktopAppCard mobile /></div>
     <div className="relative mt-[12px] hidden w-full lg:block">
       <div
         className="group relative block w-full overflow-hidden rounded-[16px] text-left"
@@ -80,7 +81,7 @@ export function DesktopAppBanner({ onGet }: { onGet?: () => void }) {
         <Icon icon={Cancel01Icon} className="size-[14px]" strokeWidth={2} />
       </button>
     </div>
-  );
+  </>);
 }
 
 /* Variant "panel" (the prototype's one): a card in the right panel, in the
@@ -137,23 +138,24 @@ export function DesktopAppStrip({ onGet }: { onGet?: () => void }) {
   );
 }
 
-/* Variant "sidebar": a plaque above the plan plaque, like a piece of news. */
+/* Variant "sidebar": the same 63px block, in the left navigation, like a piece of news. */
 export function SidebarAppPlaque({ onGet }: { onGet?: () => void }) {
   const { on, hide, installed } = useBannerOn("sidebar");
   if (!on) return null;
   return (
-    <div className="relative mx-2 mb-2 overflow-hidden rounded-2xl p-3 text-white group-data-[collapsible=icon]:hidden" style={{ background: NAVY }}>
-      <span className="flex items-center gap-[6px]">
-        <span className="rounded-full bg-white px-[6px] py-[1px] text-[10px] font-bold uppercase tracking-[0.04em] text-[#0A1630]">New</span>
-        <span className="text-[12.5px] font-semibold">Desktop app</span>
-      </span>
-      <p className="mt-[6px] text-[12px] leading-[17px] text-white/78">Record calls on your computer, no bot in the meeting.</p>
+    <div className="relative mx-2 mb-2 overflow-hidden rounded-[12px] text-white group-data-[collapsible=icon]:hidden" style={{ height: 63, background: NAVY }}>
+      <img src="/images/desktop/banner.jpg" alt="" className="absolute inset-y-0 right-0 h-full w-[34%] object-cover" style={{ objectPosition: "center 42%" }} />
+      <span className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0A1630 0%, #0A1630 64%, rgba(10,22,48,0.55) 82%, rgba(10,22,48,0.15) 100%)" }} />
+      <p className="absolute left-[12px] top-[12px] flex items-center gap-[6px] whitespace-nowrap text-[13px] font-semibold leading-[19px]">
+        <span className="rounded-full bg-white px-[5px] py-px text-[9.5px] font-bold uppercase leading-[13px] tracking-[0.04em] text-[#0A1630]">New</span>
+        Desktop app
+      </p>
       <GetAppMenu onGet={onGet} trigger={
-        <button type="button" className="mt-[10px] flex h-8 w-full items-center justify-center gap-[5px] rounded-full bg-white text-[12.5px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7] data-[state=open]:bg-[#EEF2F7]">
-          {installed ? "Open the app" : "Get the app"}<Icon icon={ArrowDown01Icon} className="size-[12px]" strokeWidth={2.2} />
+        <button type="button" className="absolute left-[12px] top-[34px] flex items-center gap-[2px] whitespace-nowrap text-[11px] leading-[16.5px] text-white/85 hover:text-white data-[state=open]:text-white">
+          {installed ? "Open the app" : "Get the app"} <Icon icon={ArrowRight01Icon} className="size-[11px]" strokeWidth={2} />
         </button>
       } />
-      <button type="button" aria-label="Hide" onClick={hide} className="absolute right-[8px] top-[8px] flex size-[22px] items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/15 hover:text-white">
+      <button type="button" aria-label="Hide" onClick={hide} className="absolute right-[6px] top-[6px] flex size-[22px] items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white">
         <Icon icon={Cancel01Icon} className="size-[11px]" strokeWidth={2} />
       </button>
     </div>
