@@ -19,10 +19,10 @@ export function useDesktopBannerHidden(key: string = HIDDEN_KEY) {
    pick two). The prototype keeps one: the card in the right panel, where the
    discount ticket used to be. The others exist for the Figma frames and the
    states panel: ?banner=panel|home|top|sidebar. */
-export type BannerVariant = "panel" | "home" | "top" | "sidebar";
+export type BannerVariant = "panel" | "home" | "sidebar";
 export function useBannerVariant(): BannerVariant {
   const v = useDemo("banner");
-  return v === "home" || v === "top" || v === "sidebar" ? v : "panel";
+  return v === "home" || v === "sidebar" ? v : "panel";
 }
 /* true when this surface should carry the desktop story: web shell, on a computer, not put away */
 function useBannerOn(variant: BannerVariant) {
@@ -47,21 +47,20 @@ function GetAppMenu({ trigger, onGet }: { trigger: ReactNode; onGet?: () => void
 
 const NAVY = "#0A1630";
 
-/* Variant "home": the wide banner under the two cards on the web portal's home. */
+/* Variant "home": the wide banner under the four cards on the web portal's home, on every width. */
 export function DesktopAppBanner({ onGet }: { onGet?: () => void }) {
   const { on, hide, installed } = useBannerOn("home");
   if (!on) return null;
   const cta = installed ? "Open the app" : "Get the app";
   return (<>
-    <div className="mt-[12px] lg:hidden"><DesktopAppCard mobile /></div>
-    <div className="relative mt-[12px] hidden w-full lg:block">
+    <div className="relative mt-[12px] w-full">
       <div
         className="group relative block w-full overflow-hidden rounded-[16px] text-left"
-        style={{ height: 112, background: NAVY, boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}
+        style={{ minHeight: 112, background: NAVY, boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}
       >
-        <img src="/images/desktop/banner.jpg" alt="" className="absolute inset-y-0 right-0 h-full w-[58%] object-cover" style={{ objectPosition: "center 42%" }} />
+        <img src="/images/desktop/banner.jpg" alt="" className="absolute inset-y-0 right-0 h-full w-[46%] object-cover md:w-[58%]" style={{ objectPosition: "center 42%" }} />
         <span className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0A1630 0%, #0A1630 44%, rgba(10,22,48,0.35) 70%, rgba(10,22,48,0.05) 100%)" }} />
-        <span className="relative flex h-full items-center gap-[24px] pl-[24px] pr-[64px]">
+        <span className="relative flex min-h-[112px] flex-col items-start justify-center gap-[12px] py-[18px] pl-[20px] pr-[56px] md:flex-row md:items-center md:gap-[24px] md:py-0 md:pl-[24px] md:pr-[64px]">
           <span className="flex min-w-0 max-w-[460px] flex-col gap-[4px]">
             <span className="flex items-center gap-[8px]">
               <span className="rounded-full bg-white px-[7px] py-[1px] text-[10.5px] font-bold uppercase tracking-[0.04em] text-[#0A1630]">New</span>
@@ -70,7 +69,7 @@ export function DesktopAppBanner({ onGet }: { onGet?: () => void }) {
             <span className="text-[13px] leading-[18px] text-white/78">No bot in the meeting. The transcript runs live beside your notes, and the note lands in this account.</span>
           </span>
           <GetAppMenu onGet={onGet} trigger={
-            <button type="button" className="ml-auto flex h-[36px] shrink-0 items-center gap-[6px] rounded-full bg-white pl-[16px] pr-[12px] text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7] data-[state=open]:bg-[#EEF2F7]">
+            <button type="button" className="flex h-[36px] shrink-0 items-center gap-[6px] rounded-full bg-white pl-[16px] pr-[12px] md:ml-auto text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7] data-[state=open]:bg-[#EEF2F7]">
               {cta}
               <Icon icon={ArrowDown01Icon} className="size-[14px]" strokeWidth={2.2} />
             </button>
@@ -113,26 +112,6 @@ export function DesktopAppCard({ onGet, mobile = false, scope }: { onGet?: () =>
       )}
       <button type="button" aria-label="Hide this card" onClick={hide} className="absolute right-[6px] top-[6px] flex size-[22px] items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white">
         <Icon icon={Cancel01Icon} className="size-[11px]" strokeWidth={2} />
-      </button>
-    </div>
-  );
-}
-
-/* Variant "top": one line above everything, the height of a system strip. */
-export function DesktopAppStrip({ onGet }: { onGet?: () => void }) {
-  const { on, hide, installed } = useBannerOn("top");
-  if (!on) return null;
-  return (
-    <div className="relative hidden h-[38px] shrink-0 items-center justify-center gap-[10px] px-[48px] text-[12.5px] text-white lg:flex" style={{ background: NAVY }}>
-      <span className="rounded-full bg-white px-[6px] py-[1px] text-[10px] font-bold uppercase tracking-[0.04em] text-[#0A1630]">New</span>
-      <span><span className="font-semibold">Record calls on your computer.</span> <span className="text-white/78">No bot in the meeting, the note lands in this account.</span></span>
-      <GetAppMenu onGet={onGet} trigger={
-        <button type="button" className="flex items-center gap-[3px] font-semibold underline-offset-[3px] hover:underline data-[state=open]:underline">
-          {installed ? "Open the app" : "Get the app"}<Icon icon={ArrowRight01Icon} className="size-[13px]" strokeWidth={2.2} />
-        </button>
-      } />
-      <button type="button" aria-label="Hide this banner" onClick={hide} className="absolute right-[12px] top-1/2 flex size-[24px] -translate-y-1/2 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/15 hover:text-white">
-        <Icon icon={Cancel01Icon} className="size-[12px]" strokeWidth={2} />
       </button>
     </div>
   );
