@@ -68,7 +68,7 @@ export const HOIST = () => {
     while (host && !under.every((o) => host.contains(o))) host = host.parentElement;
     if (!host) host = document.body;
     while (host !== document.body && getComputedStyle(host).position === "static") host = host.parentElement;
-    if (host === el.parentElement && el === el.parentElement.lastElementChild) continue; /* already last where it matters */
+    /* no "already last" shortcut: a second overlay appended after it would still land on top */
     moves.push({ el, r, host, z: +getComputedStyle(el).zIndex, ix: mine });
   }
 

@@ -3,7 +3,7 @@ import { Cancel01Icon, ArrowDown01Icon, AppleIcon, ArrowRight01Icon, ComputerIco
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Icon } from "../ui/icon";
-import { useDemo, useShell } from "./shell";
+import { useDemo, useShell, useWideScreen } from "./shell";
 
 const HIDDEN_KEY = "ttt_app_banner_hidden";
 
@@ -50,30 +50,31 @@ const NAVY = "#0A1630";
 /* Variant "home": the wide banner under the four cards on the web portal's home, on every width. */
 export function DesktopAppBanner({ onGet }: { onGet?: () => void }) {
   const { on, hide, installed } = useBannerOn("home");
+  const wide = useWideScreen();
   if (!on) return null;
   const cta = installed ? "Open the app" : "Get the app";
   return (<>
     <div className="relative mt-[12px] w-full">
       <div
         className="group relative block w-full overflow-hidden rounded-[16px] text-left"
-        style={{ minHeight: 112, background: NAVY, boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}
+        style={{ minHeight: wide ? 112 : 72, background: NAVY, boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}
       >
         <img src="/images/desktop/banner.jpg" alt="" className="absolute inset-y-0 right-0 h-full w-[46%] object-cover md:w-[58%]" style={{ objectPosition: "center 42%" }} />
         <span className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0A1630 0%, #0A1630 44%, rgba(10,22,48,0.35) 70%, rgba(10,22,48,0.05) 100%)" }} />
-        <span className="relative flex min-h-[112px] flex-col items-start justify-center gap-[12px] py-[18px] pl-[20px] pr-[56px] md:flex-row md:items-center md:gap-[24px] md:py-0 md:pl-[24px] md:pr-[64px]">
+        <span className={wide ? "relative flex min-h-[112px] items-center gap-[24px] pl-[24px] pr-[64px]" : "relative flex min-h-[72px] items-center pl-[16px] pr-[48px]"}>
           <span className="flex min-w-0 max-w-[460px] flex-col gap-[4px]">
             <span className="flex items-center gap-[8px]">
               <span className="rounded-full bg-white px-[7px] py-[1px] text-[10.5px] font-bold uppercase tracking-[0.04em] text-[#0A1630]">New</span>
-              <span className="text-[17px] font-bold tracking-[-0.2px] text-white">Record calls on your computer</span>
+              <span className={(wide ? "text-[17px]" : "text-[14px]") + " font-bold tracking-[-0.2px] text-white"}>Record calls on your computer</span>
             </span>
-            <span className="text-[13px] leading-[18px] text-white/78">No bot in the meeting. The transcript runs live beside your notes, and the note lands in this account.</span>
+            <span className={(wide ? "text-[13px] leading-[18px]" : "text-[12px] leading-[16px]") + " text-white/78"}>{wide ? "No bot in the meeting. The transcript runs live beside your notes, and the note lands in this account." : "Also on Mac and Windows, from a computer. No bot in the meeting."}</span>
           </span>
-          <GetAppMenu onGet={onGet} trigger={
-            <button type="button" className="flex h-[36px] shrink-0 items-center gap-[6px] rounded-full bg-white pl-[16px] pr-[12px] md:ml-auto text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7] data-[state=open]:bg-[#EEF2F7]">
+          {wide && <GetAppMenu onGet={onGet} trigger={
+            <button type="button" className="ml-auto flex h-[36px] shrink-0 items-center gap-[6px] rounded-full bg-white pl-[16px] pr-[12px] text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7] data-[state=open]:bg-[#EEF2F7]">
               {cta}
               <Icon icon={ArrowDown01Icon} className="size-[14px]" strokeWidth={2.2} />
             </button>
-          } />
+          } />}
         </span>
       </div>
       <button type="button" aria-label="Hide this banner" onClick={hide} className="absolute right-[12px] top-[12px] flex size-[28px] items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white">
@@ -120,6 +121,7 @@ export function DesktopAppCard({ onGet, mobile = false, scope }: { onGet?: () =>
 /* Variant "sidebar": the same 63px block, in the left navigation, like a piece of news. */
 export function SidebarAppPlaque({ onGet }: { onGet?: () => void }) {
   const { on, hide, installed } = useBannerOn("sidebar");
+  const wide = useWideScreen();
   if (!on) return null;
   return (
     <div className="relative mx-2 mb-2 overflow-hidden rounded-[12px] text-white group-data-[collapsible=icon]:hidden" style={{ height: 63, background: NAVY }}>
@@ -129,11 +131,15 @@ export function SidebarAppPlaque({ onGet }: { onGet?: () => void }) {
         <span className="rounded-full bg-white px-[5px] py-px text-[9.5px] font-bold uppercase leading-[13px] tracking-[0.04em] text-[#0A1630]">New</span>
         Desktop app
       </p>
-      <GetAppMenu onGet={onGet} trigger={
-        <button type="button" className="absolute left-[12px] top-[34px] flex items-center gap-[2px] whitespace-nowrap text-[11px] leading-[16.5px] text-white/85 hover:text-white data-[state=open]:text-white">
-          {installed ? "Open the app" : "Get the app"} <Icon icon={ArrowRight01Icon} className="size-[11px]" strokeWidth={2} />
-        </button>
-      } />
+      {wide ? (
+        <GetAppMenu onGet={onGet} trigger={
+          <button type="button" className="absolute left-[12px] top-[34px] flex items-center gap-[2px] whitespace-nowrap text-[11px] leading-[16.5px] text-white/85 hover:text-white data-[state=open]:text-white">
+            {installed ? "Open the app" : "Get the app"} <Icon icon={ArrowRight01Icon} className="size-[11px]" strokeWidth={2} />
+          </button>
+        } />
+      ) : (
+        <p className="absolute left-[12px] top-[34px] whitespace-nowrap text-[11px] leading-[16.5px] text-white/75">Also on Mac and Windows</p>
+      )}
       <button type="button" aria-label="Hide" onClick={hide} className="absolute right-[6px] top-[6px] flex size-[22px] items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white">
         <Icon icon={Cancel01Icon} className="size-[11px]" strokeWidth={2} />
       </button>
