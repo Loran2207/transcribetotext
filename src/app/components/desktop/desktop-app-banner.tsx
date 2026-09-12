@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Cancel01Icon, ArrowDown01Icon, AppleIcon, ComputerIcon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, ArrowDown01Icon, AppleIcon, ArrowRight01Icon, ComputerIcon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Icon } from "../ui/icon";
@@ -84,29 +84,34 @@ export function DesktopAppBanner({ onGet }: { onGet?: () => void }) {
 }
 
 /* Variant "panel" (the prototype's one): a card in the right panel, in the
-   slot the discount ticket had. Same words, the panel's width. */
-export function DesktopAppCard({ onGet }: { onGet?: () => void }) {
-  const { on, hide, installed } = useBannerOn("panel");
-  if (!on) return null;
+   slot the discount ticket had, and exactly the ticket's height (Kirill,
+   12.09). On phones and tablets the same card rides in the promo carousel
+   with no button at all: the app cannot be installed from there, the card can
+   only be put away. */
+export function DesktopAppCard({ onGet, mobile = false }: { onGet?: () => void; mobile?: boolean }) {
+  const { desktop, installed } = useShell();
+  const { hidden, hide } = useDesktopBannerHidden();
+  const variant = useBannerVariant();
+  if (desktop || hidden || (!mobile && variant !== "panel")) return null;
   return (
-    <div className="relative w-full shrink-0 overflow-hidden rounded-[12px] text-white" style={{ background: NAVY, boxShadow: "0 6px 18px rgba(10,22,48,0.16)" }}>
-      <img src="/images/desktop/banner.jpg" alt="" className="absolute inset-y-0 right-0 h-full w-[46%] object-cover" style={{ objectPosition: "center 42%" }} />
-      <span className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0A1630 0%, #0A1630 58%, rgba(10,22,48,0.55) 78%, rgba(10,22,48,0.15) 100%)" }} />
-      <div className="relative flex flex-col gap-[10px] p-[14px] pr-[40px]">
-        <span className="flex items-center gap-[8px]">
-          <span className="rounded-full bg-white px-[6px] py-[1px] text-[10px] font-bold uppercase tracking-[0.04em] text-[#0A1630]">New</span>
-          <span className="text-[13.5px] font-bold tracking-[-0.1px]">Record calls on your computer</span>
-        </span>
-        <span className="text-[12px] leading-[17px] text-white/78">No bot in the meeting. The note lands in this account.</span>
+    <div className="relative w-full shrink-0 overflow-hidden rounded-[12px] text-white" style={{ height: 63, minHeight: 63, background: NAVY }}>
+      <img src="/images/desktop/banner.jpg" alt="" className="absolute inset-y-0 right-0 h-full w-[38%] object-cover" style={{ objectPosition: "center 42%" }} />
+      <span className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0A1630 0%, #0A1630 62%, rgba(10,22,48,0.6) 80%, rgba(10,22,48,0.2) 100%)" }} />
+      <p className="absolute left-[16px] top-[12px] flex items-center gap-[6px] whitespace-nowrap text-[13px] font-semibold leading-[19px]">
+        <span className="rounded-full bg-white px-[5px] py-px text-[9.5px] font-bold uppercase leading-[13px] tracking-[0.04em] text-[#0A1630]">New</span>
+        Record calls on your computer
+      </p>
+      {mobile ? (
+        <p className="absolute left-[16px] top-[34px] whitespace-nowrap text-[11px] leading-[16.5px] text-white/75">Also on Mac and Windows, from a computer</p>
+      ) : (
         <GetAppMenu onGet={onGet} trigger={
-          <button type="button" className="flex h-[30px] w-fit items-center gap-[5px] rounded-full bg-white pl-[12px] pr-[9px] text-[12px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7] data-[state=open]:bg-[#EEF2F7]">
-            {installed ? "Open the app" : "Get the app"}
-            <Icon icon={ArrowDown01Icon} className="size-[12px]" strokeWidth={2.2} />
+          <button type="button" className="absolute left-[16px] top-[34px] flex items-center gap-[2px] whitespace-nowrap text-[11px] leading-[16.5px] text-white/85 hover:text-white data-[state=open]:text-white">
+            {installed ? "Open the app" : "Get the app"} <Icon icon={ArrowRight01Icon} className="size-[11px]" strokeWidth={2} />
           </button>
         } />
-      </div>
-      <button type="button" aria-label="Hide this card" onClick={hide} className="absolute right-[8px] top-[8px] flex size-[24px] items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white">
-        <Icon icon={Cancel01Icon} className="size-[12px]" strokeWidth={2} />
+      )}
+      <button type="button" aria-label="Hide this card" onClick={hide} className="absolute right-[6px] top-[6px] flex size-[22px] items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white">
+        <Icon icon={Cancel01Icon} className="size-[11px]" strokeWidth={2} />
       </button>
     </div>
   );
@@ -151,21 +156,6 @@ export function SidebarAppPlaque({ onGet }: { onGet?: () => void }) {
       <button type="button" aria-label="Hide" onClick={hide} className="absolute right-[8px] top-[8px] flex size-[22px] items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/15 hover:text-white">
         <Icon icon={Cancel01Icon} className="size-[11px]" strokeWidth={2} />
       </button>
-    </div>
-  );
-}
-
-/* Phones and tablets cannot install the app, so they only hear that it exists
-   (Artem, 10.09): one quiet line, no download button. Web shell only. */
-export function DesktopAppMobileNote() {
-  const { desktop } = useShell();
-  const { hidden, hide } = useDesktopBannerHidden();
-  if (desktop || hidden) return null;
-  return (
-    <div className="mt-[12px] flex items-start gap-[10px] rounded-[12px] border border-border bg-muted/40 px-[12px] py-[10px] text-[12.5px] leading-[17px] text-muted-foreground lg:hidden">
-      <span className="mt-[1px] flex size-[22px] shrink-0 items-center justify-center rounded-full bg-[#0A1630] text-white"><Icon icon={ComputerIcon} className="size-[12px]" strokeWidth={1.9} /></span>
-      <span className="flex-1"><span className="font-semibold text-foreground">Also on Mac and Windows.</span> Open this account on a computer to record calls there, no bot in the meeting.</span>
-      <button type="button" aria-label="Hide" onClick={hide} className="flex size-[22px] shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><Icon icon={Cancel01Icon} className="size-[11px]" strokeWidth={2} /></button>
     </div>
   );
 }

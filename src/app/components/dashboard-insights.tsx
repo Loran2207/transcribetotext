@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { ChevronRight } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
+import { DesktopAppCard, useDesktopBannerHidden } from "./desktop/desktop-app-banner";
+import { useShell } from "./desktop/shell";
 import { useLanguage } from "./language-context";
 import { usePlan } from "./use-plan";
 import { UpgradeBanner } from "./upgrade-banner";
@@ -120,14 +122,17 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
     </div>
   );
 
-  /* nothing about the desktop app here: it cannot be installed from a phone or a tablet */
+  /* the desktop app rides the ticket's slide, the ticket's size, with nothing to press but the cross (Kirill, 12.09) */
+  const { desktop: desktopShell } = useShell();
+  const { hidden: appCardHidden } = useDesktopBannerHidden();
+  const appCardHere = !desktopShell && !appCardHidden;
   const promoSlides = ["banner", "promo"];
   const promoCarousel = (
     <div>
       <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
         {promoSlides.map((key) => (
           <div key={key} className="snap-center shrink-0 w-full flex items-stretch [&>*]:w-full">
-            {key === "banner" ? <UpgradeBanner bare /> : <PromoCard />}
+            {key === "banner" ? <UpgradeBanner bare /> : appCardHere ? <DesktopAppCard mobile /> : <PromoCard />}
           </div>
         ))}
       </div>

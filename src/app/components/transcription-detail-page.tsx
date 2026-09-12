@@ -2133,17 +2133,7 @@ function PageHeader({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button variant="ghost" size="icon" className="size-8 rounded-full max-md:hidden" onClick={onExport} aria-label="Export">
-            <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} />
-          </Button>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-8 rounded-full max-lg:hidden" onClick={onCopyLink} aria-label="Copy link">
-                <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.8} />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Copy link</TooltipContent>
-          </Tooltip>
+          <span className="max-md:hidden"><ExportPill onExport={onExport} /></span>
           <button
             type="button"
             aria-label="More actions"
@@ -2188,7 +2178,7 @@ function PageHeader({
                   Apply template
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={onCopyLink}>
+              <DropdownMenuItem className="gap-2 max-md:hidden" onClick={onCopyLink}>
                 <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                 Copy link
               </DropdownMenuItem>
@@ -2279,6 +2269,29 @@ function PageHeader({
   );
 }
 
+/* Export as a pill with its formats behind a chevron (the product's own
+   header, Artem 10.09: "more active" than a grey icon). Each format opens the
+   export sheet with that format in mind. */
+const EXPORT_FORMATS = ["PDF", "Word (DOCX)", "Plain text (TXT)", "Subtitles (SRT)"];
+export function ExportPill({ onExport, disabled = false }: { onExport?: () => void; disabled?: boolean }) {
+  const pill = (
+    <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px]" disabled={disabled} aria-label="Export">
+      <Icon icon={Upload} className="size-[14px]" strokeWidth={1.7} />
+      <span className="text-[13px] font-medium">Export</span>
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
+    </Button>
+  );
+  if (disabled) return pill;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{pill}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[190px]">
+        {EXPORT_FORMATS.map((f) => <DropdownMenuItem key={f} className="gap-2" onClick={() => onExport?.()}><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.6} />{f}</DropdownMenuItem>)}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 /* A disabled control does not take the pointer, so the hint sits on a wrapper
    around it: hovering the greyed button still tells you why it waits */
 function WaitsFor({ hint, children, className = "" }: { hint: string; children: ReactNode; className?: string }) {
@@ -2313,9 +2326,8 @@ export function LiveHeaderActions({ onShare, transcriptText, thoughtsText, compa
         <DropdownMenuItem className="gap-2" disabled><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} /><span className="whitespace-nowrap">Copy summary</span><span className="ml-auto whitespace-nowrap text-[11px] text-muted-foreground">after the call</span></DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-    <WaitsFor hint="Export is available once the call has ended" className="max-md:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Export" disabled><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} /></Button></WaitsFor>
-    <WaitsFor hint="The link appears once the call has ended" className="max-lg:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Copy link" disabled><Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.8} /></Button></WaitsFor>
-    <WaitsFor hint="Move, rename and delete are available once the call has ended" className="max-lg:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="More actions" disabled><Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} /></Button></WaitsFor>
+    <WaitsFor hint="Export is available once the call has ended" className="max-md:hidden"><ExportPill disabled /></WaitsFor>
+    <WaitsFor hint="Copy link, move, rename and delete are available once the call has ended" className="max-lg:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="More actions" disabled><Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} /></Button></WaitsFor>
   </div>
   );
 }
