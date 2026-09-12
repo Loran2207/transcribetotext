@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { DesktopAppCard, useBannerVariant } from "./desktop/desktop-app-banner";
 import { useShell } from "./desktop/shell";
 import { useNavigate } from "react-router";
@@ -357,6 +357,26 @@ function MeetingItem({ meeting }: { meeting: Meeting }) {
    Plan widgets (mobile + tablet stream)
    ══════════════════════════════════════════════ */
 
+/* The ticket slot as a carousel: the same snap strip and dots the phone uses,
+   so the desktop app and the discount share one place instead of two. */
+function PanelPromoCarousel({ slides }: { slides: ReactNode[] }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const onScroll = () => { const el = ref.current; if (!el) return; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== active) setActive(i); };
+  if (slides.length === 0) return null;
+  if (slides.length === 1) return <>{slides[0]}</>;
+  return (
+    <div className="shrink-0">
+      <div ref={ref} onScroll={onScroll} className="flex snap-x snap-mandatory overflow-x-auto scrollbar-hide gap-[12px] pb-[6px]" style={{ scrollbarWidth: "none" }}>
+        {slides.map((s, i) => <div key={i} className="w-full shrink-0 snap-center [&>*]:w-full">{s}</div>)}
+      </div>
+      <div className="flex items-center justify-center gap-[6px]">
+        {slides.map((_, i) => <span key={i} className={i === active ? "h-[6px] w-[16px] rounded-full bg-primary transition-all" : "size-[6px] rounded-full bg-muted-foreground/30 transition-all"} />)}
+      </div>
+    </div>
+  );
+}
+
 export function PlanWidgets() {
   const plan = usePlan();
   return (
@@ -390,8 +410,8 @@ export function RightPanel() {
       <div className="h-full flex flex-col overflow-y-auto transition-colors duration-200 bg-background" style={{ width: DEFAULT_WIDTH }}>
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-[18px] py-[18px] flex flex-col gap-[14px]">
-          {/* Widget Cards: on the web the desktop app takes the ticket's slot (Artem, 10.09) */}
-          {appCardHere ? <DesktopAppCard /> : plan === "free" && <PromoCard />}
+          {/* Widget Cards: on the web the desktop app and the ticket ride one carousel, the card first (Kirill, 12.09) */}
+          <PanelPromoCarousel slides={[appCardHere ? <DesktopAppCard key="app" /> : null, plan === "free" ? <PromoCard key="promo" /> : null].filter(Boolean) as ReactNode[]} />
           {plan === "pro" && <AnalyticsCard />}
           <TipsCarousel />
           {plan === "free" && <FreePlanCard />}

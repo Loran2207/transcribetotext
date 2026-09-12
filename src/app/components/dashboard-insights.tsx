@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { ChevronRight } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
-import { DesktopAppCard, useDesktopBannerHidden } from "./desktop/desktop-app-banner";
+import { DesktopAppCard, useDesktopBannerHidden, useBannerVariant } from "./desktop/desktop-app-banner";
 import { useShell } from "./desktop/shell";
 import { useLanguage } from "./language-context";
 import { usePlan } from "./use-plan";
@@ -125,8 +125,9 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   /* the desktop app rides the ticket's slide, the ticket's size, with nothing to press but the cross (Kirill, 12.09) */
   const { desktop: desktopShell } = useShell();
   const { hidden: appCardHidden } = useDesktopBannerHidden();
-  const appCardHere = !desktopShell && !appCardHidden;
-  const promoSlides = ["banner", "promo"];
+  const bannerVariant = useBannerVariant();
+  const appCardHere = !desktopShell && !appCardHidden && bannerVariant !== "home";
+  const promoSlides = appCardHere ? ["promo", "banner"] : ["banner", "promo"];
   const promoCarousel = (
     <div>
       <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
