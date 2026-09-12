@@ -29,6 +29,7 @@ import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
 import { useShell, useWideScreen } from "./desktop/shell";
+import { DesktopAppCard } from "./desktop/desktop-app-banner";
 import { motion } from "motion/react";
 import { useIsMobile } from "./ui/use-mobile";
 import { ToastCard, toastReady, toastManyReady, toastFailed } from "./app-toast";
@@ -2620,6 +2621,8 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
       >
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
           {wide && <RecordMethodCards method={method} onChange={setMethod} desktopShell={desktopShell} machine={machine} />}
+          {/* a phone or a tablet cannot record the call itself: the choice is gone, the card only tells that the app exists (Kirill, 12.09) */}
+          {!wide && !desktopShell && <DesktopAppCard mobile scope="dialog" />}
 
           {method === "desktop" && !desktopShell && installed && (
             <div className="flex flex-col gap-[14px]">

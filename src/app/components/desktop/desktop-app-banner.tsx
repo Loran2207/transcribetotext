@@ -9,9 +9,9 @@ const HIDDEN_KEY = "ttt_app_banner_hidden";
 
 /* Hidden once, hidden for good on this browser. The desktop app itself never
    shows the banner, so the flag is only read on the web. */
-export function useDesktopBannerHidden() {
-  const [hidden, setHidden] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(HIDDEN_KEY) === "1");
-  const hide = () => { window.localStorage.setItem(HIDDEN_KEY, "1"); setHidden(true); };
+export function useDesktopBannerHidden(key: string = HIDDEN_KEY) {
+  const [hidden, setHidden] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(key) === "1");
+  const hide = () => { window.localStorage.setItem(key, "1"); setHidden(true); };
   return { hidden, hide };
 }
 
@@ -89,9 +89,9 @@ export function DesktopAppBanner({ onGet }: { onGet?: () => void }) {
    12.09). On phones and tablets the same card rides in the promo carousel
    with no button at all: the app cannot be installed from there, the card can
    only be put away. */
-export function DesktopAppCard({ onGet, mobile = false }: { onGet?: () => void; mobile?: boolean }) {
+export function DesktopAppCard({ onGet, mobile = false, scope }: { onGet?: () => void; mobile?: boolean; scope?: string }) {
   const { desktop, installed } = useShell();
-  const { hidden, hide } = useDesktopBannerHidden();
+  const { hidden, hide } = useDesktopBannerHidden(scope ? `${HIDDEN_KEY}_${scope}` : undefined);
   const variant = useBannerVariant();
   if (desktop || hidden || (!mobile && variant !== "panel")) return null;
   return (
