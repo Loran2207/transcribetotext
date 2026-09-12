@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { AiMagicIcon, Loading01Icon, PauseIcon, PlayIcon, LayoutRightIcon, Note01Icon, DragDropHorizontalIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
+import { Tooltip, TooltipTrigger, TooltipContent } from "../ui/tooltip";
 import { useTranscriptionModals } from "../transcription-modals";
 import { useDemo, setDemo, useShell } from "./shell";
+
+/* every round button says what it does, to the left, where the eye already is;
+   declared outside the capsule so the ticking clock does not remount it */
+const Tip = ({ label, children }: { label: string; children: ReactNode }) => <Tooltip><TooltipTrigger asChild>{children}</TooltipTrigger><TooltipContent side="left" sideOffset={8}>{label}</TooltipContent></Tooltip>;
 
 export type MiniMode = "minimal" | "hover" | "paused" | "ended" | "writing" | "done";
 
@@ -74,23 +79,23 @@ export function MiniRecorder({ mode: forced }: { mode?: MiniMode } = {}) {
         {done && <span className="text-[10.5px] leading-[14px] text-white/80">Ready</span>}
         <span className="h-px w-[16px] bg-white/15" />
         {(recording || paused || ended) && (
-          <button type="button" onClick={toggle} aria-label={ended ? "Keep recording" : paused ? "Resume" : "Pause"} title={ended ? "Keep recording" : paused ? "Resume" : "Pause"} className={btn}>
+          <Tip label={ended ? "Keep recording" : paused ? "Resume" : "Pause"}><button type="button" onClick={toggle} aria-label={ended ? "Keep recording" : paused ? "Resume" : "Pause"} className={btn}>
             <Icon icon={paused || ended ? PlayIcon : PauseIcon} className="size-[14px]" strokeWidth={2} />
-          </button>
+          </button></Tip>
         )}
         {(paused || ended) && (
-          <button type="button" onClick={generate} aria-label="Generate notes" title="Generate notes" className={`${btn} ttt-glow bg-primary hover:bg-primary/90`}>
+          <Tip label="Generate notes"><button type="button" onClick={generate} aria-label="Generate notes" className={`${btn} ttt-glow bg-primary hover:bg-primary/90`}>
             <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.9} />
-          </button>
+          </button></Tip>
         )}
         {done ? (
-          <button type="button" onClick={() => navigate("/transcriptions/rec-1")} aria-label="Open the note" title="Open the note" className={btn}>
+          <Tip label="Open the note"><button type="button" onClick={() => navigate("/transcriptions/rec-1")} aria-label="Open the note" className={btn}>
             <Icon icon={Note01Icon} className="size-[14px]" strokeWidth={1.9} />
-          </button>
+          </button></Tip>
         ) : (
-          <button type="button" onClick={openNotes} aria-label="Open the notes beside the call" title="Open the notes beside the call" className={btn}>
+          <Tip label="Open the notes beside the call"><button type="button" onClick={openNotes} aria-label="Open the notes beside the call" className={btn}>
             <Icon icon={LayoutRightIcon} className="size-[14px]" strokeWidth={1.9} />
-          </button>
+          </button></Tip>
         )}
       </div>
     </div>

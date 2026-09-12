@@ -12,6 +12,7 @@ const GROUPS: { title: string; key: string; kind: "local" | "session"; options: 
   { title: "Shell", key: "ttt_shell", kind: "local", options: [{ value: "desktop", label: "Desktop app" }, { value: "web", label: "Web portal" }] },
   { title: "System", key: "ttt_os", kind: "local", options: [{ value: "mac", label: "macOS" }, { value: "win", label: "Windows" }] },
   { title: "Notice in the corner", key: "ttt_demo_notice", kind: "session", options: [{ value: "", label: "None" }, { value: "call", label: "Zoom call detected" }, { value: "upcoming", label: "Up next" }, { value: "upcoming-menu", label: "Up next, menu open" }, { value: "ready", label: "Notes are ready" }] },
+  { title: "Desktop banner on the web", key: "ttt_demo_banner", kind: "session", options: [{ value: "", label: "Right panel card" }, { value: "home", label: "Wide banner on Home" }, { value: "top", label: "Strip on top" }, { value: "sidebar", label: "Sidebar plaque" }] },
   { title: "Permissions", key: "ttt_demo_perm", kind: "session", options: [{ value: "", label: "Both allowed" }, { value: "mic", label: "Microphone only" }, { value: "1", label: "Nothing allowed" }] },
   { title: "Closed app (the /desk scene)", key: "ttt_demo_desk", kind: "session", options: [{ value: "widget", label: "Recording widget" }, { value: "hover", label: "Widget, hover: last words" }, { value: "paused", label: "On hold" }, { value: "ended", label: "Call ended" }, { value: "writing", label: "Writing the note" }, { value: "done", label: "Note written" }, { value: "call", label: "Notice: call detected" }, { value: "upcoming", label: "Notice: up next" }, { value: "upcoming-menu", label: "Notice: up next, menu" }, { value: "ready", label: "Notice: notes ready" }, { value: "split", label: "Side by side" }] },
 ];
@@ -22,8 +23,8 @@ export function DemoSwitcher() {
   const { pathname } = useLocation();
   if (!DEMO_TOOLS) return null;
   const shell = useShell();
-  const notice = useDemo("notice"), perm = useDemo("perm"), desk = useDemo("desk");
-  const current = (g: typeof GROUPS[number]) => g.key === "ttt_shell" ? shell.shell : g.key === "ttt_os" ? shell.os : g.key === "ttt_demo_notice" ? (notice ?? "") : g.key === "ttt_demo_perm" ? (perm ?? "") : (desk ?? "widget");
+  const notice = useDemo("notice"), perm = useDemo("perm"), desk = useDemo("desk"), banner = useDemo("banner");
+  const current = (g: typeof GROUPS[number]) => g.key === "ttt_shell" ? shell.shell : g.key === "ttt_os" ? shell.os : g.key === "ttt_demo_notice" ? (notice ?? "") : g.key === "ttt_demo_perm" ? (perm ?? "") : g.key === "ttt_demo_banner" ? (banner ?? "") : (desk ?? "widget");
   const choose = (g: typeof GROUPS[number], value: string) => {
     if (g.kind === "local") setShellFlag(g.key as "ttt_shell" | "ttt_os", value);
     else setDemo(g.key.replace("ttt_demo_", ""), value || null);

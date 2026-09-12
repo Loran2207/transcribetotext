@@ -1401,7 +1401,7 @@ function MediaPlayer({
   return (
     <div className="shrink-0 border-t border-border bg-background px-4 py-3 lg:px-6">
       <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="mb-3 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
-      {/* Three columns, and Play is the middle one. The speed control used to be
+      {/* Three columns, and Play is the middle one; Resume recording sits beside it (Kirill, 10.09). The speed control used to be
           a fourth element inside the transport group, which had no mirror on the
           left and pushed Play about twenty pixels off the centre of the bar; it
           now sits with the total time on the right. The side columns are equal
@@ -1424,9 +1424,9 @@ function MediaPlayer({
           <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])} title="Forward 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l7 7-7 7" /><text x="2" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
+          {trailing && <span className="ml-1.5">{trailing}</span>}
         </div>
         <div className="flex items-center justify-end gap-2">
-          {trailing}
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
@@ -1868,7 +1868,7 @@ export function LiveRecordingBar({
           Generate notes
         </button>
       )}
-      <div className="@container grid items-center gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+      <div className="@container grid items-center gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
         <div className="flex min-w-0 items-center gap-2 overflow-hidden">
           <span className="relative flex size-[8px] shrink-0">
             <span className={`absolute inline-flex h-full w-full rounded-full opacity-75 ${!isPaused ? "animate-ping" : ""}`}
@@ -2287,6 +2287,36 @@ function WaitsFor({ hint, children, className = "" }: { hint: string; children: 
       <TooltipTrigger asChild><span tabIndex={0} className={"inline-flex rounded-full outline-none " + className}>{children}</span></TooltipTrigger>
       <TooltipContent>{hint}</TooltipContent>
     </Tooltip>
+  );
+}
+
+/* Share, Copy, and what waits for the call to end: the same row on the full
+   window and on the panel docked beside the call, so nothing is missing there */
+export function LiveHeaderActions({ onShare, transcriptText, thoughtsText, compact = false }: { onShare: () => void; transcriptText: () => string; thoughtsText: () => string; compact?: boolean }) {
+  return (
+  <div className={"flex shrink-0 flex-wrap items-center justify-end " + (compact ? "gap-1.5" : "gap-2")}>
+    <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden" onClick={onShare}>
+      <Icon icon={Share} className="size-[14px]" strokeWidth={1.7} />
+      <span className="text-[13px] font-medium">Share</span>
+    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden">
+          <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
+          <span className="text-[13px] font-medium">Copy</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[250px]">
+        <DropdownMenuItem className="gap-2" onClick={() => { void navigator.clipboard?.writeText(transcriptText()); toast("Transcript copied"); }}><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy transcript</DropdownMenuItem>
+        <DropdownMenuItem className="gap-2" onClick={() => { void navigator.clipboard?.writeText(thoughtsText()); toast("My thoughts copied"); }}><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy my thoughts</DropdownMenuItem>
+        <DropdownMenuItem className="gap-2" disabled><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} /><span className="whitespace-nowrap">Copy summary</span><span className="ml-auto whitespace-nowrap text-[11px] text-muted-foreground">after the call</span></DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+    <WaitsFor hint="Export is available once the call has ended" className="max-md:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Export" disabled><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} /></Button></WaitsFor>
+    <WaitsFor hint="The link appears once the call has ended" className="max-lg:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Copy link" disabled><Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.8} /></Button></WaitsFor>
+    <WaitsFor hint="Move, rename and delete are available once the call has ended" className="max-lg:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="More actions" disabled><Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} /></Button></WaitsFor>
+  </div>
   );
 }
 
@@ -3410,29 +3440,7 @@ export function TranscriptionDetailPage() {
             {desktopShell ? (
               <div className="mt-[26px] flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1 py-1"><LiveTitle className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal" /></div>
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                  <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden" onClick={() => setShareDialogOpen(true)}>
-                    <Icon icon={Share} className="size-[14px]" strokeWidth={1.7} />
-                    <span className="text-[13px] font-medium">Share</span>
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden">
-                        <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
-                        <span className="text-[13px] font-medium">Copy</span>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[250px]">
-                      <DropdownMenuItem className="gap-2" onClick={() => { void navigator.clipboard?.writeText(liveDetailSegments.map((sg) => `${sg.speaker.name}: ${sg.text}`).join("\n")); toast("Transcript copied"); }}><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy transcript</DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2" onClick={() => { void navigator.clipboard?.writeText(padToText(pad)); toast("My thoughts copied"); }}><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />Copy my thoughts</DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2" disabled><Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} /><span className="whitespace-nowrap">Copy summary</span><span className="ml-auto whitespace-nowrap text-[11px] text-muted-foreground">after the call</span></DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <WaitsFor hint="Export is available once the call has ended" className="max-md:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Export" disabled><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.7} /></Button></WaitsFor>
-                  <WaitsFor hint="The link appears once the call has ended" className="max-lg:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="Copy link" disabled><Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.8} /></Button></WaitsFor>
-                  <WaitsFor hint="Move, rename and delete are available once the call has ended" className="max-lg:hidden"><Button variant="ghost" size="icon" className="size-8 rounded-full" aria-label="More actions" disabled><Icon icon={MoreHorizontal} className="size-4 text-muted-foreground" strokeWidth={2} /></Button></WaitsFor>
-                </div>
+                <LiveHeaderActions onShare={() => setShareDialogOpen(true)} transcriptText={() => liveDetailSegments.map((sg) => `${sg.speaker.name}: ${sg.text}`).join("\n")} thoughtsText={() => padToText(pad)} />
               </div>
             ) : (
               <h1 className="mt-1 text-[20px] leading-[26px] tracking-[-0.3px] font-semibold text-foreground lg:text-[30px] lg:leading-tight lg:tracking-[-0.02em]">

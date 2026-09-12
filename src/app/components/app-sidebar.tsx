@@ -1,5 +1,6 @@
 import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon, Mic01Icon } from "@hugeicons/core-free-icons";
 import { useShell } from "./desktop/shell";
+import { SidebarAppPlaque } from "./desktop/desktop-app-banner";
 
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -409,6 +410,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
 
       {/* ═══════════ Footer ═══════════ */}
       <SidebarFooter>
+        <SidebarAppPlaque />
         <SidebarPlanPlaque />
         <SidebarSeparator />
         <SidebarMenu>

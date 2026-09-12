@@ -5,6 +5,7 @@ import { DemoSwitcher } from "./demo-switcher";
 import { MiniRecorder } from "./mini-recorder";
 import { NoticeCard } from "./desktop-notice";
 import { SplitNotetaker } from "./split-notetaker";
+import { useTranscriptionModals } from "../transcription-modals";
 
 /* The app with its window closed: only what floats over the desktop remains.
    A wallpaper and the system's own strip (menu bar on macOS, taskbar on
@@ -14,6 +15,10 @@ export function DeskPage() {
   const { os } = useShell();
   const navigate = useNavigate();
   const state = useDemo("desk") ?? "widget";
+  const { startInstantRecording } = useTranscriptionModals();
+  /* a notice on the desk leads somewhere: Record starts the call and docks the
+     notes beside it, Open shows the finished note, Not now leaves the capsule */
+  const actOnNotice = () => { if (state === "ready") { navigate("/transcriptions/rec-1"); return; } void startInstantRecording(); setDemo("desk", "split"); };
   useEffect(() => { document.documentElement.dataset.desk = "1"; return () => { delete document.documentElement.dataset.desk; }; }, []);
   const mac = os !== "win";
   const wallpaper = mac
@@ -61,7 +66,7 @@ export function DeskPage() {
         </>
       )}
       {(state === "call" || state === "ready" || state === "upcoming" || state === "upcoming-menu") && (
-        <div className={`absolute right-[24px] ${mac ? "top-[44px]" : "bottom-[68px]"}`}><NoticeCard kind={state === "upcoming-menu" ? "upcoming" : state} menuOpen={state === "upcoming-menu"} onAct={() => {}} onClose={() => {}} /></div>
+        <div className={`absolute right-[24px] ${mac ? "top-[44px]" : "bottom-[68px]"}`}><NoticeCard kind={state === "upcoming-menu" ? "upcoming" : state} menuOpen={state === "upcoming-menu"} onAct={actOnNotice} onClose={() => setDemo("desk", "widget")} /></div>
       )}
       {/* the way back into the window, where the dock would be; the docked panel has its own lights for that */}
       {state !== "split" && <button type="button" onClick={() => navigate("/")} className={`absolute left-1/2 -translate-x-1/2 flex h-[34px] items-center rounded-full bg-white/15 px-[14px] text-[12.5px] font-medium text-white backdrop-blur-[8px] transition-colors hover:bg-white/25 ${mac ? "bottom-[16px]" : "bottom-[60px]"}`}>Open the app window</button>}

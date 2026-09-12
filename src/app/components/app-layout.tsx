@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { DesktopAppStrip } from "./desktop/desktop-app-banner";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { Puzzle } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -66,6 +67,7 @@ export function AppLayout() {
       <SidebarProvider className="h-screen !min-h-0 overflow-hidden bg-sidebar">
         <AppSidebar activePage={isSubRoute ? "" : activePage} onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />
         <SidebarInset className="overflow-hidden bg-sidebar">
+          <DesktopAppStrip />
           <TopBar onNavigate={handleNavigate} />
           <MobileTopBar onNavigate={handleNavigate} />
           <main className="flex flex-1 overflow-hidden rounded-tl-[32px] bg-background">
