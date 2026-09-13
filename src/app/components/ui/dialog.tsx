@@ -30,12 +30,14 @@ function DialogClose({
   return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
 }
 
-function DialogOverlay({
+/* React 18: a parent slot hands the overlay a ref, so it must be able to take one */
+const DialogOverlay = React.forwardRef<React.ElementRef<typeof DialogPrimitive.Overlay>, React.ComponentProps<typeof DialogPrimitive.Overlay>>(function DialogOverlay({
   className,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+}, ref) {
   return (
     <DialogPrimitive.Overlay
+      ref={ref}
       data-slot="dialog-overlay"
       className={cn(
         "ttt-dim fixed inset-0 z-50 bg-black/40",
@@ -44,7 +46,7 @@ function DialogOverlay({
       {...props}
     />
   );
-}
+});
 
 function DialogContent({
   className,
