@@ -28,12 +28,14 @@ function AlertDialogPortal({
   );
 }
 
-function AlertDialogOverlay({
+/* React 18: a parent slot hands the overlay a ref, so it must be able to take one */
+const AlertDialogOverlay = React.forwardRef<React.ElementRef<typeof AlertDialogPrimitive.Overlay>, React.ComponentProps<typeof AlertDialogPrimitive.Overlay>>(function AlertDialogOverlay({
   className,
   ...props
-}: React.ComponentProps<typeof AlertDialogPrimitive.Overlay>) {
+}, ref) {
   return (
     <AlertDialogPrimitive.Overlay
+      ref={ref}
       data-slot="alert-dialog-overlay"
       className={cn(
         "ttt-dim fixed inset-0 z-50 bg-black/40",
@@ -42,7 +44,7 @@ function AlertDialogOverlay({
       {...props}
     />
   );
-}
+});
 
 function AlertDialogContent({
   className,

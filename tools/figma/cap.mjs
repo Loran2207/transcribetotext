@@ -26,6 +26,12 @@ const PORT = process.env.PORT || "5173";
 setTimeout(() => { console.log("submitted watchdog-timeout"); process.exit(2); }, 300000).unref();
 const b = await chromium.launch({ channel: "chrome", args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
 const p = await b.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: 2 });
+/* QA: every console error and uncaught exception is printed at the end, so a broken state is heard, not just seen */
+const faults = [];
+p.on("console", (m) => { if (m.type() === "error") faults.push("console: " + m.text().slice(0, 300)); });
+p.on("pageerror", (e) => faults.push("pageerror: " + String(e).slice(0, 300)));
+p.on("requestfailed", (r) => { if (!/favicon|hot-update|mcp\.figma/.test(r.url())) faults.push("request: " + r.url().slice(0, 160) + " " + (r.failure()?.errorText || "")); });
+process.on("exit", () => { if (faults.length) console.log("FAULTS " + JSON.stringify(faults.slice(0, 20))); });
 await p.addInitScript(() => {
   navigator.mediaDevices.getUserMedia = async () => {
     const ac = new AudioContext(); const o = ac.createOscillator(); o.frequency.value = 180;
