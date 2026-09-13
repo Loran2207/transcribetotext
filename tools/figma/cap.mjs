@@ -85,6 +85,8 @@ await p.evaluate((t) => { document.title = t; }, name);
    hangs off a row keeps that row's place in the document and the content
    printed after it paints over it. Re-seat the overlays first; nothing moves
    on screen, and the document finally says what the screen shows. */
+/* SHOT=<png path>: a still of the same frozen page instead of a Figma capture, for review */
+if (process.env.SHOT) { await p.screenshot({ path: process.env.SHOT }); console.log("shot", process.env.SHOT); await Promise.race([b.close().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]); process.exit(0); }
 console.log("hoisted", JSON.stringify(await p.evaluate(HOIST)));
 const src = await p.evaluate(async (u) => (await fetch(u)).text(), CAP);
 await p.evaluate(src);
