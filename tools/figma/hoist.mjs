@@ -72,6 +72,14 @@ export const HOIST = () => {
     moves.push({ el, r, host, z: +getComputedStyle(el).zIndex, ix: mine });
   }
 
+  /* an overlay that moves past a later top layer would land on top of it:
+     every top layer written after a moved one, inside the same host, moves too */
+  for (const m of [...moves]) {
+    for (const el of raised) {
+      if (!tops.get(el) || moves.some((o) => o.el === el)) continue;
+      if (ix.get(el) > m.ix && m.host.contains(el) && !el.contains(m.el) && !m.el.contains(el)) moves.push({ el, r: box(el), host: m.host, z: +getComputedStyle(el).zIndex, ix: ix.get(el) });
+    }
+  }
   /* two overlays over the same ground keep their own order */
   moves.sort((a, b) => a.z - b.z || a.ix - b.ix);
   for (const m of moves) {

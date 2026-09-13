@@ -130,7 +130,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   const promoSlides = appCardHere ? ["promo", "banner"] : ["banner", "promo"];
   const promoCarousel = (
     <div>
-      <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
+      <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[16px]" style={{ scrollbarWidth: "none" }}>
         {promoSlides.map((key) => (
           <div key={key} className="snap-center shrink-0 w-full flex items-stretch [&>*]:w-full">
             {key === "banner" ? <UpgradeBanner bare /> : appCardHere ? <DesktopAppCard mobile /> : <PromoCard />}
@@ -145,7 +145,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
 
   const infoCarousel = (
     <div>
-      <div ref={infoRef} onScroll={onInfoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[12px]" style={{ scrollbarWidth: "none" }}>
+      <div ref={infoRef} onScroll={onInfoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[16px]" style={{ scrollbarWidth: "none" }}>
         {infoSlides.map((key) => (
           <div key={key} className="snap-center shrink-0 w-full self-start">
             {key === "analytics" ? analyticsCard : eventsCard}

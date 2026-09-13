@@ -48,16 +48,13 @@ export function SplitNotetaker() {
           <LiveHeaderActions compact onShare={() => setShareOpen(true)} transcriptText={() => "Maria: The export is owned by our ops team, I can send the owner today.\nYou: Great, then the pricing tiers go out before Thursday."} thoughtsText={() => pad.map((l) => l.text).join("\n")} />
         </div>
         <ShareDialog open={shareOpen} onOpenChange={setShareOpen} resourceType="transcription" resourceId="live" resourceName={window.sessionStorage.getItem("ttt_live_title") || "Untitled call"} />
+        {/* the same line as the full window, in the same order: meeting, folder, then where and how it records */}
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5"><span className="scale-[0.9]"><SourceIcon source="microphone" /></span><span>Notetaker on {machine}</span></span>
-          <span className="text-border">{"\u2022"}</span>
-          <span>{recordingPhase === "paused" ? "Paused - live transcript is on hold" : "Recording in real time"}</span>
-          <span className="text-border">{"\u2022"}</span>
-          <span>{new Date().toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
-          <span className="text-border">{"\u2022"}</span>
-          <LiveFolderChip />
-          <span className="text-border">{"\u2022"}</span>
           <LiveMeetingChips />
+          {/* each dot travels with what follows it, so a wrapped line never ends in a lone dot */}
+          <span className="inline-flex items-center gap-2"><span className="text-border">{"\u2022"}</span><LiveFolderChip /></span>
+          <span className="inline-flex items-center gap-2"><span className="text-border">{"\u2022"}</span><span className="inline-flex items-center gap-1.5"><span className="scale-[0.9]"><SourceIcon source="microphone" /></span><span>Notetaker on {machine}</span></span></span>
+          <span className="inline-flex items-center gap-2 whitespace-nowrap"><span className="text-border">{"\u2022"}</span><span>{recordingPhase === "paused" ? "Paused - live transcript is on hold" : "Recording in real time"}</span></span>
         </div>
         <TemplateLibraryDialog open={libraryOpen} onOpenChange={setLibraryOpen} value={null} onSelect={(tid) => { if (tid) insertTemplate(tid); }} gate={false} />
       </div>

@@ -1401,7 +1401,7 @@ function MediaPlayer({
   return (
     <div className="shrink-0 border-t border-border bg-background px-4 py-3 lg:px-6">
       <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="mb-3 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
-      {/* Three columns, and Play is the middle one; Resume recording sits beside it (Kirill, 10.09). The speed control used to be
+      {/* Three columns, and Play is the middle one; Resume recording sits in the right column, past it. The speed control used to be
           a fourth element inside the transport group, which had no mirror on the
           left and pushed Play about twenty pixels off the centre of the bar; it
           now sits with the total time on the right. The side columns are equal
@@ -1424,9 +1424,10 @@ function MediaPlayer({
           <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])} title="Forward 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l7 7-7 7" /><text x="2" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
-          {trailing && <span className="ml-1.5">{trailing}</span>}
         </div>
+        {/* Resume recording is not part of the transport: it lives in the right column, just past Play, so Play stays on the centre line (Kirill, 13.09) */}
         <div className="flex items-center justify-end gap-2">
+          {trailing && <span className="mr-auto pl-4">{trailing}</span>}
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
@@ -1843,8 +1844,10 @@ export function LiveRecordingBar({
   isSwitchingMicrophone: boolean;
 }) {
   const selectedMic = microphoneDevices.find((device) => device.id === selectedMicrophoneId);
-  /* without the caption the bar is in the half-width panel: the device pickers shrink to their icons */
-  const compact = !caption;
+  /* without the caption the bar is in the half-width panel: the device pickers shrink to their icons.
+     A missing permission does the same in the full window: three worded chips would push Pause off centre,
+     so the words move into the hover title and the popover */
+  const compact = !caption || !!warning;
   /* with the warning triangle in the row the pickers give up a little width so Pause stays centred */
   const pickerW = "md:w-[200px]";
   const triggerLabel = isSwitchingMicrophone

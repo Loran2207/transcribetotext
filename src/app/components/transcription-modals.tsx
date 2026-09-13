@@ -835,7 +835,7 @@ export function TranscriptionModalsProvider({
     };
   }, []);
 
-  function simulateJob(id: string) {
+  function simulateJob(id: string, alwaysSucceeds = false) {
     let uploadPct = 0;
     let transcriptionPct = 0;
 
@@ -847,7 +847,7 @@ export function TranscriptionModalsProvider({
       transcriptionPct += Math.random() * 10 + 4;
       if (transcriptionPct >= 100) {
         transcriptionPct = 100;
-        const rand = Math.random();
+        const rand = alwaysSucceeds ? 1 : Math.random();
         if (rand < 0.15) {
           const errTypes = ["corrupt", "too_long", "network"] as const;
           const errorType = errTypes[Math.floor(Math.random() * errTypes.length)];
@@ -951,7 +951,8 @@ export function TranscriptionModalsProvider({
 
     setJobs(prev => [{ id, name, batchId, createdAt, progress: 0, uploadProgress: 0, transcriptionProgress: 0, status: opts?.kind === "meeting" ? "connecting" : "uploading", fileType, ...opts }, ...prev]);
     if (opts?.folderId) assignToFolder([id], opts.folderId);
-    if (opts?.kind === "meeting") simulateMeetingJob(id); else simulateJob(id);
+    /* a call recorded on this machine has already been heard live: it never "fails" in the demo */
+    if (opts?.kind === "meeting") simulateMeetingJob(id); else simulateJob(id, opts?.source === "microphone");
     return id;
   }
 
