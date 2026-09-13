@@ -2972,9 +2972,8 @@ function RecordingPill() {
         </div>
 
         <div className="border-t border-border/70 px-[10px] pt-[8px] pb-[10px]">
-          {/* the desktop hears both sides: the speakers the call plays through, and the microphone */}
-          <div className={desktopShell ? "grid grid-cols-2 gap-[8px]" : "w-full"}>
-            {/* the call's sound is a permission, not a device: the pill shows the microphone only */}
+          {/* the call's sound is a permission, not a device: the microphone alone takes the whole row (Kirill, 13.09) */}
+          <div className="w-full">
             <RecordingMicrophoneSelect compact />
           </div>
         </div>
