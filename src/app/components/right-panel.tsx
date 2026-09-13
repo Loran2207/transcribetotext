@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
-import { DesktopAppCard, useBannerVariant } from "./desktop/desktop-app-banner";
+import { DesktopAppCard, useBannerVariant, useDesktopBannerHidden } from "./desktop/desktop-app-banner";
 import { useShell } from "./desktop/shell";
 import { useNavigate } from "react-router";
 import { SourceIcon } from "./source-icons";
@@ -394,7 +394,9 @@ export function RightPanel() {
   const plan = usePlan();
   const { desktop: desktopShell } = useShell();
   const bannerVariant = useBannerVariant();
-  const appCardHere = !desktopShell && bannerVariant === "panel";
+  const { hidden: appCardHidden } = useDesktopBannerHidden();
+  /* a hidden card must not leave an empty slide (and a second dot) behind */
+  const appCardHere = !desktopShell && !appCardHidden && bannerVariant === "panel";
 
   const meetingGrouped = [
     { day: "03/16", dayLabel: "Monday", items: meetings.filter((m) => m.day === "03/16") },

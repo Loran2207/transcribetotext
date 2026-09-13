@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from "react";
-import { Cancel01Icon, ArrowDown01Icon, AppleIcon, ArrowRight01Icon, ComputerIcon } from "@hugeicons/core-free-icons";
+import { useEffect, useState, type ReactNode } from "react";
+import { Cancel01Icon, ArrowDown01Icon, AppleIcon, ComputerIcon } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { Icon } from "../ui/icon";
@@ -9,9 +9,16 @@ const HIDDEN_KEY = "ttt_app_banner_hidden";
 
 /* Hidden once, hidden for good on this browser. The desktop app itself never
    shows the banner, so the flag is only read on the web. */
+/* every reader of the same key hears the cross: the panel carousel drops the slide the moment the card goes */
+const HIDDEN_EVENT = "ttt-banner-hidden";
 export function useDesktopBannerHidden(key: string = HIDDEN_KEY) {
   const [hidden, setHidden] = useState(() => typeof window !== "undefined" && window.localStorage.getItem(key) === "1");
-  const hide = () => { window.localStorage.setItem(key, "1"); setHidden(true); };
+  useEffect(() => {
+    const sync = () => setHidden(window.localStorage.getItem(key) === "1");
+    window.addEventListener(HIDDEN_EVENT, sync);
+    return () => window.removeEventListener(HIDDEN_EVENT, sync);
+  }, [key]);
+  const hide = () => { window.localStorage.setItem(key, "1"); setHidden(true); window.dispatchEvent(new Event(HIDDEN_EVENT)); };
   return { hidden, hide };
 }
 
@@ -107,7 +114,7 @@ export function DesktopAppCard({ onGet, mobile = false, scope }: { onGet?: () =>
       ) : (
         <GetAppMenu onGet={onGet} trigger={
           <button type="button" className="absolute left-[16px] top-[34px] flex items-center gap-[2px] whitespace-nowrap text-[11px] leading-[16.5px] text-white/85 hover:text-white data-[state=open]:text-white">
-            {installed ? "Open the app" : "Get the app"} <Icon icon={ArrowRight01Icon} className="size-[11px]" strokeWidth={2} />
+            {installed ? "Open the app" : "Get the app"} <Icon icon={ArrowDown01Icon} className="size-[11px]" strokeWidth={2.2} />
           </button>
         } />
       )}
@@ -134,7 +141,7 @@ export function SidebarAppPlaque({ onGet }: { onGet?: () => void }) {
       {wide ? (
         <GetAppMenu onGet={onGet} trigger={
           <button type="button" className="absolute left-[12px] top-[34px] flex items-center gap-[2px] whitespace-nowrap text-[11px] leading-[16.5px] text-white/85 hover:text-white data-[state=open]:text-white">
-            {installed ? "Open the app" : "Get the app"} <Icon icon={ArrowRight01Icon} className="size-[11px]" strokeWidth={2} />
+            {installed ? "Open the app" : "Get the app"} <Icon icon={ArrowDown01Icon} className="size-[11px]" strokeWidth={2.2} />
           </button>
         } />
       ) : (
