@@ -1995,8 +1995,9 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
             /* the web can only hear you; a call needs the app, and the choice is made here, not in a hint */
             <MethodCards<"voice" | "desktop">
               cards={[
-                { id: "voice", title: "Your voice, here", line: "Typed as you speak, in the browser", icon: Mic01Icon },
-                { id: "desktop", title: "A call, both sides", line: "No bot. Needs the desktop app", icon: ComputerIcon, badge: "New" },
+                /* two plain options, named by where they run (Kirill, 14.09) */
+                { id: "voice", title: "In the browser", line: "Your voice, typed as you speak", icon: Mic01Icon },
+                { id: "desktop", title: "Desktop app", line: "Both sides of a call, no bot", icon: ComputerIcon, badge: "New" },
               ]}
               method="voice"
               onChange={(m) => { if (m === "desktop") { window.sessionStorage.setItem("ttt_meeting_method", "desktop"); onClose(); setOpenModal("meeting"); } }}
@@ -2516,7 +2517,7 @@ function MethodCards<T extends string>({ cards, method, onChange }: { cards: Met
 
 function RecordMethodCards({ method, onChange, desktopShell, machine }: { method: RecordMethod; onChange: (m: RecordMethod) => void; desktopShell: boolean; machine: string }) {
   const cards: MethodCard<RecordMethod>[] = [
-    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "On your computer", line: desktopShell ? "Both sides of the call, no bot" : "No bot. Needs the desktop app", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
+    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "On your computer", line: desktopShell ? "Both sides of the call, no bot" : "Both sides of the call, with the desktop app", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
     { id: "bot", title: "Send a bot", line: "A bot joins by the invite link", icon: Video01Icon },
   ];
   return <MethodCards cards={cards} method={method} onChange={onChange} />;
