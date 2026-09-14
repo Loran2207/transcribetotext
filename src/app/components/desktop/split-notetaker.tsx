@@ -5,7 +5,7 @@ import { Icon } from "../ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { NotesPad, type PadLine } from "./notes-pad";
 import { useTranscriptionModals } from "../transcription-modals";
-import { LiveRecordingBar, LiveTitle, LiveFolderChip, LiveMeetingChips, LiveHeaderActions, padWithTemplate } from "../transcription-detail-page";
+import { LiveRecordingBar, LiveTitle, LiveFolderChip, LiveMeetingChips, LiveHeaderActions, LiveTopControls, LiveTranscriptTabLabel, LiveTabsTrailing, LiveTranscriptBody, LiveSummaryWaiting, padWithTemplate } from "../transcription-detail-page";
 import { ShareDialog } from "../share-dialog";
 import { useTemplates } from "@/hooks/use-templates";
 import { TemplateLibraryDialog } from "../template-library-dialog";
@@ -37,7 +37,9 @@ export function SplitNotetaker() {
     <div className="flex h-full flex-col bg-background text-foreground">
       <div className="shrink-0 px-[20px] pt-[14px] pb-[12px]">
         <div className="flex h-7 items-center justify-end">
-          <button type="button" onClick={() => navigate("/transcriptions/live", { state: { liveRecording: true } })} className="flex h-7 items-center gap-[6px] rounded-full border border-border px-[10px] text-[12px] font-medium text-foreground transition-colors hover:bg-muted" title="Back to the full window">
+          {/* the same top controls as the full window: the arrows and the translation that waits */}
+          <LiveTopControls compact />
+          <button type="button" onClick={() => navigate("/transcriptions/live", { state: { liveRecording: true } })} className="ml-1 flex h-7 items-center gap-[6px] rounded-full border border-border px-[10px] text-[12px] font-medium text-foreground transition-colors hover:bg-muted" title="Back to the full window">
             <Icon icon={ArrowExpand01Icon} className="size-[13px]" strokeWidth={1.9} />
             Full window
           </button>
@@ -59,21 +61,22 @@ export function SplitNotetaker() {
         <TemplateLibraryDialog open={libraryOpen} onOpenChange={setLibraryOpen} value={null} onSelect={(tid) => { if (tid) insertTemplate(tid); }} gate={false} />
       </div>
       <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
-        <div className="border-b border-border px-[20px]">
+        {/* the full window's three tabs and what stands beside them, adapted to half the width */}
+        <div className="flex flex-wrap items-end gap-x-2 border-b border-border px-[16px]">
           <TabsList variant="line" className="border-b-0">
             <TabsTrigger value="notes" variant="line">My thoughts</TabsTrigger>
-            <TabsTrigger value="transcript" variant="line">Transcript</TabsTrigger>
+            <TabsTrigger value="transcript" variant="line"><LiveTranscriptTabLabel live={recordingPhase !== "paused"} /></TabsTrigger>
+            <TabsTrigger value="summary" variant="line">Summary</TabsTrigger>
           </TabsList>
+          <LiveTabsTrailing visible={tab === "transcript"} compact />
         </div>
         <div className="min-h-0 flex-1 overflow-auto px-[16px] py-[14px]">
           {tab === "notes" ? (
             <NotesPad lines={pad} onChange={setPad} templates={templates} onTemplate={(tid) => { if (tid === "all") setLibraryOpen(true); else insertTemplate(tid); }} />
+          ) : tab === "summary" ? (
+            <LiveSummaryWaiting compact />
           ) : (
-            <div className="flex flex-col gap-[12px] text-[13px] leading-[19px]">
-              {[["Maria", "The export is owned by our ops team, I can send the owner today."], ["You", "Great, then the pricing tiers go out before Thursday."], ["Maria", "Works for us, let us lock the dates on the call tomorrow."]].map(([who, line], i) => (
-                <p key={i}><span className="font-semibold">{who}</span> <span className="text-muted-foreground">{line}</span></p>
-              ))}
-            </div>
+            <LiveTranscriptBody compact />
           )}
         </div>
       </Tabs>

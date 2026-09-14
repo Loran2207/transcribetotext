@@ -1439,6 +1439,112 @@ function MediaPlayer({
   );
 }
 
+/* ── The live note's parts, shared by the full window and the half-width panel (Kirill, 14.09: one to one, only adapted) ── */
+
+/* the Transcript tab breathes while sound comes in */
+export function LiveTranscriptTabLabel({ live }: { live: boolean }) {
+  return (<>
+    {live && <span className="mr-1.5 inline-flex h-[12px] items-center gap-[2px]" aria-hidden>{[0.55, 1, 0.7].map((h, i) => <span key={i} className="ttt-bar w-[2.5px] rounded-full bg-[#34C759]" style={{ height: `${h * 100}%`, animationDelay: `${i * 0.15}s` }} />)}</span>}
+    Transcript
+  </>);
+}
+
+/* what stands to the right of the tabs while Transcript is open: the view checks and the (waiting) edit */
+export function LiveTabsTrailing({ visible, compact = false }: { visible: boolean; compact?: boolean }) {
+  return (
+    <div className={`mb-1 ml-auto flex items-center ${compact ? "gap-1.5" : "gap-2"} ${visible ? "" : "invisible pointer-events-none"}`}>
+      <TranscriptViewChecks />
+      <WaitsFor hint="The transcript can be edited once the call has ended"><Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled><Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />{compact ? "Edit" : "Edit transcript"}</Button></WaitsFor>
+    </div>
+  );
+}
+
+/* the arrows and the translation control from the top of the full window; both wait the same way */
+export function LiveTopControls({ compact = false }: { compact?: boolean }) {
+  const navigate = useNavigate();
+  return (
+    <div className="flex items-center gap-1">
+      <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label="Previous note" disabled={!records.length} onClick={() => navigate(`/transcriptions/${records[0].id}`)}><Icon icon={ArrowLeft01Icon} className="size-[15px]" strokeWidth={2} /></Button></TooltipTrigger><TooltipContent>Previous note. The call keeps recording</TooltipContent></Tooltip>
+      <WaitsFor hint="This call is the newest note"><Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label="Next note" disabled><Icon icon={ArrowRight01Icon} className="size-[15px]" strokeWidth={2} /></Button></WaitsFor>
+      <WaitsFor hint="Translation is available once the call has ended" className="ml-1 h-7 items-center gap-1 rounded-[10px] border border-border/70 bg-muted/20 px-1">
+        <Select disabled>
+          <SelectTrigger size="sm" className={`h-7 ${compact ? "w-[150px]" : "w-[190px]"} rounded-[10px] border-none bg-transparent px-2 text-[13px] shadow-none focus-visible:ring-0`}><SelectValue placeholder="Translate to..." /></SelectTrigger>
+        </Select>
+      </WaitsFor>
+    </div>
+  );
+}
+
+/* the live transcript itself: the permission warning, the listening placeholder, every segment, the words still being said */
+export function LiveTranscriptBody({ compact = false }: { compact?: boolean }) {
+  const { liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingPhase } = useTranscriptionModals();
+  const { view } = useTranscriptView();
+  const { machine } = useShell();
+  const permFlag = useDemo("perm");
+  const [perm, setPerm] = useState<string | null>(() => (permFlag === "1" || permFlag === "mic" ? permFlag : null));
+  useEffect(() => { setPerm(permFlag === "1" || permFlag === "mic" ? permFlag : null); }, [permFlag]);
+  const isPaused = recordingPhase === "paused";
+  const segments = useMemo<Segment[]>(() => liveTranscriptSegments.map((sg) => ({ id: sg.id, speaker: LIVE_RECORDING_SPEAKER, timestamp: sg.timestamp, text: sg.text })), [liveTranscriptSegments]);
+  const endRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [segments.length, liveTranscriptInterim]);
+  const hasTranscript = segments.length > 0 || liveTranscriptInterim.trim().length > 0;
+  return (
+    <div className={compact ? "w-full" : "mx-auto w-full max-w-[980px] px-8 py-6"}>
+      {perm && (
+        <div className={`mb-4 flex items-center gap-3 rounded-[14px] border border-warning/30 bg-warning/[0.07] ${compact ? "flex-wrap px-3 py-2.5" : "px-4 py-3"}`}>
+          <Icon icon={Alert02Icon} className="size-[18px] shrink-0 text-warning" strokeWidth={2} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13.5px] font-semibold text-foreground">{perm === "1" ? `Microphone and the call's sound aren't allowed on ${machine}` : `Call sound isn't allowed on ${machine}`}</span>
+            <span className="block text-[12.5px] text-muted-foreground">{perm === "1" ? "Nothing is being transcribed until you allow them." : "Only your side is transcribed. The other side won't appear here."}</span>
+          </span>
+          <Button variant="warning" onClick={() => setPerm(null)} className="h-8 shrink-0 rounded-full px-[14px] text-[13px] font-semibold">{perm === "1" ? "Allow both" : "Allow system audio"}</Button>
+        </div>
+      )}
+      {!hasTranscript && (
+        <div className={`rounded-[16px] border border-dashed border-border bg-muted/20 ${compact ? "px-4 py-6" : "mt-4 px-6 py-8"}`}>
+          <p className="text-sm font-medium text-foreground">{isPaused ? "Recording is paused." : "Listening... start speaking and the text will appear here live."}</p>
+          {!isLiveTranscriptionSupported && <p className="mt-2 text-xs text-muted-foreground">Real-time speech-to-text is not supported in this browser.</p>}
+        </div>
+      )}
+      {segments.map((segment, index) => (
+        <TranscriptSegment key={segment.id} segment={segment} nextTimestamp={segments[index + 1]?.timestamp} isEditing={false} highlighted={false}
+          isPlaybackActive={!isPaused && index === segments.length - 1} hideSpeaker={!view.speakers} hideTimecodes={!view.timestamps}
+          segmentRef={() => {}} isSegHighlighted={false} onToggleHighlight={() => {}} onOpenComment={() => {}} onShare={() => {}} onCopyText={() => {}}
+          inlineComment={false} onCommentSubmit={() => {}} onCommentCancel={() => {}} onCommentChange={() => {}} commentValue="" textHighlights={[]} showActions={false} />
+      ))}
+      {liveTranscriptInterim.trim().length > 0 && (
+        <div className="mx-[-8px] rounded-xl bg-primary/5 px-2 py-3 ring-1 ring-primary/20">
+          <div className={`grid gap-4 ${compact ? "grid-cols-1" : "grid-cols-[minmax(160px,220px)_1fr] max-md:grid-cols-1"}`}>
+            <div className="min-w-0 pt-1"><div className="flex items-center gap-2.5"><div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">Y</div><span className="truncate text-sm font-medium text-foreground">You (speaking...)</span></div></div>
+            <div className="relative min-w-0 pl-5"><div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-primary/65" /><p className="mt-1 text-sm leading-relaxed text-foreground/85">{liveTranscriptInterim}<span className="ml-1 inline-block h-4 w-[2px] translate-y-[2px] animate-pulse bg-primary" /></p></div>
+          </div>
+        </div>
+      )}
+      <div ref={endRef} />
+    </div>
+  );
+}
+
+/* the Summary tab before the call ends: the template is chosen here, the text comes with Generate notes */
+export function LiveSummaryWaiting({ compact = false }: { compact?: boolean }) {
+  const navigate = useNavigate();
+  const { templates } = useTemplates();
+  const [liveTemplateId, setLiveTemplateId] = useState<string | null>(() => window.sessionStorage.getItem("ttt_live_template"));
+  const pick = (id: string | null) => { setLiveTemplateId(id); if (id) window.sessionStorage.setItem("ttt_live_template", id); else window.sessionStorage.removeItem("ttt_live_template"); };
+  const chosen = templates.find((t) => t.id === liveTemplateId);
+  return (
+    <div className={`flex flex-col items-center justify-center text-center ${compact ? "px-4 py-12" : "px-8 py-24"}`}>
+      <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5"><Icon icon={AiMagicIcon} className="size-6 text-primary" strokeWidth={1.6} /></div>
+      <h3 className="text-[16px] font-semibold text-foreground">The summary is written when the call ends</h3>
+      <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">Press Generate notes when you are done. Pick a template while you wait, or leave it to the first one.</p>
+      <div className="mt-5">
+        <TemplatePicker value={liveTemplateId} onSelect={pick} onManageTemplates={() => navigate("/")} align="center"
+          trigger={<Button variant={liveTemplateId ? "pill-outline" : "default"} className="h-9 gap-1.5 rounded-full px-5 text-[13px] font-medium">{chosen ? <><span>{templateEmoji(chosen.name)}</span>{chosen.name}</> : "Choose a template"}<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg></Button>} />
+      </div>
+    </div>
+  );
+}
+
 // ════════════════════════════════════════════════════════════
 // Page Header
 // ════════════════════════════════════════════════════════════
@@ -2297,7 +2403,7 @@ export function ExportPill({ onExport, disabled = false }: { onExport?: () => vo
 
 /* A disabled control does not take the pointer, so the hint sits on a wrapper
    around it: hovering the greyed button still tells you why it waits */
-function WaitsFor({ hint, children, className = "" }: { hint: string; children: ReactNode; className?: string }) {
+export function WaitsFor({ hint, children, className = "" }: { hint: string; children: ReactNode; className?: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild><span tabIndex={0} className={"inline-flex rounded-full outline-none " + className}>{children}</span></TooltipTrigger>
