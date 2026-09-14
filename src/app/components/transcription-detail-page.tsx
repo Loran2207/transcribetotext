@@ -1953,7 +1953,7 @@ export function LiveRecordingBar({
   /* without the caption the bar is in the half-width panel: the device pickers shrink to their icons.
      A missing permission does the same in the full window: three worded chips would push Pause off centre,
      so the words move into the hover title and the popover */
-  const compact = !caption || !!warning;
+  const compact = !caption;
   /* with the warning triangle in the row the pickers give up a little width so Pause stays centred */
   const pickerW = "md:w-[200px]";
   const triggerLabel = isSwitchingMicrophone
@@ -1964,7 +1964,7 @@ export function LiveRecordingBar({
     <div className="relative shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-[2px]">
       {generate && !isPaused && join && (
         /* the meeting is linked: the way into it floats above the bar until it is dismissed (Granola's "Join Google Meet ×") */
-        <span className="absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+10px)] items-center gap-1 rounded-full bg-[#1B1F27] pl-3 pr-1.5 text-[13px] font-medium text-white shadow-md">
+        <span className="absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+72px)] items-center gap-1 rounded-full bg-[#1B1F27] pl-3 pr-1.5 text-[13px] font-medium text-white shadow-md">
           <button type="button" onClick={join.onJoin} className="flex items-center gap-2"><span className="scale-[0.9]"><SourceIcon source={join.source} /></span>Join {join.label}</button>
           <button type="button" aria-label="Put away" onClick={join.onDismiss} className="ml-1 flex size-6 items-center justify-center rounded-full text-white/70 hover:bg-white/15 hover:text-white"><Icon icon={CloseIcon} className="size-[12px]" strokeWidth={2.2} /></button>
         </span>
@@ -1972,7 +1972,7 @@ export function LiveRecordingBar({
       {generate && isPaused && showGenerate && (
         /* Granola's grammar: the call is on hold, and only now the note can be
            written. One glowing verb above the bar, nothing else changes. */
-        <button type="button" onClick={onStop} className="ttt-glow absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+10px)] items-center gap-1.5 rounded-full bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]" title="End the call here and write the note">
+        <button type="button" onClick={onStop} className="ttt-glow absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+72px)] items-center gap-1.5 rounded-full bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]" title="End the call here and write the note">
           <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.8} />
           Generate notes
         </button>
@@ -2019,14 +2019,14 @@ export function LiveRecordingBar({
         </div>
 
         {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? (compact ? "flex gap-2" : "flex gap-2 md:max-w-[560px]") : "md:min-w-[260px] md:max-w-[320px]"}`}>
-          {generate && <RecordingOptions compact={compact} />}
+          {/* one shape everywhere: the gear and the warning are icons, only the microphone keeps its name (Kirill, 14.09) */}
+          {generate && <RecordingOptions compact />}
           {generate && warning?.sys && (
             /* the other side of the call is not a device to pick, it is a permission: when it is missing, it says so here */
             <Popover>
               <PopoverTrigger asChild>
-                <button type="button" title={warning.title} className={`flex h-[36px] shrink-0 items-center gap-[8px] rounded-[12px] border border-warning bg-warning/[0.06] text-[13px] text-warning transition-colors hover:bg-warning/[0.12] ${compact ? "w-[44px] justify-center" : "px-[12px]"}`}>
+                <button type="button" title={warning.title} className="flex h-[36px] w-[44px] shrink-0 items-center justify-center rounded-[12px] border border-warning bg-warning/[0.06] text-warning transition-colors hover:bg-warning/[0.12]">
                   <Icon icon={Alert02Icon} className="size-[16px] shrink-0" strokeWidth={2} />
-                  {!compact && <span className="truncate">Call sound not allowed</span>}
                 </button>
               </PopoverTrigger>
               <PopoverContent align="end" sideOffset={10} className="z-[120] w-[380px] rounded-[16px] p-[16px]">
@@ -3613,8 +3613,8 @@ export function TranscriptionDetailPage() {
                   autoFocus
                   hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
                 />
-              {/* on hold, Generate notes floats over the bar, so the footer line steps up out of its way */}
-              <p className={`sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px] ${isPaused || (liveMeeting && !joinDismissed) ? "pb-[54px]" : ""}`}>My thoughts won't be included when you share this note.</p>
+              {/* the footer line never moves; whatever floats above the bar clears it (Kirill, 14.09) */}
+              <p className="sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
               </div>
             ) : desktopShell && liveTab === "summary" ? (
               /* the summary is written when the call ends; until then the tab is where the template is chosen */

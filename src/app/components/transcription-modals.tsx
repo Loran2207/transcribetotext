@@ -1996,7 +1996,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
             <MethodCards<"voice" | "desktop">
               cards={[
                 /* two plain options, named by where they run (Kirill, 14.09) */
-                { id: "voice", title: "In the browser", line: "Your voice, typed as you speak", icon: Mic01Icon },
+                { id: "voice", title: "In the browser", line: "Your voice, as you speak", icon: Mic01Icon },
                 { id: "desktop", title: "Desktop app", line: "Both sides of a call, no bot", icon: ComputerIcon, badge: "New" },
               ]}
               method="voice"
@@ -2516,9 +2516,10 @@ function MethodCards<T extends string>({ cards, method, onChange }: { cards: Met
 }
 
 function RecordMethodCards({ method, onChange, desktopShell, machine }: { method: RecordMethod; onChange: (m: RecordMethod) => void; desktopShell: boolean; machine: string }) {
+  /* the desktop way always stands on the right, in every dialog (Kirill, 14.09) */
   const cards: MethodCard<RecordMethod>[] = [
-    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "On your computer", line: desktopShell ? "Both sides of the call, no bot" : "Both sides of the call, with the desktop app", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
     { id: "bot", title: "Send a bot", line: "A bot joins by the invite link", icon: Video01Icon },
+    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "On your computer", line: desktopShell ? "Both sides of the call, no bot" : "With the desktop app, no bot", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
   ];
   return <MethodCards cards={cards} method={method} onChange={onChange} />;
 }
