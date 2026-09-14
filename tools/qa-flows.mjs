@@ -184,8 +184,9 @@ await flow("macOS: permissions missing show the warning and fold the bar", "shel
   await expect("nothing allowed in the meta line", () => vis(p, "text=/nothing allowed/"));
   await expect("warning chip (icon)", () => vis(p, "button[title*='allowed on']"));
   await p.click("button[title*='allowed on']"); await p.waitForTimeout(400);
-  await expect("popover with Allow", () => vis(p, "button:has-text('Allow')"));
-  await p.click("button:has-text('Allow')"); await p.waitForTimeout(500);
+  /* the microphone picker reads "Not allowed" here, so name the real button */
+  await expect("popover with Allow", () => vis(p, "button:has-text('Allow both'), button:has-text('Allow system audio')"));
+  await p.click("button:has-text('Allow both'), button:has-text('Allow system audio')"); await p.waitForTimeout(500);
   await expect("warning cleared after Allow", async () => !(await vis(p, "button[title*='allowed on']")));
 });
 
