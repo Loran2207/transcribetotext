@@ -4,6 +4,7 @@ import {
   buildShareEmail,
   shareEmailSubject,
 } from "@/lib/share-emails";
+import { READY_SAMPLES, buildTranscriptReadyEmail, transcriptReadySubject } from "@/lib/notification-emails";
 
 /* The letters, drawn where they are actually read.
  *
@@ -22,9 +23,12 @@ function bodyOf(html: string): string {
 export function EmailPreviewPage() {
   const [params] = useSearchParams();
   const key = params.get("tpl") ?? "record_registered";
-  const sample = EMAIL_SAMPLES[key] ?? EMAIL_SAMPLES.record_registered;
-  const html = buildShareEmail({ ...sample, logoUrl: "/images/logo-full.svg" });
-  const subject = shareEmailSubject(sample);
+  /* two families of letters: the sharing ones carry a sender, the notification ones come from the product itself */
+  const ready = READY_SAMPLES[key];
+  const sample = ready ? null : (EMAIL_SAMPLES[key] ?? EMAIL_SAMPLES.record_registered);
+  const html = ready ? buildTranscriptReadyEmail({ ...ready, logoUrl: "/images/logo-full.svg" }) : buildShareEmail({ ...sample!, logoUrl: "/images/logo-full.svg" });
+  const subject = ready ? transcriptReadySubject(ready) : shareEmailSubject(sample!);
+  const sender = sample ? { initials: sample.senderInitials, tint: sample.senderTint, ink: sample.senderInk } : { initials: "T", tint: "#dbeafe", ink: "#1d4ed8" };
 
   return (
     <div className="min-h-screen bg-[#f4f4f5] px-4 py-8">
@@ -39,9 +43,9 @@ export function EmailPreviewPage() {
             <div className="mt-2 flex min-w-0 items-center gap-2">
               <span
                 className="flex size-[28px] shrink-0 items-center justify-center rounded-full text-[11px] font-medium"
-                style={{ background: sample.senderTint, color: sample.senderInk }}
+                style={{ background: sender.tint, color: sender.ink }}
               >
-                {sample.senderInitials}
+                {sender.initials}
               </span>
               <span className="shrink-0 text-[13px] text-foreground">Transcribe To Text</span>
               <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">&lt;notifications@transcribetotext.ai&gt;</span>
