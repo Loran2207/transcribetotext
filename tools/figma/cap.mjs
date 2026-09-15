@@ -44,8 +44,11 @@ if (process.env.SEED) await p.addInitScript((seed) => localStorage.setItem("ttt-
    then walks client-side; the shell and os flags ride on the login address */
 const [path, query = ""] = route.split("?");
 await p.goto("http://localhost:" + PORT + "/login" + (query ? "?" + query : ""), { waitUntil: "networkidle" });
-await p.fill("input[type=email]", "admin@test.com"); await p.fill("input[type=password]", "admin123");
-await p.click("button[type=submit]"); await p.waitForTimeout(1500);
+/* the sign-in pages themselves are captured signed out: NOAUTH=1 skips the login and walks straight to the route */
+if (process.env.NOAUTH !== "1") {
+  await p.fill("input[type=email]", "admin@test.com"); await p.fill("input[type=password]", "admin123");
+  await p.click("button[type=submit]"); await p.waitForTimeout(1500);
+}
 if (path && path !== "home") { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, "/" + path); await p.waitForTimeout(1200); }
 /* STEPS walks to a state: "click=<sel>;wait=<ms>;fill=<sel>|<text>;hover=<sel>;key=<key>", in order */
 for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {

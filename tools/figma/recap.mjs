@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const jobs = JSON.parse(readFileSync(process.argv[2], "utf8"));
 let i = 0;
 const runOne = (j) => new Promise((res) => {
-  const env = { ...process.env, PORT: process.env.PORT || "5173", STEPS: j.steps || "" };
+  const env = { ...process.env, PORT: process.env.PORT || "5173", STEPS: j.steps || "", NOAUTH: j.noauth ? "1" : "" };
   const ep = `https://mcp.figma.com/mcp/capture/${j.cid}/submit?bindVariables=false`;
   const c = spawn("node", [join(here, "cap.mjs"), j.route, j.cid, ep, j.name, String(j.w || 1440), String(j.h || 900)], { env });
   let out = "";

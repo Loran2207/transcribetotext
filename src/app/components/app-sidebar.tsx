@@ -240,30 +240,6 @@ const NAV_ITEMS = [
 /* Free-plan quota, the way the old design carried it: the sidebar is the only
    place a free user sees their usage on screens without a right panel. Pro users
    get nothing here. */
-function SidebarPlanPlaque() {
-  const plan = usePlan();
-  const navigate = useNavigate();
-  if (plan !== "free") return null;
-  const used = 0;
-  const total = 1;
-  const pct = Math.round((used / total) * 100);
-  return (
-    <div className="mx-2 mb-1 rounded-2xl border border-border bg-primary/5 p-3 group-data-[collapsible=icon]:hidden">
-      <p className="text-[12px] font-medium text-sidebar-foreground">
-        {used} of {total} daily transcriptions used
-      </p>
-      <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-primary/15">
-        <div className="h-full rounded-full bg-primary" style={{ width: pct + "%" }} />
-      </div>
-      <Button
-        onClick={() => navigate("/checkout")}
-        className="mt-3 h-8 w-full text-[12.5px] font-semibold"
-      >
-        Get Premium
-      </Button>
-    </div>
-  );
-}
 
 export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarProps) {
   
@@ -312,16 +288,6 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
                 </SidebarMenuButton>
               </SidebarMenuItem>
             ))}
-            {/* The desktop app's own tab: calls recorded on this machine */}
-            {desktopShell && (
-              <SidebarMenuItem>
-                <SidebarMenuButton isActive={activePage === "notetaker"} onClick={() => { onNavigate("notetaker"); setOpenMobile(false); }} tooltip="Notetaker">
-                  <Icon icon={Mic01Icon} strokeWidth={1.3} />
-                  <span>Notetaker</span>
-                  <span className="ml-auto rounded-full bg-primary px-[7px] text-[10px] font-semibold leading-[17px] text-primary-foreground">New</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
           </SidebarMenu>
         </SidebarGroup>
 
@@ -410,8 +376,8 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
 
       {/* ═══════════ Footer ═══════════ */}
       <SidebarFooter>
+        {/* the web tells about the desktop app here; the daily-quota plaque is gone (Kirill, 15.09) */}
         <SidebarAppPlaque />
-        <SidebarPlanPlaque />
         <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>
