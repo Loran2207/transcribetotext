@@ -29,7 +29,8 @@ export function useDesktopBannerHidden(key: string = HIDDEN_KEY) {
 export type BannerVariant = "panel" | "home" | "sidebar";
 export function useBannerVariant(): BannerVariant {
   const v = useDemo("banner");
-  return v === "home" || v === "sidebar" ? v : "panel";
+  /* the block in the navigation is the default now: it took the place of the daily-quota plaque (Kirill, 15.09) */
+  return v === "home" || v === "panel" ? v : "sidebar";
 }
 /* true when this surface should carry the desktop story: web shell, on a computer, not put away */
 function useBannerOn(variant: BannerVariant) {

@@ -17,7 +17,6 @@ import { SettingsPage } from "./settings-modal";
 import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 import { DesktopWindowFrame, useShell } from "./desktop/shell";
-import { NotetakerPage } from "./desktop/notetaker-page";
 import { DemoSwitcher } from "./desktop/demo-switcher";
 import { DesktopNotice } from "./desktop/desktop-notice";
 
@@ -81,7 +80,6 @@ export function AppLayout() {
                 {!isSettings && activePage === "shared" && <SharedWithMePage />}
                 {!isSettings && activePage === "calendar" && <CalendarPage />}
                 {!isSettings && activePage === "templates" && <TemplatesPage />}
-                {!isSettings && desktop && activePage === "notetaker" && <NotetakerPage onNavigate={handleNavigate} onOpenFolder={handleOpenFolder} />}
                 {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && activePage !== "notetaker" && (
                   <PagePlaceholder activePage={activePage} />
                 )}

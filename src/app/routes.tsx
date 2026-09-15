@@ -1,3 +1,4 @@
+import { DesktopWindowFrame } from "./components/desktop/shell";
 import { createBrowserRouter } from "react-router";
 import { AppLayout } from "./components/app-layout";
 import { DesignSystemPage } from "./components/design-system-page";
@@ -35,10 +36,10 @@ export const router = createBrowserRouter([
   { path: "/desk", Component: () => (<ProtectedRoute><UserProfileProvider><DeskPage /></UserProfileProvider></ProtectedRoute>) },
   { path: "/login", Component: LoginPage },
   { path: "/signup", Component: SignupPage },
-  { path: "/check-email", Component: EmailConfirmationPage },
+  { path: "/check-email", Component: () => (<DesktopWindowFrame><EmailConfirmationPage /></DesktopWindowFrame>) },
   { path: "/auth/callback", Component: AuthCallbackPage },
-  { path: "/forgot-password", Component: ForgotPasswordPage },
-  { path: "/reset-password", Component: ResetPasswordPage },
+  { path: "/forgot-password", Component: () => (<DesktopWindowFrame><ForgotPasswordPage /></DesktopWindowFrame>) },
+  { path: "/reset-password", Component: () => (<DesktopWindowFrame><ResetPasswordPage /></DesktopWindowFrame>) },
   { path: "/share/:token", Component: ShareViewPage },
   { path: "/design-system", Component: DesignSystemPage },
   {
