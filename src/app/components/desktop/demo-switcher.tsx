@@ -17,17 +17,30 @@ const GROUPS: { title: string; key: string; kind: "local" | "session"; options: 
   { title: "Closed app (the /desk scene)", key: "ttt_demo_desk", kind: "session", options: [{ value: "widget", label: "Recording widget" }, { value: "hover", label: "Widget, hover: last words" }, { value: "paused", label: "On hold" }, { value: "ended", label: "Call ended" }, { value: "writing", label: "Writing the note" }, { value: "done", label: "Note written" }, { value: "call", label: "Notice: call detected" }, { value: "upcoming", label: "Notice: up next" }, { value: "upcoming-menu", label: "Notice: up next, menu" }, { value: "ready", label: "Notice: notes ready" }, { value: "split", label: "Side by side" }] },
 ];
 
+/* the three places the prototype can be looked at; everything else is a rarer state, folded away */
+const PLACES: { id: "web" | "mac" | "win"; label: string; hint: string }[] = [
+  { id: "web", label: "Web", hint: "The web portal in a browser" },
+  { id: "mac", label: "Mac", hint: "The desktop app on macOS" },
+  { id: "win", label: "Windows", hint: "The desktop app on Windows" },
+];
+
 export function DemoSwitcher() {
   const [open, setOpen] = useState(false);
+  const [more, setMore] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   if (!DEMO_TOOLS) return null;
   const shell = useShell();
   const notice = useDemo("notice"), perm = useDemo("perm"), desk = useDemo("desk"), banner = useDemo("banner");
-  const current = (g: typeof GROUPS[number]) => g.key === "ttt_shell" ? shell.shell : g.key === "ttt_os" ? shell.os : g.key === "ttt_demo_notice" ? (notice ?? "") : g.key === "ttt_demo_perm" ? (perm ?? "") : g.key === "ttt_demo_banner" ? (banner ?? "") : (desk ?? "widget");
+  const place: "web" | "mac" | "win" = shell.shell === "web" ? "web" : shell.os === "win" ? "win" : "mac";
+  const goTo = (id: "web" | "mac" | "win") => {
+    if (id === "web") setShellFlag("ttt_shell", "web");
+    else { setShellFlag("ttt_shell", "desktop"); setShellFlag("ttt_os", id); }
+  };
+  const rare = GROUPS.filter((g) => g.kind === "session");
+  const current = (g: typeof GROUPS[number]) => g.key === "ttt_demo_notice" ? (notice ?? "") : g.key === "ttt_demo_perm" ? (perm ?? "") : g.key === "ttt_demo_desk" ? (desk ?? "") : (banner ?? "");
   const choose = (g: typeof GROUPS[number], value: string) => {
-    if (g.kind === "local") setShellFlag(g.key as "ttt_shell" | "ttt_os", value);
-    else setDemo(g.key.replace("ttt_demo_", ""), value || null);
+    setDemo(g.key.replace("ttt_demo_", ""), value || null);
     if (g.key === "ttt_demo_desk" && pathname !== "/desk") navigate("/desk");
   };
   return (
@@ -35,26 +48,37 @@ export function DemoSwitcher() {
       {open ? (
         <div className="w-[300px] max-h-[calc(100vh-40px)] overflow-auto rounded-[16px] border border-border bg-popover p-[14px] text-foreground" style={{ boxShadow: "0 16px 40px rgba(15,23,42,0.18)" }}>
           <div className="mb-[10px] flex items-center justify-between">
-            <span className="text-[13px] font-semibold">Prototype states</span>
-            <button type="button" aria-label="Close" onClick={() => setOpen(false)} className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><Icon icon={Cancel01Icon} className="size-[12px]" strokeWidth={2.2} /></button>
+            <span className="text-[13px] font-semibold">Where to look</span>
+            <button type="button" aria-label="Close" onClick={() => setOpen(false)} className="flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"><Icon icon={Cancel01Icon} className="size-[12px]" strokeWidth={2} /></button>
           </div>
-          <div className="flex flex-col gap-[12px]">
-            {GROUPS.map((g) => (
-              <div key={g.key}>
-                <p className="mb-[5px] text-[12px] text-muted-foreground">{g.title}</p>
-                <div className="flex flex-wrap gap-[5px]">
-                  {g.options.map((o) => {
-                    const active = current(g) === o.value;
-                    return <button key={o.value} type="button" onClick={() => choose(g, o.value)} className={`rounded-full border px-[9px] py-[3px] transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted"}`}>{o.label}</button>;
-                  })}
-                </div>
-              </div>
+          {/* one segmented control: Web, Mac, Windows */}
+          <div className="grid grid-cols-3 gap-[4px] rounded-[12px] bg-muted p-[4px]">
+            {PLACES.map((pl) => (
+              <button key={pl.id} type="button" title={pl.hint} onClick={() => goTo(pl.id)} className={`h-[34px] rounded-[9px] text-[13px] font-medium transition-colors ${place === pl.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{pl.label}</button>
             ))}
-            <p className="text-[11.5px] leading-[15px] text-muted-foreground">Changes apply at once, no reload. The same switches work as address flags: ?shell=desktop&os=mac, ?notice=upcoming, ?perm=mic, /desk?desk=paused. The red and yellow lights hide the window and show the desk.</p>
           </div>
+          <p className="mt-[8px] text-[11.5px] leading-[15px] text-muted-foreground">{PLACES.find((pl) => pl.id === place)?.hint}. Switches at once, no reload.</p>
+          <button type="button" onClick={() => setMore((v) => !v)} className="mt-[12px] flex w-full items-center justify-between rounded-[10px] px-[2px] py-[4px] text-[12px] text-muted-foreground hover:text-foreground">
+            <span>More states</span><span aria-hidden>{more ? "\u2212" : "+"}</span>
+          </button>
+          {more && (
+            <div className="mt-[6px] flex flex-col gap-[12px] border-t border-border pt-[10px]">
+              {rare.map((g) => (
+                <div key={g.key}>
+                  <p className="mb-[5px] text-[12px] text-muted-foreground">{g.title}</p>
+                  <div className="flex flex-wrap gap-[5px]">
+                    {g.options.map((o) => {
+                      const active = current(g) === o.value;
+                      return <button key={o.value} type="button" onClick={() => choose(g, o.value)} className={`rounded-full border px-[9px] py-[3px] transition-colors ${active ? "border-primary bg-primary text-primary-foreground" : "border-border text-foreground hover:bg-muted"}`}>{o.label}</button>;
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
-        <button type="button" onClick={() => setOpen(true)} title="Prototype states" aria-label="Prototype states" className="flex size-[28px] items-center justify-center rounded-full border border-border bg-popover text-muted-foreground opacity-50 transition-opacity hover:opacity-100" style={{ boxShadow: "0 6px 18px rgba(15,23,42,0.12)" }}>
+        <button type="button" onClick={() => setOpen(true)} title="Web, Mac or Windows" aria-label="Prototype states" className="flex size-[28px] items-center justify-center rounded-full border border-border bg-popover text-muted-foreground opacity-60 transition-opacity hover:opacity-100">
           <Icon icon={Settings01Icon} className="size-[13px]" strokeWidth={1.9} />
         </button>
       )}
