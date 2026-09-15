@@ -45,7 +45,7 @@ const vis = async (p, sel) => (await p.locator(sel).filter({ visible: true }).co
 const count = (p, sel) => p.locator(sel).count();
 
 /* ---------- Web portal ---------- */
-await flow("Web: home, four cards, panel card, hide card", "shell=web&installed=0", async ({ p }, expect) => {
+await flow("Web: home, four cards, panel card, hide card", "shell=web&installed=0&banner=panel", async ({ p }, expect) => {
   await expect("greeting", () => vis(p, "text=/Good (morning|afternoon|evening)/"));
   await expect("four home cards", async () => (await count(p, "text=Audio & Video Files")) >= 1 && (await vis(p, "text=Instant speech")) && (await vis(p, "text=Meeting Recorder")) && (await vis(p, "text=Transcribe from URL")));
   await expect("desktop card in the right panel", () => vis(p, "text=Record calls on your computer"));
@@ -142,7 +142,7 @@ await flow("macOS: record a call in one click, live note, pause, generate, after
   await expect("Export enabled after the call", async () => !(await p.locator("button[aria-label='Export']").first().isDisabled().catch(() => false)));
 });
 
-await flow("macOS: side by side from a live call, back to the full window, Notetaker and its settings", "shell=desktop&os=mac&installed=0", async ({ p, nav }, expect) => {
+await flow("macOS: side by side from a live call, back to the full window, Notetaker settings via the profile menu", "shell=desktop&os=mac&installed=0", async ({ p, nav }, expect) => {
   await p.click("p:has-text('Record a call') >> visible=true"); await p.waitForTimeout(700);
   await p.click("[role=radio]:has-text('Record on this Mac')"); await p.waitForTimeout(300);
   await p.click("button:has-text('Start recording')"); await p.waitForTimeout(2500);
@@ -151,13 +151,12 @@ await flow("macOS: side by side from a live call, back to the full window, Notet
   await expect("side by side: the same header verbs", async () => (await vis(p, "button:has-text('Share'):not(:has-text('Shared'))")) && (await vis(p, "button:has-text('Copy')")) && (await vis(p, "button:has-text('Pause')")));
   await p.click("button:has-text('Full window')"); await p.waitForTimeout(1200);
   await expect("back in the full window, still recording", async () => (await vis(p, "[role=tab]:has-text('My thoughts')")) && (await vis(p, "button:has-text('Pause')")));
-  await p.click("text=Notetaker >> visible=true"); await p.waitForTimeout(900);
-  await expect("Notetaker page", () => vis(p, "button:has-text('Settings')"));
+  await expect("no Notetaker page in the navigation", async () => !(await vis(p, "nav >> text=Notetaker")));
+  await p.click("button:has-text('admin@test.com') >> visible=true"); await p.waitForTimeout(500);
   await p.click("button:has-text('Settings') >> visible=true"); await p.waitForTimeout(900);
+  await p.click("main >> text=Notetaker >> visible=true"); await p.waitForTimeout(900);
   await expect("Notetaker settings", () => vis(p, "text=/Notetaker settings|Transcription language|Speakers/"));
   await expect("no shortcut card any more", async () => !(await vis(p, "text=/Shortcut/")));
-  await p.click("[aria-label='Back to account']"); await p.waitForTimeout(800);
-  await expect("account settings", () => vis(p, "text=/Account|Profile|Plan|Invoices/"));
   await nav("/"); await p.waitForTimeout(800);
   await expect("closed-app desk renders", async () => { await nav("/desk"); await p.waitForTimeout(900); return vis(p, "text=/Zoom|Recording|Notes/"); });
 });

@@ -55,6 +55,7 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   const i = step.indexOf("="); const op = step.slice(0, i), arg = step.slice(i + 1);
   if (op === "click") await p.click(arg);
   else if (op === "wait") await p.waitForTimeout(+arg);
+  else if (op === "store") { const [k, v] = arg.split("|"); await p.evaluate(([k, v]) => { localStorage.setItem(k, v); dispatchEvent(new Event("ttt-banner-hidden")); }, [k, v]); await p.waitForTimeout(600); }
   else if (op === "fill") { const [sel, text] = arg.split("|"); await p.fill(sel, text); }
   else if (op === "hover") await p.hover(arg);
   /* focus=<sel>: a tooltip opened by focus stays open after the pointer leaves */
