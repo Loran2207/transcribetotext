@@ -173,9 +173,9 @@ await flow("Web: banner variants (wide banner, navigation block) open the Mac / 
 });
 
 await flow("Web: navigation block variant", "shell=web&installed=0&banner=sidebar", async ({ p }, expect) => {
-  await expect("block in the navigation", () => vis(p, "text=Desktop app"));
+  await expect("block in the navigation", () => vis(p, "text=Record on your desktop"));
   await expect("panel card not doubled", async () => !(await vis(p, "text=Record calls on your computer")));
-  await p.click("button:has-text('Get the app') >> visible=true"); await p.waitForTimeout(400);
+  await p.click("button:has-text('Get the desktop app') >> visible=true"); await p.waitForTimeout(400);
   await expect("menu: Mac and Windows", async () => (await vis(p, "[role=menuitem]:has-text('Mac')")) && (await vis(p, "[role=menuitem]:has-text('Windows')")));
 });
 

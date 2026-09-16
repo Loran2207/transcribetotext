@@ -135,16 +135,11 @@ export function SidebarAppPlaque({ onGet }: { onGet?: () => void }) {
     <div className="relative mx-2 mb-2 overflow-hidden rounded-[12px] text-white group-data-[collapsible=icon]:hidden" style={{ height: 63, background: NAVY }}>
       <img src="/images/desktop/banner.jpg" alt="" className="absolute inset-y-0 right-0 h-full w-[34%] object-cover" style={{ objectPosition: "center 42%" }} />
       <span className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0A1630 0%, #0A1630 64%, rgba(10,22,48,0.55) 82%, rgba(10,22,48,0.15) 100%)" }} />
-      <p className="absolute left-[12px] top-[12px] flex items-center gap-[6px] whitespace-nowrap text-[13px] font-semibold leading-[19px]">
-        <span className="rounded-full bg-white px-[5px] py-px text-[9.5px] font-bold uppercase leading-[13px] tracking-[0.04em] text-[#0A1630]">New</span>
-        Desktop app
-        <span className="font-normal text-white/60">·</span>
-        <span className="font-normal text-white/75">No bot</span>
-      </p>
+      <p className="absolute left-[12px] top-[12px] whitespace-nowrap text-[13px] font-semibold leading-[19px]">Record on your desktop</p>
       {wide ? (
         <GetAppMenu onGet={onGet} trigger={
           <button type="button" className="absolute left-[12px] top-[34px] flex items-center gap-[2px] whitespace-nowrap text-[11px] leading-[16.5px] text-white/85 hover:text-white data-[state=open]:text-white">
-            {installed ? "Open the app" : "Get the app"} <Icon icon={ArrowDown01Icon} className="size-[11px]" strokeWidth={2.2} />
+            {installed ? "Open the app" : "Get the desktop app"} <Icon icon={ArrowDown01Icon} className="size-[11px]" strokeWidth={2.2} />
           </button>
         } />
       ) : (
