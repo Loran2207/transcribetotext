@@ -1963,8 +1963,8 @@ export function LiveRecordingBar({
   return (
     <div className="relative shrink-0 border-t border-border bg-background/95 px-6 py-3 backdrop-blur-[2px]">
       {generate && !isPaused && join && (
-        /* the meeting is linked: the way into it floats above the bar until it is dismissed (Granola's "Join Google Meet ×") */
-        <span className="absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+72px)] items-center gap-1 rounded-full bg-[#1B1F27] pl-3 pr-1.5 text-[13px] font-medium text-white shadow-md">
+        /* the meeting is linked: the way into it floats 16px above the bar until it is dismissed (Granola's "Join Google Meet ×"); the footer line under the pad is gone (Kirill, 16.09) */
+        <span className="absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+16px)] items-center gap-1 rounded-full bg-[#1B1F27] pl-3 pr-1.5 text-[13px] font-medium text-white shadow-md">
           <button type="button" onClick={join.onJoin} className="flex items-center gap-2"><span className="scale-[0.9]"><SourceIcon source={join.source} /></span>Join {join.label}</button>
           <button type="button" aria-label="Put away" onClick={join.onDismiss} className="ml-1 flex size-6 items-center justify-center rounded-full text-white/70 hover:bg-white/15 hover:text-white"><Icon icon={CloseIcon} className="size-[12px]" strokeWidth={2.2} /></button>
         </span>
@@ -1972,7 +1972,7 @@ export function LiveRecordingBar({
       {generate && isPaused && showGenerate && (
         /* Granola's grammar: the call is on hold, and only now the note can be
            written. One glowing verb above the bar, nothing else changes. */
-        <button type="button" onClick={onStop} className="ttt-glow absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+72px)] items-center gap-1.5 rounded-full bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]" title="End the call here and write the note">
+        <button type="button" onClick={onStop} className="ttt-glow absolute left-1/2 top-0 z-10 flex h-9 -translate-x-1/2 -translate-y-[calc(100%+16px)] items-center gap-1.5 rounded-full bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.03]" title="End the call here and write the note">
           <Icon icon={AiMagicIcon} className="size-[14px]" strokeWidth={1.8} />
           Generate notes
         </button>
@@ -3613,8 +3613,6 @@ export function TranscriptionDetailPage() {
                   autoFocus
                   hint={isPaused ? "Recording is paused. Your notes stay here." : "Everything said is being kept in the transcript beside this. Your own words stay exactly as you wrote them."}
                 />
-              {/* the footer line never moves; whatever floats above the bar clears it (Kirill, 14.09) */}
-              <p className="sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
               </div>
             ) : desktopShell && liveTab === "summary" ? (
               /* the summary is written when the call ends; until then the tab is where the template is chosen */
@@ -4065,7 +4063,6 @@ export function TranscriptionDetailPage() {
                   onTemplate={(tid) => { if (tid === "all") setPadLibraryOpen(true); else insertTemplate(tid); }}
                   hint="Your own notes from the call. Nothing here is rewritten."
                 />
-              <p className="sticky bottom-0 mt-auto w-full bg-background/95 py-[10px] text-center text-[12.5px] text-muted-foreground backdrop-blur-[2px]">My thoughts won't be included when you share this note.</p>
               </div>
             </TabsContent>
           )}

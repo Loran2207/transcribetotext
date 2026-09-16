@@ -80,7 +80,6 @@ export function SplitNotetaker() {
           )}
         </div>
       </Tabs>
-      <p className="shrink-0 px-[16px] py-[8px] text-center text-[12px] text-muted-foreground">My thoughts won't be included when you share this note.</p>
       <LiveRecordingBar
         isPaused={recordingPhase === "paused"}
         elapsedSeconds={elapsed}
