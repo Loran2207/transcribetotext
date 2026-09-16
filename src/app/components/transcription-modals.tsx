@@ -1997,7 +1997,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
               cards={[
                 /* two plain options, named by where they run (Kirill, 14.09) */
                 { id: "voice", title: "In the browser", line: "Your voice, as you speak", icon: Mic01Icon },
-                { id: "desktop", title: "Desktop app", line: "Both sides of a call, no bot", icon: ComputerIcon, badge: "New" },
+                { id: "desktop", title: "Desktop app", line: "No bot, both sides of a call", icon: ComputerIcon, badge: "New" },
               ]}
               method="voice"
               onChange={(m) => { if (m === "desktop") { window.sessionStorage.setItem("ttt_meeting_method", "desktop"); onClose(); setOpenModal("meeting"); } }}
@@ -2519,7 +2519,7 @@ function RecordMethodCards({ method, onChange, desktopShell, machine }: { method
   /* the desktop way always stands on the right, in every dialog (Kirill, 14.09) */
   const cards: MethodCard<RecordMethod>[] = [
     { id: "bot", title: "Send a bot", line: "A bot joins by the invite link", icon: Video01Icon },
-    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "On your computer", line: desktopShell ? "Both sides of the call, no bot" : "With the desktop app, no bot", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
+    { id: "desktop", title: desktopShell ? `Record on ${machine}` : "On your computer", line: desktopShell ? "No bot, both sides of the call" : "No bot, with the desktop app", icon: ComputerIcon, badge: desktopShell ? undefined : "New" },
   ];
   return <MethodCards cards={cards} method={method} onChange={onChange} />;
 }
@@ -2627,30 +2627,25 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
           {/* a phone or a tablet cannot record the call itself: the choice is gone, the card only tells that the app exists (Kirill, 12.09) */}
           {!wide && !desktopShell && <DesktopAppCard mobile scope="dialog" />}
 
-          {method === "desktop" && !desktopShell && installed && (
-            <div className="flex flex-col gap-[14px]">
-              <div className="rounded-[12px] border border-primary/15 bg-primary/5 p-[14px]">
-                <p className="text-[13px] leading-relaxed text-primary">
-                  TranscribeToText is installed on your computer. The call is recorded there, with the transcript live beside your notes, and the note lands in this account.
-                </p>
-              </div>
-              <Button className="h-[44px] w-full rounded-full gap-2 text-[14px] font-semibold" onClick={() => { window.location.assign("transcribetotext://record"); toast("Opening TranscribeToText on your computer"); }}>
-                <Icon icon={ComputerIcon} className="size-[16px]" strokeWidth={1.8} />
-                Open the app and record
-              </Button>
-              <p className="text-center text-[12.5px] text-muted-foreground">
-                Nothing opened? <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => toast("The download will start from the release page")}>Download the app again</button>
-              </p>
+          {/* on the web the desktop way wears the bot form's skeleton, a banner, one row,
+              the template and folder row, the footer, so switching the method moves nothing (Kirill, 16.09) */}
+          {method === "desktop" && !desktopShell && (<>
+          <div className="rounded-[12px] p-[14px] flex gap-[11px] bg-primary/5 border border-primary/15">
+            <Icon icon={ComputerIcon} className="size-[16px] shrink-0 mt-[2px] text-primary" strokeWidth={1.8} />
+            <p className="text-[13px] text-primary leading-relaxed">
+              {installed
+                ? <>The app is installed. The call is recorded on your computer, with the transcript live beside your notes.</>
+                : <>The desktop app records both sides of the call on your computer. <strong>No bot</strong> joins the meeting.</>}
+            </p>
+          </div>
+          {installed ? (
+            <div>
+              <SectionLabel>Call name</SectionLabel>
+              <Input value={callName} onChange={(e) => setCallName(e.target.value)} placeholder="Untitled call" className="w-full h-[42px] pl-[14px] rounded-[12px] text-sm" />
             </div>
-          )}
-
-          {method === "desktop" && !desktopShell && !installed && (
-            <div className="flex flex-col gap-[14px]">
-              <div className="rounded-[12px] border border-primary/15 bg-primary/5 p-[14px]">
-                <p className="text-[13px] leading-relaxed text-primary">
-                  The desktop app hears both sides of the call through your computer and writes the note when you press <strong>Generate notes</strong>. Every note lands in this account, with the same folders and templates.
-                </p>
-              </div>
+          ) : (
+            <div>
+              <SectionLabel>Get the app</SectionLabel>
               <div className="flex gap-[8px] max-sm:flex-col">
                 <Button className="h-[42px] flex-1 rounded-full gap-2" onClick={() => toast("The download will start from the release page")}>
                   <Icon icon={AppleIcon} className="size-[16px]" strokeWidth={1.8} />
@@ -2661,11 +2656,40 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
                   Download for Windows
                 </Button>
               </div>
-              <p className="text-center text-[12.5px] text-muted-foreground">
-                Already installed? <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => { window.location.assign("transcribetotext://record"); toast("Opening TranscribeToText on your computer"); }}>Open the app</button>
-              </p>
             </div>
           )}
+          <div className="flex flex-col gap-[12px]">
+            <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
+              <div className="flex-1 min-w-0">
+                <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
+              </div>
+            </div>
+            <div className="sticky bottom-0 z-10 -mx-[22px] mt-[2px] flex items-center gap-[8px] border-t border-border bg-popover px-[22px] pt-[14px] pb-[4px]">
+              {installed ? (
+                <p className="mr-auto whitespace-nowrap text-[12.5px] text-muted-foreground">
+                  Nothing opened? <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => toast("The download will start from the release page")}>Download again</button>
+                </p>
+              ) : (
+                <p className="mr-auto whitespace-nowrap text-[12.5px] text-muted-foreground">
+                  Already installed? <button type="button" className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => { window.location.assign("transcribetotext://record"); toast("Opening TranscribeToText on your computer"); }}>Open the app</button>
+                </p>
+              )}
+              <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
+                <span className="font-medium text-[13px] text-foreground">Cancel</span>
+              </Button>
+              {installed && (
+                <Button onClick={() => { window.location.assign("transcribetotext://record"); toast("Opening TranscribeToText on your computer"); }}
+                  className="h-[36px] px-[18px] rounded-full transition-all bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <span className="font-semibold text-[13px]">Open the app and record</span>
+                </Button>
+              )}
+            </div>
+          </div>
+          </>)}
 
           {method === "desktop" && desktopShell && (<>
           {/* the same skeleton as the bot form, so switching the method moves nothing:

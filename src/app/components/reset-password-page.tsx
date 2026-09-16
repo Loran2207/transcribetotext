@@ -135,7 +135,9 @@ export function ResetPasswordPage() {
             className="text-sm text-muted-foreground"
             {...animProps(0.2)}
           >
-            If this takes too long, your link may have expired.{" "}
+            If this takes too long, your link may have expired.
+          </motion.p>
+          <motion.p className="text-sm" {...animProps(0.3)}>
             <Link
               to="/forgot-password"
               className="text-primary font-medium hover:underline"

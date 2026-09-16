@@ -138,6 +138,8 @@ export function SidebarAppPlaque({ onGet }: { onGet?: () => void }) {
       <p className="absolute left-[12px] top-[12px] flex items-center gap-[6px] whitespace-nowrap text-[13px] font-semibold leading-[19px]">
         <span className="rounded-full bg-white px-[5px] py-px text-[9.5px] font-bold uppercase leading-[13px] tracking-[0.04em] text-[#0A1630]">New</span>
         Desktop app
+        <span className="font-normal text-white/60">·</span>
+        <span className="font-normal text-white/75">No bot</span>
       </p>
       {wide ? (
         <GetAppMenu onGet={onGet} trigger={
