@@ -10,6 +10,8 @@ import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { AuthLayout } from "./auth-layout";
+import { BrowserHandoff } from "./auth-browser-handoff";
+import { useShell } from "./desktop/shell";
 import { useAuth } from "./auth-context";
 
 interface LoginFormValues {
@@ -26,6 +28,9 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  /* in the desktop app Google signs in through the system browser, so the window hands over and waits */
+  const { desktop: desktopShell } = useShell();
+  const [handoff, setHandoff] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginFormValues>({ mode: "onBlur" });
@@ -61,6 +66,7 @@ export function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
+    if (desktopShell) { setHandoff(true); return; }
     setIsGoogleLoading(true);
     setErrorMessage(null);
     const { error } = await signInWithGoogle();
@@ -92,6 +98,9 @@ export function LoginPage() {
   return (
     <DesktopWindowFrame>
     <AuthLayout>
+      {handoff ? (
+        <BrowserHandoff provider="Google" onOpenAgain={() => toast("Google sign-in opened in your browser again")} onBack={() => setHandoff(false)} />
+      ) : (
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
         <motion.div {...animProps(0)}>
           <h1 className="text-2xl font-semibold text-foreground">Welcome back</h1>
@@ -255,6 +264,7 @@ export function LoginPage() {
           </Link>
         </motion.p>
       </form>
+      )}
     </AuthLayout>
     </DesktopWindowFrame>
   );

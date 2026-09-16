@@ -9,6 +9,7 @@ import { EmailConfirmationPage } from "./components/email-confirmation-page";
 import { AuthCallbackPage } from "./components/auth-callback-page";
 import { ForgotPasswordPage } from "./components/forgot-password-page";
 import { ResetPasswordPage } from "./components/reset-password-page";
+import { DesktopReturnPage } from "./components/desktop-return-page";
 import { ProtectedRoute } from "./components/protected-route";
 import { ShareViewPage } from "./components/share-view-page";
 import { CheckoutPage } from "./components/checkout-page";
@@ -38,6 +39,8 @@ export const router = createBrowserRouter([
   { path: "/signup", Component: SignupPage },
   { path: "/check-email", Component: () => (<DesktopWindowFrame><EmailConfirmationPage /></DesktopWindowFrame>) },
   { path: "/auth/callback", Component: AuthCallbackPage },
+  /* the browser page after Google, the confirmation email or the reset link, when the journey started in the desktop app */
+  { path: "/desktop/return", Component: DesktopReturnPage },
   { path: "/forgot-password", Component: () => (<DesktopWindowFrame><ForgotPasswordPage /></DesktopWindowFrame>) },
   { path: "/reset-password", Component: () => (<DesktopWindowFrame><ResetPasswordPage /></DesktopWindowFrame>) },
   { path: "/share/:token", Component: ShareViewPage },
