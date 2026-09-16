@@ -23,8 +23,11 @@ async function session(query, width = 1440, height = 900) {
     };
   });
   await p.goto(`http://localhost:${PORT}/login${query ? "?" + query : ""}`, { waitUntil: "networkidle" });
-  await p.fill("input[type=email]", "admin@test.com"); await p.fill("input[type=password]", "admin123");
-  await p.click("button[type=submit]"); await p.waitForTimeout(1200);
+  /* noauth=1 in the query keeps the session on the sign-in pages themselves */
+  if (!/(^|&)noauth=1/.test(query)) {
+    await p.fill("input[type=email]", "admin@test.com"); await p.fill("input[type=password]", "admin123");
+    await p.click("button[type=submit]"); await p.waitForTimeout(1200);
+  }
   const nav = async (to) => { await p.evaluate((t) => { history.pushState({}, "", t); dispatchEvent(new PopStateEvent("popstate")); }, to); await p.waitForTimeout(700); };
   return { p, ctx, faults, nav };
 }
@@ -190,6 +193,17 @@ await flow("macOS: permissions missing show the warning and fold the bar", "shel
 });
 
 /* ---------- Desktop shell, Windows ---------- */
+await flow("macOS: Google sign-in hands over to the browser and comes back", "shell=desktop&os=mac&noauth=1", async ({ p, nav }, expect) => {
+  await expect("sign in inside the window", async () => (await vis(p, "text=Welcome back")) && (await vis(p, "button:has-text('Continue with Google')")));
+  await p.click("button:has-text('Continue with Google')"); await p.waitForTimeout(600);
+  await expect("hand-over screen", async () => (await vis(p, "text=Continue in your browser")) && (await vis(p, "button:has-text('Open the browser again')")) && (await vis(p, "text=Waiting for the browser")));
+  await expect("no form behind it", async () => !(await vis(p, "input[type=email]")));
+  await p.click("button:has-text('Use email instead')"); await p.waitForTimeout(500);
+  await expect("back to the email form", async () => (await vis(p, "input[type=email]")) && (await vis(p, "button:has-text('Continue with Google')")));
+  await nav("/desktop/return");
+  await expect("browser page: back to the app", async () => (await vis(p, "text=You're signed in")) && (await vis(p, "button:has-text('Open TranscribeToText')")) && (await vis(p, "text=Continue in the web app")));
+});
+
 await flow("Windows: record on this PC, live note, generate", "shell=desktop&os=win&installed=0", async ({ p }, expect) => {
   await p.click("p:has-text('Record a call') >> visible=true"); await p.waitForTimeout(700);
   await expect("choose how: on this PC", () => vis(p, "[role=radio]:has-text('Record on this PC')"));
