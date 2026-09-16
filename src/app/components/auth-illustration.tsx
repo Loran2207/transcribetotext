@@ -1,3 +1,4 @@
+import svgPaths from "../../imports/svg-i3wf63n6gj";
 import { useEffect, useRef, useState } from "react"
 import { FeatureShowcase } from "./feature-showcase"
 import {
@@ -258,6 +259,22 @@ function LightBeams() {
    Main Component
    ═══════════════════════════════════════════════════════════════════════════ */
 
+
+/* The product's own logo (the same paths the app header uses), on the dark panel:
+   the mark in the brand's dark blue, the letters in white. */
+function BrandLogo() {
+  const mark = "#2563EB";
+  const letters = [svgPaths.p13614280, svgPaths.p11015500, svgPaths.p1f84c200, svgPaths.p3c365b00, svgPaths.p10e82600, svgPaths.pc3be80, svgPaths.p1b650100, svgPaths.p2868a650, svgPaths.p284dfb60, svgPaths.p1bf24200, svgPaths.p3f098bc0, svgPaths.p27b8300, svgPaths.p2a7a24b0, svgPaths.p13ca3e70, svgPaths.padf6a00, svgPaths.p4d43600, svgPaths.p81b6100];
+  return (
+    <svg aria-label="TranscribeToText" className="block h-[30px] w-[180px]" fill="none" viewBox="0 0 180 30">
+      <path d={svgPaths.p2badec00} fill={mark} />
+      <path d={svgPaths.p1a0b7800} fill={mark} />
+      <path clipRule="evenodd" d={svgPaths.p27195800} fill={mark} fillRule="evenodd" />
+      {letters.map((d, i) => <path key={i} d={d} fill="white" />)}
+    </svg>
+  );
+}
+
 export function AuthIllustration() {
   return (
     <div className="relative flex h-full flex-col justify-between overflow-hidden p-6 lg:p-8 2xl:p-12" style={{ background: "linear-gradient(160deg, #060818 0%, #030410 100%)" }}>
@@ -282,9 +299,7 @@ export function AuthIllustration() {
       <div className="relative z-10 flex flex-col h-full">
         {/* Logo */}
         <div className="flex items-center mb-5 2xl:mb-8">
-          <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: "0.06em", color: "white" }}>
-            TRANSCRIBETOTEXT<span style={{ color: "#3B82F6" }}>.AI</span>
-          </span>
+          <BrandLogo />
         </div>
 
         {/* Main content area */}
