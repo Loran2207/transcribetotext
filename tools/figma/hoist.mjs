@@ -95,7 +95,11 @@ export const HOIST = () => {
     s.width = m.r.width + "px";
     s.height = m.r.height + "px";
     s.margin = "0";
+    /* Tailwind v4 moves with the translate/scale/rotate properties, not transform: pin them too or the offset applies twice */
     s.transform = "none";
+    s.translate = "none";
+    s.scale = "none";
+    s.rotate = "none";
     m.host.appendChild(m.el);
   }
   return moves.map((m) => (m.el.className.toString() || m.el.tagName).slice(0, 44) + " -> " + (m.host.className.toString() || m.host.tagName).slice(0, 28));
