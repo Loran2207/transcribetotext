@@ -1,6 +1,6 @@
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
-import { ArrowLeft01Icon, House } from "@hugeicons/core-free-icons";
+import { House } from "@hugeicons/core-free-icons";
 import { Button } from "@/app/components/ui/button";
 import { Icon } from "@/app/components/ui/icon";
 import { DesktopWindowFrame } from "./desktop/shell";
@@ -8,10 +8,9 @@ import svgPaths from "../../imports/svg-i3wf63n6gj";
 
 /* The page for an address that leads nowhere. One picture from the product's own
    set (the paper plane that already says "gone" in the plan dialogs), the number
-   as the headline, one sentence, one primary way out and one secondary. The same
+   as the headline, one sentence, one way out. The same
    composition on a phone, a tablet and the desktop; only the scale changes. */
 export function NotFoundPage() {
-  const navigate = useNavigate();
   /* two ways to say the number: the plane above a typographic 404 (a), or the
      generated glossy "404" that carries the plane itself (b, ?v=b) */
   const [params] = useSearchParams();
@@ -64,12 +63,10 @@ export function NotFoundPage() {
             The link may be old, or the note was moved or deleted. Your recordings are safe on the home page.
           </motion.p>
 
-          <motion.div {...animProps(0.2)} className="mt-8 flex w-full max-w-[360px] flex-col items-center gap-3 sm:w-auto sm:flex-row">
-            <Button asChild size="lg" className="w-full gap-2 sm:w-auto sm:px-7">
+          {/* one way out: the dashboard (a signed-out visitor meets Sign in first and lands there after) */}
+          <motion.div {...animProps(0.2)} className="mt-8 w-full max-w-[360px] sm:w-auto">
+            <Button asChild size="lg" className="w-full gap-2 sm:w-auto sm:px-8">
               <Link to="/"><Icon icon={House} size={16} />Back to home</Link>
-            </Button>
-            <Button type="button" variant="pill-outline" size="lg" className="w-full gap-2 sm:w-auto sm:px-7" onClick={() => navigate(-1)}>
-              <Icon icon={ArrowLeft01Icon} size={16} />Go back
             </Button>
           </motion.div>
 
