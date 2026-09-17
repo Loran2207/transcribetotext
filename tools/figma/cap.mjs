@@ -49,7 +49,7 @@ if (process.env.NOAUTH !== "1") {
   await p.fill("input[type=email]", "admin@test.com"); await p.fill("input[type=password]", "admin123");
   await p.click("button[type=submit]"); await p.waitForTimeout(1500);
 }
-if (path && path !== "home") { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, "/" + path); await p.waitForTimeout(1200); }
+if (path && path !== "home") { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, "/" + path + (query ? "?" + query : "")); await p.waitForTimeout(1200); }
 /* STEPS walks to a state: "click=<sel>;wait=<ms>;fill=<sel>|<text>;hover=<sel>;key=<key>", in order */
 for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   const i = step.indexOf("="); const op = step.slice(0, i), arg = step.slice(i + 1);

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
 import { ArrowLeft01Icon, House } from "@hugeicons/core-free-icons";
 import { Button } from "@/app/components/ui/button";
@@ -12,6 +12,10 @@ import svgPaths from "../../imports/svg-i3wf63n6gj";
    composition on a phone, a tablet and the desktop; only the scale changes. */
 export function NotFoundPage() {
   const navigate = useNavigate();
+  /* two ways to say the number: the plane above a typographic 404 (a), or the
+     generated glossy "404" that carries the plane itself (b, ?v=b) */
+  const [params] = useSearchParams();
+  const heroB = params.get("v") === "b";
   const prefersReducedMotion = useReducedMotion();
   const animProps = (delay: number) =>
     prefersReducedMotion
@@ -38,6 +42,12 @@ export function NotFoundPage() {
         </header>
 
         <main className="flex flex-1 flex-col items-center justify-center px-6 pb-24 text-center">
+          {heroB ? (
+            <motion.div {...animProps(0)} className="relative mb-4 flex w-[300px] items-center justify-center md:w-[400px]">
+              <div className="absolute inset-x-10 inset-y-6 rounded-full bg-primary/10 blur-3xl" />
+              <img src="/images/404-hero.png" alt="404" className="relative w-full object-contain" />
+            </motion.div>
+          ) : (<>
           <motion.div {...animProps(0)} className="relative mb-2 flex size-[200px] items-center justify-center md:size-[260px]">
             <div className="absolute inset-6 rounded-full bg-primary/10 blur-3xl" />
             <img src="/images/gone-plane.png" alt="" className="relative size-full object-contain" />
@@ -46,6 +56,7 @@ export function NotFoundPage() {
           <motion.p {...animProps(0.06)} className="text-[64px] font-semibold leading-none tracking-[-0.04em] text-primary md:text-[88px]">
             404
           </motion.p>
+          </>)}
           <motion.h1 {...animProps(0.1)} className="mt-4 text-[22px] font-semibold text-foreground md:text-[26px]">
             This page flew away
           </motion.h1>
