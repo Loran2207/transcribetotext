@@ -10,6 +10,7 @@ import { AuthCallbackPage } from "./components/auth-callback-page";
 import { ForgotPasswordPage } from "./components/forgot-password-page";
 import { ResetPasswordPage } from "./components/reset-password-page";
 import { DesktopReturnPage } from "./components/desktop-return-page";
+import { NotFoundPage } from "./components/not-found-page";
 import { ProtectedRoute } from "./components/protected-route";
 import { ShareViewPage } from "./components/share-view-page";
 import { CheckoutPage } from "./components/checkout-page";
@@ -41,6 +42,7 @@ export const router = createBrowserRouter([
   { path: "/auth/callback", Component: AuthCallbackPage },
   /* the browser page after Google, the confirmation email or the reset link, when the journey started in the desktop app */
   { path: "/desktop/return", Component: DesktopReturnPage },
+  { path: "/404", Component: NotFoundPage },
   { path: "/forgot-password", Component: () => (<DesktopWindowFrame><ForgotPasswordPage /></DesktopWindowFrame>) },
   { path: "/reset-password", Component: () => (<DesktopWindowFrame><ResetPasswordPage /></DesktopWindowFrame>) },
   { path: "/share/:token", Component: ShareViewPage },
@@ -60,4 +62,5 @@ export const router = createBrowserRouter([
       Component: (await import("./components/checkout-loader/checkout-loader-page")).CheckoutLoaderPage,
     }),
   },
+  { path: "*", Component: NotFoundPage },
 ]);
