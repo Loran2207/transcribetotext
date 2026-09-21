@@ -654,7 +654,9 @@ type SpeakerControl = {
   quotes?: Quote[];
   /* People on the invite not matched to a voice yet, offered first in the dialog. */
   attendees?: Speaker[];
+  playing?: boolean;
   onPlay?: (timestamp: string) => void;
+  onPause?: () => void;
 };
 
 function SpeakerLabel({
@@ -708,7 +710,7 @@ function SpeakerLabel({
       <>
         <span onClick={() => onOpenChange(true)} className="contents">{trigger}</span>
         {open && (
-          <SpeakerDialog open={open} onOpenChange={onOpenChange} current={speaker} speakers={control.speakers} attendees={control.attendees} blockCount={control.blockCount} quotes={control.quotes ?? []} onPlay={control.onPlay} onPick={control.onPick} />
+          <SpeakerDialog open={open} onOpenChange={onOpenChange} current={speaker} speakers={control.speakers} attendees={control.attendees} blockCount={control.blockCount} quotes={control.quotes ?? []} playing={control.playing} onPlay={control.onPlay} onPause={control.onPause} onPick={control.onPick} />
         )}
       </>
     );
@@ -3121,6 +3123,13 @@ export function TranscriptionDetailPage() {
     ? videoCurrentTime
     : (Math.max(0, Math.min(100, playerProgress[0] ?? 0)) / 100) * fallbackDurationSeconds;
   const isPlayerPlaying = hasVideo ? isVideoPlaying : isFallbackPlaying;
+  function playQuote(timestamp: string) {
+    seekTo(timestamp);
+    if (!isPlayerPlaying) handlePlayerPlayPause();
+  }
+  function pauseQuote() {
+    if (isPlayerPlaying) handlePlayerPlayPause();
+  }
 
   const activePlaybackSegmentId = useMemo<number | null>(() => {
     const current = effectiveCurrentSeconds;
@@ -4234,7 +4243,7 @@ export function TranscriptionDetailPage() {
             </div>
           )}
           {speakerDialogDemo && (
-            <NameSpeakersDialog open={nameSpeakersOpen} onOpenChange={setNameSpeakersOpen} voices={unnamedVoices.map((sp) => ({ speaker: sp, quotes: quotesFor(sp.id), blockCount: speakerBlockCount(sp.id) }))} attendees={inviteAttendees} onPlay={seekTo} onSave={saveSpeakerNames} />
+            <NameSpeakersDialog open={nameSpeakersOpen} onOpenChange={setNameSpeakersOpen} voices={unnamedVoices.map((sp) => ({ speaker: sp, quotes: quotesFor(sp.id), blockCount: speakerBlockCount(sp.id) }))} attendees={inviteAttendees} playing={isPlayerPlaying} onPlay={playQuote} onPause={pauseQuote} onSave={saveSpeakerNames} />
           )}
           {isTranslationLoading ? (
             <div className="h-[2px] w-full bg-primary/15">
@@ -4288,7 +4297,7 @@ export function TranscriptionDetailPage() {
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
-                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, onPlay: seekTo }}
+                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}

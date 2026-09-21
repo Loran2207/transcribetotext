@@ -279,101 +279,135 @@ export interface Quote { text: string; timestamp: string }
 function PlayGlyph() {
   return <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg>;
 }
+function PauseGlyph() {
+  return <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>;
+}
 
-/* A quote with its timecode; the play button seeks the recording there, so
-   you can hear the voice while deciding who it is. */
-function QuoteLine({ quote, onPlay }: { quote: Quote; onPlay?: (timestamp: string) => void }) {
+/* A quote with its timecode. The chip seeks the recording there and plays;
+   while that quote is playing the chip turns primary and offers pause. */
+function QuoteLine({ quote, playing, onPlay, onPause }: { quote: Quote; playing?: boolean; onPlay?: (timestamp: string) => void; onPause?: () => void }) {
   return (
     <div className="flex items-start gap-2 border-l-2 border-border pl-3">
       <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-foreground/80">“{quote.text}”</p>
       {onPlay && (
-        <button type="button" onClick={() => onPlay(quote.timestamp)} className="mt-0.5 inline-flex h-6 shrink-0 items-center gap-1 rounded-full border border-border/70 px-2 text-[11px] tabular-nums text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary" aria-label={`Play from ${quote.timestamp}`}>
-          <PlayGlyph />{quote.timestamp}
+        <button
+          type="button"
+          onClick={() => (playing ? onPause?.() : onPlay(quote.timestamp))}
+          aria-label={playing ? "Pause" : `Play from ${quote.timestamp}`}
+          aria-pressed={playing}
+          className={cn(
+            "mt-0.5 inline-flex h-6 shrink-0 items-center gap-1 rounded-full border px-2 text-[11px] tabular-nums transition-colors",
+            playing ? "border-primary bg-primary text-primary-foreground" : "border-border/70 text-muted-foreground hover:border-primary/40 hover:text-primary",
+          )}
+        >
+          {playing ? <PauseGlyph /> : <PlayGlyph />}{quote.timestamp}
         </button>
       )}
     </div>
   );
 }
 
-/* Name field with suggestions: people from the invite who are not matched to
-   a voice yet come first, then the transcript's own voices, then add-new. */
-function NameField({
-  value,
-  onChange,
+/* The name control is the house searchable select: a closed field with a
+   chevron (nothing unrolls by itself), which opens to a search box and grouped
+   rows: people from the invite first, then the transcript's voices, then add
+   the typed name as a new person. On the phone the same list sits in the flow. */
+function NameSelect({
   chosen,
   onChoose,
+  onAddNew,
   candidates,
   attendees,
   isPhone,
-  autoFocus,
-  placeholder = "Type a name",
+  placeholder = "Who is this?",
 }: {
-  value: string;
-  onChange: (v: string) => void;
   chosen: PickerSpeaker | null;
   onChoose: (s: PickerSpeaker | null) => void;
+  onAddNew: (name: string) => void;
   candidates: PickerSpeaker[];
   attendees: PickerSpeaker[];
   isPhone: boolean;
-  autoFocus?: boolean;
   placeholder?: string;
 }) {
-  const [focused, setFocused] = useState(false);
-  const trimmed = value.trim();
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", away);
+    inputRef.current?.focus();
+    return () => document.removeEventListener("mousedown", away);
+  }, [open]);
+  const trimmed = query.trim();
   const q = trimmed.toLowerCase();
   const match = (s: PickerSpeaker) => !q || s.name.toLowerCase().includes(q);
   const fromInvite = attendees.filter(match);
   const voices = candidates.filter(match);
   const exact = [...attendees, ...candidates].find((s) => s.name.toLowerCase() === q);
-  const showList = !chosen && (isPhone || focused) && (fromInvite.length + voices.length > 0 || trimmed.length > 0);
-  const row = "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-foreground hover:bg-muted/60 active:bg-muted/60";
-  const heading = "px-3 pt-1.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground";
-  const rows = (
+  const pick = (s: PickerSpeaker) => { onChoose(s); setOpen(false); setQuery(""); };
+  const heading = "px-[12px] pt-[8px] pb-[4px] text-[10px] font-semibold tracking-wide text-muted-foreground";
+  const row = (s: PickerSpeaker) => (
+    <Button key={s.id} variant="ghost" onClick={() => pick(s)} className="flex h-[36px] w-full items-center gap-[10px] rounded-none px-[12px] transition-colors hover:bg-accent">
+      <SpeakerDot speaker={s} className="size-5 text-[9px]" />
+      <span className="flex-1 truncate text-left text-[13px] text-foreground">{s.name}{s.you && <span className="ml-1 text-muted-foreground">(you)</span>}</span>
+    </Button>
+  );
+  const list = (
     <>
-      {fromInvite.length > 0 && <p className={heading}>From the invite</p>}
-      {fromInvite.map((s) => (
-        <button key={s.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onChoose(s); onChange(""); }} className={row}>
-          <SpeakerDot speaker={s} className="size-5 text-[9px]" /><Name speaker={s} />
-        </button>
-      ))}
-      {voices.length > 0 && <p className={heading}>In this transcript</p>}
-      {voices.map((s) => (
-        <button key={s.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onChoose(s); onChange(""); }} className={row}>
-          <SpeakerDot speaker={s} className="size-5 text-[9px]" /><Name speaker={s} />
-        </button>
-      ))}
-      {trimmed.length > 0 && !exact && (
-        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setFocused(false)} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-primary hover:bg-primary/[0.06] active:bg-primary/[0.06]">
-          <Icon icon={UserAdd01Icon} size={15} />Add new person “{trimmed}”
-        </button>
-      )}
+      <div className="p-[8px] pb-[4px]">
+        <div className="relative">
+          <Icon icon={Search01Icon} size={13} className="absolute left-[9px] top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search or type a name" className="h-[32px] w-full rounded-[7px] pl-[28px] pr-[8px] text-[13px]" />
+        </div>
+      </div>
+      <div className="overflow-y-auto pb-[4px]" style={{ maxHeight: isPhone ? "none" : "220px" }}>
+        {fromInvite.length > 0 && <p className={heading}>From the invite</p>}
+        {fromInvite.map(row)}
+        {voices.length > 0 && <p className={heading}>In this transcript</p>}
+        {voices.map(row)}
+        {trimmed.length > 0 && !exact && (
+          <Button variant="ghost" onClick={() => { onAddNew(trimmed); setOpen(false); setQuery(""); }} className="flex h-[36px] w-full items-center gap-[10px] rounded-none px-[12px] text-[13px] font-medium text-primary hover:bg-primary/[0.06] hover:text-primary">
+            <Icon icon={UserAdd01Icon} size={15} /><span className="flex-1 truncate text-left">Add new person “{trimmed}”</span>
+          </Button>
+        )}
+        {fromInvite.length + voices.length === 0 && trimmed.length === 0 && <p className="py-[16px] text-center text-[13px] text-muted-foreground">Type a name</p>}
+      </div>
     </>
   );
   return (
-    <div className="relative">
-      {chosen ? (
-        <div className="flex h-10 items-center gap-2.5 rounded-full border border-input px-3">
-          <SpeakerDot speaker={chosen} className="size-5 text-[9px]" />
-          <Name speaker={chosen} className="text-sm" />
-          <button type="button" onClick={() => onChoose(null)} aria-label="Clear" className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={14} /></button>
-        </div>
-      ) : (
-        <Input value={value} onChange={(e) => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => window.setTimeout(() => setFocused(false), 120)} placeholder={placeholder} autoFocus={autoFocus && !isPhone} className="h-10 rounded-full px-4" />
+    <div className="relative" ref={ref}>
+      <Button
+        variant="ghost"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex h-[40px] w-full items-center gap-[8px] rounded-[12px] border border-input bg-transparent px-[14px] text-sm transition-all"
+      >
+        {chosen ? (
+          <>
+            <SpeakerDot speaker={chosen} className="size-5 text-[9px]" />
+            <span className="flex-1 truncate text-left text-sm text-foreground">{chosen.name}{chosen.you && <span className="ml-1 text-muted-foreground">(you)</span>}</span>
+            <span role="button" aria-label="Clear" onClick={(e) => { e.stopPropagation(); onChoose(null); }} className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={14} /></span>
+          </>
+        ) : (
+          <span className="flex-1 text-left text-sm text-muted-foreground">{placeholder}</span>
+        )}
+        <svg className={`size-[12px] shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </Button>
+      {open && !isPhone && (
+        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-[12px] border border-border bg-popover shadow-md">{list}</div>
       )}
-      {/* desktop: floats under the field; kept mounted and hidden, not unmounted, because the Figma capture re-seats the DOM */}
-      {!isPhone && !chosen && (
-        <div className={cn("absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-xl border border-border bg-popover p-1.5 shadow-[var(--elevation-md)]", !showList && "hidden")}>{rows}</div>
-      )}
-      {isPhone && showList && <div className="-mx-1.5 mt-2 rounded-xl bg-muted/40 p-1.5">{rows}</div>}
+      {open && isPhone && <div className="mt-2 overflow-hidden rounded-[12px] border border-border bg-popover">{list}</div>}
     </div>
   );
 }
 
+/* the house mode toggle (Mono / Bi in the Record dialog), two options */
 function ScopeSwitch({ scope, onChange, blockCount }: { scope: Scope; onChange: (s: Scope) => void; blockCount: number }) {
   return (
-    <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1 text-[13px]">
+    <div className="flex h-[40px] items-center rounded-[12px] border border-border bg-muted/70 p-[3px]">
       {(["block", "all"] as Scope[]).map((s) => (
-        <button key={s} type="button" onClick={() => onChange(s)} className={cn("rounded-lg px-3 py-2 text-center transition-colors", scope === s ? "bg-background font-medium text-foreground shadow-[var(--elevation-sm)]" : "text-muted-foreground hover:text-foreground")}>
+        <button key={s} type="button" onClick={() => onChange(s)} className={`flex h-full flex-1 items-center justify-center whitespace-nowrap rounded-[9px] px-[14px] text-[12px] font-medium transition-all ${scope === s ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
           {s === "block" ? "Only this block" : `All ${blocksLabel(blockCount)}`}
         </button>
       ))}
@@ -398,8 +432,8 @@ function DialogShell({ open, onOpenChange, title, isPhone, children, footer, wid
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("gap-4 rounded-2xl p-6", wide ? "max-w-[520px]" : "max-w-[440px]")}>
-        <DialogHeader className="text-left"><DialogTitle className="text-lg">{title}</DialogTitle></DialogHeader>
+      <DialogContent className={cn("gap-4", wide ? "sm:max-w-[520px]" : "sm:max-w-[440px]")}>
+        <DialogHeader className="text-left"><DialogTitle>{title}</DialogTitle></DialogHeader>
         {children}
         <DialogFooter className="gap-2 sm:justify-end">{footer}</DialogFooter>
       </DialogContent>
@@ -415,7 +449,9 @@ export function SpeakerDialog({
   attendees = [],
   blockCount,
   quotes,
+  playing,
   onPlay,
+  onPause,
   onPick,
 }: {
   open: boolean;
@@ -425,24 +461,31 @@ export function SpeakerDialog({
   attendees?: PickerSpeaker[];
   blockCount: number;
   quotes: Quote[];
+  /* the recording is playing right now (the dialog remembers which chip started it) */
+  playing?: boolean;
   onPlay?: (timestamp: string) => void;
+  onPause?: () => void;
   onPick: (choice: SpeakerChoice) => void;
 }) {
   const isPhone = useIsPhone();
-  const [name, setName] = useState("");
   const [chosen, setChosen] = useState<PickerSpeaker | null>(null);
+  const [added, setAdded] = useState<string | null>(null);
   const [scope, setScope] = useState<Scope>("block");
-  const trimmed = name.trim();
-  const exact = speakers.find((s) => s.name.toLowerCase() === trimmed.toLowerCase());
-  const canSave = !!chosen || (trimmed.length > 0 && !exact);
-  useEffect(() => { if (!open) { setName(""); setChosen(null); setScope("block"); } }, [open]);
+  const [startedAt, setStartedAt] = useState<string | null>(null);
+  useEffect(() => { if (!open) { setChosen(null); setAdded(null); setScope("block"); setStartedAt(null); } }, [open]);
+  useEffect(() => { if (!playing) setStartedAt(null); }, [playing]);
+  const canSave = !!chosen || !!added;
 
   const save = () => {
-    /* a person from the invite is a new name for this voice; a transcript voice is a move */
     const isVoice = chosen && speakers.some((s) => s.id === chosen.id);
-    onPick(chosen ? (isVoice ? choiceFor({ speakerId: chosen.id }, scope) : choiceFor({ name: chosen.name }, scope)) : choiceFor({ name: trimmed }, scope));
+    if (chosen) onPick(isVoice ? choiceFor({ speakerId: chosen.id }, scope) : choiceFor({ name: chosen.name }, scope));
+    else if (added) onPick(choiceFor({ name: added }, scope));
     onOpenChange(false);
   };
+  const play = (ts: string) => { setStartedAt(ts); onPlay?.(ts); };
+  const pause = () => { setStartedAt(null); onPause?.(); };
+  /* a typed new person is shown in the field as a chosen chip too */
+  const value: PickerSpeaker | null = chosen ?? (added ? { id: "new", name: added, color: "#6366f1", initial: added[0]?.toUpperCase() ?? "?" } : null);
 
   const footer = isPhone ? (
     <Button onClick={save} disabled={!canSave} className="h-11 w-full">Save</Button>
@@ -459,9 +502,9 @@ export function SpeakerDialog({
         <span className="size-2 rounded-full" style={{ backgroundColor: current.color }} />{current.name}
       </div>
       <div className="space-y-2">
-        {quotes.slice(0, 2).map((qt, i) => <QuoteLine key={i} quote={qt} onPlay={onPlay} />)}
+        {quotes.slice(0, 2).map((qt, i) => <QuoteLine key={i} quote={qt} playing={!!playing && startedAt === qt.timestamp} onPlay={onPlay ? play : undefined} onPause={pause} />)}
       </div>
-      <NameField value={name} onChange={setName} chosen={chosen} onChoose={setChosen} candidates={speakers.filter((s) => s.id !== current.id)} attendees={attendees} isPhone={isPhone} autoFocus />
+      <NameSelect chosen={value} onChoose={(s) => { setChosen(s); setAdded(null); }} onAddNew={(n) => { setAdded(n); setChosen(null); }} candidates={speakers.filter((s) => s.id !== current.id)} attendees={attendees} isPhone={isPhone} />
       <ScopeSwitch scope={scope} onChange={setScope} blockCount={blockCount} />
     </DialogShell>
   );
@@ -475,23 +518,30 @@ export function NameSpeakersDialog({
   onOpenChange,
   voices,
   attendees = [],
+  playing,
   onPlay,
+  onPause,
   onSave,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   voices: { speaker: PickerSpeaker; quotes: Quote[]; blockCount: number }[];
   attendees?: PickerSpeaker[];
+  playing?: boolean;
   onPlay?: (timestamp: string) => void;
+  onPause?: () => void;
   onSave: (names: Record<string, string>) => void;
 }) {
   const isPhone = useIsPhone();
-  const [typed, setTyped] = useState<Record<string, string>>({});
-  const [chosen, setChosen] = useState<Record<string, PickerSpeaker | null>>({});
-  useEffect(() => { if (!open) { setTyped({}); setChosen({}); } }, [open]);
-  const nameFor = (id: string) => chosen[id]?.name ?? typed[id]?.trim() ?? "";
+  const [picked, setPicked] = useState<Record<string, PickerSpeaker | null>>({});
+  const [startedAt, setStartedAt] = useState<string | null>(null);
+  useEffect(() => { if (!open) { setPicked({}); setStartedAt(null); } }, [open]);
+  useEffect(() => { if (!playing) setStartedAt(null); }, [playing]);
+  const nameFor = (id: string) => picked[id]?.name ?? "";
   const filled = voices.filter((v) => nameFor(v.speaker.id).length > 0).length;
-  const taken = new Set(Object.values(chosen).filter(Boolean).map((s) => s!.id));
+  const taken = new Set(Object.values(picked).filter(Boolean).map((s) => s!.id));
+  const play = (ts: string) => { setStartedAt(ts); onPlay?.(ts); };
+  const pause = () => { setStartedAt(null); onPause?.(); };
   const save = () => {
     const names: Record<string, string> = {};
     voices.forEach((v) => { const n = nameFor(v.speaker.id); if (n) names[v.speaker.id] = n; });
@@ -508,24 +558,21 @@ export function NameSpeakersDialog({
   );
   return (
     <DialogShell open={open} onOpenChange={onOpenChange} title={voices.length === 1 ? "Name the speaker" : `Name ${voices.length} speakers`} isPhone={isPhone} footer={footer} wide>
-      <p className="-mt-2 text-[13px] text-muted-foreground">Listen, type who it is, and every block by that voice takes the name.</p>
+      <p className="-mt-2 text-[13px] text-muted-foreground">Listen, pick who it is, and every block by that voice takes the name.</p>
       {voices.map((v, i) => (
         <div key={v.speaker.id} className={cn("space-y-2.5", i > 0 && "border-t border-border/60 pt-4")}>
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             <span className="size-2 rounded-full" style={{ backgroundColor: v.speaker.color }} />{v.speaker.name}
             <span className="font-normal normal-case tracking-normal">· {blocksLabel(v.blockCount)}</span>
           </div>
-          {v.quotes.slice(0, 2).map((qt, k) => <QuoteLine key={k} quote={qt} onPlay={onPlay} />)}
-          <NameField
-            value={typed[v.speaker.id] ?? ""}
-            onChange={(val) => setTyped((t) => ({ ...t, [v.speaker.id]: val }))}
-            chosen={chosen[v.speaker.id] ?? null}
-            onChoose={(s) => setChosen((c) => ({ ...c, [v.speaker.id]: s }))}
+          {v.quotes.slice(0, 2).map((qt, k) => <QuoteLine key={k} quote={qt} playing={!!playing && startedAt === qt.timestamp} onPlay={onPlay ? play : undefined} onPause={pause} />)}
+          <NameSelect
+            chosen={picked[v.speaker.id] ?? null}
+            onChoose={(s) => setPicked((c) => ({ ...c, [v.speaker.id]: s }))}
+            onAddNew={(n) => setPicked((c) => ({ ...c, [v.speaker.id]: { id: `new-${v.speaker.id}`, name: n, color: v.speaker.color, initial: n[0]?.toUpperCase() ?? "?" } }))}
             candidates={[]}
-            attendees={attendees.filter((a) => !taken.has(a.id) || chosen[v.speaker.id]?.id === a.id)}
+            attendees={attendees.filter((a) => !taken.has(a.id) || picked[v.speaker.id]?.id === a.id)}
             isPhone={isPhone}
-            autoFocus={i === 0}
-            placeholder="Who is this?"
           />
         </div>
       ))}
