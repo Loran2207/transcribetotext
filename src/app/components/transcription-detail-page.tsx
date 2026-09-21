@@ -647,6 +647,8 @@ type SpeakerControl = {
   onPick: (choice: SpeakerChoice) => void;
   /* Demo only: ttt_demo_speaker_dialog=1 opens variant B instead of the dropdown. */
   dialog?: boolean;
+  /* What this voice said, for the dialog variant: the block itself first. */
+  quotes?: string[];
 };
 
 function SpeakerLabel({
@@ -696,7 +698,7 @@ function SpeakerLabel({
       <>
         <span onClick={() => onOpenChange(true)} className="contents">{trigger}</span>
         {open && (
-          <SpeakerDialog open={open} onOpenChange={onOpenChange} current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} />
+          <SpeakerDialog open={open} onOpenChange={onOpenChange} current={speaker} speakers={control.speakers} blockCount={control.blockCount} quotes={control.quotes ?? []} onPick={control.onPick} />
         )}
       </>
     );
@@ -4233,7 +4235,7 @@ export function TranscriptionDetailPage() {
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
-                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), dialog: speakerDialogDemo }}
+                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), dialog: speakerDialogDemo, quotes: [texts[seg.id] ?? seg.text, ...resolved.segments.filter((sg) => sg.speaker.id === seg.speaker.id && sg.id !== seg.id).slice(0, 1).map((sg) => texts[sg.id] ?? sg.text)] }}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
