@@ -8,7 +8,7 @@ import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/n
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { SpeakerPicker, SpeakerDialog, type SpeakerChoice } from "./speaker-picker";
+import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, type SpeakerChoice, type Quote } from "./speaker-picker";
 import { LanguageSelector, SpeakerSection } from "./transcription-modals";
 import { useNotetakerSettings } from "./desktop/notetaker-settings";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
@@ -651,7 +651,10 @@ type SpeakerControl = {
   /* Demo only: ttt_demo_speaker_dialog=1 opens variant B instead of the dropdown. */
   dialog?: boolean;
   /* What this voice said, for the dialog variant: the block itself first. */
-  quotes?: string[];
+  quotes?: Quote[];
+  /* People on the invite not matched to a voice yet, offered first in the dialog. */
+  attendees?: Speaker[];
+  onPlay?: (timestamp: string) => void;
 };
 
 function SpeakerLabel({
@@ -705,7 +708,7 @@ function SpeakerLabel({
       <>
         <span onClick={() => onOpenChange(true)} className="contents">{trigger}</span>
         {open && (
-          <SpeakerDialog open={open} onOpenChange={onOpenChange} current={speaker} speakers={control.speakers} blockCount={control.blockCount} quotes={control.quotes ?? []} onPick={control.onPick} />
+          <SpeakerDialog open={open} onOpenChange={onOpenChange} current={speaker} speakers={control.speakers} attendees={control.attendees} blockCount={control.blockCount} quotes={control.quotes ?? []} onPlay={control.onPlay} onPick={control.onPick} />
         )}
       </>
     );
@@ -2815,6 +2818,29 @@ export function TranscriptionDetailPage() {
   }, [contentSegments, extraSpeakers, speakerMoves, speakerNames, unnamedSpeakersDemo]);
   const displaySegments = (forceSingleSpeaker || forcePlainMono) ? MONO_SEGMENTS : resolved.segments;
   const speakerBlockCount = (speakerId: string) => resolved.segments.filter((seg) => seg.speaker.id === speakerId).length;
+  /* two lines of the voice for the dialog: the block itself first, then the next one by the same voice */
+  const quotesFor = (speakerId: string, firstId?: number): Quote[] => {
+    const own = resolved.segments.filter((sg) => sg.speaker.id === speakerId);
+    const ordered = firstId ? [...own.filter((sg) => sg.id === firstId), ...own.filter((sg) => sg.id !== firstId)] : own;
+    return ordered.slice(0, 2).map((sg) => ({ text: texts[sg.id] ?? sg.text, timestamp: sg.timestamp }));
+  };
+  /* demo: people on the calendar invite who are not matched to a voice yet */
+  const inviteAttendees = useMemo<Speaker[]>(() => {
+    if (!unnamedSpeakersDemo) return [];
+    const named = new Set(resolved.speakers.map((sp) => sp.name.toLowerCase()));
+    return [
+      { id: "inv-james", name: "James Chen", color: "#10b981", initial: "J" },
+      { id: "inv-priya", name: "Priya Patel", color: "#f59e0b", initial: "P" },
+    ].filter((a) => !named.has(a.name.toLowerCase()));
+  }, [resolved.speakers, unnamedSpeakersDemo]);
+  const unnamedVoices = resolved.speakers.filter((sp) => /^Speaker \d+$/.test(sp.name));
+  const [nameSpeakersOpen, setNameSpeakersOpen] = useState(false);
+  function saveSpeakerNames(names: Record<string, string>) {
+    const before = speakerNames;
+    setSpeakerNames((n) => ({ ...n, ...names }));
+    const count = Object.keys(names).length;
+    toast(count === 1 ? `${Object.values(names)[0]} is named` : `${count} speakers named`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
+  }
   function pickSpeaker(segmentId: number, choice: SpeakerChoice) {
     const seg = resolved.segments.find((sg) => sg.id === segmentId);
     if (!seg) return;
@@ -4198,6 +4224,18 @@ export function TranscriptionDetailPage() {
               <TranscriptViewChecks />
             </div>
           )}
+          {speakerDialogDemo && activeTab === "transcript" && !editMode && !isJobTranscribing && unnamedVoices.length > 0 && (
+            <div data-name-speakers="" className="mx-4 mb-2 flex items-center gap-3 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-[13px] lg:mx-8">
+              <span className="flex -space-x-1.5">
+                {unnamedVoices.map((sp) => <span key={sp.id} className="inline-flex size-6 items-center justify-center rounded-full border-2 border-background text-[10px] font-semibold text-white" style={{ backgroundColor: sp.color }}>{sp.initial}</span>)}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-foreground">{unnamedVoices.length === 1 ? "1 voice isn't named yet" : `${unnamedVoices.length} voices aren't named yet`}</span>
+              <Button variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium text-primary hover:text-primary" onClick={() => setNameSpeakersOpen(true)}>Name {unnamedVoices.length === 1 ? "the speaker" : "speakers"}</Button>
+            </div>
+          )}
+          {speakerDialogDemo && (
+            <NameSpeakersDialog open={nameSpeakersOpen} onOpenChange={setNameSpeakersOpen} voices={unnamedVoices.map((sp) => ({ speaker: sp, quotes: quotesFor(sp.id), blockCount: speakerBlockCount(sp.id) }))} attendees={inviteAttendees} onPlay={seekTo} onSave={saveSpeakerNames} />
+          )}
           {isTranslationLoading ? (
             <div className="h-[2px] w-full bg-primary/15">
               <div className="h-full w-full animate-pulse bg-primary" />
@@ -4250,7 +4288,7 @@ export function TranscriptionDetailPage() {
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
-                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), dialog: speakerDialogDemo, quotes: [texts[seg.id] ?? seg.text, ...resolved.segments.filter((sg) => sg.speaker.id === seg.speaker.id && sg.id !== seg.id).slice(0, 1).map((sg) => texts[sg.id] ?? sg.text)] }}
+                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, onPlay: seekTo }}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}

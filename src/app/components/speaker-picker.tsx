@@ -271,48 +271,74 @@ export function SpeakerPicker({
 }
 
 /* ── Variant B (Figma reference, ttt_demo_speaker_dialog=1) ──
-   The voice's own words as quotes, one name field with suggestions, the scope
-   switch, Save. A centred dialog on desktop and tablet; on a phone the same
-   content is a bottom sheet, like every other dialog in the product. */
-export function SpeakerDialog({
-  open,
-  onOpenChange,
-  current,
-  speakers,
-  blockCount,
-  quotes,
-  onPick,
+   The voice's own words as quotes you can play, one name field whose
+   suggestions come from the invite first, the scope switch, Save. A centred
+   dialog on desktop and tablet; on a phone the same content is a bottom sheet. */
+export interface Quote { text: string; timestamp: string }
+
+function PlayGlyph() {
+  return <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg>;
+}
+
+/* A quote with its timecode; the play button seeks the recording there, so
+   you can hear the voice while deciding who it is. */
+function QuoteLine({ quote, onPlay }: { quote: Quote; onPlay?: (timestamp: string) => void }) {
+  return (
+    <div className="flex items-start gap-2 border-l-2 border-border pl-3">
+      <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-foreground/80">“{quote.text}”</p>
+      {onPlay && (
+        <button type="button" onClick={() => onPlay(quote.timestamp)} className="mt-0.5 inline-flex h-6 shrink-0 items-center gap-1 rounded-full border border-border/70 px-2 text-[11px] tabular-nums text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary" aria-label={`Play from ${quote.timestamp}`}>
+          <PlayGlyph />{quote.timestamp}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* Name field with suggestions: people from the invite who are not matched to
+   a voice yet come first, then the transcript's own voices, then add-new. */
+function NameField({
+  value,
+  onChange,
+  chosen,
+  onChoose,
+  candidates,
+  attendees,
+  isPhone,
+  autoFocus,
+  placeholder = "Type a name",
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  current: PickerSpeaker;
-  speakers: PickerSpeaker[];
-  blockCount: number;
-  quotes: string[];
-  onPick: (choice: SpeakerChoice) => void;
+  value: string;
+  onChange: (v: string) => void;
+  chosen: PickerSpeaker | null;
+  onChoose: (s: PickerSpeaker | null) => void;
+  candidates: PickerSpeaker[];
+  attendees: PickerSpeaker[];
+  isPhone: boolean;
+  autoFocus?: boolean;
+  placeholder?: string;
 }) {
-  const isPhone = useIsPhone();
-  const [name, setName] = useState("");
-  const [chosen, setChosen] = useState<PickerSpeaker | null>(null);
-  const [scope, setScope] = useState<Scope>("block");
   const [focused, setFocused] = useState(false);
-  const trimmed = name.trim();
+  const trimmed = value.trim();
   const q = trimmed.toLowerCase();
-  const suggestions = speakers.filter((s) => s.id !== current.id && (!q || s.name.toLowerCase().includes(q)));
-  const exact = speakers.find((s) => s.name.toLowerCase() === q);
-  const showList = !chosen && (isPhone || focused) && (trimmed.length > 0 || suggestions.length > 0);
-  const canSave = !!chosen || (trimmed.length > 0 && !exact);
-  useEffect(() => { if (!open) { setName(""); setChosen(null); setScope("block"); } }, [open]);
-
-  const save = () => {
-    onPick(chosen ? choiceFor({ speakerId: chosen.id }, scope) : choiceFor({ name: trimmed }, scope));
-    onOpenChange(false);
-  };
-
-  const suggestionRows = (
+  const match = (s: PickerSpeaker) => !q || s.name.toLowerCase().includes(q);
+  const fromInvite = attendees.filter(match);
+  const voices = candidates.filter(match);
+  const exact = [...attendees, ...candidates].find((s) => s.name.toLowerCase() === q);
+  const showList = !chosen && (isPhone || focused) && (fromInvite.length + voices.length > 0 || trimmed.length > 0);
+  const row = "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-foreground hover:bg-muted/60 active:bg-muted/60";
+  const heading = "px-3 pt-1.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground";
+  const rows = (
     <>
-      {suggestions.map((s) => (
-        <button key={s.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setChosen(s); setName(""); }} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-foreground hover:bg-muted/60 active:bg-muted/60">
+      {fromInvite.length > 0 && <p className={heading}>From the invite</p>}
+      {fromInvite.map((s) => (
+        <button key={s.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onChoose(s); onChange(""); }} className={row}>
+          <SpeakerDot speaker={s} className="size-5 text-[9px]" /><Name speaker={s} />
+        </button>
+      ))}
+      {voices.length > 0 && <p className={heading}>In this transcript</p>}
+      {voices.map((s) => (
+        <button key={s.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onChoose(s); onChange(""); }} className={row}>
           <SpeakerDot speaker={s} className="size-5 text-[9px]" /><Name speaker={s} />
         </button>
       ))}
@@ -323,77 +349,186 @@ export function SpeakerDialog({
       )}
     </>
   );
-
-  const body = (
-    <>
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-        <span className="size-2 rounded-full" style={{ backgroundColor: current.color }} />{current.name}
-      </div>
-      <div className="space-y-2">
-        {quotes.slice(0, 2).map((t, i) => (
-          <p key={i} className="border-l-2 border-border pl-3 text-[13px] leading-relaxed text-foreground/80">“{t}”</p>
-        ))}
-      </div>
-      <div className="relative">
-        {chosen ? (
-          <div className="flex h-10 items-center gap-2.5 rounded-full border border-input px-3">
-            <SpeakerDot speaker={chosen} className="size-5 text-[9px]" />
-            <Name speaker={chosen} className="text-sm" />
-            <button type="button" onClick={() => setChosen(null)} aria-label="Clear" className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={14} /></button>
-          </div>
-        ) : (
-          <Input value={name} onChange={(e) => setName(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => window.setTimeout(() => setFocused(false), 120)} placeholder="Type a name" autoFocus={!isPhone} className="h-10 rounded-full px-4" />
-        )}
-        {/* desktop: floats under the field; kept mounted and hidden, not unmounted, because the Figma capture re-seats the DOM */}
-        {!isPhone && !chosen && (
-          <div className={cn("absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-xl border border-border bg-popover p-1.5 shadow-[var(--elevation-md)]", !showList && "hidden")}>
-            {suggestionRows}
-          </div>
-        )}
-      </div>
-      {/* phone: the suggestions sit in the flow, nothing floats over a sheet */}
-      {isPhone && showList && <div className="-mx-1.5 rounded-xl bg-muted/40 p-1.5">{suggestionRows}</div>}
-      <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1 text-[13px]">
-        {(["block", "all"] as Scope[]).map((s) => (
-          <button key={s} type="button" onClick={() => setScope(s)} className={cn("rounded-lg px-3 py-2 text-center transition-colors", scope === s ? "bg-background font-medium text-foreground shadow-[var(--elevation-sm)]" : "text-muted-foreground hover:text-foreground")}>
-            {s === "block" ? "Only this block" : `All ${blocksLabel(blockCount)}`}
-          </button>
-        ))}
-      </div>
-    </>
+  return (
+    <div className="relative">
+      {chosen ? (
+        <div className="flex h-10 items-center gap-2.5 rounded-full border border-input px-3">
+          <SpeakerDot speaker={chosen} className="size-5 text-[9px]" />
+          <Name speaker={chosen} className="text-sm" />
+          <button type="button" onClick={() => onChoose(null)} aria-label="Clear" className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={14} /></button>
+        </div>
+      ) : (
+        <Input value={value} onChange={(e) => onChange(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => window.setTimeout(() => setFocused(false), 120)} placeholder={placeholder} autoFocus={autoFocus && !isPhone} className="h-10 rounded-full px-4" />
+      )}
+      {/* desktop: floats under the field; kept mounted and hidden, not unmounted, because the Figma capture re-seats the DOM */}
+      {!isPhone && !chosen && (
+        <div className={cn("absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-xl border border-border bg-popover p-1.5 shadow-[var(--elevation-md)]", !showList && "hidden")}>{rows}</div>
+      )}
+      {isPhone && showList && <div className="-mx-1.5 mt-2 rounded-xl bg-muted/40 p-1.5">{rows}</div>}
+    </div>
   );
+}
 
+function ScopeSwitch({ scope, onChange, blockCount }: { scope: Scope; onChange: (s: Scope) => void; blockCount: number }) {
+  return (
+    <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1 text-[13px]">
+      {(["block", "all"] as Scope[]).map((s) => (
+        <button key={s} type="button" onClick={() => onChange(s)} className={cn("rounded-lg px-3 py-2 text-center transition-colors", scope === s ? "bg-background font-medium text-foreground shadow-[var(--elevation-sm)]" : "text-muted-foreground hover:text-foreground")}>
+          {s === "block" ? "Only this block" : `All ${blocksLabel(blockCount)}`}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* the same shell for both dialogs: centred on desktop and tablet, a sheet on the phone */
+function DialogShell({ open, onOpenChange, title, isPhone, children, footer, wide }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; isPhone: boolean; children: ReactNode; footer: ReactNode; wide?: boolean }) {
   if (isPhone) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="[&>div:first-child]:hidden">
+        <DrawerContent className="max-h-[92vh] [&>div:first-child]:hidden">
           <DrawerHeader className="flex-row items-center justify-between pb-1 text-left">
-            <DrawerTitle>Who is speaking?</DrawerTitle>
-            <button type="button" onClick={() => onOpenChange(false)} aria-label="Close" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60">
-              <Icon icon={Cancel01Icon} size={16} />
-            </button>
+            <DrawerTitle>{title}</DrawerTitle>
+            <button type="button" onClick={() => onOpenChange(false)} aria-label="Close" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={16} /></button>
           </DrawerHeader>
-          <div className="flex flex-col gap-4 px-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
-            {body}
-            <Button onClick={save} disabled={!canSave} className="h-11 w-full">Save</Button>
-          </div>
+          <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-[calc(16px+env(safe-area-inset-bottom))]">{children}{footer}</div>
         </DrawerContent>
       </Drawer>
     );
   }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[440px] gap-4 rounded-2xl p-6">
-        <DialogHeader className="text-left">
-          <DialogTitle className="text-lg">Who is speaking?</DialogTitle>
-        </DialogHeader>
-        {body}
-        <DialogFooter className="gap-2 sm:justify-end">
-          <Button variant="pill-outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={save} disabled={!canSave}>Save</Button>
-        </DialogFooter>
+      <DialogContent className={cn("gap-4 rounded-2xl p-6", wide ? "max-w-[520px]" : "max-w-[440px]")}>
+        <DialogHeader className="text-left"><DialogTitle className="text-lg">{title}</DialogTitle></DialogHeader>
+        {children}
+        <DialogFooter className="gap-2 sm:justify-end">{footer}</DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+export function SpeakerDialog({
+  open,
+  onOpenChange,
+  current,
+  speakers,
+  attendees = [],
+  blockCount,
+  quotes,
+  onPlay,
+  onPick,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  current: PickerSpeaker;
+  speakers: PickerSpeaker[];
+  attendees?: PickerSpeaker[];
+  blockCount: number;
+  quotes: Quote[];
+  onPlay?: (timestamp: string) => void;
+  onPick: (choice: SpeakerChoice) => void;
+}) {
+  const isPhone = useIsPhone();
+  const [name, setName] = useState("");
+  const [chosen, setChosen] = useState<PickerSpeaker | null>(null);
+  const [scope, setScope] = useState<Scope>("block");
+  const trimmed = name.trim();
+  const exact = speakers.find((s) => s.name.toLowerCase() === trimmed.toLowerCase());
+  const canSave = !!chosen || (trimmed.length > 0 && !exact);
+  useEffect(() => { if (!open) { setName(""); setChosen(null); setScope("block"); } }, [open]);
+
+  const save = () => {
+    /* a person from the invite is a new name for this voice; a transcript voice is a move */
+    const isVoice = chosen && speakers.some((s) => s.id === chosen.id);
+    onPick(chosen ? (isVoice ? choiceFor({ speakerId: chosen.id }, scope) : choiceFor({ name: chosen.name }, scope)) : choiceFor({ name: trimmed }, scope));
+    onOpenChange(false);
+  };
+
+  const footer = isPhone ? (
+    <Button onClick={save} disabled={!canSave} className="h-11 w-full">Save</Button>
+  ) : (
+    <>
+      <Button variant="pill-outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+      <Button onClick={save} disabled={!canSave}>Save</Button>
+    </>
+  );
+
+  return (
+    <DialogShell open={open} onOpenChange={onOpenChange} title="Who is speaking?" isPhone={isPhone} footer={footer}>
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="size-2 rounded-full" style={{ backgroundColor: current.color }} />{current.name}
+      </div>
+      <div className="space-y-2">
+        {quotes.slice(0, 2).map((qt, i) => <QuoteLine key={i} quote={qt} onPlay={onPlay} />)}
+      </div>
+      <NameField value={name} onChange={setName} chosen={chosen} onChoose={setChosen} candidates={speakers.filter((s) => s.id !== current.id)} attendees={attendees} isPhone={isPhone} autoFocus />
+      <ScopeSwitch scope={scope} onChange={setScope} blockCount={blockCount} />
+    </DialogShell>
+  );
+}
+
+/* Name every voice the model could not match, in one go: each voice with two
+   quotes to play and one name field. The way Wispr Flow does it after a call,
+   with the invite's names offered first. */
+export function NameSpeakersDialog({
+  open,
+  onOpenChange,
+  voices,
+  attendees = [],
+  onPlay,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  voices: { speaker: PickerSpeaker; quotes: Quote[]; blockCount: number }[];
+  attendees?: PickerSpeaker[];
+  onPlay?: (timestamp: string) => void;
+  onSave: (names: Record<string, string>) => void;
+}) {
+  const isPhone = useIsPhone();
+  const [typed, setTyped] = useState<Record<string, string>>({});
+  const [chosen, setChosen] = useState<Record<string, PickerSpeaker | null>>({});
+  useEffect(() => { if (!open) { setTyped({}); setChosen({}); } }, [open]);
+  const nameFor = (id: string) => chosen[id]?.name ?? typed[id]?.trim() ?? "";
+  const filled = voices.filter((v) => nameFor(v.speaker.id).length > 0).length;
+  const taken = new Set(Object.values(chosen).filter(Boolean).map((s) => s!.id));
+  const save = () => {
+    const names: Record<string, string> = {};
+    voices.forEach((v) => { const n = nameFor(v.speaker.id); if (n) names[v.speaker.id] = n; });
+    onSave(names);
+    onOpenChange(false);
+  };
+  const footer = isPhone ? (
+    <Button onClick={save} disabled={filled === 0} className="h-11 w-full">{filled > 1 ? `Save ${filled} names` : "Save name"}</Button>
+  ) : (
+    <>
+      <Button variant="pill-outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+      <Button onClick={save} disabled={filled === 0}>{filled > 1 ? `Save ${filled} names` : "Save name"}</Button>
+    </>
+  );
+  return (
+    <DialogShell open={open} onOpenChange={onOpenChange} title={voices.length === 1 ? "Name the speaker" : `Name ${voices.length} speakers`} isPhone={isPhone} footer={footer} wide>
+      <p className="-mt-2 text-[13px] text-muted-foreground">Listen, type who it is, and every block by that voice takes the name.</p>
+      {voices.map((v, i) => (
+        <div key={v.speaker.id} className={cn("space-y-2.5", i > 0 && "border-t border-border/60 pt-4")}>
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="size-2 rounded-full" style={{ backgroundColor: v.speaker.color }} />{v.speaker.name}
+            <span className="font-normal normal-case tracking-normal">· {blocksLabel(v.blockCount)}</span>
+          </div>
+          {v.quotes.slice(0, 2).map((qt, k) => <QuoteLine key={k} quote={qt} onPlay={onPlay} />)}
+          <NameField
+            value={typed[v.speaker.id] ?? ""}
+            onChange={(val) => setTyped((t) => ({ ...t, [v.speaker.id]: val }))}
+            chosen={chosen[v.speaker.id] ?? null}
+            onChoose={(s) => setChosen((c) => ({ ...c, [v.speaker.id]: s }))}
+            candidates={[]}
+            attendees={attendees.filter((a) => !taken.has(a.id) || chosen[v.speaker.id]?.id === a.id)}
+            isPhone={isPhone}
+            autoFocus={i === 0}
+            placeholder="Who is this?"
+          />
+        </div>
+      ))}
+    </DialogShell>
   );
 }
