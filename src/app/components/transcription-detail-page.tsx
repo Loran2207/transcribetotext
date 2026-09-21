@@ -114,6 +114,9 @@ interface Speaker {
   name: string;
   color: string;
   initial: string;
+  /* a matched attendee has a picture; a voice the model could not match has only its colour */
+  avatar?: string;
+  you?: boolean;
 }
 
 interface Segment {
@@ -666,13 +669,17 @@ function SpeakerLabel({
 }) {
   const body = (
     <>
-      <span
-        className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-        style={{ backgroundColor: speaker.color }}
-      >
-        {speaker.initial}
-      </span>
-      <span className="truncate text-sm font-medium text-foreground">{speaker.name}</span>
+      {speaker.avatar ? (
+        <img src={speaker.avatar} alt="" className="size-7 shrink-0 rounded-full object-cover" />
+      ) : (
+        <span
+          className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+          style={{ backgroundColor: speaker.color }}
+        >
+          {speaker.initial}
+        </span>
+      )}
+      <span className="truncate text-sm font-medium text-foreground">{speaker.name}{speaker.you && <span className="ml-1 font-normal text-muted-foreground">(you)</span>}</span>
     </>
   );
   if (!control) {
@@ -2792,10 +2799,13 @@ export function TranscriptionDetailPage() {
     const seen = new Map<string, Speaker>();
     contentSegments.forEach((seg) => { if (!seen.has(seg.speaker.id)) seen.set(seg.speaker.id, seg.speaker); });
     const byId: Record<string, Speaker> = {};
+    /* The realistic case (ttt_demo_unnamed_speakers=1): two voices matched to
+       attendees, the first of them is you; the third voice stayed "Speaker 3". */
     Array.from(seen.values()).forEach((sp, i) => {
-      const name = speakerNames[sp.id] ?? (unnamedSpeakersDemo ? `Speaker ${i + 1}` : sp.name);
-      const initial = speakerNames[sp.id] ? name[0]?.toUpperCase() ?? sp.initial : unnamedSpeakersDemo ? String(i + 1) : sp.initial;
-      byId[sp.id] = { ...sp, name, initial };
+      const unmatched = unnamedSpeakersDemo && i === 2 && !speakerNames[sp.id];
+      const name = speakerNames[sp.id] ?? (unmatched ? `Speaker ${i + 1}` : sp.name);
+      const initial = speakerNames[sp.id] ? name[0]?.toUpperCase() ?? sp.initial : unmatched ? String(i + 1) : sp.initial;
+      byId[sp.id] = { ...sp, name, initial, avatar: unnamedSpeakersDemo && i === 0 ? "/images/avatar.png" : sp.avatar, you: unnamedSpeakersDemo && i === 0 };
     });
     extraSpeakers.forEach((sp) => { byId[sp.id] = sp; });
     const segments = contentSegments.map((seg) => ({ ...seg, speaker: byId[speakerMoves[seg.id] ?? seg.speaker.id] ?? seg.speaker }));
@@ -4183,6 +4193,11 @@ export function TranscriptionDetailPage() {
               )}
             </div>
           </div>
+          {activeTab === "transcript" && !editMode && !isJobTranscribing && (
+            <div className="flex items-center gap-4 px-4 pb-2 md:hidden">
+              <TranscriptViewChecks />
+            </div>
+          )}
           {isTranslationLoading ? (
             <div className="h-[2px] w-full bg-primary/15">
               <div className="h-full w-full animate-pulse bg-primary" />
