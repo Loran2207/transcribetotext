@@ -14,6 +14,8 @@ export interface PickerSpeaker {
   name: string;
   color: string;
   initial: string;
+  avatar?: string;
+  you?: boolean;
 }
 
 /* The scope is always asked the same way, in words, next to the name you
@@ -29,9 +31,18 @@ export type SpeakerChoice =
 type Scope = "block" | "all";
 
 function SpeakerDot({ speaker, className }: { speaker: PickerSpeaker; className?: string }) {
+  if (speaker.avatar) return <img src={speaker.avatar} alt="" className={cn("size-6 shrink-0 rounded-full object-cover", className)} />;
   return (
     <span className={cn("inline-flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white", className)} style={{ backgroundColor: speaker.color }}>
       {speaker.initial}
+    </span>
+  );
+}
+
+function Name({ speaker, className }: { speaker: PickerSpeaker; className?: string }) {
+  return (
+    <span className={cn("min-w-0 flex-1 truncate", className)}>
+      {speaker.name}{speaker.you && <span className="ml-1 font-normal text-muted-foreground">(you)</span>}
     </span>
   );
 }
@@ -117,7 +128,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick }: { current: Picke
               )}
             >
               <SpeakerDot speaker={s} />
-              <span className="min-w-0 flex-1 truncate">{s.name}</span>
+              <Name speaker={s} />
               {isCurrent ? (
                 <Icon icon={Tick02Icon} size={15} className="shrink-0 text-primary" />
               ) : (
@@ -177,7 +188,7 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose }: { curr
         </button>
       </DrawerHeader>
       {target ? (
-        <div className="px-3 pb-[calc(16px+env(safe-area-inset-bottom))]">
+        <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
           <ScopeRows current={current} blockCount={blockCount} onPick={(scope) => onPick(choiceFor(target, scope))} className="[&>button]:py-3 [&>button]:text-[14px] [&>button]:rounded-xl" />
         </div>
       ) : (
@@ -188,21 +199,21 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose }: { curr
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search or type a name" className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/60" />
             </div>
           </div>
-          <div className="px-1">
+          <div className="px-4">
             {list.map((s) => {
               const isCurrent = s.id === current.id;
               return (
-                <button key={s.id} type="button" disabled={isCurrent} onClick={() => setTarget({ speakerId: s.id })} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors active:bg-muted/60", isCurrent && "bg-primary/[0.06]")}>
+                <button key={s.id} type="button" disabled={isCurrent} onClick={() => setTarget({ speakerId: s.id })} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors active:bg-muted/60", isCurrent && "bg-primary/[0.06]")}>
                   <SpeakerDot speaker={s} className="size-7 text-[11px]" />
-                  <span className={cn("min-w-0 flex-1 truncate text-[14px] font-medium", isCurrent ? "text-primary" : "text-foreground")}>{s.name}</span>
+                  <Name speaker={s} className={cn("text-[14px] font-medium", isCurrent ? "text-primary" : "text-foreground")} />
                   {isCurrent ? <Icon icon={Tick02Icon} size={16} className="shrink-0 text-primary" /> : <Icon icon={ArrowRight01Icon} size={16} className="shrink-0 text-muted-foreground/60" />}
                 </button>
               );
             })}
             {list.length === 0 && !canAdd && <p className="px-3 py-8 text-center text-[13px] text-muted-foreground">No one by that name</p>}
           </div>
-          <div className={cn("border-t border-border/60 p-2 pb-[calc(8px+env(safe-area-inset-bottom))]", !canAdd && "hidden")}>
-            <button type="button" onClick={() => setTarget({ name: trimmed })} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-primary transition-colors active:bg-muted/60">
+          <div className={cn("mt-2 border-t border-border/60 px-4 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]", !canAdd && "hidden")}>
+            <button type="button" onClick={() => setTarget({ name: trimmed })} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-primary transition-colors active:bg-muted/60">
               <Icon icon={PlusSignIcon} size={15} /><span>Add <span className="font-semibold">{trimmed}</span> as a new speaker</span>
             </button>
           </div>
@@ -260,8 +271,9 @@ export function SpeakerPicker({
 }
 
 /* ── Variant B (Figma reference, ttt_demo_speaker_dialog=1) ──
-   A centred dialog: the voice's own words as quotes, one name field with
-   suggestions, the scope switch, Save. */
+   The voice's own words as quotes, one name field with suggestions, the scope
+   switch, Save. A centred dialog on desktop and tablet; on a phone the same
+   content is a bottom sheet, like every other dialog in the product. */
 export function SpeakerDialog({
   open,
   onOpenChange,
@@ -279,6 +291,7 @@ export function SpeakerDialog({
   quotes: string[];
   onPick: (choice: SpeakerChoice) => void;
 }) {
+  const isPhone = useIsPhone();
   const [name, setName] = useState("");
   const [chosen, setChosen] = useState<PickerSpeaker | null>(null);
   const [scope, setScope] = useState<Scope>("block");
@@ -287,7 +300,7 @@ export function SpeakerDialog({
   const q = trimmed.toLowerCase();
   const suggestions = speakers.filter((s) => s.id !== current.id && (!q || s.name.toLowerCase().includes(q)));
   const exact = speakers.find((s) => s.name.toLowerCase() === q);
-  const showList = focused && !chosen && (trimmed.length > 0 || suggestions.length > 0);
+  const showList = !chosen && (isPhone || focused) && (trimmed.length > 0 || suggestions.length > 0);
   const canSave = !!chosen || (trimmed.length > 0 && !exact);
   useEffect(() => { if (!open) { setName(""); setChosen(null); setScope("block"); } }, [open]);
 
@@ -296,53 +309,86 @@ export function SpeakerDialog({
     onOpenChange(false);
   };
 
+  const suggestionRows = (
+    <>
+      {suggestions.map((s) => (
+        <button key={s.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setChosen(s); setName(""); }} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-foreground hover:bg-muted/60 active:bg-muted/60">
+          <SpeakerDot speaker={s} className="size-5 text-[9px]" /><Name speaker={s} />
+        </button>
+      ))}
+      {trimmed.length > 0 && !exact && (
+        <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setFocused(false)} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-primary hover:bg-primary/[0.06] active:bg-primary/[0.06]">
+          <Icon icon={UserAdd01Icon} size={15} />Add new person “{trimmed}”
+        </button>
+      )}
+    </>
+  );
+
+  const body = (
+    <>
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="size-2 rounded-full" style={{ backgroundColor: current.color }} />{current.name}
+      </div>
+      <div className="space-y-2">
+        {quotes.slice(0, 2).map((t, i) => (
+          <p key={i} className="border-l-2 border-border pl-3 text-[13px] leading-relaxed text-foreground/80">“{t}”</p>
+        ))}
+      </div>
+      <div className="relative">
+        {chosen ? (
+          <div className="flex h-10 items-center gap-2.5 rounded-full border border-input px-3">
+            <SpeakerDot speaker={chosen} className="size-5 text-[9px]" />
+            <Name speaker={chosen} className="text-sm" />
+            <button type="button" onClick={() => setChosen(null)} aria-label="Clear" className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={14} /></button>
+          </div>
+        ) : (
+          <Input value={name} onChange={(e) => setName(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => window.setTimeout(() => setFocused(false), 120)} placeholder="Type a name" autoFocus={!isPhone} className="h-10 rounded-full px-4" />
+        )}
+        {/* desktop: floats under the field; kept mounted and hidden, not unmounted, because the Figma capture re-seats the DOM */}
+        {!isPhone && !chosen && (
+          <div className={cn("absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-xl border border-border bg-popover p-1.5 shadow-[var(--elevation-md)]", !showList && "hidden")}>
+            {suggestionRows}
+          </div>
+        )}
+      </div>
+      {/* phone: the suggestions sit in the flow, nothing floats over a sheet */}
+      {isPhone && showList && <div className="-mx-1.5 rounded-xl bg-muted/40 p-1.5">{suggestionRows}</div>}
+      <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1 text-[13px]">
+        {(["block", "all"] as Scope[]).map((s) => (
+          <button key={s} type="button" onClick={() => setScope(s)} className={cn("rounded-lg px-3 py-2 text-center transition-colors", scope === s ? "bg-background font-medium text-foreground shadow-[var(--elevation-sm)]" : "text-muted-foreground hover:text-foreground")}>
+            {s === "block" ? "Only this block" : `All ${blocksLabel(blockCount)}`}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
+  if (isPhone) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="[&>div:first-child]:hidden">
+          <DrawerHeader className="flex-row items-center justify-between pb-1 text-left">
+            <DrawerTitle>Who is speaking?</DrawerTitle>
+            <button type="button" onClick={() => onOpenChange(false)} aria-label="Close" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60">
+              <Icon icon={Cancel01Icon} size={16} />
+            </button>
+          </DrawerHeader>
+          <div className="flex flex-col gap-4 px-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
+            {body}
+            <Button onClick={save} disabled={!canSave} className="h-11 w-full">Save</Button>
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[440px] gap-4 rounded-2xl p-6">
         <DialogHeader className="text-left">
           <DialogTitle className="text-lg">Who is speaking?</DialogTitle>
         </DialogHeader>
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          <span className="size-2 rounded-full" style={{ backgroundColor: current.color }} />{current.name}
-        </div>
-        <div className="space-y-2">
-          {quotes.slice(0, 2).map((t, i) => (
-            <p key={i} className="border-l-2 border-border pl-3 text-[13px] leading-relaxed text-foreground/80">“{t}”</p>
-          ))}
-        </div>
-        <div className="relative">
-          {chosen ? (
-            <div className="flex h-10 items-center gap-2.5 rounded-full border border-input px-3">
-              <SpeakerDot speaker={chosen} className="size-5 text-[9px]" />
-              <span className="min-w-0 flex-1 truncate text-sm">{chosen.name}</span>
-              <button type="button" onClick={() => setChosen(null)} aria-label="Clear" className="inline-flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={14} /></button>
-            </div>
-          ) : (
-            <Input value={name} onChange={(e) => setName(e.target.value)} onFocus={() => setFocused(true)} onBlur={() => window.setTimeout(() => setFocused(false), 120)} placeholder="Type a name" autoFocus className="h-10 rounded-full px-4" />
-          )}
-          {/* kept mounted and hidden, not unmounted: the capture re-seats overlays in the DOM and a late unmount would crash React */}
-          {!chosen && (
-            <div className={cn("absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-xl border border-border bg-popover p-1.5 shadow-[var(--elevation-md)]", !showList && "hidden")}>
-              {suggestions.map((s) => (
-                <button key={s.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { setChosen(s); setName(""); }} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] text-foreground hover:bg-muted/60">
-                  <SpeakerDot speaker={s} className="size-5 text-[9px]" />{s.name}
-                </button>
-              ))}
-              {trimmed.length > 0 && !exact && (
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setFocused(false)} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium text-primary hover:bg-primary/[0.06]">
-                  <Icon icon={UserAdd01Icon} size={15} />Add new person “{trimmed}”
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1 text-[13px]">
-          {(["block", "all"] as Scope[]).map((s) => (
-            <button key={s} type="button" onClick={() => setScope(s)} className={cn("rounded-lg px-3 py-2 text-center transition-colors", scope === s ? "bg-background font-medium text-foreground shadow-[var(--elevation-sm)]" : "text-muted-foreground hover:text-foreground")}>
-              {s === "block" ? "Only this block" : `All ${blocksLabel(blockCount)}`}
-            </button>
-          ))}
-        </div>
+        {body}
         <DialogFooter className="gap-2 sm:justify-end">
           <Button variant="pill-outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={save} disabled={!canSave}>Save</Button>

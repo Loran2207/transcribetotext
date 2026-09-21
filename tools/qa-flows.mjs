@@ -220,15 +220,15 @@ await flow("Web: a long turn is one run, and one block can be moved to another v
   await nav("/transcriptions/2"); await p.waitForTimeout(900);
   await expect("continuation blocks hide the label until hover", () => p.$eval("[data-segment-id='61'] [data-speaker-trigger]", (el) => getComputedStyle(el).opacity === "0"));
   await p.click("[data-segment-id='4'] [data-speaker-trigger]"); await p.waitForTimeout(400);
-  await expect("dropdown lists the other voices", () => vis(p, "[data-slot=popover-content] button:has-text('Speaker 2')"));
-  await p.hover("[data-slot=popover-content] button:has-text('Speaker 2')"); await p.waitForTimeout(300);
-  await expect("hover shows the scope beside the name", async () => (await vis(p, "button:has-text('Only this block')")) && (await vis(p, "button:has-text('All 4 blocks by Speaker 1')")));
+  await expect("dropdown lists the other voices", () => vis(p, "[data-slot=popover-content] button:has-text('Maria Garcia')"));
+  await p.hover("[data-slot=popover-content] button:has-text('Maria Garcia')"); await p.waitForTimeout(300);
+  await expect("hover shows the scope beside the name", async () => (await vis(p, "button:has-text('Only this block')")) && (await vis(p, "button:has-text('All 4 blocks by Alex Johnson')")));
   await p.fill("input[placeholder='Search or type a name']", "Kirill"); await p.waitForTimeout(300);
   await expect("a new name offers the blue add row", () => vis(p, "[data-slot=popover-content] button:has-text('as a new speaker')"));
   await p.click("[data-slot=popover-content] button:has-text('as a new speaker')"); await p.waitForTimeout(300);
   await p.click("button:has-text('Only this block')"); await p.waitForTimeout(500);
   await expect("block 4 now says Kirill", () => vis(p, "[data-segment-id='4'] [data-speaker-trigger]:has-text('Kirill')"));
-  await expect("the other Speaker 1 blocks are untouched", () => vis(p, "[data-segment-id='1'] [data-speaker-trigger]:has-text('Speaker 1')"));
+  await expect("the other Speaker 1 blocks are untouched", () => vis(p, "[data-segment-id='1'] [data-speaker-trigger]:has-text('Alex Johnson')"));
   await p.evaluate(() => localStorage.removeItem("ttt_demo_unnamed_speakers"));
 });
 
