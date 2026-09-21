@@ -215,6 +215,20 @@ await flow("Windows: record on this PC, live note, generate", "shell=desktop&os=
   await expect("summary written", () => vis(p, "text=/Decisions|Action items/"));
 });
 
+await flow("Web: a long turn is one run, and one block can be moved to another voice", "", async ({ p, nav }, expect) => {
+  await p.evaluate(() => localStorage.setItem("ttt_demo_unnamed_speakers", "1"));
+  await nav("/transcriptions/2"); await p.waitForTimeout(900);
+  await expect("continuation blocks hide the label until hover", () => p.$eval("[data-segment-id='61'] [data-speaker-trigger]", (el) => getComputedStyle(el).opacity === "0"));
+  await p.click("[data-segment-id='4'] [data-speaker-trigger]"); await p.waitForTimeout(400);
+  await expect("dropdown lists the other voices", () => vis(p, "[cmdk-item][data-value='Speaker 2']"));
+  await p.fill("[cmdk-input]", "Kirill"); await p.waitForTimeout(300);
+  await expect("new name offers rename or add", async () => (await vis(p, "[cmdk-item]:has-text('Rename Speaker 1')")) && (await vis(p, "[cmdk-item]:has-text('for this block only')")));
+  await p.click("[cmdk-item]:has-text('for this block only')"); await p.waitForTimeout(500);
+  await expect("block 4 now says Kirill", () => vis(p, "[data-segment-id='4'] [data-speaker-trigger]:has-text('Kirill')"));
+  await expect("the other Speaker 1 blocks are untouched", () => vis(p, "[data-segment-id='1'] [data-speaker-trigger]:has-text('Speaker 1')"));
+  await p.evaluate(() => localStorage.removeItem("ttt_demo_unnamed_speakers"));
+});
+
 await b.close();
 const failed = results.filter((r) => r.verdict === "FAIL");
 const faulty = results.filter((r) => r.faults.length);

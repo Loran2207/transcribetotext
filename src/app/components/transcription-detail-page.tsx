@@ -8,6 +8,7 @@ import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/n
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { SpeakerPicker, SpeakerDialog, type SpeakerChoice } from "./speaker-picker";
 import { LanguageSelector, SpeakerSection } from "./transcription-modals";
 import { useNotetakerSettings } from "./desktop/notetaker-settings";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
@@ -324,7 +325,9 @@ const MOCK_SEGMENTS: Segment[] = [
   { id: 3, speaker: SPEAKERS[2], timestamp: "0:58", text: "Great, that's actually related to what I wanted to bring up. The engineering team has been waiting on those mockups to start the sprint planning for next week. We'll need to review them by Thursday at the latest." },
   { id: 4, speaker: SPEAKERS[0], timestamp: "1:24", text: "Perfect. Let's make sure we schedule a quick design review session tomorrow or Wednesday. Maria, can you coordinate that with the design leads?" },
   { id: 5, speaker: SPEAKERS[1], timestamp: "1:45", text: "Absolutely. I'll set something up for Wednesday morning. That gives us a day to incorporate any feedback before James's team picks it up on Thursday." },
-  { id: 6, speaker: SPEAKERS[2], timestamp: "2:10", text: "Works for me. On the roadmap side, we're about 80% through the current milestone. The remaining items are mostly backend API work and some performance optimizations. I don't see any blockers at this point." },
+  { id: 6, speaker: SPEAKERS[2], timestamp: "2:10", text: "Works for me. On the roadmap side, we're about 80% through the current milestone." },
+  { id: 61, speaker: SPEAKERS[2], timestamp: "2:19", text: "The remaining items are mostly backend API work and some performance optimizations. I don't see any blockers at this point." },
+  { id: 62, speaker: SPEAKERS[2], timestamp: "2:31", text: "One caveat: the search indexing job still runs on the old cluster. If we move it this sprint we buy ourselves a quieter Q2." },
   { id: 7, speaker: SPEAKERS[0], timestamp: "2:42", text: "That's encouraging. Let's keep the momentum going. Any questions or concerns before we move on to Q2 planning?" },
   { id: 8, speaker: SPEAKERS[1], timestamp: "3:05", text: "One thing - we should probably discuss the user research findings from last week. Some of the feedback might influence the Q2 priorities, especially around the notification system." },
   { id: 9, speaker: SPEAKERS[2], timestamp: "3:28", text: "Agreed. The data shows that about 40% of users are finding the current notification settings confusing. That's a significant usability issue we should address sooner rather than later." },
@@ -638,6 +641,73 @@ function SelectionHighlightPill({
 // Transcript Segment (read-only + edit mode)
 // ════════════════════════════════════════════════════════════
 
+type SpeakerControl = {
+  speakers: Speaker[];
+  blockCount: number;
+  onPick: (choice: SpeakerChoice) => void;
+  /* Demo only: ttt_demo_speaker_dialog=1 opens variant B instead of the dropdown. */
+  dialog?: boolean;
+};
+
+function SpeakerLabel({
+  speaker,
+  continuation,
+  control,
+  open,
+  onOpenChange,
+}: {
+  speaker: Speaker;
+  continuation: boolean;
+  control?: SpeakerControl;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const body = (
+    <>
+      <span
+        className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+        style={{ backgroundColor: speaker.color }}
+      >
+        {speaker.initial}
+      </span>
+      <span className="truncate text-sm font-medium text-foreground">{speaker.name}</span>
+    </>
+  );
+  if (!control) {
+    return <div className={`flex items-center gap-2.5 ${continuation ? "opacity-0" : ""}`}>{body}</div>;
+  }
+  const trigger = (
+    <button
+      type="button"
+      data-speaker-trigger=""
+      aria-label={`Change speaker: ${speaker.name}`}
+      className={`group/spk -ml-1.5 flex max-w-full items-center gap-2.5 rounded-full py-1 pl-1.5 pr-2 text-left transition-colors hover:bg-muted/70 data-[state=open]:bg-muted/70 ${
+        continuation ? "opacity-0 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100 data-[state=open]:opacity-100 max-lg:opacity-100" : ""
+      }`}
+    >
+      {body}
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className={`shrink-0 text-muted-foreground transition-opacity ${open ? "opacity-100" : "opacity-0 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100"}`}>
+        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+  if (control.dialog) {
+    return (
+      <>
+        <span onClick={() => onOpenChange(true)} className="contents">{trigger}</span>
+        {open && (
+          <SpeakerDialog open={open} onOpenChange={onOpenChange} current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} />
+        )}
+      </>
+    );
+  }
+  return (
+    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange}>
+      {trigger}
+    </SpeakerPicker>
+  );
+}
+
 function TranscriptSegment({
   segment,
   nextTimestamp,
@@ -665,6 +735,8 @@ function TranscriptSegment({
   hideSpeaker = false,
   hideTimecodes = false,
   onSeekTimecode,
+  continuation = false,
+  speakerControl,
 }: {
   segment: Segment;
   nextTimestamp?: string;
@@ -692,7 +764,13 @@ function TranscriptSegment({
   hideSpeaker?: boolean;
   hideTimecodes?: boolean;
   onSeekTimecode?: (timestamp: string) => void;
+  /* Same voice as the block above: the name is said once per run, and this
+     block keeps the label as a ghost that shows on hover, so a misattributed
+     line inside a run can still be moved. */
+  continuation?: boolean;
+  speakerControl?: SpeakerControl;
 }) {
+  const [speakerOpen, setSpeakerOpen] = useState(false);
   const segmentText = editText ?? segment.text;
   const segmentEndTimestamp = nextTimestamp ?? segment.timestamp;
   const lineTone = highlighted
@@ -725,7 +803,7 @@ function TranscriptSegment({
     <div
       ref={segmentRef}
       data-segment-id={segment.id}
-      className={`group/seg relative -mx-2 grid ${hideSpeaker ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[minmax(160px,220px)_1fr]"} gap-4 rounded-xl px-2 py-4 transition-colors duration-200 max-lg:gap-2 ${
+      className={`group/seg relative -mx-2 grid ${hideSpeaker ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[minmax(160px,220px)_1fr]"} gap-4 rounded-xl px-2 ${continuation ? "pt-0 pb-4 -mt-1" : "py-4"} transition-colors duration-200 max-lg:gap-2 ${
         highlighted
           ? "bg-primary/8"
           : isSegHighlighted
@@ -745,16 +823,14 @@ function TranscriptSegment({
       )}
 
       {!hideSpeaker && (
-        <div className="min-w-0 pt-1">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-              style={{ backgroundColor: segment.speaker.color }}
-            >
-              {segment.speaker.initial}
-            </div>
-            <span className="truncate text-sm font-medium text-foreground">{segment.speaker.name}</span>
-          </div>
+        <div className={`min-w-0 pt-1 ${continuation ? "max-lg:hidden max-lg:group-hover/seg:block max-lg:group-focus-within/seg:block" : ""}`}>
+          <SpeakerLabel
+            speaker={segment.speaker}
+            continuation={continuation}
+            control={speakerControl}
+            open={speakerOpen}
+            onOpenChange={setSpeakerOpen}
+          />
         </div>
       )}
 
@@ -2697,7 +2773,81 @@ export function TranscriptionDetailPage() {
   const forcePlainMono = useMemo(() => {
     try { return typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_mono_plain") === "1"; } catch { return false; }
   }, []);
-  const displaySegments = (forceSingleSpeaker || forcePlainMono) ? MONO_SEGMENTS : contentSegments;
+  /* Speaker corrections live in memory for the demo: which block was moved to
+     whom, what a voice is called now, and people added by hand. ttt_demo_unnamed_speakers=1
+     shows the raw diarization labels ("Speaker 1") the model returns before anyone
+     is named; ttt_demo_speaker_dialog=1 swaps the dropdown for the dialog variant. */
+  const [speakerMoves, setSpeakerMoves] = useState<Record<number, string>>({});
+  const [speakerNames, setSpeakerNames] = useState<Record<string, string>>({});
+  const [extraSpeakers, setExtraSpeakers] = useState<Speaker[]>([]);
+  const unnamedSpeakersDemo = useMemo(() => {
+    try { return typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_unnamed_speakers") === "1"; } catch { return false; }
+  }, []);
+  const speakerDialogDemo = useMemo(() => {
+    try { return typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_speaker_dialog") === "1"; } catch { return false; }
+  }, []);
+  const resolved = useMemo(() => {
+    const seen = new Map<string, Speaker>();
+    contentSegments.forEach((seg) => { if (!seen.has(seg.speaker.id)) seen.set(seg.speaker.id, seg.speaker); });
+    const byId: Record<string, Speaker> = {};
+    Array.from(seen.values()).forEach((sp, i) => {
+      const name = speakerNames[sp.id] ?? (unnamedSpeakersDemo ? `Speaker ${i + 1}` : sp.name);
+      const initial = speakerNames[sp.id] ? name[0]?.toUpperCase() ?? sp.initial : unnamedSpeakersDemo ? String(i + 1) : sp.initial;
+      byId[sp.id] = { ...sp, name, initial };
+    });
+    extraSpeakers.forEach((sp) => { byId[sp.id] = sp; });
+    const segments = contentSegments.map((seg) => ({ ...seg, speaker: byId[speakerMoves[seg.id] ?? seg.speaker.id] ?? seg.speaker }));
+    const used = new Set(segments.map((seg) => seg.speaker.id));
+    const speakers = Object.values(byId).filter((sp) => used.has(sp.id));
+    return { segments, speakers };
+  }, [contentSegments, extraSpeakers, speakerMoves, speakerNames, unnamedSpeakersDemo]);
+  const displaySegments = (forceSingleSpeaker || forcePlainMono) ? MONO_SEGMENTS : resolved.segments;
+  const speakerBlockCount = (speakerId: string) => resolved.segments.filter((seg) => seg.speaker.id === speakerId).length;
+  function pickSpeaker(segmentId: number, choice: SpeakerChoice) {
+    const seg = resolved.segments.find((sg) => sg.id === segmentId);
+    if (!seg) return;
+    const from = seg.speaker;
+    const fromCount = speakerBlockCount(from.id);
+    const before = { speakerMoves, speakerNames, extraSpeakers };
+    const undo = { label: "Undo", onClick: () => { setSpeakerMoves(before.speakerMoves); setSpeakerNames(before.speakerNames); setExtraSpeakers(before.extraSpeakers); } };
+    const moveAll = (toId: string) => {
+      setSpeakerMoves((m) => {
+        const next = { ...m };
+        resolved.segments.forEach((sg) => { if (sg.speaker.id === from.id) next[sg.id] = toId; });
+        return next;
+      });
+    };
+    const blocks = (n: number) => (n === 1 ? "1 block" : `${n} blocks`);
+    if (choice.kind === "move" || choice.kind === "move-all") {
+      const to = resolved.speakers.find((sp) => sp.id === choice.speakerId);
+      if (!to) return;
+      if (choice.kind === "move-all") {
+        moveAll(to.id);
+        toast(`Moved ${blocks(fromCount)} to ${to.name}`, { cancel: undo });
+        return;
+      }
+      setSpeakerMoves((m) => ({ ...m, [segmentId]: to.id }));
+      toast(`Moved to ${to.name}`, {
+        cancel: undo,
+        action: fromCount > 1 ? { label: `All ${blocks(fromCount)} by ${from.name}`, onClick: () => moveAll(to.id) } : undefined,
+      });
+      return;
+    }
+    if (choice.kind === "rename") {
+      setSpeakerNames((n) => ({ ...n, [from.id]: choice.name }));
+      toast(`${from.name} is now ${choice.name}`, { description: `Renamed in ${blocks(fromCount)}`, cancel: undo });
+      return;
+    }
+    const palette = ["#f59e0b", "#ec4899", "#14b8a6", "#6366f1", "#ef4444"];
+    const id = `custom-${Date.now()}`;
+    const added: Speaker = { id, name: choice.name, color: palette[extraSpeakers.length % palette.length], initial: choice.name[0]?.toUpperCase() ?? "?" };
+    setExtraSpeakers((list) => [...list, added]);
+    setSpeakerMoves((m) => ({ ...m, [segmentId]: id }));
+    toast(`Added ${choice.name}`, {
+      cancel: undo,
+      action: fromCount > 1 ? { label: `All ${blocks(fromCount)} by ${from.name}`, onClick: () => moveAll(id) } : undefined,
+    });
+  }
   const isSingleSpeaker = forceSingleSpeaker || forcePlainMono || new Set(displaySegments.map((seg) => seg.speaker.id)).size <= 1;
 
   // Demo: ttt_demo_limited=1|modal renders the limited-access transcript state.
@@ -4082,6 +4232,8 @@ export function TranscriptionDetailPage() {
                     segment={seg}
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
+                    continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
+                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), dialog: speakerDialogDemo }}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
@@ -4197,6 +4349,7 @@ export function TranscriptionDetailPage() {
                     segment={seg}
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
+                    continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
                     hideTimecodes={!transcriptView.timestamps}
                     onSeekTimecode={seekTo}
                     isEditing={false}
