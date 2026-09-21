@@ -361,7 +361,7 @@ function NameSelect({
           <Input ref={inputRef} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search or type a name" className="h-[32px] w-full rounded-[7px] pl-[28px] pr-[8px] text-[13px]" />
         </div>
       </div>
-      <div className="overflow-y-auto pb-[4px]" style={{ maxHeight: isPhone ? "none" : "220px" }}>
+      <div className="overflow-y-auto pb-[4px]" style={{ maxHeight: "180px" }}>
         {fromInvite.length > 0 && <p className={heading}>From the invite</p>}
         {fromInvite.map(row)}
         {voices.length > 0 && <p className={heading}>In this transcript</p>}
@@ -394,10 +394,12 @@ function NameSelect({
         )}
         <svg className={`size-[12px] shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} fill="none" viewBox="0 0 16 16"><path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </Button>
+      {/* desktop and tablet: floats under the field like the language selector;
+          phone: the same box sits in the sheet's flow, a floating list would scroll away under the footer */}
       {open && !isPhone && (
         <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 overflow-hidden rounded-[12px] border border-border bg-popover shadow-md">{list}</div>
       )}
-      {open && isPhone && <div className="mt-2 overflow-hidden rounded-[12px] border border-border bg-popover">{list}</div>}
+      {open && isPhone && <div className="mt-[6px] overflow-hidden rounded-[12px] border border-border bg-popover">{list}</div>}
     </div>
   );
 }
@@ -415,7 +417,9 @@ function ScopeSwitch({ scope, onChange, blockCount }: { scope: Scope; onChange: 
   );
 }
 
-/* the same shell for both dialogs: centred on desktop and tablet, a sheet on the phone */
+/* the same shell for both dialogs: centred on desktop and tablet, a sheet on
+   the phone. The footer is the house one everywhere: Cancel and the primary
+   action, right-aligned, on a top border (see Transcribe from link). */
 function DialogShell({ open, onOpenChange, title, isPhone, children, footer, wide }: { open: boolean; onOpenChange: (o: boolean) => void; title: string; isPhone: boolean; children: ReactNode; footer: ReactNode; wide?: boolean }) {
   if (isPhone) {
     return (
@@ -425,7 +429,8 @@ function DialogShell({ open, onOpenChange, title, isPhone, children, footer, wid
             <DrawerTitle>{title}</DrawerTitle>
             <button type="button" onClick={() => onOpenChange(false)} aria-label="Close" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={16} /></button>
           </DrawerHeader>
-          <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-[calc(16px+env(safe-area-inset-bottom))]">{children}{footer}</div>
+          <div className="flex flex-col gap-4 overflow-y-auto px-4 pb-2">{children}</div>
+          <div className="flex items-center justify-end gap-[8px] border-t border-border px-4 pt-[14px] pb-[calc(12px+env(safe-area-inset-bottom))]">{footer}</div>
         </DrawerContent>
       </Drawer>
     );
@@ -438,6 +443,15 @@ function DialogShell({ open, onOpenChange, title, isPhone, children, footer, wid
         <DialogFooter className="gap-2 sm:justify-end">{footer}</DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function FooterButtons({ onCancel, onSave, saveLabel, canSave }: { onCancel: () => void; onSave: () => void; saveLabel: string; canSave: boolean }) {
+  return (
+    <>
+      <Button variant="pill-outline" onClick={onCancel} className="h-[36px] px-[18px]"><span className="text-[13px] font-medium text-foreground">Cancel</span></Button>
+      <Button onClick={onSave} disabled={!canSave} className="h-[36px] px-[18px] disabled:opacity-40"><span className="text-[13px] font-semibold">{saveLabel}</span></Button>
+    </>
   );
 }
 
@@ -487,14 +501,7 @@ export function SpeakerDialog({
   /* a typed new person is shown in the field as a chosen chip too */
   const value: PickerSpeaker | null = chosen ?? (added ? { id: "new", name: added, color: "#6366f1", initial: added[0]?.toUpperCase() ?? "?" } : null);
 
-  const footer = isPhone ? (
-    <Button onClick={save} disabled={!canSave} className="h-11 w-full">Save</Button>
-  ) : (
-    <>
-      <Button variant="pill-outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-      <Button onClick={save} disabled={!canSave}>Save</Button>
-    </>
-  );
+  const footer = <FooterButtons onCancel={() => onOpenChange(false)} onSave={save} saveLabel="Save" canSave={canSave} />;
 
   return (
     <DialogShell open={open} onOpenChange={onOpenChange} title="Who is speaking?" isPhone={isPhone} footer={footer}>
@@ -548,17 +555,10 @@ export function NameSpeakersDialog({
     onSave(names);
     onOpenChange(false);
   };
-  const footer = isPhone ? (
-    <Button onClick={save} disabled={filled === 0} className="h-11 w-full">{filled > 1 ? `Save ${filled} names` : "Save name"}</Button>
-  ) : (
-    <>
-      <Button variant="pill-outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-      <Button onClick={save} disabled={filled === 0}>{filled > 1 ? `Save ${filled} names` : "Save name"}</Button>
-    </>
-  );
+  const footer = <FooterButtons onCancel={() => onOpenChange(false)} onSave={save} saveLabel={filled > 1 ? `Save ${filled} names` : "Save name"} canSave={filled > 0} />;
   return (
     <DialogShell open={open} onOpenChange={onOpenChange} title={voices.length === 1 ? "Name the speaker" : `Name ${voices.length} speakers`} isPhone={isPhone} footer={footer} wide>
-      <p className="-mt-2 text-[13px] text-muted-foreground">Listen, pick who it is, and every block by that voice takes the name.</p>
+      <p className="text-[13px] text-muted-foreground">Listen, pick who it is, and every block by that voice takes the name.</p>
       {voices.map((v, i) => (
         <div key={v.speaker.id} className={cn("space-y-2.5", i > 0 && "border-t border-border/60 pt-4")}>
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
