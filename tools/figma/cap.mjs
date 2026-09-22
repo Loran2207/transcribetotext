@@ -91,8 +91,42 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
       const r = document.createRange(); r.setStart(start[0], start[1]); r.setEnd(end[0], end[1]);
       const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
       document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
-      /* the capture cannot see a native selection, so the same words get a real wash for the frame */
-      setTimeout(() => { const m = document.createElement("mark"); m.style.cssText = "background:rgba(37,99,235,0.2);color:inherit;border-radius:2px"; try { r.surroundContents(m); } catch {} }, 250);
+      /* the capture cannot see a native selection, and the converter re-wraps text with its
+         own font metrics, so for the frame the paragraph is rebuilt as one block per browser
+         line, with the selected words in an inline span: the wrapping then survives the trip */
+      setTimeout(() => {
+        const full = el.textContent; const s0 = full.indexOf(text); if (s0 < 0) return; const s1 = s0 + text.length;
+        const nodes = []; const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = tw.nextNode())) nodes.push(n);
+        const locate = (idx) => { let acc = 0; for (const nd of nodes) { const L = nd.textContent.length; if (idx < acc + L) return [nd, idx - acc]; acc += L; } const last = nodes[nodes.length - 1]; return [last, last.textContent.length]; };
+        const words = []; const re = /\S+/g; let m;
+        while ((m = re.exec(full))) {
+          const rr = document.createRange(); const [na, oa] = locate(m.index); const [nb, ob] = locate(m.index + m[0].length);
+          rr.setStart(na, oa); rr.setEnd(nb, ob);
+          words.push({ w: m[0], a: m.index, b: m.index + m[0].length, top: Math.round(rr.getBoundingClientRect().top) });
+        }
+        const lines = []; for (const wd of words) { const L = lines[lines.length - 1]; if (L && L.top === wd.top) L.words.push(wd); else lines.push({ top: wd.top, words: [wd] }); }
+        const esc = (t) => t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+        el.innerHTML = lines.map((L) => {
+          let html = "", open = false;
+          L.words.forEach((wd, i) => {
+            const on = wd.a >= s0 && wd.b <= s1;
+            if (on && !open) { html += '<span style="background:rgba(37,99,235,0.2);border-radius:2px">'; open = true; }
+            if (!on && open) { html += "</span>"; open = false; }
+            html += esc(wd.w) + (i < L.words.length - 1 ? " " : "");
+          });
+          if (open) html += "</span>";
+          return `<div>${html}</div>`;
+        }).join("");
+        /* the bar over the selection is fixed to the viewport; the converter places such
+           layers apart from scrolled text, so for the frame it is anchored to the paragraph */
+        const pill = document.querySelector("[data-selection-pill]");
+        if (pill) {
+          const pr = pill.getBoundingClientRect(), er = el.getBoundingClientRect();
+          el.style.position = "relative";
+          pill.style.position = "absolute"; pill.style.top = (pr.top - er.top) + "px"; pill.style.left = (pr.left - er.left) + "px";
+          el.appendChild(pill);
+        }
+      }, 250);
     }, [sid, text]);
     await p.waitForTimeout(400);
   }
