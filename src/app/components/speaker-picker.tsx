@@ -78,7 +78,7 @@ function useSpeakerQuery(speakers: PickerSpeaker[]) {
 }
 
 /* ── Variant A, desktop: dropdown on the name, side menu for the scope ── */
-function SpeakerMenu({ current, speakers, blockCount, onPick }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void }) {
+function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean }) {
   const { query, setQuery, trimmed, list, canAdd } = useSpeakerQuery(speakers);
   const [armed, setArmed] = useState<string | null>(null);
   const pinned = useRef(false);
@@ -89,6 +89,9 @@ function SpeakerMenu({ current, speakers, blockCount, onPick }: { current: Picke
   /* hover opens the side menu and lets it go; a click (touch, keyboard) pins it */
   const leave = () => { stay(); if (!pinned.current) timer.current = window.setTimeout(() => setArmed(null), 160); };
   const arm = (key: string, el: HTMLElement, pin = false) => {
+    /* for a piece of text there is no scope to ask: the row itself is the answer */
+    if (scopeless && pin) { onPick(key === "add" ? { kind: "add", name: trimmed } : { kind: "move", speakerId: key }); return; }
+    if (scopeless) return;
     stay();
     const b = box.current?.getBoundingClientRect();
     if (b) setTop(el.getBoundingClientRect().top - b.top);
@@ -110,7 +113,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick }: { current: Picke
         />
       </div>
       <div className="p-1.5">
-        {list.length > 0 && <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground">Speakers</p>}
+        {list.length > 0 && <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground">{scopeless ? "Who said this part?" : "Speakers"}</p>}
         {list.map((s) => {
           const isCurrent = s.id === current.id;
           return (
@@ -132,7 +135,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick }: { current: Picke
               {isCurrent ? (
                 <Icon icon={Tick02Icon} size={15} className="shrink-0 text-primary" />
               ) : (
-                <Icon icon={ArrowRight01Icon} size={14} className={cn("shrink-0 text-muted-foreground/70 transition-opacity", armed === s.id ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")} />
+                !scopeless && <Icon icon={ArrowRight01Icon} size={14} className={cn("shrink-0 text-muted-foreground/70 transition-opacity", armed === s.id ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")} />
               )}
             </button>
           );
@@ -150,7 +153,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick }: { current: Picke
           >
             <Icon icon={PlusSignIcon} size={15} className="shrink-0" />
             <span className="min-w-0 flex-1 truncate">Add <span className="font-semibold">{trimmed}</span> as a new speaker</span>
-            <Icon icon={ArrowRight01Icon} size={14} className={cn("shrink-0 text-primary/70 transition-opacity", armed === "add" ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")} />
+            {!scopeless && <Icon icon={ArrowRight01Icon} size={14} className={cn("shrink-0 text-primary/70 transition-opacity", armed === "add" ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")} />}
           </button>
         </div>
       )}
@@ -169,7 +172,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick }: { current: Picke
 }
 
 /* ── Variant A, phone: the same list as a bottom sheet, scope as step two ── */
-function SpeakerSheet({ current, speakers, blockCount, onPick, onClose }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; onClose: () => void }) {
+function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeless = false, title = "Change speaker" }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; onClose: () => void; scopeless?: boolean; title?: string }) {
   const { query, setQuery, trimmed, list, canAdd } = useSpeakerQuery(speakers);
   const [target, setTarget] = useState<{ speakerId?: string; name?: string } | null>(null);
   const targetName = target?.speakerId ? speakers.find((s) => s.id === target.speakerId)?.name : target?.name;
@@ -181,7 +184,7 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose }: { curr
             <Icon icon={ArrowLeft01Icon} size={18} className="text-muted-foreground" />{targetName}
           </button>
         ) : (
-          <DrawerTitle>Change speaker</DrawerTitle>
+          <DrawerTitle>{title}</DrawerTitle>
         )}
         <button type="button" onClick={onClose} aria-label="Close" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60">
           <Icon icon={Cancel01Icon} size={16} />
@@ -203,17 +206,17 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose }: { curr
             {list.map((s) => {
               const isCurrent = s.id === current.id;
               return (
-                <button key={s.id} type="button" disabled={isCurrent} onClick={() => setTarget({ speakerId: s.id })} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors active:bg-muted/60", isCurrent && "bg-primary/[0.06]")}>
+                <button key={s.id} type="button" disabled={isCurrent} onClick={() => (scopeless ? onPick({ kind: "move", speakerId: s.id }) : setTarget({ speakerId: s.id }))} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors active:bg-muted/60", isCurrent && "bg-primary/[0.06]")}>
                   <SpeakerDot speaker={s} className="size-7 text-[11px]" />
                   <Name speaker={s} className={cn("text-[14px] font-medium", isCurrent ? "text-primary" : "text-foreground")} />
-                  {isCurrent ? <Icon icon={Tick02Icon} size={16} className="shrink-0 text-primary" /> : <Icon icon={ArrowRight01Icon} size={16} className="shrink-0 text-muted-foreground/60" />}
+                  {isCurrent ? <Icon icon={Tick02Icon} size={16} className="shrink-0 text-primary" /> : !scopeless && <Icon icon={ArrowRight01Icon} size={16} className="shrink-0 text-muted-foreground/60" />}
                 </button>
               );
             })}
             {list.length === 0 && !canAdd && <p className="px-3 py-8 text-center text-[13px] text-muted-foreground">No one by that name</p>}
           </div>
           <div className={cn("mt-2 border-t border-border/60 px-4 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]", !canAdd && "hidden")}>
-            <button type="button" onClick={() => setTarget({ name: trimmed })} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-primary transition-colors active:bg-muted/60">
+            <button type="button" onClick={() => (scopeless ? onPick({ kind: "add", name: trimmed }) : setTarget({ name: trimmed }))} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-primary transition-colors active:bg-muted/60">
               <Icon icon={PlusSignIcon} size={15} /><span>Add <span className="font-semibold">{trimmed}</span> as a new speaker</span>
             </button>
           </div>
@@ -232,6 +235,8 @@ export function SpeakerPicker({
   children,
   open,
   onOpenChange,
+  scopeless = false,
+  sheetTitle,
 }: {
   current: PickerSpeaker;
   speakers: PickerSpeaker[];
@@ -240,6 +245,9 @@ export function SpeakerPicker({
   children: ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /* a piece of text: rows answer directly, no side menu, no step two */
+  scopeless?: boolean;
+  sheetTitle?: string;
 }) {
   const isPhone = useIsPhone();
   const [innerOpen, setInnerOpen] = useState(false);
@@ -253,7 +261,7 @@ export function SpeakerPicker({
         <span onClick={() => setOpen(true)} className="contents">{children}</span>
         <Drawer open={isOpen} onOpenChange={setOpen}>
           <DrawerContent className="[&>div:first-child]:hidden">
-            {isOpen && <SpeakerSheet current={current} speakers={speakers} blockCount={blockCount} onPick={pick} onClose={() => setOpen(false)} />}
+            {isOpen && <SpeakerSheet current={current} speakers={speakers} blockCount={blockCount} onPick={pick} onClose={() => setOpen(false)} scopeless={scopeless} title={sheetTitle} />}
           </DrawerContent>
         </Drawer>
       </>
@@ -264,7 +272,7 @@ export function SpeakerPicker({
     <Popover open={isOpen} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="start" sideOffset={6} className="w-[300px] overflow-visible p-0">
-        <SpeakerMenu current={current} speakers={speakers} blockCount={blockCount} onPick={pick} />
+        <SpeakerMenu current={current} speakers={speakers} blockCount={blockCount} onPick={pick} scopeless={scopeless} />
       </PopoverContent>
     </Popover>
   );

@@ -80,6 +80,20 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   else if (op === "scroll") await p.$eval(arg, (el) => { el.scrollTop = el.scrollHeight; });
   /* scrollto=<sel>: bring one element to the middle of its scroller */
   else if (op === "scrollto") { await p.$eval(arg, (el) => el.scrollIntoView({ block: "center" })); await p.waitForTimeout(300); }
+  /* select=<segId>|<text>: select that text inside a transcript block and let the page see it */
+  else if (op === "select") {
+    const [sid, text] = arg.split("|");
+    await p.evaluate(([sid, text]) => {
+      const el = document.querySelector(`[data-segment-id='${sid}'] p`); if (!el) return;
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node, offset = 0, start = null, end = null;
+      while ((node = walker.nextNode())) { const i = node.textContent.indexOf(text); if (i >= 0) { start = [node, i]; end = [node, i + text.length]; break; } offset += node.textContent.length; }
+      if (!start) return;
+      const r = document.createRange(); r.setStart(start[0], start[1]); r.setEnd(end[0], end[1]);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+    }, [sid, text]);
+    await p.waitForTimeout(400);
+  }
   /* nav=<path>: walk to another route inside the app, the router way */
   else if (op === "nav") { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, arg); await p.waitForTimeout(900); }
   /* scrollx=<sel>|<px>: slide a horizontal carousel to a given offset */
