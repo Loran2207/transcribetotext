@@ -632,22 +632,25 @@ function SelectionHighlightPill({
   speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void };
 }) {
   const [open, setOpen] = useState(false);
-  const action = "h-7 rounded-full px-3 text-xs font-medium text-primary-foreground hover:bg-white/15";
+  /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
+  const action = "h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground";
   return (
     <div
       data-selection-pill=""
-      className="fixed z-50 flex items-center gap-0.5 rounded-full bg-primary p-0.5 shadow-md animate-in fade-in zoom-in-95 duration-150"
-      style={{ left: position.x, top: position.y - 36 }}
+      className="fixed z-50 flex items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
+      style={{ left: position.x, top: position.y - 40 }}
       onMouseDown={(e) => { if (!open) e.preventDefault(); }}
     >
-      <Button size="sm" variant="ghost" className={action} onMouseDown={(e) => { e.preventDefault(); onHighlight(); }}>Highlight</Button>
+      <Button size="sm" variant="ghost" className={action} onMouseDown={(e) => { e.preventDefault(); onHighlight(); }}>
+        <PenLine className="size-3.5" />Highlight
+      </Button>
       {speaker && (
         <>
-          <span className="h-4 w-px bg-white/30" />
+          <span className="h-4 w-px bg-border" />
           <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={setOpen} scopeless sheetTitle="Who said this part?">
-            <Button size="sm" variant="ghost" data-selection-speaker="" className={`${action} gap-1`} onMouseDown={(e) => e.preventDefault()}>
-              Speaker
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <Button size="sm" variant="ghost" data-selection-speaker="" className={action} onMouseDown={(e) => e.preventDefault()}>
+              <Icon icon={User} className="size-3.5" strokeWidth={1.8} />Speaker
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden className="text-muted-foreground"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </Button>
           </SpeakerPicker>
         </>
@@ -901,7 +904,7 @@ function TranscriptSegment({
         ) : (
           <p
             data-transcript-line=""
-            className={`mt-1 cursor-text text-sm leading-relaxed transition-colors ${
+            className={`mt-1 cursor-text text-sm leading-relaxed transition-colors selection:bg-primary/20 selection:text-foreground ${
               isPlaybackActive
                 ? "text-foreground"
                 : isPlayed

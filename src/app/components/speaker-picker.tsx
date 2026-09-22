@@ -120,6 +120,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false 
             <button
               key={s.id}
               type="button"
+              data-speaker-row={s.id}
               disabled={isCurrent}
               onMouseEnter={(e) => { if (!isCurrent) arm(s.id, e.currentTarget); }}
               onFocus={(e) => { if (!isCurrent) arm(s.id, e.currentTarget); }}
@@ -206,7 +207,7 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeles
             {list.map((s) => {
               const isCurrent = s.id === current.id;
               return (
-                <button key={s.id} type="button" disabled={isCurrent} onClick={() => (scopeless ? onPick({ kind: "move", speakerId: s.id }) : setTarget({ speakerId: s.id }))} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors active:bg-muted/60", isCurrent && "bg-primary/[0.06]")}>
+                <button key={s.id} type="button" data-speaker-row={s.id} disabled={isCurrent} onClick={() => (scopeless ? onPick({ kind: "move", speakerId: s.id }) : setTarget({ speakerId: s.id }))} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors active:bg-muted/60", isCurrent && "bg-primary/[0.06]")}>
                   <SpeakerDot speaker={s} className="size-7 text-[11px]" />
                   <Name speaker={s} className={cn("text-[14px] font-medium", isCurrent ? "text-primary" : "text-foreground")} />
                   {isCurrent ? <Icon icon={Tick02Icon} size={16} className="shrink-0 text-primary" /> : !scopeless && <Icon icon={ArrowRight01Icon} size={16} className="shrink-0 text-muted-foreground/60" />}
