@@ -91,6 +91,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
       const r = document.createRange(); r.setStart(start[0], start[1]); r.setEnd(end[0], end[1]);
       const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
       document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+      /* the capture cannot see a native selection, so the same words get a real wash for the frame */
+      setTimeout(() => { const m = document.createElement("mark"); m.style.cssText = "background:rgba(37,99,235,0.2);color:inherit;border-radius:2px"; try { r.surroundContents(m); } catch {} }, 250);
     }, [sid, text]);
     await p.waitForTimeout(400);
   }
