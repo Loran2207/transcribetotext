@@ -232,6 +232,27 @@ await flow("Web: a long turn is one run, and one block can be moved to another v
   await p.evaluate(() => localStorage.removeItem("ttt_demo_unnamed_speakers"));
 });
 
+await flow("Web: a run of words inside a block is handed to another voice", "", async ({ p, nav }, expect) => {
+  await p.evaluate(() => localStorage.setItem("ttt_demo_unnamed_speakers", "1"));
+  await nav("/transcriptions/2"); await p.waitForTimeout(900);
+  await p.evaluate(() => {
+    const el = document.querySelector("[data-segment-id='4'] p"); const text = "Absolutely, I'll set something up for Wednesday morning.";
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node, start = null;
+    while ((node = walker.nextNode())) { const i = node.textContent.indexOf(text); if (i >= 0) { start = [node, i, i + text.length]; break; } }
+    const r = document.createRange(); r.setStart(start[0], start[1]); r.setEnd(start[0], start[2]);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+  });
+  await p.waitForTimeout(400);
+  await expect("the selection pill offers Highlight and Speaker", async () => (await vis(p, "[data-selection-pill] button:has-text('Highlight')")) && (await vis(p, "[data-selection-speaker]")));
+  await p.click("[data-selection-speaker]"); await p.waitForTimeout(400);
+  await expect("the menu asks who said this part", () => vis(p, "[data-slot=popover-content] p:has-text('Who said this part?')"));
+  await p.click("[data-slot=popover-content] button:has-text('Maria Garcia')"); await p.waitForTimeout(600);
+  await expect("the sentence now sits under Maria", () => vis(p, "[data-segment-id='4002'] [data-speaker-trigger]:has-text('Maria Garcia')"));
+  await expect("the rest of the block stays with Alex", () => vis(p, "[data-segment-id='4001'] [data-speaker-trigger]:has-text('Alex Johnson')"));
+  await p.evaluate(() => localStorage.removeItem("ttt_demo_unnamed_speakers"));
+});
+
 await b.close();
 const failed = results.filter((r) => r.verdict === "FAIL");
 const faulty = results.filter((r) => r.faults.length);

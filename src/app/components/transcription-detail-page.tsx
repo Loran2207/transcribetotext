@@ -624,19 +624,35 @@ function SegmentInlineActions({
 function SelectionHighlightPill({
   position,
   onHighlight,
+  speaker,
 }: {
   position: { x: number; y: number };
   onHighlight: () => void;
+  /* when the transcript has several voices: the selected words can be handed to another one */
+  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void };
 }) {
+  const [open, setOpen] = useState(false);
+  const action = "h-7 rounded-full px-3 text-xs font-medium text-primary-foreground hover:bg-white/15";
   return (
-    <Button
-      size="sm"
-      className="fixed z-50 h-7 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground shadow-md animate-in fade-in zoom-in-95 duration-150 hover:bg-primary/90"
-      style={{ left: position.x, top: position.y - 32 }}
-      onMouseDown={(e) => { e.preventDefault(); onHighlight(); }}
+    <div
+      data-selection-pill=""
+      className="fixed z-50 flex items-center gap-0.5 rounded-full bg-primary p-0.5 shadow-md animate-in fade-in zoom-in-95 duration-150"
+      style={{ left: position.x, top: position.y - 36 }}
+      onMouseDown={(e) => { if (!open) e.preventDefault(); }}
     >
-      Highlight
-    </Button>
+      <Button size="sm" variant="ghost" className={action} onMouseDown={(e) => { e.preventDefault(); onHighlight(); }}>Highlight</Button>
+      {speaker && (
+        <>
+          <span className="h-4 w-px bg-white/30" />
+          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={setOpen} scopeless sheetTitle="Who said this part?">
+            <Button size="sm" variant="ghost" data-selection-speaker="" className={`${action} gap-1`} onMouseDown={(e) => e.preventDefault()}>
+              Speaker
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </Button>
+          </SpeakerPicker>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -2770,13 +2786,22 @@ export function TranscriptionDetailPage() {
   const showCases = (() => {
     try { return (window.localStorage.getItem("ttt_demo_playback") || "").startsWith("cases"); } catch { return false; }
   })();
+  /* the realistic case (ttt_demo_unnamed_speakers=1) also has the model's classic
+     slip: block 4 carries Maria's first sentence, block 5 lost it */
+  const mergedDemo = (() => {
+    try { return window.localStorage.getItem("ttt_demo_unnamed_speakers") === "1"; } catch { return false; }
+  })();
   const contentSegments = useMemo<Segment[]>(
     () => (showCases
       ? CASE_SEGMENTS
       : selectedJob?.source === "microphone" && previewDetailSegments.length > 0
         ? previewDetailSegments
-        : MOCK_SEGMENTS),
-    [previewDetailSegments, selectedJob?.source, showCases],
+        : mergedDemo
+          ? MOCK_SEGMENTS.map((seg) => seg.id === 4
+            ? { ...seg, text: seg.text + " Absolutely, I'll set something up for Wednesday morning." }
+            : seg.id === 5 ? { ...seg, text: "That gives us a day to incorporate any feedback before James's team picks it up on Thursday." } : seg)
+          : MOCK_SEGMENTS),
+    [previewDetailSegments, selectedJob?.source, showCases, mergedDemo],
   );
   // Single-speaker / monologue mode: hide the speaker column when there's only one voice.
   // Demo flag forces it with dedicated monologue content for design captures.
@@ -2794,6 +2819,10 @@ export function TranscriptionDetailPage() {
   const [speakerMoves, setSpeakerMoves] = useState<Record<number, string>>({});
   const [speakerNames, setSpeakerNames] = useState<Record<string, string>>({});
   const [extraSpeakers, setExtraSpeakers] = useState<Speaker[]>([]);
+  /* The model sometimes glues two people into one block ("Hi! Hi!"). A split
+     hands a run of words to another voice: the block becomes up to three,
+     the middle one under the other speaker. Ids stay unique (id * 1000 + n). */
+  const [splits, setSplits] = useState<Record<number, { start: number; end: number; speakerId: string }>>({});
   const unnamedSpeakersDemo = useMemo(() => {
     try { return typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_unnamed_speakers") === "1"; } catch { return false; }
   }, []);
@@ -2813,11 +2842,25 @@ export function TranscriptionDetailPage() {
       byId[sp.id] = { ...sp, name, initial, avatar: unnamedSpeakersDemo && i === 0 ? "/images/avatar.png" : sp.avatar, you: unnamedSpeakersDemo && i === 0 };
     });
     extraSpeakers.forEach((sp) => { byId[sp.id] = sp; });
-    const segments = contentSegments.map((seg) => ({ ...seg, speaker: byId[speakerMoves[seg.id] ?? seg.speaker.id] ?? seg.speaker }));
+    const segments = contentSegments.flatMap((seg) => {
+      const text = seg.text;
+      const base = { ...seg, text, speaker: byId[speakerMoves[seg.id] ?? seg.speaker.id] ?? seg.speaker };
+      const cut = splits[seg.id];
+      if (!cut) return [base];
+      const to = byId[cut.speakerId] ?? base.speaker;
+      const parts: Segment[] = [];
+      const before = text.slice(0, cut.start).trim();
+      const middle = text.slice(cut.start, cut.end).trim();
+      const after = text.slice(cut.end).trim();
+      if (before) parts.push({ ...base, id: seg.id * 1000 + 1, text: before });
+      parts.push({ ...base, id: seg.id * 1000 + 2, text: middle, speaker: to });
+      if (after) parts.push({ ...base, id: seg.id * 1000 + 3, text: after });
+      return parts;
+    });
     const used = new Set(segments.map((seg) => seg.speaker.id));
     const speakers = Object.values(byId).filter((sp) => used.has(sp.id));
     return { segments, speakers };
-  }, [contentSegments, extraSpeakers, speakerMoves, speakerNames, unnamedSpeakersDemo]);
+  }, [contentSegments, extraSpeakers, speakerMoves, speakerNames, splits, unnamedSpeakersDemo]);
   const displaySegments = (forceSingleSpeaker || forcePlainMono) ? MONO_SEGMENTS : resolved.segments;
   const speakerBlockCount = (speakerId: string) => resolved.segments.filter((seg) => seg.speaker.id === speakerId).length;
   /* two lines of the voice for the dialog: the block itself first, then the next one by the same voice */
@@ -3674,7 +3717,8 @@ export function TranscriptionDetailPage() {
 
   // Text selection for inline highlight
   useEffect(() => {
-    function handler() {
+    function handler(e?: Event) {
+      if (e && (e.target as HTMLElement | null)?.closest?.("[data-selection-pill], [data-slot=popover-content], [data-slot=drawer-content]")) return;
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || sel.toString().trim().length === 0) { setSelectionPill(null); return; }
       const range = sel.getRangeAt(0);
@@ -3684,7 +3728,7 @@ export function TranscriptionDetailPage() {
       // Find text offset within the segment
       const pEl = container.querySelector("p");
       if (!pEl) { setSelectionPill(null); return; }
-      const fullText = texts[segId] ?? contentSegments.find((s) => s.id === segId)?.text ?? "";
+      const fullText = texts[segId] ?? resolved.segments.find((s) => s.id === segId)?.text ?? "";
       const selectedText = sel.toString();
       const startIdx = fullText.indexOf(selectedText);
       if (startIdx === -1) { setSelectionPill(null); return; }
@@ -3694,7 +3738,36 @@ export function TranscriptionDetailPage() {
     document.addEventListener("mouseup", handler);
     document.addEventListener("keyup", handler);
     return () => { document.removeEventListener("mouseup", handler); document.removeEventListener("keyup", handler); };
-  }, [texts]);
+  }, [texts, resolved.segments]);
+
+  /* grow a selection to whole sentences, so "Hi! Hi!" moves as a sentence, never half a word */
+  function snapToSentences(text: string, start: number, end: number) {
+    let a = start;
+    while (a > 0 && !/[.!?]\s$/.test(text.slice(Math.max(0, a - 2), a))) a--;
+    let b = end;
+    while (b < text.length && !/[.!?]/.test(text[b - 1] ?? "")) b++;
+    return { start: a, end: Math.min(text.length, b) };
+  }
+  function handleSelectionSpeaker(choice: SpeakerChoice) {
+    if (!selectionPill) return;
+    const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId);
+    if (!seg) return;
+    const { start, end } = snapToSentences(seg.text, selectionPill.start, selectionPill.end);
+    const before = { splits, extraSpeakers };
+    let to: Speaker | undefined;
+    if (choice.kind === "add") {
+      const palette = ["#f59e0b", "#ec4899", "#14b8a6", "#6366f1", "#ef4444"];
+      to = { id: `custom-${Date.now()}`, name: choice.name, color: palette[extraSpeakers.length % palette.length], initial: choice.name[0]?.toUpperCase() ?? "?" };
+      setExtraSpeakers((list) => [...list, to!]);
+    } else if (choice.kind === "move" || choice.kind === "move-all") {
+      to = resolved.speakers.find((sp) => sp.id === choice.speakerId);
+    }
+    if (!to) return;
+    setSplits((m) => ({ ...m, [seg.id]: { start, end, speakerId: to!.id } }));
+    setSelectionPill(null);
+    window.getSelection()?.removeAllRanges();
+    toast(`Moved to ${to.name}`, { description: "The block was split at the sentence", cancel: { label: "Undo", onClick: () => { setSplits(before.splits); setExtraSpeakers(before.extraSpeakers); } } });
+  }
 
   function handleSelectionHighlight() {
     if (!selectionPill) return;
@@ -4653,7 +4726,11 @@ export function TranscriptionDetailPage() {
 
       {/* Text selection highlight pill */}
       {selectionPill && !editMode && (
-        <SelectionHighlightPill position={{ x: selectionPill.x, y: selectionPill.y }} onHighlight={handleSelectionHighlight} />
+        <SelectionHighlightPill
+          position={{ x: selectionPill.x, y: selectionPill.y }}
+          onHighlight={handleSelectionHighlight}
+          speaker={isSingleSpeaker ? undefined : (() => { const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId); return seg ? { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker } : undefined; })()}
+        />
       )}
     </div>
   );
