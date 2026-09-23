@@ -830,8 +830,8 @@ function TranscriptSegment({
   commentValue: string;
   textHighlights: { start: number; end: number }[];
   /* the words picked for a speaker change stay washed while the menu is open (the native selection
-     collapses when the search field takes focus); `snap` is the sentence span that would actually move */
-  selectionMark?: { start: number; end: number; snap?: { start: number; end: number } };
+     collapses when the search field takes focus) */
+  selectionMark?: { start: number; end: number };
   showActions?: boolean;
   hideSpeaker?: boolean;
   hideTimecodes?: boolean;
@@ -994,11 +994,9 @@ function TranscriptSegment({
             ) : selectionMark ? (
               /* the picked words keep the selection wash while the menu is open; the rest of the sentence that moves with them gets a lighter one */
               <>
-                {segmentText.slice(0, selectionMark.snap?.start ?? selectionMark.start)}
-                {selectionMark.snap && <span className="rounded-[2px] bg-primary/[0.08]">{segmentText.slice(selectionMark.snap.start, selectionMark.start)}</span>}
+                {segmentText.slice(0, selectionMark.start)}
                 <span data-selection-mark="" className="rounded-[2px] bg-primary/20">{segmentText.slice(selectionMark.start, selectionMark.end)}</span>
-                {selectionMark.snap && <span className="rounded-[2px] bg-primary/[0.08]">{segmentText.slice(selectionMark.end, selectionMark.snap.end)}</span>}
-                {segmentText.slice(selectionMark.snap?.end ?? selectionMark.end)}
+                {segmentText.slice(selectionMark.end)}
               </>
             ) : (
               renderText(segmentText)
@@ -4488,9 +4486,9 @@ export function TranscriptionDetailPage() {
                     segment={seg}
                     nextTimestamp={shownSegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
-                    continuation={index > 0 && shownSegments[index - 1]?.speaker.id === seg.speaker.id}
+                    continuation={index > 0 && !seg.preview && !shownSegments[index - 1]?.preview && shownSegments[index - 1]?.speaker.id === seg.speaker.id}
                     speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
-                    selectionMark={selectionMenuOpen && !splitPreview && selectionPill && selectionPill.segmentId === seg.id ? { start: selectionPill.start, end: selectionPill.end, snap: snapToSentences(seg.text, selectionPill.start, selectionPill.end) } : undefined}
+                    selectionMark={selectionMenuOpen && !splitPreview && selectionPill && selectionPill.segmentId === seg.id ? { start: selectionPill.start, end: selectionPill.end } : undefined}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
