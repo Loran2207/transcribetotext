@@ -220,8 +220,8 @@ await flow("Web: a long turn is one run, and one block can be moved to another v
   await nav("/transcriptions/2"); await p.waitForTimeout(900);
   await expect("continuation blocks hide the label until hover", () => p.$eval("[data-segment-id='61'] [data-speaker-trigger]", (el) => getComputedStyle(el).opacity === "0"));
   await p.click("[data-segment-id='4'] [data-speaker-trigger]"); await p.waitForTimeout(400);
-  await expect("dropdown lists the other voices", () => vis(p, "[data-slot=popover-content] button:has-text('Maria Garcia')"));
-  await p.hover("[data-slot=popover-content] button:has-text('Maria Garcia')"); await p.waitForTimeout(300);
+  await expect("dropdown lists the other voices", () => vis(p, "[data-slot=popover-content] [data-speaker-row='s2']"));
+  await p.hover("[data-slot=popover-content] [data-speaker-row='s2']"); await p.waitForTimeout(300);
   await expect("hover shows the scope beside the name", async () => (await vis(p, "button:has-text('Only this block')")) && (await vis(p, "button:has-text('All 4 blocks by Alex Johnson')")));
   await p.fill("input[placeholder='Search or type a name']", "Kirill"); await p.waitForTimeout(300);
   await expect("a new name offers the blue add row", () => vis(p, "[data-slot=popover-content] button:has-text('as a new speaker')"));
@@ -247,7 +247,7 @@ await flow("Web: a run of words inside a block is handed to another voice", "", 
   await expect("the selection pill offers Highlight and Speaker", async () => (await vis(p, "[data-selection-pill] button:has-text('Highlight')")) && (await vis(p, "[data-selection-speaker]")));
   await p.click("[data-selection-speaker]"); await p.waitForTimeout(400);
   await expect("the menu asks who said this part", () => vis(p, "[data-slot=popover-content] p:has-text('Who said this part?')"));
-  await p.click("[data-slot=popover-content] button:has-text('Maria Garcia')"); await p.waitForTimeout(600);
+  await p.click("[data-slot=popover-content] [data-speaker-row='s2']"); await p.waitForTimeout(600);
   await expect("the sentence now sits under Maria", () => vis(p, "[data-segment-id='4002'] [data-speaker-trigger]:has-text('Maria Garcia')"));
   await expect("the rest of the block stays with Alex", () => vis(p, "[data-segment-id='4001'] [data-speaker-trigger]:has-text('Alex Johnson')"));
   await p.evaluate(() => localStorage.removeItem("ttt_demo_unnamed_speakers"));

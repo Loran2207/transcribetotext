@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo, type ReactNode } fro
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon, PencilEdit02Icon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon } from "@hugeicons/core-free-icons";
 import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
@@ -682,6 +682,8 @@ type SpeakerControl = {
   onPause?: () => void;
   /* opens the speakers panel from the block menu */
   onManage?: () => void;
+  /* rename a voice right in the block menu */
+  onRename?: (id: string, name: string) => void;
 };
 
 function SpeakerLabel({
@@ -726,7 +728,7 @@ function SpeakerLabel({
     >
       {body}
       {/* a pencil, not a chevron: the name reads as editable (Rev, Notta show the same on hover) */}
-      <Icon icon={PencilEdit02Icon} size={12} className={`shrink-0 text-muted-foreground transition-opacity ${open ? "opacity-100" : "opacity-45 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100"}`} />
+      <Icon icon={Edit} size={12} className={`shrink-0 text-muted-foreground transition-opacity ${open ? "opacity-100" : "opacity-45 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100"}`} />
     </button>
   );
   if (control.dialog) {
@@ -740,7 +742,7 @@ function SpeakerLabel({
     );
   }
   return (
-    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange} onManage={control.onManage}>
+    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange} onManage={control.onManage} onRename={control.onRename}>
       {trigger}
     </SpeakerPicker>
   );
@@ -2478,7 +2480,7 @@ function PageHeader({
           </div>
         )}
         {chips}
-        {trailing && <><span className="text-border">{"\u2022"}</span>{trailing}</>}
+        {trailing && <><span className="text-border max-md:hidden">{"\u2022"}</span>{trailing}</>}
         {source && (
           <>
             <span className="text-border max-md:hidden">{"\u2022"}</span>
@@ -2843,9 +2845,24 @@ export function TranscriptionDetailPage() {
   const speakerDialogDemo = useMemo(() => {
     try { return typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_speaker_dialog") === "1"; } catch { return false; }
   }, []);
+  const manySpeakersDemo = useMemo(() => {
+    try { return typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_many_speakers") === "1"; } catch { return false; }
+  }, []);
   const resolved = useMemo(() => {
+    /* the edge case for the header chip and the panel: a big call, eight voices, one long name */
+    const MANY: Speaker[] = [
+      { id: "s1", name: "Alex Johnson", color: "#3b82f6", initial: "A" },
+      { id: "s2", name: "Maria Garcia", color: "#8b5cf6", initial: "M" },
+      { id: "s3", name: "James Chen", color: "#10b981", initial: "J" },
+      { id: "m4", name: "Priya Patel", color: "#f59e0b", initial: "P" },
+      { id: "m5", name: "Alexandra Konstantinopoulou-Whitfield", color: "#ec4899", initial: "A" },
+      { id: "m6", name: "Daniel Kim", color: "#14b8a6", initial: "D" },
+      { id: "m7", name: "Speaker 7", color: "#6366f1", initial: "7" },
+      { id: "m8", name: "Speaker 8", color: "#ef4444", initial: "8" },
+    ];
+    const source = manySpeakersDemo ? contentSegments.map((seg, i) => ({ ...seg, speaker: MANY[i % MANY.length] })) : contentSegments;
     const seen = new Map<string, Speaker>();
-    contentSegments.forEach((seg) => { if (!seen.has(seg.speaker.id)) seen.set(seg.speaker.id, seg.speaker); });
+    source.forEach((seg) => { if (!seen.has(seg.speaker.id)) seen.set(seg.speaker.id, seg.speaker); });
     const byId: Record<string, Speaker> = {};
     /* The realistic case (ttt_demo_unnamed_speakers=1): two voices matched to
        attendees, the first of them is you; the third voice stayed "Speaker 3". */
@@ -2857,7 +2874,7 @@ export function TranscriptionDetailPage() {
     });
     extraSpeakers.forEach((sp) => { const name = speakerNames[sp.id] ?? sp.name; byId[sp.id] = { ...sp, name, initial: name[0]?.toUpperCase() ?? sp.initial }; });
     removedSpeakers.forEach((id) => { delete byId[id]; });
-    const segments = contentSegments.flatMap((seg) => {
+    const segments = source.flatMap((seg) => {
       const text = seg.text;
       const base = { ...seg, text, speaker: byId[speakerMoves[seg.id] ?? seg.speaker.id] ?? seg.speaker };
       const cut = splits[seg.id];
@@ -2877,7 +2894,7 @@ export function TranscriptionDetailPage() {
     /* the panel also lists people added but not yet picked on a block */
     const managed = Object.values(byId).filter((sp) => used.has(sp.id) || extraSpeakers.some((e) => e.id === sp.id));
     return { segments, speakers, managed };
-  }, [contentSegments, extraSpeakers, removedSpeakers, speakerMoves, speakerNames, splits, unnamedSpeakersDemo]);
+  }, [contentSegments, extraSpeakers, manySpeakersDemo, removedSpeakers, speakerMoves, speakerNames, splits, unnamedSpeakersDemo]);
   const displaySegments = (forceSingleSpeaker || forcePlainMono) ? MONO_SEGMENTS : resolved.segments;
   const speakerBlockCount = (speakerId: string) => resolved.segments.filter((seg) => seg.speaker.id === speakerId).length;
   /* two lines of the voice for the dialog: the block itself first, then the next one by the same voice */
@@ -4420,7 +4437,7 @@ export function TranscriptionDetailPage() {
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
-                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onManage: () => setSpeakersPanelOpen(true), dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
+                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onManage: () => setSpeakersPanelOpen(true), onRename: speakersPanelActions.onRename, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
