@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Search01Icon, PlusSignIcon, UserAdd01Icon, ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import type React from "react";
+import { forwardRef, useEffect, useRef, useState, type ReactNode } from "react";
+import { Search01Icon, PlusSignIcon, UserAdd01Icon, ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon, Cancel01Icon, PencilEdit02Icon, MoreHorizontalCircle01Icon, UserGroupIcon, ArrowDataTransferHorizontalIcon, Delete02Icon } from "@hugeicons/core-free-icons";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Icon } from "./ui/icon";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
@@ -78,7 +80,7 @@ function useSpeakerQuery(speakers: PickerSpeaker[]) {
 }
 
 /* ── Variant A, desktop: dropdown on the name, side menu for the scope ── */
-function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean }) {
+function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false, onManage }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean; onManage?: () => void }) {
   const { query, setQuery, trimmed, list, canAdd } = useSpeakerQuery(speakers);
   const [armed, setArmed] = useState<string | null>(null);
   const pinned = useRef(false);
@@ -158,6 +160,15 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false 
           </button>
         </div>
       )}
+      {onManage && (
+        /* the door to the whole list: rename, merge, remove, add (Artem 23.09: "как создать нового и как редактировать текущих") */
+        <div className="border-t border-border/60 p-1.5">
+          <button type="button" data-manage-speakers="" onClick={onManage} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground">
+            <Icon icon={UserGroupIcon} size={15} className="shrink-0" />
+            <span className="min-w-0 flex-1 truncate">Manage speakers</span>
+          </button>
+        </div>
+      )}
       {target && (
         <div
           className="absolute left-[calc(100%+6px)] w-[236px] rounded-xl border border-border bg-popover p-1.5 shadow-[var(--elevation-md)]"
@@ -173,7 +184,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false 
 }
 
 /* ── Variant A, phone: the same list as a bottom sheet, scope as step two ── */
-function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeless = false, title = "Change speaker" }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; onClose: () => void; scopeless?: boolean; title?: string }) {
+function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeless = false, title = "Change speaker", onManage }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; onClose: () => void; scopeless?: boolean; title?: string; onManage?: () => void }) {
   const { query, setQuery, trimmed, list, canAdd } = useSpeakerQuery(speakers);
   const [target, setTarget] = useState<{ speakerId?: string; name?: string } | null>(null);
   const targetName = target?.speakerId ? speakers.find((s) => s.id === target.speakerId)?.name : target?.name;
@@ -221,7 +232,14 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeles
               <Icon icon={PlusSignIcon} size={15} /><span>Add <span className="font-semibold">{trimmed}</span> as a new speaker</span>
             </button>
           </div>
-          {!canAdd && <div className="pb-[calc(8px+env(safe-area-inset-bottom))]" />}
+          {onManage && (
+            <div className="border-t border-border/60 px-4 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
+              <button type="button" data-manage-speakers="" onClick={onManage} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] text-muted-foreground transition-colors active:bg-muted/60">
+                <Icon icon={UserGroupIcon} size={16} /><span>Manage speakers</span>
+              </button>
+            </div>
+          )}
+          {!canAdd && !onManage && <div className="pb-[calc(8px+env(safe-area-inset-bottom))]" />}
         </>
       )}
     </>
@@ -238,6 +256,7 @@ export function SpeakerPicker({
   onOpenChange,
   scopeless = false,
   sheetTitle,
+  onManage,
 }: {
   current: PickerSpeaker;
   speakers: PickerSpeaker[];
@@ -249,12 +268,15 @@ export function SpeakerPicker({
   /* a piece of text: rows answer directly, no side menu, no step two */
   scopeless?: boolean;
   sheetTitle?: string;
+  /* opens the speakers panel (the whole list) from inside the block menu */
+  onManage?: () => void;
 }) {
   const isPhone = useIsPhone();
   const [innerOpen, setInnerOpen] = useState(false);
   const isOpen = open ?? innerOpen;
   const setOpen = onOpenChange ?? setInnerOpen;
   const pick = (choice: SpeakerChoice) => { setOpen(false); onPick(choice); };
+  const manage = onManage ? () => { setOpen(false); onManage(); } : undefined;
 
   if (isPhone) {
     return (
@@ -262,7 +284,7 @@ export function SpeakerPicker({
         <span onClick={() => setOpen(true)} className="contents">{children}</span>
         <Drawer open={isOpen} onOpenChange={setOpen}>
           <DrawerContent className="[&>div:first-child]:hidden">
-            {isOpen && <SpeakerSheet current={current} speakers={speakers} blockCount={blockCount} onPick={pick} onClose={() => setOpen(false)} scopeless={scopeless} title={sheetTitle} />}
+            {isOpen && <SpeakerSheet current={current} speakers={speakers} blockCount={blockCount} onPick={pick} onClose={() => setOpen(false)} scopeless={scopeless} title={sheetTitle} onManage={manage} />}
           </DrawerContent>
         </Drawer>
       </>
@@ -273,7 +295,7 @@ export function SpeakerPicker({
     <Popover open={isOpen} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="start" sideOffset={6} className="w-[300px] overflow-visible p-0">
-        <SpeakerMenu current={current} speakers={speakers} blockCount={blockCount} onPick={pick} scopeless={scopeless} />
+        <SpeakerMenu current={current} speakers={speakers} blockCount={blockCount} onPick={pick} scopeless={scopeless} onManage={manage} />
       </PopoverContent>
     </Popover>
   );
@@ -588,3 +610,150 @@ export function NameSpeakersDialog({
     </DialogShell>
   );
 }
+
+/* ── The speakers panel: everyone in this recording in one list ──
+   Opened from the "N speakers" chip in the header or from "Manage speakers"
+   inside a block's menu. Rename in place (pencil), merge one voice into
+   another (the old label disappears, its blocks move), remove a voice nobody
+   speaks as, add a person who will be picked on blocks later. The list is the
+   same on every width; a phone gets it as a bottom sheet. */
+export interface ManagedSpeaker extends PickerSpeaker { blockCount: number }
+export interface SpeakersPanelActions {
+  onRename: (id: string, name: string) => void;
+  onMerge: (fromId: string, toId: string) => void;
+  onRemove: (id: string) => void;
+  onAdd: (name: string) => void;
+}
+
+function SpeakerRow({ speaker, others, phone, actions }: { speaker: ManagedSpeaker; others: ManagedSpeaker[]; phone: boolean; actions: SpeakersPanelActions }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(speaker.name);
+  const commit = () => { const v = draft.trim(); setEditing(false); if (v && v !== speaker.name) actions.onRename(speaker.id, v); else setDraft(speaker.name); };
+  const blocks = speaker.blockCount === 0 ? "Not on any block yet" : speaker.blockCount === 1 ? "1 block" : `${speaker.blockCount} blocks`;
+  return (
+    <div data-speaker-manage-row={speaker.id} className={cn("group/mrow flex items-center gap-3 rounded-xl px-3", phone ? "py-2.5" : "py-2 hover:bg-muted/50")}>
+      <SpeakerDot speaker={speaker} />
+      {editing ? (
+        <Input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(speaker.name); setEditing(false); } }}
+          className="h-8 min-w-0 flex-1 rounded-[7px] px-2 text-[13px]"
+          aria-label="Speaker name"
+        />
+      ) : (
+        <button type="button" onClick={() => setEditing(true)} className="min-w-0 flex-1 text-left" aria-label={`Rename ${speaker.name}`}>
+          <span className="block truncate text-[13px] font-medium text-foreground">{speaker.name}{speaker.you && <span className="ml-1 font-normal text-muted-foreground">(you)</span>}</span>
+          <span className="block truncate text-[11px] text-muted-foreground">{blocks}</span>
+        </button>
+      )}
+      {!editing && (
+        <div className={cn("flex shrink-0 items-center gap-0.5", phone ? "" : "opacity-0 transition-opacity group-hover/mrow:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100")}>
+          <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`Rename ${speaker.name}`} data-rename-speaker={speaker.id} onClick={() => setEditing(true)}>
+            <Icon icon={PencilEdit02Icon} size={14} />
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`More for ${speaker.name}`} data-more-speaker={speaker.id}>
+                <Icon icon={MoreHorizontalCircle01Icon} size={15} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-[220px]">
+              {others.length > 0 && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2"><Icon icon={ArrowDataTransferHorizontalIcon} size={15} className="text-muted-foreground" />Merge into</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-[220px]">
+                    {others.map((o) => (
+                      <DropdownMenuItem key={o.id} className="gap-2.5" onClick={() => actions.onMerge(speaker.id, o.id)}>
+                        <SpeakerDot speaker={o} /><span className="truncate">{o.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              )}
+              {others.length > 0 && speaker.blockCount === 0 && <DropdownMenuSeparator />}
+              {speaker.blockCount === 0 && (
+                <DropdownMenuItem variant="destructive" className="gap-2" onClick={() => actions.onRemove(speaker.id)}>
+                  <Icon icon={Delete02Icon} size={15} />Remove
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SpeakersList({ speakers, phone, actions }: { speakers: ManagedSpeaker[]; phone: boolean; actions: SpeakersPanelActions }) {
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  const add = () => { const v = name.trim(); if (v) actions.onAdd(v); setName(""); setAdding(false); };
+  return (
+    <>
+      <div className={cn("p-1.5", phone && "px-2.5")}>
+        {speakers.map((sp) => <SpeakerRow key={sp.id} speaker={sp} others={speakers.filter((o) => o.id !== sp.id)} phone={phone} actions={actions} />)}
+      </div>
+      <div className={cn("border-t border-border/60 p-1.5", phone && "px-2.5 pb-[calc(8px+env(safe-area-inset-bottom))]")}>
+        {adding ? (
+          <div className="flex items-center gap-2 px-3 py-1.5">
+            <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" aria-label="New speaker name" onKeyDown={(e) => { if (e.key === "Enter") add(); if (e.key === "Escape") { setName(""); setAdding(false); } }} className="h-8 min-w-0 flex-1 rounded-[7px] px-2 text-[13px]" />
+            <Button size="sm" className="h-8 px-3 text-[12px]" disabled={!name.trim()} onClick={add}>Add</Button>
+          </div>
+        ) : (
+          <button type="button" data-add-speaker="" onClick={() => setAdding(true)} className={cn("flex w-full items-center gap-2.5 rounded-xl px-3 text-left text-[13px] font-medium text-primary transition-colors hover:bg-primary/[0.06] active:bg-primary/[0.06]", phone ? "py-2.5 text-[14px]" : "py-2")}>
+            <Icon icon={PlusSignIcon} size={15} className="shrink-0" />Add speaker
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
+export function SpeakersPanel({ speakers, actions, open, onOpenChange, children }: { speakers: ManagedSpeaker[]; actions: SpeakersPanelActions; open: boolean; onOpenChange: (open: boolean) => void; children?: ReactNode }) {
+  const isPhone = useIsPhone();
+  if (isPhone) {
+    return (
+      <>
+        {children && <span onClick={() => onOpenChange(true)} className="contents">{children}</span>}
+        <Drawer open={open} onOpenChange={onOpenChange}>
+          <DrawerContent className="[&>div:first-child]:hidden">
+            <DrawerHeader className="flex flex-row items-center justify-between px-4 pt-4 pb-2 text-left">
+              <DrawerTitle className="text-[17px] font-semibold">Speakers</DrawerTitle>
+              <button type="button" aria-label="Close" onClick={() => onOpenChange(false)} className="-mr-1 flex size-8 items-center justify-center rounded-full text-muted-foreground active:bg-muted/60"><Icon icon={Cancel01Icon} size={18} /></button>
+            </DrawerHeader>
+            <SpeakersList speakers={speakers} phone actions={actions} />
+          </DrawerContent>
+        </Drawer>
+      </>
+    );
+  }
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      {children ? <PopoverTrigger asChild>{children}</PopoverTrigger> : <PopoverTrigger asChild><span className="absolute" aria-hidden /></PopoverTrigger>}
+      <PopoverContent align="start" sideOffset={6} className="w-[320px] p-0" data-speakers-panel="">
+        <p className="border-b border-border/60 px-3.5 pt-3 pb-2.5 text-[13px] font-semibold text-foreground">Speakers</p>
+        <SpeakersList speakers={speakers} phone={false} actions={actions} />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/* the header chip: stacked faces and a count; the one place a new user sees
+   that the people in the recording are a thing you can open and edit */
+export const SpeakersChip = forwardRef<HTMLButtonElement, { speakers: PickerSpeaker[] } & React.ButtonHTMLAttributes<HTMLButtonElement>>(function SpeakersChip({ speakers, className, ...rest }, ref) {
+  const shown = speakers.slice(0, 3);
+  return (
+    <button ref={ref} type="button" data-speakers-chip="" {...rest} className="group/chip -my-1 inline-flex h-7 items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2 text-xs text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground" aria-label="Speakers">
+      <span className="flex -space-x-1.5">
+        {shown.map((sp) => sp.avatar
+          ? <img key={sp.id} src={sp.avatar} alt="" className="size-5 rounded-full border-2 border-background object-cover" />
+          : <span key={sp.id} className="inline-flex size-5 items-center justify-center rounded-full border-2 border-background text-[9px] font-semibold text-white" style={{ backgroundColor: sp.color }}>{sp.initial}</span>)}
+      </span>
+      <span>{speakers.length === 1 ? "1 speaker" : `${speakers.length} speakers`}</span>
+      <Icon icon={PencilEdit02Icon} size={12} className="opacity-0 transition-opacity group-hover/chip:opacity-100 group-data-[state=open]/chip:opacity-100" />
+    </button>
+  );
+});

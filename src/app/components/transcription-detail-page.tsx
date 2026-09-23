@@ -2,13 +2,13 @@ import { useState, useRef, useCallback, useEffect, useMemo, type ReactNode } fro
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon, PencilEdit02Icon } from "@hugeicons/core-free-icons";
 import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, type SpeakerChoice, type Quote } from "./speaker-picker";
+import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, SpeakersChip, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
 import { LanguageSelector, SpeakerSection } from "./transcription-modals";
 import { useNotetakerSettings } from "./desktop/notetaker-settings";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
@@ -676,6 +676,8 @@ type SpeakerControl = {
   playing?: boolean;
   onPlay?: (timestamp: string) => void;
   onPause?: () => void;
+  /* opens the speakers panel from the block menu */
+  onManage?: () => void;
 };
 
 function SpeakerLabel({
@@ -719,9 +721,8 @@ function SpeakerLabel({
       }`}
     >
       {body}
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" className={`shrink-0 text-muted-foreground transition-opacity ${open ? "opacity-100" : "opacity-0 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100"}`}>
-        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      {/* a pencil, not a chevron: the name reads as editable (Rev, Notta show the same on hover) */}
+      <Icon icon={PencilEdit02Icon} size={13} className={`shrink-0 text-muted-foreground transition-opacity ${open ? "opacity-100" : "opacity-0 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100"}`} />
     </button>
   );
   if (control.dialog) {
@@ -735,7 +736,7 @@ function SpeakerLabel({
     );
   }
   return (
-    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange}>
+    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange} onManage={control.onManage}>
       {trigger}
     </SpeakerPicker>
   );
@@ -2203,6 +2204,8 @@ interface PageHeaderProps {
   onMoveToFolder: (folderId: string) => void;
   /* the folder and the calendar event, as chips in the meta line (Move left the overflow menu) */
   chips?: React.ReactNode;
+  /* the end of the meta line: the speakers chip */
+  trailing?: React.ReactNode;
   onCreateFolderAndMove: () => void;
   onExport: () => void;
   onRematchSpeakers: () => void;
@@ -2232,6 +2235,7 @@ function PageHeader({
   onSetTemplate,
   onMoveToFolder,
   chips,
+  trailing,
   onCreateFolderAndMove,
   onExport,
   onRematchSpeakers,
@@ -2482,6 +2486,7 @@ function PageHeader({
         {!chips && <><span className="text-border">{"\u2022"}</span><span>{meta.dateLabel}</span></>}
         <span className="text-border">{"\u2022"}</span>
         <span>{meta.durationLabel}</span>
+        {trailing && <><span className="text-border">{"\u2022"}</span>{trailing}</>}
       </div>
     </div>
   );
@@ -2822,6 +2827,8 @@ export function TranscriptionDetailPage() {
   const [speakerMoves, setSpeakerMoves] = useState<Record<number, string>>({});
   const [speakerNames, setSpeakerNames] = useState<Record<string, string>>({});
   const [extraSpeakers, setExtraSpeakers] = useState<Speaker[]>([]);
+  const [removedSpeakers, setRemovedSpeakers] = useState<string[]>([]);
+  const [speakersPanelOpen, setSpeakersPanelOpen] = useState(false);
   /* The model sometimes glues two people into one block ("Hi! Hi!"). A split
      hands a run of words to another voice: the block becomes up to three,
      the middle one under the other speaker. Ids stay unique (id * 1000 + n). */
@@ -2844,7 +2851,8 @@ export function TranscriptionDetailPage() {
       const initial = speakerNames[sp.id] ? name[0]?.toUpperCase() ?? sp.initial : unmatched ? String(i + 1) : sp.initial;
       byId[sp.id] = { ...sp, name, initial, avatar: unnamedSpeakersDemo && i === 0 ? "/images/avatar.png" : sp.avatar, you: unnamedSpeakersDemo && i === 0 };
     });
-    extraSpeakers.forEach((sp) => { byId[sp.id] = sp; });
+    extraSpeakers.forEach((sp) => { const name = speakerNames[sp.id] ?? sp.name; byId[sp.id] = { ...sp, name, initial: name[0]?.toUpperCase() ?? sp.initial }; });
+    removedSpeakers.forEach((id) => { delete byId[id]; });
     const segments = contentSegments.flatMap((seg) => {
       const text = seg.text;
       const base = { ...seg, text, speaker: byId[speakerMoves[seg.id] ?? seg.speaker.id] ?? seg.speaker };
@@ -2862,8 +2870,10 @@ export function TranscriptionDetailPage() {
     });
     const used = new Set(segments.map((seg) => seg.speaker.id));
     const speakers = Object.values(byId).filter((sp) => used.has(sp.id));
-    return { segments, speakers };
-  }, [contentSegments, extraSpeakers, speakerMoves, speakerNames, splits, unnamedSpeakersDemo]);
+    /* the panel also lists people added but not yet picked on a block */
+    const managed = Object.values(byId).filter((sp) => used.has(sp.id) || extraSpeakers.some((e) => e.id === sp.id));
+    return { segments, speakers, managed };
+  }, [contentSegments, extraSpeakers, removedSpeakers, speakerMoves, speakerNames, splits, unnamedSpeakersDemo]);
   const displaySegments = (forceSingleSpeaker || forcePlainMono) ? MONO_SEGMENTS : resolved.segments;
   const speakerBlockCount = (speakerId: string) => resolved.segments.filter((seg) => seg.speaker.id === speakerId).length;
   /* two lines of the voice for the dialog: the block itself first, then the next one by the same voice */
@@ -2889,6 +2899,34 @@ export function TranscriptionDetailPage() {
     const count = Object.keys(names).length;
     toast(count === 1 ? `${Object.values(names)[0]} is named` : `${count} speakers named`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
   }
+  const managedSpeakers: ManagedSpeaker[] = resolved.managed.map((sp) => ({ ...sp, blockCount: speakerBlockCount(sp.id) }));
+  const speakersPanelActions = {
+    onRename: (id: string, name: string) => {
+      const before = speakerNames; const from = resolved.managed.find((sp) => sp.id === id);
+      setSpeakerNames((n) => ({ ...n, [id]: name }));
+      toast(`${from?.name ?? "Speaker"} is now ${name}`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
+    },
+    onMerge: (fromId: string, toId: string) => {
+      const from = resolved.managed.find((sp) => sp.id === fromId); const to = resolved.managed.find((sp) => sp.id === toId);
+      if (!from || !to) return;
+      const before = { speakerMoves, removedSpeakers };
+      const n = speakerBlockCount(fromId);
+      setSpeakerMoves((m) => { const next = { ...m }; resolved.segments.forEach((sg) => { if (sg.speaker.id === fromId) next[sg.id] = toId; }); return next; });
+      setRemovedSpeakers((r) => [...r, fromId]);
+      toast(`${from.name} merged into ${to.name}`, { description: n === 1 ? "1 block moved" : `${n} blocks moved`, cancel: { label: "Undo", onClick: () => { setSpeakerMoves(before.speakerMoves); setRemovedSpeakers(before.removedSpeakers); } } });
+    },
+    onRemove: (id: string) => {
+      const from = resolved.managed.find((sp) => sp.id === id); const before = removedSpeakers;
+      setRemovedSpeakers((r) => [...r, id]);
+      toast(`${from?.name ?? "Speaker"} removed`, { cancel: { label: "Undo", onClick: () => setRemovedSpeakers(before) } });
+    },
+    onAdd: (name: string) => {
+      const palette = ["#f59e0b", "#ec4899", "#14b8a6", "#6366f1", "#ef4444"];
+      const added: Speaker = { id: `custom-${Date.now()}`, name, color: palette[extraSpeakers.length % palette.length], initial: name[0]?.toUpperCase() ?? "?" };
+      setExtraSpeakers((list) => [...list, added]);
+      toast(`Added ${name}`, { description: "Pick them on any block to give them lines" });
+    },
+  };
   function pickSpeaker(segmentId: number, choice: SpeakerChoice) {
     const seg = resolved.segments.find((sg) => sg.id === segmentId);
     if (!seg) return;
@@ -4169,6 +4207,11 @@ export function TranscriptionDetailPage() {
           hasSummary={activeTemplateId !== null}
           onSetTemplate={() => { setActiveTab("summary"); setTemplatePickerOpen(true); }}
           onMoveToFolder={moveToFolder}
+          trailing={!isSingleSpeaker && !isJobTranscribing ? (
+            <SpeakersPanel speakers={managedSpeakers} actions={speakersPanelActions} open={speakersPanelOpen} onOpenChange={setSpeakersPanelOpen}>
+              <SpeakersChip speakers={resolved.speakers} />
+            </SpeakersPanel>
+          ) : undefined}
           chips={desktopShell ? (<>
             <MeetingCard meetingId={recordMeetingId} onChange={setRecordMeetingId} dateLabel={(selectedRecord?.dateCreated ?? "Mar 24, 2026 · 10:30 AM").split(/[,·]/)[0].trim()} />
             <span className="text-border">{"\u2022"}</span>
@@ -4373,7 +4416,7 @@ export function TranscriptionDetailPage() {
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
-                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
+                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onManage: () => setSpeakersPanelOpen(true), dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}

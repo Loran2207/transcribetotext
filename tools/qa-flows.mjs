@@ -253,6 +253,35 @@ await flow("Web: a run of words inside a block is handed to another voice", "", 
   await p.evaluate(() => localStorage.removeItem("ttt_demo_unnamed_speakers"));
 });
 
+await flow("Web: the header chip opens the speakers panel; rename, merge and add work from there", "", async ({ p, nav }, expect) => {
+  await p.evaluate(() => localStorage.setItem("ttt_demo_unnamed_speakers", "1"));
+  await nav("/transcriptions/2"); await p.waitForTimeout(900);
+  await expect("the header shows a speakers chip with the count", () => vis(p, "[data-speakers-chip]:has-text('3 speakers')"));
+  await p.click("[data-speakers-chip]"); await p.waitForTimeout(400);
+  await expect("the panel lists every voice with its block count", async () => (await vis(p, "[data-speakers-panel] [data-speaker-manage-row='s3']:has-text('Speaker 3')")) && (await vis(p, "[data-speakers-panel] [data-speaker-manage-row='s3']:has-text('blocks')")));
+  await p.click("[data-rename-speaker='s3']"); await p.fill("input[aria-label='Speaker name']", "Daniel Kim"); await p.keyboard.press("Enter"); await p.waitForTimeout(500);
+  await expect("the renamed voice shows on its blocks in the transcript", () => vis(p, "[data-speaker-trigger]:has-text('Daniel Kim')"));
+  await p.click("[data-add-speaker]"); await p.fill("input[aria-label='New speaker name']", "Priya Patel"); await p.keyboard.press("Enter"); await p.waitForTimeout(400);
+  await expect("a person added by hand appears in the list, not on any block yet", () => vis(p, "[data-speakers-panel] :text('Priya Patel')"));
+  await p.click("[data-more-speaker='s2']"); await p.waitForTimeout(300);
+  await p.hover("[data-slot=dropdown-menu-sub-trigger]"); await p.waitForTimeout(500);
+  await p.click("[data-slot=dropdown-menu-sub-content] [data-slot=dropdown-menu-item]:has-text('Daniel Kim')"); await p.waitForTimeout(600);
+  await expect("after the merge Maria's blocks belong to Daniel and Maria is gone", async () => !(await vis(p, "[data-speaker-trigger]:has-text('Maria Garcia')")) && (await vis(p, "[data-speakers-chip]:has-text('2 speakers')")));
+  await p.keyboard.press("Escape"); await p.waitForTimeout(200);
+  await p.evaluate(() => localStorage.removeItem("ttt_demo_unnamed_speakers"));
+});
+
+await flow("Web: a block's speaker menu has a door to the whole list", "", async ({ p, nav }, expect) => {
+  await p.evaluate(() => localStorage.setItem("ttt_demo_unnamed_speakers", "1"));
+  await nav("/transcriptions/2"); await p.waitForTimeout(900);
+  await p.click("[data-segment-id='4'] [data-speaker-trigger]"); await p.waitForTimeout(400);
+  await expect("the block menu ends with Manage speakers", () => vis(p, "[data-slot=popover-content] [data-manage-speakers]"));
+  await p.click("[data-slot=popover-content] [data-manage-speakers]"); await p.waitForTimeout(500);
+  await expect("it opens the same speakers panel", () => vis(p, "[data-speakers-panel]"));
+  await p.keyboard.press("Escape");
+  await p.evaluate(() => localStorage.removeItem("ttt_demo_unnamed_speakers"));
+});
+
 await b.close();
 const failed = results.filter((r) => r.verdict === "FAIL");
 const faulty = results.filter((r) => r.faults.length);
