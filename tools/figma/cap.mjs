@@ -15,6 +15,43 @@
 import { chromium } from "playwright";
 import { HOIST } from "./hoist.mjs";
 
+/* browser-side: rebuild a paragraph as one block per browser line with the picked words in a span,
+   and anchor the fixed selection bar into it (the converter re-wraps text with its own metrics) */
+function paintSelection(el, text) {
+        const full = el.textContent; const s0 = full.indexOf(text); if (s0 < 0) return; const s1 = s0 + text.length;
+        const nodes = []; const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = tw.nextNode())) nodes.push(n);
+        const locate = (idx) => { let acc = 0; for (const nd of nodes) { const L = nd.textContent.length; if (idx < acc + L) return [nd, idx - acc]; acc += L; } const last = nodes[nodes.length - 1]; return [last, last.textContent.length]; };
+        const words = []; const re = /\S+/g; let m;
+        while ((m = re.exec(full))) {
+          const rr = document.createRange(); const [na, oa] = locate(m.index); const [nb, ob] = locate(m.index + m[0].length);
+          rr.setStart(na, oa); rr.setEnd(nb, ob);
+          words.push({ w: m[0], a: m.index, b: m.index + m[0].length, top: Math.round(rr.getBoundingClientRect().top) });
+        }
+        const lines = []; for (const wd of words) { const L = lines[lines.length - 1]; if (L && L.top === wd.top) L.words.push(wd); else lines.push({ top: wd.top, words: [wd] }); }
+        const esc = (t) => t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+        el.innerHTML = lines.map((L) => {
+          let html = "", open = false;
+          L.words.forEach((wd, i) => {
+            const on = wd.a >= s0 && wd.b <= s1;
+            if (on && !open) { html += '<span style="background:rgba(37,99,235,0.2);border-radius:2px">'; open = true; }
+            if (!on && open) { html += "</span>"; open = false; }
+            html += esc(wd.w) + (i < L.words.length - 1 ? " " : "");
+          });
+          if (open) html += "</span>";
+          return `<div>${html}</div>`;
+        }).join("");
+        /* the bar over the selection is fixed to the viewport; the converter places such
+           layers apart from scrolled text, so for the frame it is anchored to the paragraph */
+        const pill = document.querySelector("[data-selection-pill]");
+        if (pill) {
+          const pr = pill.getBoundingClientRect(), er = el.getBoundingClientRect();
+          el.style.position = "relative";
+          pill.style.position = "absolute"; pill.style.top = (pr.top - er.top) + "px"; pill.style.left = (pr.left - er.left) + "px";
+          el.appendChild(pill);
+        }
+}
+
+
 const CAP = "https://mcp.figma.com/mcp/html-to-design/capture.js";
 const [route, cid, endpoint, name, w = "1512", h = "982"] = process.argv.slice(2);
 const PORT = process.env.PORT || "5173";
@@ -86,7 +123,7 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
     /* select0: the same selection without repainting the paragraph, for a state
        that re-renders the block afterwards (the split preview draws its own frame) */
     const [sid, text] = arg.split("|");
-    await p.evaluate(([sid, text, paint]) => {
+    await p.evaluate(([sid, text, paint, paintSrc]) => {
       const el = document.querySelector(`[data-segment-id='${sid}'] p`); if (!el) return;
       const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node, offset = 0, start = null, end = null;
       while ((node = walker.nextNode())) { const i = node.textContent.indexOf(text); if (i >= 0) { start = [node, i]; end = [node, i + text.length]; break; } offset += node.textContent.length; }
@@ -98,41 +135,15 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
          own font metrics, so for the frame the paragraph is rebuilt as one block per browser
          line, with the selected words in an inline span: the wrapping then survives the trip */
       if (!paint) return;
-      setTimeout(() => {
-        const full = el.textContent; const s0 = full.indexOf(text); if (s0 < 0) return; const s1 = s0 + text.length;
-        const nodes = []; const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = tw.nextNode())) nodes.push(n);
-        const locate = (idx) => { let acc = 0; for (const nd of nodes) { const L = nd.textContent.length; if (idx < acc + L) return [nd, idx - acc]; acc += L; } const last = nodes[nodes.length - 1]; return [last, last.textContent.length]; };
-        const words = []; const re = /\S+/g; let m;
-        while ((m = re.exec(full))) {
-          const rr = document.createRange(); const [na, oa] = locate(m.index); const [nb, ob] = locate(m.index + m[0].length);
-          rr.setStart(na, oa); rr.setEnd(nb, ob);
-          words.push({ w: m[0], a: m.index, b: m.index + m[0].length, top: Math.round(rr.getBoundingClientRect().top) });
-        }
-        const lines = []; for (const wd of words) { const L = lines[lines.length - 1]; if (L && L.top === wd.top) L.words.push(wd); else lines.push({ top: wd.top, words: [wd] }); }
-        const esc = (t) => t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
-        el.innerHTML = lines.map((L) => {
-          let html = "", open = false;
-          L.words.forEach((wd, i) => {
-            const on = wd.a >= s0 && wd.b <= s1;
-            if (on && !open) { html += '<span style="background:rgba(37,99,235,0.2);border-radius:2px">'; open = true; }
-            if (!on && open) { html += "</span>"; open = false; }
-            html += esc(wd.w) + (i < L.words.length - 1 ? " " : "");
-          });
-          if (open) html += "</span>";
-          return `<div>${html}</div>`;
-        }).join("");
-        /* the bar over the selection is fixed to the viewport; the converter places such
-           layers apart from scrolled text, so for the frame it is anchored to the paragraph */
-        const pill = document.querySelector("[data-selection-pill]");
-        if (pill) {
-          const pr = pill.getBoundingClientRect(), er = el.getBoundingClientRect();
-          el.style.position = "relative";
-          pill.style.position = "absolute"; pill.style.top = (pr.top - er.top) + "px"; pill.style.left = (pr.left - er.left) + "px";
-          el.appendChild(pill);
-        }
-      }, 250);
-    }, [sid, text, op === "select"]);
+      setTimeout(() => { new Function("return " + paintSrc)()(el, text); }, 250);
+    }, [sid, text, op === "select", paintSelection.toString()]);
     await p.waitForTimeout(400);
+  }
+  /* paint=<sid>|<text>: repaint the paragraph per browser line now (after select0 and a menu that re-rendered the block) */
+  else if (op === "paint") {
+    const [sid, text] = arg.split("|");
+    await p.evaluate(([sid, text, paintSrc]) => { const el = document.querySelector(`[data-segment-id='${sid}'] p`); if (el) new Function("return " + paintSrc)()(el, text); }, [sid, text, paintSelection.toString()]);
+    await p.waitForTimeout(200);
   }
   /* nav=<path>: walk to another route inside the app, the router way */
   else if (op === "nav") { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, arg); await p.waitForTimeout(900); }
