@@ -62,7 +62,8 @@ const PORT = process.env.PORT || "5173";
 /* a job that has not finished in five minutes is stuck, not slow */
 setTimeout(() => { console.log("submitted watchdog-timeout"); process.exit(2); }, 300000).unref();
 const b = await chromium.launch({ channel: "chrome", args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
-const p = await b.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: 2 });
+/* below 1024px the frame stands for a tablet or a phone: a finger, no hover */
+const p = await b.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: 2, ...( +w < 1024 ? { hasTouch: true, isMobile: true } : {}) });
 /* QA: every console error and uncaught exception is printed at the end, so a broken state is heard, not just seen */
 const faults = [];
 p.on("console", (m) => { if (m.type() === "error") faults.push("console: " + m.text().slice(0, 300)); });

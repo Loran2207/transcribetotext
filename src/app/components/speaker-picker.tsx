@@ -704,13 +704,23 @@ export interface SpeakersPanelActions {
   onAdd: (name: string) => void;
 }
 
+/* true on devices whose primary pointer can hover (mouse, trackpad); false for a finger */
+function useCanHover() {
+  const [can, setCan] = useState<boolean>(() => (typeof window === "undefined" ? true : window.matchMedia("(hover: hover)").matches));
+  useEffect(() => { const mql = window.matchMedia("(hover: hover)"); const on = () => setCan(mql.matches); mql.addEventListener("change", on); return () => mql.removeEventListener("change", on); }, []);
+  return can;
+}
+
 function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: ManagedSpeaker; phone: boolean; actions: SpeakersPanelActions; onAskRemove: (sp: ManagedSpeaker) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(speaker.name);
   const commit = () => { const v = draft.trim(); setEditing(false); if (v && v !== speaker.name) actions.onRename(speaker.id, v); else setDraft(speaker.name); };
   const blocks = speaker.blockCount === 0 ? "Not on any block yet" : speaker.blockCount === 1 ? "1 block" : `${speaker.blockCount} blocks`;
+  /* Kirill 24.09: nothing on the row at rest. A pointer reveals the grey row, the pencil and
+     the dots on hover; a finger has no hover, so it always sees one "..." that holds both. */
+  const touch = phone || !useCanHover();
   return (
-    <div data-speaker-manage-row={speaker.id} className={cn("group/mrow flex items-center gap-3 rounded-xl px-3", phone ? "py-2.5" : "py-2 hover:bg-muted/50")}>
+    <div data-speaker-manage-row={speaker.id} className={cn("group/mrow flex items-center gap-3 rounded-xl px-3", phone ? "py-2.5" : "py-2", !touch && "hover:bg-muted has-[[data-state=open]]:bg-muted")}>
       <SpeakerDot speaker={speaker} />
       {editing ? (
         <Input
@@ -729,10 +739,12 @@ function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: Managed
         </div>
       )}
       {!editing && (
-        <div className={cn("flex shrink-0 items-center gap-0.5", phone ? "" : "opacity-0 transition-opacity group-hover/mrow:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100")}>
-          <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`Rename ${speaker.name}`} data-rename-speaker={speaker.id} onClick={() => setEditing(true)}>
-            <PencilIcon className="size-[14px]" />
-          </Button>
+        <div className={cn("flex shrink-0 items-center gap-0.5", touch ? "" : "opacity-0 transition-opacity group-hover/mrow:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100")}>
+          {!touch && (
+            <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`Rename ${speaker.name}`} data-rename-speaker={speaker.id} onClick={() => setEditing(true)}>
+              <PencilIcon className="size-[14px]" />
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`More for ${speaker.name}`} data-more-speaker={speaker.id}>
@@ -740,6 +752,9 @@ function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: Managed
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[180px]">
+              <DropdownMenuItem className="gap-2" data-rename-speaker-item={speaker.id} onClick={() => setEditing(true)}>
+                <PencilIcon className="size-[15px]" />Rename
+              </DropdownMenuItem>
               <DropdownMenuItem variant="destructive" className="gap-2" data-remove-speaker={speaker.id} onClick={() => onAskRemove(speaker)}>
                 <Icon icon={Delete02Icon} size={15} />Remove
               </DropdownMenuItem>
@@ -862,7 +877,7 @@ export function SpeakersPanel({ speakers, suggestions, actions, open, onOpenChan
       {dialog}
       <Popover open={open} onOpenChange={onOpenChange}>
         {children ? <PopoverTrigger asChild>{children}</PopoverTrigger> : <PopoverTrigger asChild><span className="absolute" aria-hidden /></PopoverTrigger>}
-        <PopoverContent align="start" sideOffset={6} className="w-[320px] p-0" data-speakers-panel="">
+        <PopoverContent align="start" sideOffset={6} className="w-[320px] p-0" data-speakers-panel="" onOpenAutoFocus={(e) => e.preventDefault()}>
           <p className="border-b border-border/60 px-3.5 pt-3 pb-2.5 text-[13px] font-semibold text-foreground">Speakers</p>
           <SpeakersList speakers={speakers} suggestions={suggestions} phone={false} actions={actions} onAskRemove={askRemove} />
         </PopoverContent>
