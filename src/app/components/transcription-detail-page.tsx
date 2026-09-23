@@ -629,7 +629,7 @@ function SelectionHighlightPill({
   position: { x: number; y: number };
   onHighlight: () => void;
   /* when the transcript has several voices: the selected words can be handed to another one */
-  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void };
+  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string };
 }) {
   const [open, setOpen] = useState(false);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
@@ -647,7 +647,7 @@ function SelectionHighlightPill({
       {speaker && (
         <>
           <span className="h-4 w-px bg-border" />
-          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={setOpen} scopeless sheetTitle="Who said this part?">
+          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={setOpen} scopeless sheetTitle="Who said this part?" note={speaker.note}>
             {/* the current voice, not the word "Speaker": you see who has these words now and change it here (Kirill 23.09) */}
             <Button size="sm" variant="ghost" data-selection-speaker="" className={action + " pl-1.5"} onMouseDown={(e) => e.preventDefault()}>
               {speaker.current.avatar
@@ -4441,7 +4441,7 @@ export function TranscriptionDetailPage() {
                     nextTimestamp={displaySegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
-                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onManage: () => setSpeakersPanelOpen(true), onRename: speakersPanelActions.onRename, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
+                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
@@ -4800,7 +4800,14 @@ export function TranscriptionDetailPage() {
         <SelectionHighlightPill
           position={{ x: selectionPill.x, y: selectionPill.y }}
           onHighlight={handleSelectionHighlight}
-          speaker={isSingleSpeaker ? undefined : (() => { const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId); return seg ? { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker } : undefined; })()}
+          speaker={isSingleSpeaker ? undefined : (() => {
+            const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId); if (!seg) return undefined;
+            /* the note appears only when part of the block stays where it is (Kirill 23.09) */
+            const cut = snapToSentences(seg.text, selectionPill.start, selectionPill.end);
+            const rest = cut.start > 0 || cut.end < seg.text.trim().length;
+            const note = rest ? `Only these sentences move to the speaker you pick. The rest of the block stays with ${seg.speaker.name} as its own block.` : undefined;
+            return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note };
+          })()}
         />
       )}
     </div>
