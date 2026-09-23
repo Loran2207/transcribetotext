@@ -8,7 +8,7 @@ import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/n
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, SpeakersChip, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
+import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, SpeakersChip, PencilIcon, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
 import { LanguageSelector, SpeakerSection } from "./transcription-modals";
 import { useNotetakerSettings } from "./desktop/notetaker-settings";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
@@ -728,7 +728,7 @@ function SpeakerLabel({
     >
       {body}
       {/* a pencil, not a chevron: the name reads as editable (Rev, Notta show the same on hover) */}
-      <Icon icon={Edit} size={12} className={`shrink-0 text-muted-foreground transition-opacity ${open ? "opacity-100" : "opacity-45 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100"}`} />
+      <PencilIcon className={`size-[12px] shrink-0 text-muted-foreground transition-opacity ${open ? "opacity-100" : "opacity-45 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100"}`} />
     </button>
   );
   if (control.dialog) {
@@ -1570,7 +1570,7 @@ export function LiveTabsTrailing({ visible, compact = false }: { visible: boolea
   return (
     <div className={`mb-1 ml-auto flex items-center ${compact ? "gap-1.5" : "gap-2"} ${visible ? "" : "invisible pointer-events-none"}`}>
       <TranscriptViewChecks />
-      <WaitsFor hint="The transcript can be edited once the call has ended"><Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled><Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />{compact ? "Edit" : "Edit transcript"}</Button></WaitsFor>
+      <WaitsFor hint="The transcript can be edited once the call has ended"><Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled><PencilIcon className="size-3.5" />{compact ? "Edit" : "Edit transcript"}</Button></WaitsFor>
     </div>
   );
 }
@@ -2480,7 +2480,7 @@ function PageHeader({
           </div>
         )}
         {chips}
-        {trailing && <><span className="text-border max-md:hidden">{"\u2022"}</span>{trailing}</>}
+        {trailing && <><span className="text-border max-md:hidden">{"\u2022"}</span><span className="inline-flex items-center gap-2">{trailing}</span></>}
         {source && (
           <>
             <span className="text-border max-md:hidden">{"\u2022"}</span>
@@ -2927,19 +2927,17 @@ export function TranscriptionDetailPage() {
       setSpeakerNames((n) => ({ ...n, [id]: name }));
       toast(`${from?.name ?? "Speaker"} is now ${name}`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
     },
-    onMerge: (fromId: string, toId: string) => {
-      const from = resolved.managed.find((sp) => sp.id === fromId); const to = resolved.managed.find((sp) => sp.id === toId);
-      if (!from || !to) return;
+    onRemove: (id: string, mergeInto?: string) => {
+      const from = resolved.managed.find((sp) => sp.id === id); if (!from) return;
+      const to = mergeInto ? resolved.managed.find((sp) => sp.id === mergeInto) : undefined;
       const before = { speakerMoves, removedSpeakers };
-      const n = speakerBlockCount(fromId);
-      setSpeakerMoves((m) => { const next = { ...m }; resolved.segments.forEach((sg) => { if (sg.speaker.id === fromId) next[sg.id] = toId; }); return next; });
-      setRemovedSpeakers((r) => [...r, fromId]);
-      toast(`${from.name} merged into ${to.name}`, { description: n === 1 ? "1 block moved" : `${n} blocks moved`, cancel: { label: "Undo", onClick: () => { setSpeakerMoves(before.speakerMoves); setRemovedSpeakers(before.removedSpeakers); } } });
-    },
-    onRemove: (id: string) => {
-      const from = resolved.managed.find((sp) => sp.id === id); const before = removedSpeakers;
+      const n = speakerBlockCount(id);
+      if (to) setSpeakerMoves((m) => { const next = { ...m }; resolved.segments.forEach((sg) => { if (sg.speaker.id === id) next[sg.id] = to.id; }); return next; });
       setRemovedSpeakers((r) => [...r, id]);
-      toast(`${from?.name ?? "Speaker"} removed`, { cancel: { label: "Undo", onClick: () => setRemovedSpeakers(before) } });
+      toast(`${from.name} removed`, {
+        description: to ? (n === 1 ? `1 block moved to ${to.name}` : `${n} blocks moved to ${to.name}`) : undefined,
+        cancel: { label: "Undo", onClick: () => { setSpeakerMoves(before.speakerMoves); setRemovedSpeakers(before.removedSpeakers); } },
+      });
     },
     onAdd: (name: string) => {
       const palette = ["#f59e0b", "#ec4899", "#14b8a6", "#6366f1", "#ef4444"];
@@ -3928,7 +3926,7 @@ export function TranscriptionDetailPage() {
                 </TabsList>
                 <div className={`mb-1 ml-auto flex items-center gap-2 max-md:hidden ${liveTab === "transcript" ? "" : "invisible pointer-events-none"}`}>
                   <TranscriptViewChecks />
-                  <WaitsFor hint="The transcript can be edited once the call has ended"><Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled><Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />Edit transcript</Button></WaitsFor>
+                  <WaitsFor hint="The transcript can be edited once the call has ended"><Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled><PencilIcon className="size-3.5" />Edit transcript</Button></WaitsFor>
                 </div>
               </div>
             </Tabs>
@@ -4228,11 +4226,17 @@ export function TranscriptionDetailPage() {
           hasSummary={activeTemplateId !== null}
           onSetTemplate={() => { setActiveTab("summary"); setTemplatePickerOpen(true); }}
           onMoveToFolder={moveToFolder}
-          trailing={!isSingleSpeaker && !isJobTranscribing ? (
-            <SpeakersPanel speakers={managedSpeakers} actions={speakersPanelActions} open={speakersPanelOpen} onOpenChange={setSpeakersPanelOpen}>
-              <SpeakersChip speakers={resolved.speakers} />
-            </SpeakersPanel>
-          ) : undefined}
+          trailing={(
+            <>
+              {/* the folder as a pill in the meta line on the web too, like the desktop shell (Kirill 23.09) */}
+              {!desktopShell && <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />}
+              {!isSingleSpeaker && !isJobTranscribing && (
+                <SpeakersPanel speakers={managedSpeakers} suggestions={inviteAttendees} actions={speakersPanelActions} open={speakersPanelOpen} onOpenChange={setSpeakersPanelOpen}>
+                  <SpeakersChip speakers={resolved.speakers} />
+                </SpeakersPanel>
+              )}
+            </>
+          )}
           chips={desktopShell ? (<>
             <MeetingCard meetingId={recordMeetingId} onChange={setRecordMeetingId} dateLabel={(selectedRecord?.dateCreated ?? "Mar 24, 2026 · 10:30 AM").split(/[,·]/)[0].trim()} />
             <span className="text-border">{"\u2022"}</span>
@@ -4339,7 +4343,7 @@ export function TranscriptionDetailPage() {
                   <TranscriptViewChecks />
                   {sharedOwner ? null : (
                   <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
-                    <Icon icon={Edit} className="size-3.5" strokeWidth={1.7} />
+                    <PencilIcon className="size-3.5" />
                     Edit transcript
                   </Button>
                   )}

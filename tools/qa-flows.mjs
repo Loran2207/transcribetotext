@@ -264,9 +264,10 @@ await flow("Web: the header chip opens the speakers panel; rename, merge and add
   await p.click("[data-add-speaker]"); await p.fill("input[aria-label='New speaker name']", "Priya Patel"); await p.keyboard.press("Enter"); await p.waitForTimeout(400);
   await expect("a person added by hand appears in the list, not on any block yet", () => vis(p, "[data-speakers-panel] :text('Priya Patel')"));
   await p.click("[data-more-speaker='s2']"); await p.waitForTimeout(300);
-  await p.hover("[data-slot=dropdown-menu-sub-trigger]"); await p.waitForTimeout(500);
-  await p.click("[data-slot=dropdown-menu-sub-content] [data-slot=dropdown-menu-item]:has-text('Daniel Kim')"); await p.waitForTimeout(600);
-  await expect("after the merge Maria's blocks belong to Daniel and Maria is gone", async () => !(await vis(p, "[data-speaker-trigger]:has-text('Maria Garcia')")) && (await vis(p, "[data-speakers-chip]:has-text('2 speakers')")));
+  await p.click("[data-remove-speaker='s2']"); await p.waitForTimeout(400);
+  await expect("removing asks who takes the blocks and the button waits", async () => (await vis(p, "[data-remove-step]:has-text('Remove Maria Garcia?')")) && (await p.$eval("[data-remove-confirm]", (b) => b.disabled)));
+  await p.click("[data-remove-target='s3']"); await p.click("[data-remove-confirm]"); await p.waitForTimeout(600);
+  await expect("after the removal Maria's blocks belong to Daniel and Maria is gone", async () => !(await vis(p, "[data-speaker-trigger]:has-text('Maria Garcia')")) && (await vis(p, "[data-speakers-chip]:has-text('2 speakers')")));
   await p.keyboard.press("Escape"); await p.waitForTimeout(200);
   await p.evaluate(() => localStorage.removeItem("ttt_demo_unnamed_speakers"));
 });
