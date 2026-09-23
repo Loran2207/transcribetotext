@@ -648,8 +648,12 @@ function SelectionHighlightPill({
         <>
           <span className="h-4 w-px bg-border" />
           <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={setOpen} scopeless sheetTitle="Who said this part?">
-            <Button size="sm" variant="ghost" data-selection-speaker="" className={action} onMouseDown={(e) => e.preventDefault()}>
-              <Icon icon={User} className="size-3.5" strokeWidth={1.8} />Speaker
+            {/* the current voice, not the word "Speaker": you see who has these words now and change it here (Kirill 23.09) */}
+            <Button size="sm" variant="ghost" data-selection-speaker="" className={action + " pl-1.5"} onMouseDown={(e) => e.preventDefault()}>
+              {speaker.current.avatar
+                ? <img src={speaker.current.avatar} alt="" className="size-5 rounded-full object-cover" />
+                : <span className="inline-flex size-5 items-center justify-center rounded-full text-[9px] font-semibold text-white" style={{ backgroundColor: speaker.current.color }}>{speaker.current.initial}</span>}
+              <span className="max-w-[140px] truncate text-foreground">{speaker.current.name}</span>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden className="text-muted-foreground"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
             </Button>
           </SpeakerPicker>
@@ -722,7 +726,7 @@ function SpeakerLabel({
     >
       {body}
       {/* a pencil, not a chevron: the name reads as editable (Rev, Notta show the same on hover) */}
-      <Icon icon={PencilEdit02Icon} size={13} className={`shrink-0 text-muted-foreground transition-opacity ${open ? "opacity-100" : "opacity-0 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100"}`} />
+      <Icon icon={PencilEdit02Icon} size={12} className={`shrink-0 text-muted-foreground transition-opacity ${open ? "opacity-100" : "opacity-45 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100"}`} />
     </button>
   );
   if (control.dialog) {
@@ -2474,6 +2478,7 @@ function PageHeader({
           </div>
         )}
         {chips}
+        {trailing && <><span className="text-border">{"\u2022"}</span>{trailing}</>}
         {source && (
           <>
             <span className="text-border max-md:hidden">{"\u2022"}</span>
@@ -2486,7 +2491,6 @@ function PageHeader({
         {!chips && <><span className="text-border">{"\u2022"}</span><span>{meta.dateLabel}</span></>}
         <span className="text-border">{"\u2022"}</span>
         <span>{meta.durationLabel}</span>
-        {trailing && <><span className="text-border">{"\u2022"}</span>{trailing}</>}
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import { Icon } from "./ui/icon";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { useIsPhone } from "./ui/use-mobile";
@@ -741,19 +742,31 @@ export function SpeakersPanel({ speakers, actions, open, onOpenChange, children 
   );
 }
 
-/* the header chip: stacked faces and a count; the one place a new user sees
-   that the people in the recording are a thing you can open and edit */
+/* the header chip: stacked faces and a count, right where the source and the
+   date are; the one place a new user sees that the people in the recording
+   are a thing you can open and edit. Hover names them, click opens the panel. */
 export const SpeakersChip = forwardRef<HTMLButtonElement, { speakers: PickerSpeaker[] } & React.ButtonHTMLAttributes<HTMLButtonElement>>(function SpeakersChip({ speakers, className, ...rest }, ref) {
-  const shown = speakers.slice(0, 3);
+  const shown = speakers.slice(0, 4);
+  const more = speakers.length - shown.length;
+  const names = speakers.map((sp) => sp.name + (sp.you ? " (you)" : "")).join(", ");
   return (
-    <button ref={ref} type="button" data-speakers-chip="" {...rest} className="group/chip -my-1 inline-flex h-7 items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2 text-xs text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground" aria-label="Speakers">
-      <span className="flex -space-x-1.5">
-        {shown.map((sp) => sp.avatar
-          ? <img key={sp.id} src={sp.avatar} alt="" className="size-5 rounded-full border-2 border-background object-cover" />
-          : <span key={sp.id} className="inline-flex size-5 items-center justify-center rounded-full border-2 border-background text-[9px] font-semibold text-white" style={{ backgroundColor: sp.color }}>{sp.initial}</span>)}
-      </span>
-      <span>{speakers.length === 1 ? "1 speaker" : `${speakers.length} speakers`}</span>
-      <Icon icon={PencilEdit02Icon} size={12} className="opacity-0 transition-opacity group-hover/chip:opacity-100 group-data-[state=open]/chip:opacity-100" />
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button ref={ref} type="button" data-speakers-chip="" {...rest} className="group/chip -my-1 inline-flex h-7 items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2 text-xs text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground" aria-label={`Speakers: ${names}`}>
+          <span className="flex -space-x-2">
+            {shown.map((sp) => sp.avatar
+              ? <img key={sp.id} src={sp.avatar} alt="" className="size-6 rounded-full border-2 border-background object-cover" />
+              : <span key={sp.id} className="inline-flex size-6 items-center justify-center rounded-full border-2 border-background text-[10px] font-semibold text-white" style={{ backgroundColor: sp.color }}>{sp.initial}</span>)}
+            {more > 0 && <span className="inline-flex size-6 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-semibold text-muted-foreground">+{more}</span>}
+          </span>
+          <span>{speakers.length === 1 ? "1 speaker" : `${speakers.length} speakers`}</span>
+          <Icon icon={PencilEdit02Icon} size={12} className="opacity-0 transition-opacity group-hover/chip:opacity-100 group-data-[state=open]/chip:opacity-100" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="max-w-[320px]">
+        <span className="block">{names}</span>
+        <span className="block opacity-70">Click to rename, merge or add</span>
+      </TooltipContent>
+    </Tooltip>
   );
 });
