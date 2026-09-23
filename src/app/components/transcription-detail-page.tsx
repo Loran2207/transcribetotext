@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "motion/react";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
 import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon } from "@hugeicons/core-free-icons";
 import { useShell, useDemo } from "./desktop/shell";
@@ -629,7 +630,7 @@ function SelectionHighlightPill({
   position: { x: number; y: number };
   onHighlight: () => void;
   /* when the transcript has several voices: the selected words can be handed to another one */
-  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string; onPreview?: (speakerId: string | null) => void };
+  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string; onPreview?: (speakerId: string | null) => void; onOpen?: (open: boolean) => void; mark?: { start: number; end: number } };
 }) {
   const [open, setOpen] = useState(false);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
@@ -647,7 +648,7 @@ function SelectionHighlightPill({
       {speaker && (
         <>
           <span className="h-4 w-px bg-border" />
-          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={setOpen} scopeless sheetTitle="Who said this part?" note={speaker.note} onPreview={speaker.onPreview}>
+          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={(o) => { setOpen(o); speaker.onOpen?.(o); }} scopeless sheetTitle="Who said this part?" note={speaker.note} onPreview={speaker.onPreview}>
             {/* the current voice, not the word "Speaker": you see who has these words now and change it here (Kirill 23.09) */}
             <Button size="sm" variant="ghost" data-selection-speaker="" className={action + " pl-1.5"} onMouseDown={(e) => e.preventDefault()}>
               {speaker.current.avatar
@@ -772,6 +773,7 @@ function TranscriptSegment({
   commentValue,
   textHighlights,
   splitPreview,
+  selectionMark,
   showActions = true,
   hideSpeaker = false,
   hideTimecodes = false,
@@ -801,8 +803,10 @@ function TranscriptSegment({
   onCommentChange: (v: string) => void;
   commentValue: string;
   textHighlights: { start: number; end: number }[];
-  /* while a speaker row is hovered in "Who said this part?": the part that would move, and the rest that stays */
-  splitPreview?: { start: number; end: number };
+  /* while a speaker row is hovered in "Who said this part?": the block rearranges into what the pick would make */
+  splitPreview?: { start: number; end: number; speaker: Speaker };
+  /* the words picked for a speaker change stay washed while the menu is open (the native selection collapses when the search field takes focus) */
+  selectionMark?: { start: number; end: number };
   showActions?: boolean;
   hideSpeaker?: boolean;
   hideTimecodes?: boolean;
@@ -911,7 +915,7 @@ function TranscriptSegment({
 
         {isEditing ? (
           <EditableLine value={segmentText} onChange={onEditChange} />
-        ) : (
+        ) : splitPreview ? null : (
           <p
             data-transcript-line=""
             className={`mt-1 cursor-text text-sm leading-relaxed transition-colors selection:bg-primary/20 selection:text-foreground ${
@@ -961,17 +965,41 @@ function TranscriptSegment({
                   </mark>
                 );
               })
-            ) : splitPreview ? (
-              /* the pick, previewed: the selected sentences in a dashed frame that breathes, the rest of the block dimmed */
+            ) : selectionMark ? (
+              /* the picked words keep the selection wash while the menu is open */
               <>
-                <span className="text-foreground/40 transition-colors">{segmentText.slice(0, splitPreview.start)}</span>
-                <span data-split-preview="" className="ttt-split-preview rounded-[3px] outline-dashed outline-1 outline-offset-[3px] outline-primary/60">{segmentText.slice(splitPreview.start, splitPreview.end)}</span>
-                <span className="text-foreground/40 transition-colors">{segmentText.slice(splitPreview.end)}</span>
+                {segmentText.slice(0, selectionMark.start)}
+                <span data-selection-mark="" className="rounded-[2px] bg-primary/20">{segmentText.slice(selectionMark.start, selectionMark.end)}</span>
+                {segmentText.slice(selectionMark.end)}
               </>
             ) : (
               renderText(segmentText)
             )}
           </p>
+        )}
+        {!isEditing && splitPreview && (
+          /* the pick, previewed: the block rearranges into what it becomes, the moving part under the hovered voice */
+          <div data-split-preview="">
+            {segmentText.slice(0, splitPreview.start).trim() && (
+              <p className="mt-1 text-sm leading-relaxed text-foreground/85">{segmentText.slice(0, splitPreview.start)}</p>
+            )}
+            <AnimatePresence initial>
+              <motion.div key="split" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }} className="overflow-hidden">
+                <div className="ttt-split-preview my-2 rounded-xl border border-dashed border-primary/50 bg-primary/[0.04] px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    {splitPreview.speaker.avatar
+                      ? <img src={splitPreview.speaker.avatar} alt="" className="size-5 rounded-full object-cover" />
+                      : <span className="flex size-5 items-center justify-center rounded-full text-[9px] font-semibold text-white" style={{ backgroundColor: splitPreview.speaker.color }}>{splitPreview.speaker.initial}</span>}
+                    <span className="text-[13px] font-medium text-foreground">{splitPreview.speaker.name}{splitPreview.speaker.you && <span className="ml-1 font-normal text-muted-foreground">(you)</span>}</span>
+                  </div>
+                  <p className="mt-1 text-sm leading-relaxed text-foreground">{segmentText.slice(splitPreview.start, splitPreview.end)}</p>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+            {segmentText.slice(splitPreview.end).trim() && (
+              <p className="text-sm leading-relaxed text-foreground/85">{segmentText.slice(splitPreview.end)}</p>
+            )}
+          </div>
         )}
         {!hideTimecodes && <span className="mt-2 block text-xs text-muted-foreground tabular-nums max-lg:hidden">{segmentEndTimestamp}</span>}
 
@@ -2777,7 +2805,8 @@ export function TranscriptionDetailPage() {
 
   // Text selection highlight pill
   const [selectionPill, setSelectionPill] = useState<{ x: number; y: number; segmentId: number; start: number; end: number } | null>(null);
-  const [splitPreview, setSplitPreview] = useState<{ segmentId: number; start: number; end: number } | null>(null);
+  const [splitPreview, setSplitPreview] = useState<{ segmentId: number; start: number; end: number; speaker: Speaker } | null>(null);
+  const [selectionMenuOpen, setSelectionMenuOpen] = useState(false);
 
   const pageRef = useRef<HTMLDivElement | null>(null);
   // Segment refs for scroll-to
@@ -4453,7 +4482,8 @@ export function TranscriptionDetailPage() {
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
                     speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
-                    splitPreview={splitPreview && splitPreview.segmentId === seg.id ? { start: splitPreview.start, end: splitPreview.end } : undefined}
+                    splitPreview={splitPreview && splitPreview.segmentId === seg.id ? { start: splitPreview.start, end: splitPreview.end, speaker: splitPreview.speaker } : undefined}
+                    selectionMark={selectionMenuOpen && selectionPill && selectionPill.segmentId === seg.id ? snapToSentences(seg.text, selectionPill.start, selectionPill.end) : undefined}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
@@ -4817,9 +4847,9 @@ export function TranscriptionDetailPage() {
             /* the note appears only when part of the block stays where it is (Kirill 23.09) */
             const cut = snapToSentences(seg.text, selectionPill.start, selectionPill.end);
             const rest = cut.start > 0 || cut.end < seg.text.trim().length;
-            const note = rest ? `Only these sentences move to the speaker you pick. The rest of the block stays with ${seg.speaker.name} as its own block.` : undefined;
-            const onPreview = (id: string | null) => setSplitPreview(id && rest ? { segmentId: seg.id, start: cut.start, end: cut.end } : null);
-            return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note, onPreview };
+            const note = rest ? `Only the selected sentences move. The rest stays with ${seg.speaker.name}.` : undefined;
+            const onPreview = (id: string | null) => { const sp = id ? resolved.speakers.find((x) => x.id === id) : undefined; setSplitPreview(sp && rest && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
+            return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut };
           })()}
         />
       )}

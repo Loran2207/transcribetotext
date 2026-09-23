@@ -1,6 +1,6 @@
 import type React from "react";
 import { forwardRef, useEffect, useRef, useState, type ReactNode } from "react";
-import { Search01Icon, PlusSignIcon, UserAdd01Icon, ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon, Cancel01Icon, MoreHorizontalCircle01Icon, UserGroupIcon, Delete02Icon } from "@hugeicons/core-free-icons";
+import { Search01Icon, PlusSignIcon, UserAdd01Icon, ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon, Cancel01Icon, MoreHorizontalCircle01Icon, UserGroupIcon, Delete02Icon, InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import { Icon } from "./ui/icon";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -99,9 +99,10 @@ function SplitNote({ note, phone = false }: { note: string; phone?: boolean }) {
   if (seen) return null;
   const hide = () => { setSeen(true); try { window.localStorage.setItem(SPLIT_NOTE_KEY, "1"); } catch { /* private mode */ } };
   return (
-    <div data-split-note="" className={cn("flex items-start gap-2 text-[11px] leading-[15px] text-muted-foreground/80", phone ? "mx-4 mb-1 px-1 text-[12px] leading-[16px]" : "border-b border-border/60 px-3.5 py-2")}>
+    <div data-split-note="" className={cn("flex items-start gap-1.5 text-[11px] leading-[15px] text-primary", phone ? "mx-4 mb-1 px-1 text-[12px] leading-[16px]" : "border-b border-border/60 px-3.5 py-2")}>
+      <Icon icon={InformationCircleIcon} size={13} className="mt-px shrink-0" />
       <span className="min-w-0 flex-1">{note}</span>
-      <button type="button" aria-label="Got it" onClick={hide} className="-mr-1 -mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground active:bg-background"><Icon icon={Cancel01Icon} size={13} /></button>
+      <button type="button" aria-label="Got it" onClick={hide} className="-mr-1 -mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-primary/60 hover:bg-primary/[0.06] hover:text-primary active:bg-primary/[0.06]"><Icon icon={Cancel01Icon} size={13} /></button>
     </div>
   );
 }

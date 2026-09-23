@@ -199,5 +199,5 @@
 }
 
 /* a hovered speaker in "Who said this part?": the words that would move breathe softly */
-@keyframes ttt-split-breathe { 0%, 100% { outline-color: color-mix(in oklch, var(--primary) 65%, transparent); } 50% { outline-color: color-mix(in oklch, var(--primary) 25%, transparent); } }
+@keyframes ttt-split-breathe { 0%, 100% { border-color: color-mix(in oklch, var(--primary) 55%, transparent); } 50% { border-color: color-mix(in oklch, var(--primary) 20%, transparent); } }
 .ttt-split-preview { animation: ttt-split-breathe 1.4s ease-in-out infinite; }
