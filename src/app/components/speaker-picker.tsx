@@ -326,6 +326,7 @@ export function SpeakerPicker({
   onRename,
   note,
   onPreview,
+  side,
 }: {
   current: PickerSpeaker;
   speakers: PickerSpeaker[];
@@ -345,6 +346,8 @@ export function SpeakerPicker({
   note?: string;
   /* a row is hovered: the page can show what the pick would do */
   onPreview?: (speakerId: string | null) => void;
+  /* where the menu opens; the selection bar opens it upward so the picked words stay visible */
+  side?: "top" | "bottom";
 }) {
   const isPhone = useIsPhone();
   const [innerOpen, setInnerOpen] = useState(false);
@@ -370,7 +373,7 @@ export function SpeakerPicker({
   return (
     <Popover open={isOpen} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent align="start" sideOffset={6} className="w-[300px] overflow-visible p-0">
+      <PopoverContent align="start" side={side} sideOffset={6} className="w-[300px] overflow-visible p-0">
         <SpeakerMenu current={current} speakers={speakers} blockCount={blockCount} onPick={pick} scopeless={scopeless} onManage={manage} onRename={onRename} note={note} onPreview={onPreview} />
       </PopoverContent>
     </Popover>
