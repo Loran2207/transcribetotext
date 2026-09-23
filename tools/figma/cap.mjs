@@ -53,6 +53,7 @@ if (path && path !== "home") { await p.evaluate((to) => { history.pushState({}, 
 /* STEPS walks to a state: "click=<sel>;wait=<ms>;fill=<sel>|<text>;hover=<sel>;key=<key>", in order */
 for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   const i = step.indexOf("="); const op = step.slice(0, i), arg = step.slice(i + 1);
+  if (op === "enter") continue;
   if (op === "click") await p.click(arg);
   else if (op === "wait") await p.waitForTimeout(+arg);
   else if (op === "store") { const [k, v] = arg.split("|"); await p.evaluate(([k, v]) => { localStorage.setItem(k, v); dispatchEvent(new Event("ttt-banner-hidden")); }, [k, v]); await p.waitForTimeout(600); }
@@ -81,9 +82,11 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   /* scrollto=<sel>: bring one element to the middle of its scroller */
   else if (op === "scrollto") { await p.$eval(arg, (el) => el.scrollIntoView({ block: "center" })); await p.waitForTimeout(300); }
   /* select=<segId>|<text>: select that text inside a transcript block and let the page see it */
-  else if (op === "select") {
+  else if (op === "select" || op === "select0") {
+    /* select0: the same selection without repainting the paragraph, for a state
+       that re-renders the block afterwards (the split preview draws its own frame) */
     const [sid, text] = arg.split("|");
-    await p.evaluate(([sid, text]) => {
+    await p.evaluate(([sid, text, paint]) => {
       const el = document.querySelector(`[data-segment-id='${sid}'] p`); if (!el) return;
       const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node, offset = 0, start = null, end = null;
       while ((node = walker.nextNode())) { const i = node.textContent.indexOf(text); if (i >= 0) { start = [node, i]; end = [node, i + text.length]; break; } offset += node.textContent.length; }
@@ -94,6 +97,7 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
       /* the capture cannot see a native selection, and the converter re-wraps text with its
          own font metrics, so for the frame the paragraph is rebuilt as one block per browser
          line, with the selected words in an inline span: the wrapping then survives the trip */
+      if (!paint) return;
       setTimeout(() => {
         const full = el.textContent; const s0 = full.indexOf(text); if (s0 < 0) return; const s1 = s0 + text.length;
         const nodes = []; const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = tw.nextNode())) nodes.push(n);
@@ -127,7 +131,7 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
           el.appendChild(pill);
         }
       }, 250);
-    }, [sid, text]);
+    }, [sid, text, op === "select"]);
     await p.waitForTimeout(400);
   }
   /* nav=<path>: walk to another route inside the app, the router way */
@@ -138,6 +142,13 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
 }
 await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important}" });
 if (!(process.env.STEPS || "").includes("drag=")) await p.mouse.move(2, 2);
+/* enter=<sel> (a late step): React's onMouseEnter fired after the pointer has left, so a
+   state that lives in JS (a hover preview) is held for the frame the way force= holds :hover */
+for (const step of (process.env.STEPS || "").split(";").filter((x) => x.startsWith("enter="))) {
+  const sel = step.slice(6);
+  await p.$eval(sel, (el) => el.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, relatedTarget: null })));
+  await p.waitForTimeout(250);
+}
 await p.evaluate(async () => { await Promise.all([400,500,600,700,800].map((wt) => document.fonts.load(wt + " 16px Inter"))); await document.fonts.ready; });
 await p.waitForTimeout(700);
 const shell = await p.evaluate(() => ({ mounted: !!document.getElementById("root")?.children.length, overlay: document.querySelectorAll("vite-error-overlay").length }));

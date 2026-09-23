@@ -629,7 +629,7 @@ function SelectionHighlightPill({
   position: { x: number; y: number };
   onHighlight: () => void;
   /* when the transcript has several voices: the selected words can be handed to another one */
-  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string };
+  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string; onPreview?: (speakerId: string | null) => void };
 }) {
   const [open, setOpen] = useState(false);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
@@ -647,7 +647,7 @@ function SelectionHighlightPill({
       {speaker && (
         <>
           <span className="h-4 w-px bg-border" />
-          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={setOpen} scopeless sheetTitle="Who said this part?" note={speaker.note}>
+          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={setOpen} scopeless sheetTitle="Who said this part?" note={speaker.note} onPreview={speaker.onPreview}>
             {/* the current voice, not the word "Speaker": you see who has these words now and change it here (Kirill 23.09) */}
             <Button size="sm" variant="ghost" data-selection-speaker="" className={action + " pl-1.5"} onMouseDown={(e) => e.preventDefault()}>
               {speaker.current.avatar
@@ -771,6 +771,7 @@ function TranscriptSegment({
   onCommentChange,
   commentValue,
   textHighlights,
+  splitPreview,
   showActions = true,
   hideSpeaker = false,
   hideTimecodes = false,
@@ -800,6 +801,8 @@ function TranscriptSegment({
   onCommentChange: (v: string) => void;
   commentValue: string;
   textHighlights: { start: number; end: number }[];
+  /* while a speaker row is hovered in "Who said this part?": the part that would move, and the rest that stays */
+  splitPreview?: { start: number; end: number };
   showActions?: boolean;
   hideSpeaker?: boolean;
   hideTimecodes?: boolean;
@@ -958,6 +961,13 @@ function TranscriptSegment({
                   </mark>
                 );
               })
+            ) : splitPreview ? (
+              /* the pick, previewed: the selected sentences in a dashed frame that breathes, the rest of the block dimmed */
+              <>
+                <span className="text-foreground/40 transition-colors">{segmentText.slice(0, splitPreview.start)}</span>
+                <span data-split-preview="" className="ttt-split-preview rounded-[3px] outline-dashed outline-1 outline-offset-[3px] outline-primary/60">{segmentText.slice(splitPreview.start, splitPreview.end)}</span>
+                <span className="text-foreground/40 transition-colors">{segmentText.slice(splitPreview.end)}</span>
+              </>
             ) : (
               renderText(segmentText)
             )}
@@ -2767,6 +2777,7 @@ export function TranscriptionDetailPage() {
 
   // Text selection highlight pill
   const [selectionPill, setSelectionPill] = useState<{ x: number; y: number; segmentId: number; start: number; end: number } | null>(null);
+  const [splitPreview, setSplitPreview] = useState<{ segmentId: number; start: number; end: number } | null>(null);
 
   const pageRef = useRef<HTMLDivElement | null>(null);
   // Segment refs for scroll-to
@@ -4442,6 +4453,7 @@ export function TranscriptionDetailPage() {
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
                     speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
+                    splitPreview={splitPreview && splitPreview.segmentId === seg.id ? { start: splitPreview.start, end: splitPreview.end } : undefined}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
                     isEditing={editMode}
@@ -4806,7 +4818,8 @@ export function TranscriptionDetailPage() {
             const cut = snapToSentences(seg.text, selectionPill.start, selectionPill.end);
             const rest = cut.start > 0 || cut.end < seg.text.trim().length;
             const note = rest ? `Only these sentences move to the speaker you pick. The rest of the block stays with ${seg.speaker.name} as its own block.` : undefined;
-            return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note };
+            const onPreview = (id: string | null) => setSplitPreview(id && rest ? { segmentId: seg.id, start: cut.start, end: cut.end } : null);
+            return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note, onPreview };
           })()}
         />
       )}

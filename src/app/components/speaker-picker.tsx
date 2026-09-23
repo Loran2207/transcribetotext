@@ -99,7 +99,7 @@ function SplitNote({ note, phone = false }: { note: string; phone?: boolean }) {
   if (seen) return null;
   const hide = () => { setSeen(true); try { window.localStorage.setItem(SPLIT_NOTE_KEY, "1"); } catch { /* private mode */ } };
   return (
-    <div data-split-note="" className={cn("flex items-start gap-2 border-b border-border/60 bg-muted/40 text-[12px] leading-[16px] text-muted-foreground", phone ? "mx-4 mb-2 rounded-xl border px-3 py-2.5 text-[13px] leading-[18px]" : "px-3.5 py-2.5")}>
+    <div data-split-note="" className={cn("flex items-start gap-2 text-[11px] leading-[15px] text-muted-foreground/80", phone ? "mx-4 mb-1 px-1 text-[12px] leading-[16px]" : "border-b border-border/60 px-3.5 py-2")}>
       <span className="min-w-0 flex-1">{note}</span>
       <button type="button" aria-label="Got it" onClick={hide} className="-mr-1 -mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-background hover:text-foreground active:bg-background"><Icon icon={Cancel01Icon} size={13} /></button>
     </div>
@@ -107,7 +107,7 @@ function SplitNote({ note, phone = false }: { note: string; phone?: boolean }) {
 }
 
 /* ── Variant A, desktop: dropdown on the name, side menu for the scope ── */
-function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false, onManage, onRename, note }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean; onManage?: () => void; onRename?: (id: string, name: string) => void; note?: string }) {
+function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false, onManage, onRename, note, onPreview }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean; onManage?: () => void; onRename?: (id: string, name: string) => void; note?: string; onPreview?: (speakerId: string | null) => void }) {
   const { query, setQuery, trimmed, list, canAdd } = useSpeakerQuery(speakers);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -167,8 +167,10 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false,
               role="button"
               tabIndex={isCurrent ? -1 : 0}
               aria-disabled={isCurrent}
-              onMouseEnter={(e) => { if (!isCurrent) arm(s.id, e.currentTarget); }}
-              onFocus={(e) => { if (!isCurrent) arm(s.id, e.currentTarget); }}
+              onMouseEnter={(e) => { if (!isCurrent) { arm(s.id, e.currentTarget); onPreview?.(s.id); } }}
+              onMouseLeave={() => onPreview?.(null)}
+              onFocus={(e) => { if (!isCurrent) { arm(s.id, e.currentTarget); onPreview?.(s.id); } }}
+              onBlur={() => onPreview?.(null)}
               onClick={(e) => { if (!isCurrent) arm(s.id, e.currentTarget, true); }}
               onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !isCurrent) { e.preventDefault(); arm(s.id, e.currentTarget, true); } }}
               className={cn(
@@ -322,6 +324,7 @@ export function SpeakerPicker({
   onManage,
   onRename,
   note,
+  onPreview,
 }: {
   current: PickerSpeaker;
   speakers: PickerSpeaker[];
@@ -339,13 +342,16 @@ export function SpeakerPicker({
   onRename?: (id: string, name: string) => void;
   /* one-time explanation above the list (the split case) */
   note?: string;
+  /* a row is hovered: the page can show what the pick would do */
+  onPreview?: (speakerId: string | null) => void;
 }) {
   const isPhone = useIsPhone();
   const [innerOpen, setInnerOpen] = useState(false);
   const isOpen = open ?? innerOpen;
   const setOpen = onOpenChange ?? setInnerOpen;
-  const pick = (choice: SpeakerChoice) => { setOpen(false); onPick(choice); };
+  const pick = (choice: SpeakerChoice) => { onPreview?.(null); setOpen(false); onPick(choice); };
   const manage = onManage ? () => { setOpen(false); onManage(); } : undefined;
+  useEffect(() => { if (!isOpen) onPreview?.(null); }, [isOpen]);
 
   if (isPhone) {
     return (
@@ -364,7 +370,7 @@ export function SpeakerPicker({
     <Popover open={isOpen} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="start" sideOffset={6} className="w-[300px] overflow-visible p-0">
-        <SpeakerMenu current={current} speakers={speakers} blockCount={blockCount} onPick={pick} scopeless={scopeless} onManage={manage} onRename={onRename} note={note} />
+        <SpeakerMenu current={current} speakers={speakers} blockCount={blockCount} onPick={pick} scopeless={scopeless} onManage={manage} onRename={onRename} note={note} onPreview={onPreview} />
       </PopoverContent>
     </Popover>
   );
