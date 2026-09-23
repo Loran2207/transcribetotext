@@ -3848,19 +3848,22 @@ export function TranscriptionDetailPage() {
     return () => { document.removeEventListener("mouseup", handler); document.removeEventListener("keyup", handler); };
   }, [texts, resolved.segments]);
 
-  /* grow a selection to whole sentences, so "Hi! Hi!" moves as a sentence, never half a word */
-  function snapToSentences(text: string, start: number, end: number) {
+  /* the cut is exactly what was selected, grown only to whole words (Kirill 23.09:
+     "only what I selected moves", never half a word) */
+  function snapToWords(text: string, start: number, end: number) {
     let a = start;
-    while (a > 0 && !/[.!?]\s$/.test(text.slice(Math.max(0, a - 2), a))) a--;
+    while (a > 0 && /\S/.test(text[a - 1] ?? "") && /\S/.test(text[a] ?? "")) a--;
     let b = end;
-    while (b < text.length && !/[.!?]/.test(text[b - 1] ?? "")) b++;
-    return { start: a, end: Math.min(text.length, b) };
+    while (b < text.length && /\S/.test(text[b] ?? "") && /\S/.test(text[b - 1] ?? "")) b++;
+    while (a < b && /\s/.test(text[a])) a++;
+    while (b > a && /\s/.test(text[b - 1])) b--;
+    return { start: a, end: b };
   }
   function handleSelectionSpeaker(choice: SpeakerChoice) {
     if (!selectionPill) return;
     const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId);
     if (!seg) return;
-    const { start, end } = snapToSentences(seg.text, selectionPill.start, selectionPill.end);
+    const { start, end } = snapToWords(seg.text, selectionPill.start, selectionPill.end);
     const before = { splits, extraSpeakers };
     let to: Speaker | undefined;
     if (choice.kind === "add") {
@@ -3874,7 +3877,7 @@ export function TranscriptionDetailPage() {
     setSplits((m) => ({ ...m, [seg.id]: { start, end, speakerId: to!.id } }));
     setSelectionPill(null);
     window.getSelection()?.removeAllRanges();
-    toast(`Moved to ${to.name}`, { description: "The block was split at the sentence", cancel: { label: "Undo", onClick: () => { setSplits(before.splits); setExtraSpeakers(before.extraSpeakers); } } });
+    toast(`Moved to ${to.name}`, { description: "The block was split at the selected words", cancel: { label: "Undo", onClick: () => { setSplits(before.splits); setExtraSpeakers(before.extraSpeakers); } } });
   }
 
   function handleSelectionHighlight() {
@@ -4858,9 +4861,9 @@ export function TranscriptionDetailPage() {
           speaker={isSingleSpeaker ? undefined : (() => {
             const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId); if (!seg) return undefined;
             /* the note appears only when part of the block stays where it is (Kirill 23.09) */
-            const cut = snapToSentences(seg.text, selectionPill.start, selectionPill.end);
+            const cut = snapToWords(seg.text, selectionPill.start, selectionPill.end);
             const rest = cut.start > 0 || cut.end < seg.text.trim().length;
-            const note = rest ? `Only the selected sentences move. The rest stays with ${seg.speaker.name}.` : undefined;
+            const note = rest ? `Only the selected words move. The rest stays with ${seg.speaker.name}.` : undefined;
             const onPreview = (id: string | null) => { const sp = id ? resolved.speakers.find((x) => x.id === id) : undefined; setSplitPreview(sp && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
             return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut };
           })()}
