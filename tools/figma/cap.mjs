@@ -146,6 +146,18 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
     await p.evaluate(([sid, text, paintSrc]) => { const el = document.querySelector(`[data-segment-id='${sid}'] p`); if (el) new Function("return " + paintSrc)()(el, text); }, [sid, text, paintSelection.toString()]);
     await p.waitForTimeout(200);
   }
+  /* anchor=<sel>: a fixed layer (a toast) re-homed into the page flow at its viewport spot,
+     so the converter keeps it where the eye sees it */
+  else if (op === "anchor") {
+    await p.evaluate((sel) => {
+      const el = document.querySelector(sel); if (!el) return;
+      const r = el.getBoundingClientRect();
+      const host = document.createElement("div"); host.style.cssText = `position:absolute;left:${r.left + window.scrollX}px;top:${r.top + window.scrollY}px;width:${r.width}px;height:${r.height}px;z-index:2147483000;`;
+      el.style.cssText += `;position:static;transform:none;width:${r.width}px;height:${r.height}px;opacity:1;`;
+      document.body.appendChild(host); host.appendChild(el);
+    }, arg);
+    await p.waitForTimeout(200);
+  }
   /* nav=<path>: walk to another route inside the app, the router way */
   /* reload: the page again at the same URL, so flags stored a moment ago are read at mount */
   else if (op === "reload") { await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(1200); }
