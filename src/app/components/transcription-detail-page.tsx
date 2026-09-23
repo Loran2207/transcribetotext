@@ -682,7 +682,7 @@ function SelectionHighlightPill({
                 ? <img src={speaker.current.avatar} alt="" className="size-5 rounded-full object-cover" />
                 : <span className="inline-flex size-5 items-center justify-center rounded-full text-[9px] font-semibold text-white" style={{ backgroundColor: speaker.current.color }}>{speaker.current.initial}</span>}
               <span className="max-w-[140px] truncate text-foreground">{speaker.current.name}</span>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden className="text-muted-foreground"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <PencilIcon className="size-[12px] shrink-0 text-muted-foreground" />
             </Button>
           </SpeakerPicker>
         </>
@@ -876,7 +876,7 @@ function TranscriptSegment({
       ref={segmentRef}
       data-segment-id={segment.id}
       data-split-preview={segment.preview ? "" : undefined}
-      className={`group/seg relative -mx-2 grid ${hideSpeaker ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[minmax(160px,220px)_1fr]"} gap-4 rounded-xl px-2 ${continuation ? "pt-0 pb-4 -mt-1" : "py-4"} transition-colors duration-200 max-lg:gap-2 ${segment.preview ? "ttt-split-preview pointer-events-none my-1 border border-dashed border-primary/50 bg-primary/[0.04] " : ""}${
+      className={`group/seg relative -mx-2 grid ${hideSpeaker && !segment.preview ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[minmax(160px,220px)_1fr]"} gap-4 rounded-xl px-2 ${continuation ? "pt-0 pb-4 -mt-1" : "py-4"} transition-colors duration-200 max-lg:gap-2 ${segment.preview ? "ttt-split-preview pointer-events-none my-1 border border-dashed border-primary/50 bg-primary/[0.04] " : ""}${
         highlighted
           ? "bg-primary/8"
           : isSegHighlighted
@@ -895,7 +895,7 @@ function TranscriptSegment({
         />
       )}
 
-      {!hideSpeaker && (
+      {(!hideSpeaker || segment.preview) && (
         <div className={`min-w-0 pt-1 ${continuation ? "max-lg:hidden max-lg:group-hover/seg:block max-lg:group-focus-within/seg:block" : ""}`}>
           <SpeakerLabel
             speaker={segment.speaker}
@@ -2937,6 +2937,8 @@ export function TranscriptionDetailPage() {
     const i = displaySegments.findIndex((seg) => seg.id === splitPreview.segmentId);
     if (i < 0) return displaySegments;
     const seg = displaySegments[i];
+    /* every sentence is picked: nothing splits, the block itself is shown under the hovered voice */
+    if (splitPreview.start === 0 && splitPreview.end >= seg.text.trim().length) return [...displaySegments.slice(0, i), { ...seg, speaker: splitPreview.speaker, preview: true }, ...displaySegments.slice(i + 1)];
     const parts = splitSegment(seg, splitPreview, splitPreview.speaker, displaySegments[i + 1]?.timestamp).map((p) =>
       p.id === seg.id * 1000 + 1 ? { ...p, id: seg.id } : p.id === seg.id * 1000 + 2 ? { ...p, preview: true } : p,
     );
@@ -4519,7 +4521,7 @@ export function TranscriptionDetailPage() {
                     </div>
                   ) : (
                     <motion.div key={seg.id} layout="position" transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
-                      {seg.preview ? (
+                      {seg.preview && seg.id !== splitPreview?.segmentId ? (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }} className="overflow-hidden">
                           {segmentNode}
                         </motion.div>
@@ -4859,7 +4861,7 @@ export function TranscriptionDetailPage() {
             const cut = snapToSentences(seg.text, selectionPill.start, selectionPill.end);
             const rest = cut.start > 0 || cut.end < seg.text.trim().length;
             const note = rest ? `Only the selected sentences move. The rest stays with ${seg.speaker.name}.` : undefined;
-            const onPreview = (id: string | null) => { const sp = id ? resolved.speakers.find((x) => x.id === id) : undefined; setSplitPreview(sp && rest && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
+            const onPreview = (id: string | null) => { const sp = id ? resolved.speakers.find((x) => x.id === id) : undefined; setSplitPreview(sp && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
             return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut };
           })()}
         />
