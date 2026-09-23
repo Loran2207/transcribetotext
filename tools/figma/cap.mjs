@@ -147,6 +147,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
     await p.waitForTimeout(200);
   }
   /* nav=<path>: walk to another route inside the app, the router way */
+  /* reload: the page again at the same URL, so flags stored a moment ago are read at mount */
+  else if (op === "reload") { await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(1200); }
   else if (op === "nav") { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, arg); await p.waitForTimeout(900); }
   /* scrollx=<sel>|<px>: slide a horizontal carousel to a given offset */
   else if (op === "scrollx") { const [sel, px] = arg.split("|"); await p.$eval(sel, (el, x) => { el.scrollLeft = x; }, +px); }

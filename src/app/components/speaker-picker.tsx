@@ -896,7 +896,7 @@ export const SpeakersChip = forwardRef<HTMLButtonElement, { speakers: PickerSpea
   const names = speakers.map((sp) => sp.name + (sp.you ? " (you)" : "")).join(", ");
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger asChild onFocus={(e) => e.preventDefault()}>
         <button ref={ref} type="button" data-speakers-chip="" {...rest} className="inline-flex items-center gap-1.5 rounded-full border border-border py-[3px] pl-[5px] pr-2 text-xs text-foreground transition-colors hover:bg-muted/60 data-[state=open]:bg-muted/60" aria-label={`Speakers: ${names}`}>
           <span className="flex -space-x-1">
             {shown.map((sp) => sp.avatar

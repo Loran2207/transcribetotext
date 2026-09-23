@@ -2966,14 +2966,14 @@ export function TranscriptionDetailPage() {
     const before = speakerNames;
     setSpeakerNames((n) => ({ ...n, ...names }));
     const count = Object.keys(names).length;
-    toast(count === 1 ? `${Object.values(names)[0]} is named` : `${count} speakers named`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
+    toast.success(count === 1 ? `${Object.values(names)[0]} is named` : `${count} speakers named`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
   }
   const managedSpeakers: ManagedSpeaker[] = resolved.managed.map((sp) => ({ ...sp, blockCount: speakerBlockCount(sp.id) }));
   const speakersPanelActions = {
     onRename: (id: string, name: string) => {
       const before = speakerNames; const from = resolved.managed.find((sp) => sp.id === id);
       setSpeakerNames((n) => ({ ...n, [id]: name }));
-      toast(`${from?.name ?? "Speaker"} is now ${name}`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
+      toast.success(`${from?.name ?? "Speaker"} is now ${name}`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
     },
     onRemove: (id: string, mergeInto?: string) => {
       const from = resolved.managed.find((sp) => sp.id === id); if (!from) return;
@@ -3014,11 +3014,11 @@ export function TranscriptionDetailPage() {
       if (!to) return;
       if (choice.kind === "move-all") {
         moveAll(to.id);
-        toast(`Moved ${blocks(fromCount)} to ${to.name}`, { cancel: undo });
+        toast.success(`Moved ${blocks(fromCount)} to ${to.name}`, { cancel: undo });
         return;
       }
       setSpeakerMoves((m) => ({ ...m, [segmentId]: to.id }));
-      toast(`Moved to ${to.name}`, {
+      toast.success(`Moved to ${to.name}`, {
         cancel: undo,
         action: fromCount > 1 ? { label: `All ${blocks(fromCount)} by ${from.name}`, onClick: () => moveAll(to.id) } : undefined,
       });
@@ -3026,7 +3026,7 @@ export function TranscriptionDetailPage() {
     }
     if (choice.kind === "rename") {
       setSpeakerNames((n) => ({ ...n, [from.id]: choice.name }));
-      toast(`${from.name} is now ${choice.name}`, { description: `Renamed in ${blocks(fromCount)}`, cancel: undo });
+      toast.success(`${from.name} is now ${choice.name}`, { description: `Renamed in ${blocks(fromCount)}`, cancel: undo });
       return;
     }
     const palette = ["#f59e0b", "#ec4899", "#14b8a6", "#6366f1", "#ef4444"];
@@ -3877,7 +3877,7 @@ export function TranscriptionDetailPage() {
     setSplits((m) => ({ ...m, [seg.id]: { start, end, speakerId: to!.id } }));
     setSelectionPill(null);
     window.getSelection()?.removeAllRanges();
-    toast(`Moved to ${to.name}`, { description: "The block was split at the selected words", cancel: { label: "Undo", onClick: () => { setSplits(before.splits); setExtraSpeakers(before.extraSpeakers); } } });
+    toast.success(`Moved to ${to.name}`, { description: "The block was split at the selected words", cancel: { label: "Undo", onClick: () => { setSplits(before.splits); setExtraSpeakers(before.extraSpeakers); } } });
   }
 
   function handleSelectionHighlight() {
