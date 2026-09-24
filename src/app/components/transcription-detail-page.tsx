@@ -657,7 +657,7 @@ function SelectionHighlightPill({
   position: { x: number; y: number };
   onHighlight: () => void;
   /* when the transcript has several voices: the selected words can be handed to another one */
-  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string; onPreview?: (speakerId: string | null) => void; onOpen?: (open: boolean) => void; mark?: { start: number; end: number }; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void };
+  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string; onPreview?: (speakerId: string | null) => void; onOpen?: (open: boolean) => void; mark?: { start: number; end: number }; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void; suggestions?: Speaker[] };
 }) {
   const [open, setOpen] = useState(false);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
@@ -675,7 +675,7 @@ function SelectionHighlightPill({
       {speaker && (
         <>
           <span className="h-4 w-px bg-border" />
-          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={(o) => { setOpen(o); speaker.onOpen?.(o); }} scopeless side="top" sheetTitle="Who said this part?" note={speaker.note} onPreview={speaker.onPreview} onRename={speaker.onRename} onRemove={speaker.onRemove}>
+          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={(o) => { setOpen(o); speaker.onOpen?.(o); }} scopeless side="top" sheetTitle="Who said this part?" note={speaker.note} onPreview={speaker.onPreview} onRename={speaker.onRename} onRemove={speaker.onRemove} suggestions={speaker.suggestions}>
             {/* the current voice, not the word "Speaker": you see who has these words now and change it here (Kirill 23.09) */}
             <Button size="sm" variant="ghost" data-selection-speaker="" className={action + " pl-1.5"} onMouseDown={(e) => e.preventDefault()}>
               {speaker.current.avatar
@@ -771,7 +771,7 @@ function SpeakerLabel({
     );
   }
   return (
-    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange} onManage={control.onManage} onRename={control.onRename} onRemove={control.onRemove}>
+    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange} onManage={control.onManage} onRename={control.onRename} onRemove={control.onRemove} suggestions={control.attendees}>
       {trigger}
     </SpeakerPicker>
   );
@@ -4870,7 +4870,7 @@ export function TranscriptionDetailPage() {
             const rest = cut.start > 0 || cut.end < seg.text.trim().length;
             const note = rest ? `Only the selected words move. The rest stays with ${seg.speaker.name}.` : undefined;
             const onPreview = (id: string | null) => { const sp = id ? resolved.speakers.find((x) => x.id === id) : undefined; setSplitPreview(sp && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
-            return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut, onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker };
+            return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut, onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, suggestions: inviteAttendees };
           })()}
         />
       )}
