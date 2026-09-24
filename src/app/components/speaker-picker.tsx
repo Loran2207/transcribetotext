@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Button } from "./ui/button";
 import { useIsPhone } from "./ui/use-mobile";
 import { cn } from "./ui/utils";
+import { ActionSheet, ActionSheetItem } from "./action-sheet";
 
 export interface PickerSpeaker {
   id: string;
@@ -711,7 +712,7 @@ function useCanHover() {
   return can;
 }
 
-function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: ManagedSpeaker; phone: boolean; actions: SpeakersPanelActions; onAskRemove: (sp: ManagedSpeaker) => void }) {
+function SpeakerRow({ speaker, phone, actions, onAskRemove, onAskMore }: { speaker: ManagedSpeaker; phone: boolean; actions: SpeakersPanelActions; onAskRemove: (sp: ManagedSpeaker) => void; onAskMore?: (sp: ManagedSpeaker) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(speaker.name);
   const commit = () => { const v = draft.trim(); setEditing(false); if (v && v !== speaker.name) actions.onRename(speaker.id, v); else setDraft(speaker.name); };
@@ -743,18 +744,25 @@ function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: Managed
           <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`Rename ${speaker.name}`} data-rename-speaker={speaker.id} onClick={() => setEditing(true)}>
             <PencilIcon className="size-[14px]" />
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`More for ${speaker.name}`} data-more-speaker={speaker.id}>
-                <Icon icon={MoreHorizontalCircle01Icon} size={15} />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[180px]">
-              <DropdownMenuItem variant="destructive" className="gap-2" data-remove-speaker={speaker.id} onClick={() => onAskRemove(speaker)}>
-                <Icon icon={Delete02Icon} size={15} />Remove
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {phone && onAskMore ? (
+            /* the phone: the dots open the house bottom sheet (a dropdown has no room on a 390px screen) */
+            <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`More for ${speaker.name}`} data-more-speaker={speaker.id} onClick={() => onAskMore(speaker)}>
+              <Icon icon={MoreHorizontalCircle01Icon} size={15} />
+            </Button>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`More for ${speaker.name}`} data-more-speaker={speaker.id}>
+                  <Icon icon={MoreHorizontalCircle01Icon} size={15} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[180px]">
+                <DropdownMenuItem variant="destructive" className="gap-2" data-remove-speaker={speaker.id} onClick={() => onAskRemove(speaker)}>
+                  <Icon icon={Delete02Icon} size={15} />Remove
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       )}
     </div>
@@ -805,7 +813,7 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
   );
 }
 
-function SpeakersList({ speakers, suggestions = [], phone, actions, onAskRemove }: { speakers: ManagedSpeaker[]; suggestions?: PickerSpeaker[]; phone: boolean; actions: SpeakersPanelActions; onAskRemove: (sp: ManagedSpeaker) => void }) {
+function SpeakersList({ speakers, suggestions = [], phone, actions, onAskRemove, onAskMore }: { speakers: ManagedSpeaker[]; suggestions?: PickerSpeaker[]; phone: boolean; actions: SpeakersPanelActions; onAskRemove: (sp: ManagedSpeaker) => void; onAskMore?: (sp: ManagedSpeaker) => void }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const add = (v: string) => { const t = v.trim(); if (t) actions.onAdd(t); setName(""); setAdding(false); };
@@ -814,7 +822,7 @@ function SpeakersList({ speakers, suggestions = [], phone, actions, onAskRemove 
   return (
     <>
       <div className={cn("p-1.5", phone ? "max-h-[60vh] overflow-y-auto px-2.5" : "max-h-[min(52vh,380px)] overflow-y-auto")}>
-        {speakers.map((sp) => <SpeakerRow key={sp.id} speaker={sp} phone={phone} actions={actions} onAskRemove={onAskRemove} />)}
+        {speakers.map((sp) => <SpeakerRow key={sp.id} speaker={sp} phone={phone} actions={actions} onAskRemove={onAskRemove} onAskMore={onAskMore} />)}
       </div>
       <div className={cn("border-t border-border/60 p-1.5", phone && "px-2.5 pb-[calc(8px+env(safe-area-inset-bottom))]")}>
         {adding ? (
@@ -849,11 +857,23 @@ export function SpeakersPanel({ speakers, suggestions, actions, open, onOpenChan
   const isPhone = useIsPhone();
   const [removing, setRemoving] = useState<ManagedSpeaker | null>(null);
   const askRemove = (sp: ManagedSpeaker) => { onOpenChange(false); setRemoving(sp); };
+  /* the phone: the row's dots open the house action sheet for that voice */
+  const [moreFor, setMoreFor] = useState<ManagedSpeaker | null>(null);
+  const askMore = (sp: ManagedSpeaker) => { onOpenChange(false); setMoreFor(sp); };
+  const blocksOf = (sp: ManagedSpeaker) => (sp.blockCount === 0 ? "Not on any block yet" : sp.blockCount === 1 ? "1 block" : `${sp.blockCount} blocks`);
+  const moreSheet = moreFor && (
+    <ActionSheet open onOpenChange={(o) => { if (!o) setMoreFor(null); }} mark={<SpeakerDot speaker={moreFor} />} title={moreFor.name} kind={blocksOf(moreFor)}>
+      <span data-speaker-sheet={moreFor.id} className="contents">
+        <ActionSheetItem icon={Delete02Icon} label="Remove" destructive onClick={() => { const sp = moreFor; setMoreFor(null); setRemoving(sp); }} />
+      </span>
+    </ActionSheet>
+  );
   const dialog = <RemoveSpeakerDialog speaker={removing} others={speakers.filter((o) => o.id !== removing?.id)} open={removing !== null} onOpenChange={(o) => { if (!o) setRemoving(null); }} onConfirm={(id, to) => actions.onRemove(id, to)} />;
   if (isPhone) {
     return (
       <>
         {dialog}
+        {moreSheet}
         {children && <span onClick={() => onOpenChange(true)} className="contents">{children}</span>}
         <Drawer open={open} onOpenChange={onOpenChange}>
           <DrawerContent className="[&>div:first-child]:hidden">
@@ -861,7 +881,7 @@ export function SpeakersPanel({ speakers, suggestions, actions, open, onOpenChan
               <DrawerTitle className="text-[17px] font-semibold">Speakers</DrawerTitle>
               <button type="button" aria-label="Close" onClick={() => onOpenChange(false)} className="-mr-1 flex size-8 items-center justify-center rounded-full text-muted-foreground active:bg-muted/60"><Icon icon={Cancel01Icon} size={18} /></button>
             </DrawerHeader>
-            <SpeakersList speakers={speakers} suggestions={suggestions} phone actions={actions} onAskRemove={askRemove} />
+            <SpeakersList speakers={speakers} suggestions={suggestions} phone actions={actions} onAskRemove={askRemove} onAskMore={askMore} />
           </DrawerContent>
         </Drawer>
       </>
