@@ -2996,6 +2996,7 @@ export function TranscriptionDetailPage() {
       const added: Speaker = { id: `custom-${Date.now()}`, name, color: palette[extraSpeakers.length % palette.length], initial: name[0]?.toUpperCase() ?? "?" };
       setExtraSpeakers((list) => [...list, added]);
       toast(`Added ${name}`, { description: "Pick them on any block to give them lines" });
+      return added.id;
     },
   };
   function pickSpeaker(segmentId: number, choice: SpeakerChoice) {
@@ -3022,10 +3023,8 @@ export function TranscriptionDetailPage() {
         return;
       }
       setSpeakerMoves((m) => ({ ...m, [segmentId]: to.id }));
-      toast.success(`Moved to ${to.name}`, {
-        cancel: undo,
-        action: fromCount > 1 ? { label: `All ${blocks(fromCount)} by ${from.name}`, onClick: () => moveAll(to.id) } : undefined,
-      });
+      /* the scope was already asked in the menu (only this block / all blocks): the toast only undoes */
+      toast.success(`Moved to ${to.name}`, { cancel: undo });
       return;
     }
     if (choice.kind === "rename") {
@@ -3038,10 +3037,7 @@ export function TranscriptionDetailPage() {
     const added: Speaker = { id, name: choice.name, color: palette[extraSpeakers.length % palette.length], initial: choice.name[0]?.toUpperCase() ?? "?" };
     setExtraSpeakers((list) => [...list, added]);
     setSpeakerMoves((m) => ({ ...m, [segmentId]: id }));
-    toast(`Added ${choice.name}`, {
-      cancel: undo,
-      action: fromCount > 1 ? { label: `All ${blocks(fromCount)} by ${from.name}`, onClick: () => moveAll(id) } : undefined,
-    });
+    toast.success(`Added ${choice.name}`, { cancel: undo });
   }
   const isSingleSpeaker = forceSingleSpeaker || forcePlainMono || new Set(displaySegments.map((seg) => seg.speaker.id)).size <= 1;
 
@@ -4441,7 +4437,7 @@ export function TranscriptionDetailPage() {
               <Button variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium text-primary hover:text-primary" onClick={() => setNameSpeakersOpen(true)}>Name {unnamedVoices.length === 1 ? "the speaker" : "speakers"}</Button>
             </div>
           )}
-          <RemoveSpeakerDialog speaker={removeTarget} others={managedSpeakers.filter((o) => o.id !== removeTarget?.id)} open={removeTarget !== null} onOpenChange={(o) => { if (!o) setRemoveTarget(null); }} onConfirm={(id, to) => speakersPanelActions.onRemove(id, to)} />
+          <RemoveSpeakerDialog speaker={removeTarget} others={managedSpeakers.filter((o) => o.id !== removeTarget?.id)} open={removeTarget !== null} onOpenChange={(o) => { if (!o) setRemoveTarget(null); }} onConfirm={(id, to) => speakersPanelActions.onRemove(id, to)} onAdd={speakersPanelActions.onAdd} suggestions={inviteAttendees} />
           {speakerDialogDemo && (
             <NameSpeakersDialog open={nameSpeakersOpen} onOpenChange={setNameSpeakersOpen} voices={unnamedVoices.map((sp) => ({ speaker: sp, quotes: quotesFor(sp.id), blockCount: speakerBlockCount(sp.id) }))} attendees={inviteAttendees} playing={isPlayerPlaying} onPlay={playQuote} onPause={pauseQuote} onSave={saveSpeakerNames} />
           )}

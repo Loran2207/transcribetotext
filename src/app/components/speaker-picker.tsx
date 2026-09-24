@@ -7,7 +7,6 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Input } from "./ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Button } from "./ui/button";
 import { useIsPhone } from "./ui/use-mobile";
 import { cn } from "./ui/utils";
@@ -109,6 +108,31 @@ function RenameField({ speaker, draft, setDraft, onCommit, onCancel, phone = fal
   );
 }
 
+/* Adding a voice: the same field as renaming, empty, with the invite offers under it.
+   One shape in every list (Kirill 24.09: "the field appears at the bottom, that is all"). */
+function AddSpeakerField({ offers, onAdd, onCancel, phone = false }: { offers: PickerSpeaker[]; onAdd: (name: string) => void; onCancel: () => void; phone?: boolean }) {
+  const [name, setName] = useState("");
+  const keep = (e: React.MouseEvent) => e.preventDefault();
+  const commit = () => { const t = name.trim(); if (t) onAdd(t); };
+  const q = name.trim().toLowerCase();
+  const shown = offers.filter((a) => !q || a.name.toLowerCase().includes(q));
+  return (
+    <div data-adding-speaker="">
+      <div className={cn("flex items-center rounded-xl px-3 py-1.5", phone ? "gap-3" : "gap-2.5")}>
+        <span className={cn("inline-flex shrink-0 items-center justify-center rounded-full border border-dashed border-border text-muted-foreground", phone ? "size-7" : "size-6")}><Icon icon={PlusSignIcon} size={12} /></span>
+        <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="New speaker's name" aria-label="New speaker name" onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") onCancel(); e.stopPropagation(); }} className={cn("min-w-0 flex-1", phone ? "h-10 rounded-xl px-3 text-[14px]" : "h-8 rounded-[7px] px-2 text-[13px]")} />
+        <button type="button" data-add-save="" aria-label="Add" onMouseDown={keep} onClick={commit} disabled={!name.trim()} className={cn("flex shrink-0 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/[0.08] active:bg-primary/[0.08] disabled:opacity-40", phone ? "size-8" : "size-7")}>
+          <Icon icon={Tick02Icon} size={phone ? 17 : 15} />
+        </button>
+        <button type="button" data-add-cancel="" aria-label="Cancel" onMouseDown={keep} onClick={onCancel} className={cn("flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-muted", phone ? "size-8" : "size-7")}>
+          <Icon icon={Cancel01Icon} size={phone ? 15 : 13} />
+        </button>
+      </div>
+      <InviteOffers offers={shown} onPick={(a) => onAdd(a.name)} phone={phone} />
+    </div>
+  );
+}
+
 /* People on the invite who have no voice yet: one tap instead of typing. The same rows in
    every list (the panel, the block menu, "Who said this part?"). */
 function InviteOffers({ offers, onPick, phone = false }: { offers: PickerSpeaker[]; onPick: (a: PickerSpeaker) => void; phone?: boolean }) {
@@ -153,7 +177,7 @@ function useCanHover() {
 }
 
 /* ── Variant A, desktop: dropdown on the name, side menu for the scope ── */
-function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false, onManage, onRename, onRemove, note, onPreview, suggestions = [] }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean; onManage?: () => void; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void; note?: string; onPreview?: (speakerId: string | null) => void; suggestions?: PickerSpeaker[] }) {
+function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false, onManage, onRename, onRemove, note, onPreview, suggestions = [] }: { current: PickerSpeaker | null; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean; onManage?: () => void; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void; note?: string; onPreview?: (speakerId: string | null) => void; suggestions?: PickerSpeaker[] }) {
   const canHover = useCanHover();
   /* Kirill 24.09: every list of voices manages them the same way: a pencil and an x on the row */
   const reveal = canHover ? "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100" : "";
@@ -192,16 +216,16 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false,
           autoFocus
           value={query}
           onChange={(e) => { setQuery(e.target.value); pinned.current = false; setArmed(null); }}
-          placeholder={addMode ? "New speaker's name" : "Search or type a name"}
+          placeholder="Search or type a name"
           aria-label="Search or type a name"
           className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground/60"
         />
       </div>
       {note && <SplitNote note={note} />}
-      <div className="p-1.5">
+      <div className={cn("p-1.5", list.length === 0 && canAdd && "hidden")}>
         {list.length > 0 && <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground">{scopeless ? "Who said this part?" : "Speakers"}</p>}
         {list.map((s) => {
-          const isCurrent = s.id === current.id;
+          const isCurrent = s.id === current?.id;
           if (editing === s.id) {
             return <RenameField key={s.id} speaker={s} draft={draft} setDraft={setDraft} onCommit={() => commitRename(s.id)} onCancel={() => setEditing(null)} />;
           }
@@ -248,8 +272,9 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false,
         {list.length === 0 && !canAdd && <p className="px-3 py-6 text-center text-[13px] text-muted-foreground">No one by that name</p>}
       </div>
       <div className="border-t border-border/60 p-1.5">
-        {(addMode || trimmed) && <InviteOffers offers={offersFor(suggestions, speakers, trimmed)} onPick={(a) => (scopeless ? onPick({ kind: "add", name: a.name }) : setQuery(a.name))} />}
-        {canAdd ? (
+        {addMode ? (
+          <AddSpeakerField offers={offersFor(suggestions, speakers, "")} onAdd={(name) => { setAddMode(false); if (scopeless) onPick({ kind: "add", name }); else { setQuery(name); } }} onCancel={() => setAddMode(false)} />
+        ) : canAdd ? (
           <button
             type="button"
             data-add-speaker=""
@@ -263,8 +288,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false,
             {!scopeless && <Icon icon={ArrowRight01Icon} size={14} className={cn("shrink-0 text-primary/70 transition-opacity", armed === "add" ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")} />}
           </button>
         ) : (
-          /* always a way in (Kirill 23.09): with nothing typed the row hands you the search field */
-          <button type="button" data-add-speaker="" onClick={() => { setAddMode(true); search.current?.focus(); }} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] font-medium text-primary transition-colors hover:bg-primary/[0.06]">
+          <button type="button" data-add-speaker="" onClick={() => setAddMode(true)} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] font-medium text-primary transition-colors hover:bg-primary/[0.06]">
             <Icon icon={PlusSignIcon} size={15} className="shrink-0" />
             <span className="min-w-0 flex-1 truncate">Add a new speaker</span>
           </button>
@@ -277,7 +301,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false,
           onMouseEnter={stay}
           onMouseLeave={leave}
         >
-          <ScopeRows current={current} blockCount={blockCount} onPick={(scope) => onPick(choiceFor(target, scope))} />
+          {current && <ScopeRows current={current} blockCount={blockCount} onPick={(scope) => onPick(choiceFor(target, scope))} />}
         </div>
       )}
     </div>
@@ -318,7 +342,7 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeles
           <div className="px-4 pb-2">
             <div className="flex h-10 items-center gap-2 rounded-xl bg-muted/50 px-3">
               <Icon icon={Search01Icon} size={15} className="shrink-0 text-muted-foreground/60" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} ref={search} placeholder={addMode ? "New speaker's name" : "Search or type a name"} aria-label="Search or type a name" className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/60" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} ref={search} placeholder="Search or type a name" aria-label="Search or type a name" className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/60" />
             </div>
           </div>
           <div className="px-4">
@@ -348,13 +372,14 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeles
             {list.length === 0 && !canAdd && <p className="px-3 py-8 text-center text-[13px] text-muted-foreground">No one by that name</p>}
           </div>
           <div className="mt-2 border-t border-border/60 px-4 py-2 pb-[calc(8px+env(safe-area-inset-bottom))]">
-            {(addMode || trimmed) && <InviteOffers phone offers={offersFor(suggestions, speakers, trimmed)} onPick={(a) => (scopeless ? onPick({ kind: "add", name: a.name }) : setTarget({ name: a.name }))} />}
-            {canAdd ? (
+            {addMode ? (
+              <AddSpeakerField phone offers={offersFor(suggestions, speakers, "")} onAdd={(name) => { setAddMode(false); scopeless ? onPick({ kind: "add", name }) : setTarget({ name }); }} onCancel={() => setAddMode(false)} />
+            ) : canAdd ? (
               <button type="button" data-add-speaker="" onClick={() => (scopeless ? onPick({ kind: "add", name: trimmed }) : setTarget({ name: trimmed }))} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-primary transition-colors active:bg-muted/60">
                 <Icon icon={PlusSignIcon} size={15} /><span>Add <span className="font-semibold">{trimmed}</span> as a new speaker</span>
               </button>
             ) : (
-              <button type="button" data-add-speaker="" onClick={() => { setAddMode(true); search.current?.focus(); }} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-primary transition-colors active:bg-muted/60">
+              <button type="button" data-add-speaker="" onClick={() => setAddMode(true)} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-primary transition-colors active:bg-muted/60">
                 <Icon icon={PlusSignIcon} size={15} /><span>Add a new speaker</span>
               </button>
             )}
@@ -761,7 +786,7 @@ export interface SpeakersPanelActions {
   onRename: (id: string, name: string) => void;
   /* remove a voice; when it has blocks they move to `mergeInto` */
   onRemove: (id: string, mergeInto?: string) => void;
-  onAdd: (name: string) => void;
+  onAdd: (name: string) => string | void;
 }
 
 function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: ManagedSpeaker; phone: boolean; actions: SpeakersPanelActions; onAskRemove: (sp: ManagedSpeaker) => void }) {
@@ -800,10 +825,11 @@ function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: Managed
 /* Removing a voice: its blocks cannot vanish. A dialog (a sheet on the phone)
    with the house select: pick who takes the blocks, read what will happen,
    confirm. Kirill 23.09: a separate dialog, not a step inside the panel. */
-export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onConfirm }: { speaker: ManagedSpeaker | null; others: ManagedSpeaker[]; open: boolean; onOpenChange: (o: boolean) => void; onConfirm: (id: string, mergeInto?: string) => void }) {
+export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onConfirm, onAdd, suggestions = [] }: { speaker: ManagedSpeaker | null; others: ManagedSpeaker[]; open: boolean; onOpenChange: (o: boolean) => void; onConfirm: (id: string, mergeInto?: string) => void; onAdd?: (name: string) => string | void; suggestions?: PickerSpeaker[] }) {
   const isPhone = useIsPhone();
+  /* nothing chosen until the user picks (Kirill 24.09): the list below is the same speaker list as everywhere */
   const [target, setTarget] = useState<string>("");
-  useEffect(() => { if (open) setTarget(others[0]?.id ?? ""); }, [open, speaker?.id]);
+  useEffect(() => { if (open) setTarget(""); }, [open, speaker?.id]);
   if (!speaker) return null;
   const needsTarget = speaker.blockCount > 0 && others.length > 0;
   const to = others.find((o) => o.id === target);
@@ -818,19 +844,17 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
       <div data-remove-dialog="" className="flex flex-col gap-3">
         {needsTarget ? (
           <>
-            <p className="text-[13px] text-muted-foreground">{speaker.name} has {blocks} in this transcript. Pick who said them.</p>
-            <Select value={target} onValueChange={setTarget}>
-              <SelectTrigger data-remove-target-trigger="" className="h-10 w-full rounded-[12px] border-input text-[13px]">
-                <SelectValue placeholder="Choose a speaker" />
-              </SelectTrigger>
-              <SelectContent>
-                {others.map((o) => (
-                  <SelectItem key={o.id} value={o.id} data-remove-target={o.id}>
-                    <span className="flex items-center gap-2.5"><SpeakerDot speaker={o} /><span className="truncate">{o.name}{o.you ? " (you)" : ""}</span></span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <p className="text-[13px] text-muted-foreground">{speaker.name} has {blocks} in this transcript. Who said them?</p>
+            <div data-remove-target-list="" className="max-h-[300px] overflow-y-auto rounded-xl border border-border">
+              <SpeakerMenu
+                current={to ?? null}
+                speakers={others}
+                blockCount={0}
+                scopeless
+                suggestions={suggestions}
+                onPick={(c) => { if (c.kind === "move") setTarget(c.speakerId); else if (c.kind === "add" && onAdd) { const id = onAdd(c.name); if (id) setTarget(id); } }}
+              />
+            </div>
             {to && <p className="text-[13px] text-foreground">{blocks} will move to <span className="font-medium">{to.name}</span>. {speaker.name} disappears from the list.</p>}
           </>
         ) : (
@@ -847,6 +871,7 @@ function SpeakersList({ speakers, suggestions = [], phone, actions, onAskRemove 
   const [addMode, setAddMode] = useState(false);
   const search = useRef<HTMLInputElement>(null);
   const add = (name: string) => { const t = name.trim(); if (t) actions.onAdd(t); setQuery(""); setAddMode(false); };
+  void search;
   const shown = list as ManagedSpeaker[];
   return (
     <>
@@ -854,28 +879,29 @@ function SpeakersList({ speakers, suggestions = [], phone, actions, onAskRemove 
         <div className="px-4 pb-2">
           <div className="flex h-10 items-center gap-2 rounded-xl bg-muted/50 px-3">
             <Icon icon={Search01Icon} size={15} className="shrink-0 text-muted-foreground/60" />
-            <input ref={search} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={addMode ? "New speaker's name" : "Search or type a name"} aria-label="Search or type a name" className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/60" />
+            <input ref={search} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search or type a name" aria-label="Search or type a name" className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/60" />
           </div>
         </div>
       ) : (
         <div className="flex items-center gap-2 border-b border-border/60 px-3.5 py-2.5">
           <Icon icon={Search01Icon} size={14} className="shrink-0 text-muted-foreground/60" />
-          <input ref={search} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={addMode ? "New speaker's name" : "Search or type a name"} aria-label="Search or type a name" className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground/60" />
+          <input ref={search} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search or type a name" aria-label="Search or type a name" className="min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground/60" />
         </div>
       )}
-      <div className={cn("p-1.5", phone ? "max-h-[52vh] overflow-y-auto px-2.5" : "max-h-[min(52vh,380px)] overflow-y-auto")}>
+      <div className={cn("p-1.5", phone ? "max-h-[52vh] overflow-y-auto px-2.5" : "max-h-[min(52vh,380px)] overflow-y-auto", shown.length === 0 && canAdd && "hidden")}>
         {shown.map((sp) => <SpeakerRow key={sp.id} speaker={sp} phone={phone} actions={actions} onAskRemove={onAskRemove} />)}
         {shown.length === 0 && !canAdd && <p className="px-3 py-6 text-center text-[13px] text-muted-foreground">No one by that name</p>}
       </div>
       <div className={cn("border-t border-border/60 p-1.5", phone && "px-2.5 pb-[calc(8px+env(safe-area-inset-bottom))]")}>
-        {(addMode || trimmed) && <InviteOffers phone={phone} offers={offersFor(suggestions, speakers, trimmed)} onPick={(a) => add(a.name)} />}
-        {canAdd ? (
+        {addMode ? (
+          <AddSpeakerField phone={phone} offers={offersFor(suggestions, speakers, "")} onAdd={add} onCancel={() => setAddMode(false)} />
+        ) : canAdd ? (
           <button type="button" data-add-speaker="" onClick={() => add(trimmed)} className={cn("flex w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-primary transition-colors hover:bg-primary/[0.06] active:bg-primary/[0.06]", phone ? "py-2.5 text-[14px]" : "py-2 text-[13px]")}>
             <Icon icon={PlusSignIcon} size={15} className="shrink-0" />
             <span className="min-w-0 flex-1 truncate">Add <span className="font-semibold">{trimmed}</span> as a new speaker</span>
           </button>
         ) : (
-          <button type="button" data-add-speaker="" onClick={() => { setAddMode(true); search.current?.focus(); }} className={cn("flex w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-primary transition-colors hover:bg-primary/[0.06] active:bg-primary/[0.06]", phone ? "py-2.5 text-[14px]" : "py-2 text-[13px]")}>
+          <button type="button" data-add-speaker="" onClick={() => setAddMode(true)} className={cn("flex w-full items-center gap-2.5 rounded-xl px-3 text-left font-medium text-primary transition-colors hover:bg-primary/[0.06] active:bg-primary/[0.06]", phone ? "py-2.5 text-[14px]" : "py-2 text-[13px]")}>
             <Icon icon={PlusSignIcon} size={15} className="shrink-0" />
             <span className="min-w-0 flex-1 truncate">Add a new speaker</span>
           </button>
@@ -890,7 +916,7 @@ export function SpeakersPanel({ speakers, suggestions, actions, open, onOpenChan
   const [removing, setRemoving] = useState<ManagedSpeaker | null>(null);
   /* the page may own the Remove dialog (it also serves the block menus); otherwise the panel does */
   const askRemove = (sp: ManagedSpeaker) => { onOpenChange(false); if (onAskRemove) onAskRemove(sp); else setRemoving(sp); };
-  const dialog = onAskRemove ? null : <RemoveSpeakerDialog speaker={removing} others={speakers.filter((o) => o.id !== removing?.id)} open={removing !== null} onOpenChange={(o) => { if (!o) setRemoving(null); }} onConfirm={(id, to) => actions.onRemove(id, to)} />;
+  const dialog = onAskRemove ? null : <RemoveSpeakerDialog speaker={removing} others={speakers.filter((o) => o.id !== removing?.id)} open={removing !== null} onOpenChange={(o) => { if (!o) setRemoving(null); }} onConfirm={(id, to) => actions.onRemove(id, to)} onAdd={actions.onAdd} suggestions={suggestions} />;
   if (isPhone) {
     return (
       <>
