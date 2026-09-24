@@ -716,8 +716,8 @@ function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: Managed
   const [draft, setDraft] = useState(speaker.name);
   const commit = () => { const v = draft.trim(); setEditing(false); if (v && v !== speaker.name) actions.onRename(speaker.id, v); else setDraft(speaker.name); };
   const blocks = speaker.blockCount === 0 ? "Not on any block yet" : speaker.blockCount === 1 ? "1 block" : `${speaker.blockCount} blocks`;
-  /* Kirill 24.09: nothing on the row at rest. A pointer reveals the grey row, the pencil and
-     the dots on hover; a finger has no hover, so it always sees one "..." that holds both. */
+  /* Kirill 24.09: nothing on the row at rest for a pointer; hover paints the grey row and
+     reveals the pencil and the dots. A finger has no hover, so it always sees both. */
   const touch = phone || !useCanHover();
   return (
     <div data-speaker-manage-row={speaker.id} className={cn("group/mrow flex items-center gap-3 rounded-xl px-3", phone ? "py-2.5" : "py-2", !touch && "hover:bg-muted has-[[data-state=open]]:bg-muted")}>
@@ -740,11 +740,9 @@ function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: Managed
       )}
       {!editing && (
         <div className={cn("flex shrink-0 items-center gap-0.5", touch ? "" : "opacity-0 transition-opacity group-hover/mrow:opacity-100 focus-within:opacity-100 has-[[data-state=open]]:opacity-100")}>
-          {!touch && (
-            <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`Rename ${speaker.name}`} data-rename-speaker={speaker.id} onClick={() => setEditing(true)}>
-              <PencilIcon className="size-[14px]" />
-            </Button>
-          )}
+          <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`Rename ${speaker.name}`} data-rename-speaker={speaker.id} onClick={() => setEditing(true)}>
+            <PencilIcon className="size-[14px]" />
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`More for ${speaker.name}`} data-more-speaker={speaker.id}>
@@ -752,9 +750,6 @@ function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: Managed
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[180px]">
-              <DropdownMenuItem className="gap-2" data-rename-speaker-item={speaker.id} onClick={() => setEditing(true)}>
-                <PencilIcon className="size-[15px]" />Rename
-              </DropdownMenuItem>
               <DropdownMenuItem variant="destructive" className="gap-2" data-remove-speaker={speaker.id} onClick={() => onAskRemove(speaker)}>
                 <Icon icon={Delete02Icon} size={15} />Remove
               </DropdownMenuItem>
