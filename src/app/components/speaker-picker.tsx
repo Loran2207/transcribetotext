@@ -1,7 +1,6 @@
 import type React from "react";
 import { forwardRef, useEffect, useRef, useState, type ReactNode } from "react";
-import { Search01Icon, PlusSignIcon, UserAdd01Icon, ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon, Cancel01Icon, MoreHorizontalCircle01Icon, UserGroupIcon, Delete02Icon, InformationCircleIcon } from "@hugeicons/core-free-icons";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { Search01Icon, PlusSignIcon, UserAdd01Icon, ArrowRight01Icon, ArrowLeft01Icon, Tick02Icon, Cancel01Icon, MoreHorizontalCircle01Icon, UserGroupIcon, InformationCircleIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "./ui/drawer";
@@ -12,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Button } from "./ui/button";
 import { useIsPhone } from "./ui/use-mobile";
 import { cn } from "./ui/utils";
-import { ActionSheet, ActionSheetItem } from "./action-sheet";
 
 export interface PickerSpeaker {
   id: string;
@@ -108,8 +106,18 @@ function SplitNote({ note, phone = false }: { note: string; phone?: boolean }) {
   );
 }
 
+/* true on devices whose primary pointer can hover (mouse, trackpad); false for a finger */
+function useCanHover() {
+  const [can, setCan] = useState<boolean>(() => (typeof window === "undefined" ? true : window.matchMedia("(hover: hover)").matches));
+  useEffect(() => { const mql = window.matchMedia("(hover: hover)"); const on = () => setCan(mql.matches); mql.addEventListener("change", on); return () => mql.removeEventListener("change", on); }, []);
+  return can;
+}
+
 /* ── Variant A, desktop: dropdown on the name, side menu for the scope ── */
-function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false, onManage, onRename, note, onPreview }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean; onManage?: () => void; onRename?: (id: string, name: string) => void; note?: string; onPreview?: (speakerId: string | null) => void }) {
+function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false, onManage, onRename, onRemove, note, onPreview }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean; onManage?: () => void; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void; note?: string; onPreview?: (speakerId: string | null) => void }) {
+  const canHover = useCanHover();
+  /* Kirill 24.09: every list of voices manages them the same way: a pencil and an x on the row */
+  const reveal = canHover ? "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100" : "";
   const { query, setQuery, trimmed, list, canAdd } = useSpeakerQuery(speakers);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -185,8 +193,13 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false,
               <Name speaker={s} />
               {/* the same row also renames: the pencil of "Edit transcript", shown on hover (Kirill 23.09: manage right here) */}
               {onRename && (
-                <button type="button" data-rename-row={s.id} aria-label={`Rename ${s.name}`} onClick={(e) => { e.stopPropagation(); setDraft(s.name); setEditing(s.id); }} onMouseEnter={(e) => e.stopPropagation()} className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-opacity hover:bg-background hover:text-foreground group-hover/row:opacity-100 focus-visible:opacity-100">
+                <button type="button" data-rename-row={s.id} aria-label={`Rename ${s.name}`} onClick={(e) => { e.stopPropagation(); setDraft(s.name); setEditing(s.id); }} onMouseEnter={(e) => e.stopPropagation()} className={cn("flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-opacity hover:bg-background hover:text-foreground", reveal)}>
                   <PencilIcon className="size-[13px]" />
+                </button>
+              )}
+              {onRemove && (
+                <button type="button" data-remove-row={s.id} aria-label={`Remove ${s.name}`} onClick={(e) => { e.stopPropagation(); onRemove(s.id); }} onMouseEnter={(e) => e.stopPropagation()} className={cn("flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-opacity hover:bg-background hover:text-destructive", reveal)}>
+                  <Icon icon={Cancel01Icon} size={13} />
                 </button>
               )}
               {isCurrent ? (
@@ -236,7 +249,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false,
 }
 
 /* ── Variant A, phone: the same list as a bottom sheet, scope as step two ── */
-function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeless = false, title = "Change speaker", onManage, onRename, note }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; onClose: () => void; scopeless?: boolean; title?: string; onManage?: () => void; onRename?: (id: string, name: string) => void; note?: string }) {
+function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeless = false, title = "Change speaker", onManage, onRename, onRemove, note }: { current: PickerSpeaker; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; onClose: () => void; scopeless?: boolean; title?: string; onManage?: () => void; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void; note?: string }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [addMode, setAddMode] = useState(false);
@@ -290,6 +303,11 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeles
                       <PencilIcon className="size-[15px]" />
                     </button>
                   )}
+                  {onRemove && (
+                    <button type="button" data-remove-row={s.id} aria-label={`Remove ${s.name}`} onClick={(e) => { e.stopPropagation(); onRemove(s.id); }} className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground active:bg-muted/60">
+                      <Icon icon={Cancel01Icon} size={15} />
+                    </button>
+                  )}
                   {isCurrent ? <Icon icon={Tick02Icon} size={16} className="shrink-0 text-primary" /> : !scopeless && <Icon icon={ArrowRight01Icon} size={16} className="shrink-0 text-muted-foreground/60" />}
                 </div>
               );
@@ -325,6 +343,7 @@ export function SpeakerPicker({
   sheetTitle,
   onManage,
   onRename,
+  onRemove,
   note,
   onPreview,
   side,
@@ -343,6 +362,8 @@ export function SpeakerPicker({
   onManage?: () => void;
   /* rename a voice right in the list */
   onRename?: (id: string, name: string) => void;
+  /* remove a voice right from the list (the page opens the Remove dialog) */
+  onRemove?: (id: string) => void;
   /* one-time explanation above the list (the split case) */
   note?: string;
   /* a row is hovered: the page can show what the pick would do */
@@ -354,6 +375,7 @@ export function SpeakerPicker({
   const [innerOpen, setInnerOpen] = useState(false);
   const isOpen = open ?? innerOpen;
   const setOpen = onOpenChange ?? setInnerOpen;
+  const remove = onRemove ? (id: string) => { setOpen(false); onRemove(id); } : undefined;
   const pick = (choice: SpeakerChoice) => { onPreview?.(null); setOpen(false); onPick(choice); };
   const manage = onManage ? () => { setOpen(false); onManage(); } : undefined;
   useEffect(() => { if (!isOpen) onPreview?.(null); }, [isOpen]);
@@ -364,7 +386,7 @@ export function SpeakerPicker({
         <span onClick={() => setOpen(true)} className="contents">{children}</span>
         <Drawer open={isOpen} onOpenChange={setOpen}>
           <DrawerContent className="[&>div:first-child]:hidden">
-            {isOpen && <SpeakerSheet current={current} speakers={speakers} blockCount={blockCount} onPick={pick} onClose={() => setOpen(false)} scopeless={scopeless} title={sheetTitle} onManage={manage} onRename={onRename} note={note} />}
+            {isOpen && <SpeakerSheet current={current} speakers={speakers} blockCount={blockCount} onPick={pick} onClose={() => setOpen(false)} scopeless={scopeless} title={sheetTitle} onManage={manage} onRename={onRename} onRemove={remove} note={note} />}
           </DrawerContent>
         </Drawer>
       </>
@@ -375,7 +397,7 @@ export function SpeakerPicker({
     <Popover open={isOpen} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
       <PopoverContent align="start" side={side} sideOffset={6} className="w-[300px] overflow-visible p-0">
-        <SpeakerMenu current={current} speakers={speakers} blockCount={blockCount} onPick={pick} scopeless={scopeless} onManage={manage} onRename={onRename} note={note} onPreview={onPreview} />
+        <SpeakerMenu current={current} speakers={speakers} blockCount={blockCount} onPick={pick} scopeless={scopeless} onManage={manage} onRename={onRename} onRemove={remove} note={note} onPreview={onPreview} />
       </PopoverContent>
     </Popover>
   );
@@ -705,20 +727,13 @@ export interface SpeakersPanelActions {
   onAdd: (name: string) => void;
 }
 
-/* true on devices whose primary pointer can hover (mouse, trackpad); false for a finger */
-function useCanHover() {
-  const [can, setCan] = useState<boolean>(() => (typeof window === "undefined" ? true : window.matchMedia("(hover: hover)").matches));
-  useEffect(() => { const mql = window.matchMedia("(hover: hover)"); const on = () => setCan(mql.matches); mql.addEventListener("change", on); return () => mql.removeEventListener("change", on); }, []);
-  return can;
-}
-
-function SpeakerRow({ speaker, phone, actions, onAskRemove, onAskMore }: { speaker: ManagedSpeaker; phone: boolean; actions: SpeakersPanelActions; onAskRemove: (sp: ManagedSpeaker) => void; onAskMore?: (sp: ManagedSpeaker) => void }) {
+function SpeakerRow({ speaker, phone, actions, onAskRemove }: { speaker: ManagedSpeaker; phone: boolean; actions: SpeakersPanelActions; onAskRemove: (sp: ManagedSpeaker) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(speaker.name);
   const commit = () => { const v = draft.trim(); setEditing(false); if (v && v !== speaker.name) actions.onRename(speaker.id, v); else setDraft(speaker.name); };
   const blocks = speaker.blockCount === 0 ? "Not on any block yet" : speaker.blockCount === 1 ? "1 block" : `${speaker.blockCount} blocks`;
   /* Kirill 24.09: nothing on the row at rest for a pointer; hover paints the grey row and
-     reveals the pencil and the dots. A finger has no hover, so it always sees both. */
+     reveals the pencil and the x (remove, always confirmed). A finger has no hover, so it always sees both. */
   const touch = phone || !useCanHover();
   return (
     <div data-speaker-manage-row={speaker.id} className={cn("group/mrow flex items-center gap-3 rounded-xl px-3", phone ? "py-2.5" : "py-2", !touch && "hover:bg-muted has-[[data-state=open]]:bg-muted")}>
@@ -744,25 +759,9 @@ function SpeakerRow({ speaker, phone, actions, onAskRemove, onAskMore }: { speak
           <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`Rename ${speaker.name}`} data-rename-speaker={speaker.id} onClick={() => setEditing(true)}>
             <PencilIcon className="size-[14px]" />
           </Button>
-          {phone && onAskMore ? (
-            /* the phone: the dots open the house bottom sheet (a dropdown has no room on a 390px screen) */
-            <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`More for ${speaker.name}`} data-more-speaker={speaker.id} onClick={() => onAskMore(speaker)}>
-              <Icon icon={MoreHorizontalCircle01Icon} size={15} />
-            </Button>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground" aria-label={`More for ${speaker.name}`} data-more-speaker={speaker.id}>
-                  <Icon icon={MoreHorizontalCircle01Icon} size={15} />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[180px]">
-                <DropdownMenuItem variant="destructive" className="gap-2" data-remove-speaker={speaker.id} onClick={() => onAskRemove(speaker)}>
-                  <Icon icon={Delete02Icon} size={15} />Remove
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          <Button variant="ghost" size="icon" className="size-7 rounded-full text-muted-foreground hover:text-destructive" aria-label={`Remove ${speaker.name}`} data-remove-speaker={speaker.id} onClick={() => onAskRemove(speaker)}>
+            <Icon icon={Cancel01Icon} size={15} />
+          </Button>
         </div>
       )}
     </div>
@@ -813,7 +812,7 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
   );
 }
 
-function SpeakersList({ speakers, suggestions = [], phone, actions, onAskRemove, onAskMore }: { speakers: ManagedSpeaker[]; suggestions?: PickerSpeaker[]; phone: boolean; actions: SpeakersPanelActions; onAskRemove: (sp: ManagedSpeaker) => void; onAskMore?: (sp: ManagedSpeaker) => void }) {
+function SpeakersList({ speakers, suggestions = [], phone, actions, onAskRemove }: { speakers: ManagedSpeaker[]; suggestions?: PickerSpeaker[]; phone: boolean; actions: SpeakersPanelActions; onAskRemove: (sp: ManagedSpeaker) => void }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const add = (v: string) => { const t = v.trim(); if (t) actions.onAdd(t); setName(""); setAdding(false); };
@@ -822,7 +821,7 @@ function SpeakersList({ speakers, suggestions = [], phone, actions, onAskRemove,
   return (
     <>
       <div className={cn("p-1.5", phone ? "max-h-[60vh] overflow-y-auto px-2.5" : "max-h-[min(52vh,380px)] overflow-y-auto")}>
-        {speakers.map((sp) => <SpeakerRow key={sp.id} speaker={sp} phone={phone} actions={actions} onAskRemove={onAskRemove} onAskMore={onAskMore} />)}
+        {speakers.map((sp) => <SpeakerRow key={sp.id} speaker={sp} phone={phone} actions={actions} onAskRemove={onAskRemove} />)}
       </div>
       <div className={cn("border-t border-border/60 p-1.5", phone && "px-2.5 pb-[calc(8px+env(safe-area-inset-bottom))]")}>
         {adding ? (
@@ -853,27 +852,16 @@ function SpeakersList({ speakers, suggestions = [], phone, actions, onAskRemove,
   );
 }
 
-export function SpeakersPanel({ speakers, suggestions, actions, open, onOpenChange, children }: { speakers: ManagedSpeaker[]; suggestions?: PickerSpeaker[]; actions: SpeakersPanelActions; open: boolean; onOpenChange: (open: boolean) => void; children?: ReactNode }) {
+export function SpeakersPanel({ speakers, suggestions, actions, open, onOpenChange, onAskRemove, children }: { speakers: ManagedSpeaker[]; suggestions?: PickerSpeaker[]; actions: SpeakersPanelActions; open: boolean; onOpenChange: (open: boolean) => void; onAskRemove?: (sp: ManagedSpeaker) => void; children?: ReactNode }) {
   const isPhone = useIsPhone();
   const [removing, setRemoving] = useState<ManagedSpeaker | null>(null);
-  const askRemove = (sp: ManagedSpeaker) => { onOpenChange(false); setRemoving(sp); };
-  /* the phone: the row's dots open the house action sheet for that voice */
-  const [moreFor, setMoreFor] = useState<ManagedSpeaker | null>(null);
-  const askMore = (sp: ManagedSpeaker) => { onOpenChange(false); setMoreFor(sp); };
-  const blocksOf = (sp: ManagedSpeaker) => (sp.blockCount === 0 ? "Not on any block yet" : sp.blockCount === 1 ? "1 block" : `${sp.blockCount} blocks`);
-  const moreSheet = moreFor && (
-    <ActionSheet open onOpenChange={(o) => { if (!o) setMoreFor(null); }} mark={<SpeakerDot speaker={moreFor} />} title={moreFor.name} kind={blocksOf(moreFor)}>
-      <span data-speaker-sheet={moreFor.id} className="contents">
-        <ActionSheetItem icon={Delete02Icon} label="Remove" destructive onClick={() => { const sp = moreFor; setMoreFor(null); setRemoving(sp); }} />
-      </span>
-    </ActionSheet>
-  );
-  const dialog = <RemoveSpeakerDialog speaker={removing} others={speakers.filter((o) => o.id !== removing?.id)} open={removing !== null} onOpenChange={(o) => { if (!o) setRemoving(null); }} onConfirm={(id, to) => actions.onRemove(id, to)} />;
+  /* the page may own the Remove dialog (it also serves the block menus); otherwise the panel does */
+  const askRemove = (sp: ManagedSpeaker) => { onOpenChange(false); if (onAskRemove) onAskRemove(sp); else setRemoving(sp); };
+  const dialog = onAskRemove ? null : <RemoveSpeakerDialog speaker={removing} others={speakers.filter((o) => o.id !== removing?.id)} open={removing !== null} onOpenChange={(o) => { if (!o) setRemoving(null); }} onConfirm={(id, to) => actions.onRemove(id, to)} />;
   if (isPhone) {
     return (
       <>
         {dialog}
-        {moreSheet}
         {children && <span onClick={() => onOpenChange(true)} className="contents">{children}</span>}
         <Drawer open={open} onOpenChange={onOpenChange}>
           <DrawerContent className="[&>div:first-child]:hidden">
@@ -881,7 +869,7 @@ export function SpeakersPanel({ speakers, suggestions, actions, open, onOpenChan
               <DrawerTitle className="text-[17px] font-semibold">Speakers</DrawerTitle>
               <button type="button" aria-label="Close" onClick={() => onOpenChange(false)} className="-mr-1 flex size-8 items-center justify-center rounded-full text-muted-foreground active:bg-muted/60"><Icon icon={Cancel01Icon} size={18} /></button>
             </DrawerHeader>
-            <SpeakersList speakers={speakers} suggestions={suggestions} phone actions={actions} onAskRemove={askRemove} onAskMore={askMore} />
+            <SpeakersList speakers={speakers} suggestions={suggestions} phone actions={actions} onAskRemove={askRemove} />
           </DrawerContent>
         </Drawer>
       </>

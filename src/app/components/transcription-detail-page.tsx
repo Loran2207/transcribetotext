@@ -9,7 +9,7 @@ import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/n
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, SpeakersChip, PencilIcon, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
+import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, RemoveSpeakerDialog, SpeakersChip, PencilIcon, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
 import { LanguageSelector, SpeakerSection } from "./transcription-modals";
 import { useNotetakerSettings } from "./desktop/notetaker-settings";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
@@ -657,7 +657,7 @@ function SelectionHighlightPill({
   position: { x: number; y: number };
   onHighlight: () => void;
   /* when the transcript has several voices: the selected words can be handed to another one */
-  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string; onPreview?: (speakerId: string | null) => void; onOpen?: (open: boolean) => void; mark?: { start: number; end: number } };
+  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string; onPreview?: (speakerId: string | null) => void; onOpen?: (open: boolean) => void; mark?: { start: number; end: number }; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void };
 }) {
   const [open, setOpen] = useState(false);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
@@ -675,7 +675,7 @@ function SelectionHighlightPill({
       {speaker && (
         <>
           <span className="h-4 w-px bg-border" />
-          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={(o) => { setOpen(o); speaker.onOpen?.(o); }} scopeless side="top" sheetTitle="Who said this part?" note={speaker.note} onPreview={speaker.onPreview}>
+          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={(o) => { setOpen(o); speaker.onOpen?.(o); }} scopeless side="top" sheetTitle="Who said this part?" note={speaker.note} onPreview={speaker.onPreview} onRename={speaker.onRename} onRemove={speaker.onRemove}>
             {/* the current voice, not the word "Speaker": you see who has these words now and change it here (Kirill 23.09) */}
             <Button size="sm" variant="ghost" data-selection-speaker="" className={action + " pl-1.5"} onMouseDown={(e) => e.preventDefault()}>
               {speaker.current.avatar
@@ -712,6 +712,7 @@ type SpeakerControl = {
   onManage?: () => void;
   /* rename a voice right in the block menu */
   onRename?: (id: string, name: string) => void;
+  onRemove?: (id: string) => void;
 };
 
 function SpeakerLabel({
@@ -770,7 +771,7 @@ function SpeakerLabel({
     );
   }
   return (
-    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange} onManage={control.onManage} onRename={control.onRename}>
+    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange} onManage={control.onManage} onRename={control.onRename} onRemove={control.onRemove}>
       {trigger}
     </SpeakerPicker>
   );
@@ -2969,6 +2970,9 @@ export function TranscriptionDetailPage() {
     toast.success(count === 1 ? `${Object.values(names)[0]} is named` : `${count} speakers named`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
   }
   const managedSpeakers: ManagedSpeaker[] = resolved.managed.map((sp) => ({ ...sp, blockCount: speakerBlockCount(sp.id) }));
+  /* one Remove dialog for the header panel and every block menu (Kirill 24.09: the x on any row, always confirmed) */
+  const [removeTarget, setRemoveTarget] = useState<ManagedSpeaker | null>(null);
+  const askRemoveSpeaker = (id: string) => { const sp = managedSpeakers.find((x) => x.id === id); if (sp) setRemoveTarget(sp); };
   const speakersPanelActions = {
     onRename: (id: string, name: string) => {
       const before = speakerNames; const from = resolved.managed.find((sp) => sp.id === id);
@@ -4282,7 +4286,7 @@ export function TranscriptionDetailPage() {
               {/* the folder as a pill in the meta line on the web too, like the desktop shell (Kirill 23.09) */}
               {!desktopShell && <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />}
               {!isSingleSpeaker && !isJobTranscribing && (
-                <SpeakersPanel speakers={managedSpeakers} suggestions={inviteAttendees} actions={speakersPanelActions} open={speakersPanelOpen} onOpenChange={setSpeakersPanelOpen}>
+                <SpeakersPanel speakers={managedSpeakers} suggestions={inviteAttendees} actions={speakersPanelActions} open={speakersPanelOpen} onOpenChange={setSpeakersPanelOpen} onAskRemove={setRemoveTarget}>
                   <SpeakersChip speakers={resolved.speakers} />
                 </SpeakersPanel>
               )}
@@ -4437,6 +4441,7 @@ export function TranscriptionDetailPage() {
               <Button variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium text-primary hover:text-primary" onClick={() => setNameSpeakersOpen(true)}>Name {unnamedVoices.length === 1 ? "the speaker" : "speakers"}</Button>
             </div>
           )}
+          <RemoveSpeakerDialog speaker={removeTarget} others={managedSpeakers.filter((o) => o.id !== removeTarget?.id)} open={removeTarget !== null} onOpenChange={(o) => { if (!o) setRemoveTarget(null); }} onConfirm={(id, to) => speakersPanelActions.onRemove(id, to)} />
           {speakerDialogDemo && (
             <NameSpeakersDialog open={nameSpeakersOpen} onOpenChange={setNameSpeakersOpen} voices={unnamedVoices.map((sp) => ({ speaker: sp, quotes: quotesFor(sp.id), blockCount: speakerBlockCount(sp.id) }))} attendees={inviteAttendees} playing={isPlayerPlaying} onPlay={playQuote} onPause={pauseQuote} onSave={saveSpeakerNames} />
           )}
@@ -4492,7 +4497,7 @@ export function TranscriptionDetailPage() {
                     nextTimestamp={shownSegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && !seg.preview && !shownSegments[index - 1]?.preview && shownSegments[index - 1]?.speaker.id === seg.speaker.id}
-                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
+                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
                     selectionMark={selectionMenuOpen && !splitPreview && selectionPill && selectionPill.segmentId === seg.id ? { start: selectionPill.start, end: selectionPill.end } : undefined}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
@@ -4865,7 +4870,7 @@ export function TranscriptionDetailPage() {
             const rest = cut.start > 0 || cut.end < seg.text.trim().length;
             const note = rest ? `Only the selected words move. The rest stays with ${seg.speaker.name}.` : undefined;
             const onPreview = (id: string | null) => { const sp = id ? resolved.speakers.find((x) => x.id === id) : undefined; setSplitPreview(sp && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
-            return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut };
+            return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut, onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker };
           })()}
         />
       )}

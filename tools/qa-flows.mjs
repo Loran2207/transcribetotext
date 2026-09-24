@@ -263,8 +263,7 @@ await flow("Web: the header chip opens the speakers panel; rename, merge and add
   await expect("the renamed voice shows on its blocks in the transcript", () => vis(p, "[data-speaker-trigger]:has-text('Daniel Kim')"));
   await p.click("[data-add-speaker]"); await p.fill("input[aria-label='New speaker name']", "Priya Patel"); await p.keyboard.press("Enter"); await p.waitForTimeout(400);
   await expect("a person added by hand appears in the list, not on any block yet", () => vis(p, "[data-speakers-panel] :text('Priya Patel')"));
-  await p.click("[data-more-speaker='s2']"); await p.waitForTimeout(300);
-  await p.click("[data-remove-speaker='s2']"); await p.waitForTimeout(500);
+  await p.hover("[data-speaker-manage-row='s2']"); await p.click("[data-remove-speaker='s2']"); await p.waitForTimeout(500);
   await expect("removing opens a dialog that asks who takes the blocks", () => vis(p, "[data-remove-dialog]:has-text('Pick who said them')"));
   await p.click("[data-remove-target-trigger]"); await p.waitForTimeout(300);
   await p.click("[data-remove-target='s3']"); await p.waitForTimeout(300);
