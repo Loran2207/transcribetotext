@@ -657,7 +657,7 @@ function SelectionHighlightPill({
   position: { x: number; y: number };
   onHighlight: () => void;
   /* when the transcript has several voices: the selected words can be handed to another one */
-  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string; onPreview?: (speakerId: string | null) => void; onOpen?: (open: boolean) => void; mark?: { start: number; end: number }; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void; suggestions?: Speaker[] };
+  speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string; onPreview?: (speakerId: string | null) => void; onOpen?: (open: boolean) => void; mark?: { start: number; end: number }; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void; suggestions?: Speaker[]; onAddSpeaker?: (name: string) => void };
 }) {
   const [open, setOpen] = useState(false);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
@@ -675,7 +675,7 @@ function SelectionHighlightPill({
       {speaker && (
         <>
           <span className="h-4 w-px bg-border" />
-          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={(o) => { setOpen(o); speaker.onOpen?.(o); }} scopeless side="top" sheetTitle="Who said this part?" note={speaker.note} onPreview={speaker.onPreview} onRename={speaker.onRename} onRemove={speaker.onRemove} suggestions={speaker.suggestions}>
+          <SpeakerPicker current={speaker.current} speakers={speaker.speakers} blockCount={1} onPick={speaker.onPick} open={open} onOpenChange={(o) => { setOpen(o); speaker.onOpen?.(o); }} scopeless side="top" sheetTitle="Who said this part?" note={speaker.note} onPreview={speaker.onPreview} onRename={speaker.onRename} onRemove={speaker.onRemove} suggestions={speaker.suggestions} onAddSpeaker={speaker.onAddSpeaker}>
             {/* the current voice, not the word "Speaker": you see who has these words now and change it here (Kirill 23.09) */}
             <Button size="sm" variant="ghost" data-selection-speaker="" className={action + " pl-1.5"} onMouseDown={(e) => e.preventDefault()}>
               {speaker.current.avatar
@@ -713,6 +713,7 @@ type SpeakerControl = {
   /* rename a voice right in the block menu */
   onRename?: (id: string, name: string) => void;
   onRemove?: (id: string) => void;
+  onAddSpeaker?: (name: string) => void;
 };
 
 function SpeakerLabel({
@@ -771,7 +772,7 @@ function SpeakerLabel({
     );
   }
   return (
-    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange} onManage={control.onManage} onRename={control.onRename} onRemove={control.onRemove} suggestions={control.attendees}>
+    <SpeakerPicker current={speaker} speakers={control.speakers} blockCount={control.blockCount} onPick={control.onPick} open={open} onOpenChange={onOpenChange} onManage={control.onManage} onRename={control.onRename} onRemove={control.onRemove} suggestions={control.attendees} onAddSpeaker={control.onAddSpeaker}>
       {trigger}
     </SpeakerPicker>
   );
@@ -923,8 +924,9 @@ function TranscriptSegment({
             }`}
             title="Play from here"
           >
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="opacity-0 transition-opacity group-hover/seg:opacity-100"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg>
             {segment.timestamp}
+            {/* the play mark sits after the timecode, always there (Kirill 24.09): nothing shifts on hover */}
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className="opacity-45 transition-opacity group-hover/seg:opacity-100"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg>
           </button>
         ) : (
           <span
@@ -3015,7 +3017,7 @@ export function TranscriptionDetailPage() {
     };
     const blocks = (n: number) => (n === 1 ? "1 block" : `${n} blocks`);
     if (choice.kind === "move" || choice.kind === "move-all") {
-      const to = resolved.speakers.find((sp) => sp.id === choice.speakerId);
+      const to = resolved.managed.find((sp) => sp.id === choice.speakerId);
       if (!to) return;
       if (choice.kind === "move-all") {
         moveAll(to.id);
@@ -3871,7 +3873,7 @@ export function TranscriptionDetailPage() {
       to = { id: `custom-${Date.now()}`, name: choice.name, color: palette[extraSpeakers.length % palette.length], initial: choice.name[0]?.toUpperCase() ?? "?" };
       setExtraSpeakers((list) => [...list, to!]);
     } else if (choice.kind === "move" || choice.kind === "move-all") {
-      to = resolved.speakers.find((sp) => sp.id === choice.speakerId);
+      to = resolved.managed.find((sp) => sp.id === choice.speakerId);
     }
     if (!to) return;
     setSplits((m) => ({ ...m, [seg.id]: { start, end, speakerId: to!.id } }));
@@ -4493,7 +4495,7 @@ export function TranscriptionDetailPage() {
                     nextTimestamp={shownSegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && !seg.preview && !shownSegments[index - 1]?.preview && shownSegments[index - 1]?.speaker.id === seg.speaker.id}
-                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.speakers, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
+                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.managed, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, onAddSpeaker: speakersPanelActions.onAdd, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
                     selectionMark={selectionMenuOpen && !splitPreview && selectionPill && selectionPill.segmentId === seg.id ? { start: selectionPill.start, end: selectionPill.end } : undefined}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
@@ -4865,8 +4867,8 @@ export function TranscriptionDetailPage() {
             const cut = snapToWords(seg.text, selectionPill.start, selectionPill.end);
             const rest = cut.start > 0 || cut.end < seg.text.trim().length;
             const note = rest ? `Only the selected words move. The rest stays with ${seg.speaker.name}.` : undefined;
-            const onPreview = (id: string | null) => { const sp = id ? resolved.speakers.find((x) => x.id === id) : undefined; setSplitPreview(sp && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
-            return { current: seg.speaker, speakers: resolved.speakers, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut, onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, suggestions: inviteAttendees };
+            const onPreview = (id: string | null) => { const sp = id ? resolved.managed.find((x) => x.id === id) : undefined; setSplitPreview(sp && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
+            return { current: seg.speaker, speakers: resolved.managed, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut, onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, suggestions: inviteAttendees, onAddSpeaker: speakersPanelActions.onAdd };
           })()}
         />
       )}
