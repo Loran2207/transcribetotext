@@ -242,7 +242,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false,
               {isCurrent ? (
                 canHover && <Icon icon={Tick02Icon} size={15} className="shrink-0 text-primary group-hover/row:hidden" />
               ) : (
-                !scopeless && <Icon icon={ArrowRight01Icon} size={14} className={cn("shrink-0 text-muted-foreground/70 transition-opacity", armed === s.id ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")} />
+                !scopeless && canHover && <Icon icon={ArrowRight01Icon} size={14} className={cn("shrink-0 text-muted-foreground/70 transition-opacity", armed === s.id ? "opacity-100" : "opacity-0 group-hover/row:opacity-100")} />
               )}
             </div>
           );
