@@ -2997,7 +2997,7 @@ export function TranscriptionDetailPage() {
       const palette = ["#f59e0b", "#ec4899", "#14b8a6", "#6366f1", "#ef4444"];
       const added: Speaker = { id: `custom-${Date.now()}`, name, color: palette[extraSpeakers.length % palette.length], initial: name[0]?.toUpperCase() ?? "?" };
       setExtraSpeakers((list) => [...list, added]);
-      toast(`Added ${name}`, { description: "Pick them on any block to give them lines" });
+      toast.success(`Added ${name}`, { description: "Pick them on any block to give them lines" });
       return added.id;
     },
   };
