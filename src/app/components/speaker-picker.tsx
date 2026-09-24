@@ -282,13 +282,14 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeles
   const commitRename = (id: string) => { const v = draft.trim(); const was = speakers.find((x) => x.id === id)?.name; setEditing(null); if (v && v !== was) onRename?.(id, v); };
   const { query, setQuery, trimmed, list, canAdd } = useSpeakerQuery(speakers);
   const [target, setTarget] = useState<{ speakerId?: string; name?: string } | null>(null);
+  const [scope, setScope] = useState<Scope>("block");
   const targetName = target?.speakerId ? speakers.find((s) => s.id === target.speakerId)?.name : target?.name;
   return (
     <>
       <DrawerHeader className="flex-row items-center justify-between pb-2 text-left">
         {target ? (
           <button type="button" onClick={() => setTarget(null)} className="-ml-1 inline-flex items-center gap-1 text-[15px] font-semibold text-foreground">
-            <Icon icon={ArrowLeft01Icon} size={18} className="text-muted-foreground" />{targetName}
+            <Icon icon={ArrowLeft01Icon} size={18} className="text-muted-foreground" />Move to {targetName}
           </button>
         ) : (
           <DrawerTitle>{title}</DrawerTitle>
@@ -299,8 +300,15 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeles
       </DrawerHeader>
           {note && <SplitNote note={note} phone />}
       {target ? (
-        <div className="px-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
-          <ScopeRows current={current} blockCount={blockCount} onPick={(scope) => onPick(choiceFor(target, scope))} className="[&>button]:py-3 [&>button]:text-[14px] [&>button]:rounded-xl" />
+        <div data-scope-step="" className="px-4 pb-[calc(12px+env(safe-area-inset-bottom))]">
+          <p className="px-1 pb-2 text-[13px] text-muted-foreground">What moves to {targetName}?</p>
+          {([["block", "Only this block"], ["all", `All ${blocksLabel(blockCount)} by ${current.name}`]] as [Scope, string][]).map(([key, label]) => (
+            <button key={key} type="button" data-scope-row={key} aria-pressed={scope === key} onClick={() => setScope(key)} className={cn("flex w-full items-center justify-between gap-3 rounded-xl px-3 py-3 text-left text-[14px] transition-colors active:bg-muted/60", scope === key ? "bg-primary/[0.06] font-medium text-primary" : "text-foreground")}>
+              <span>{label}</span>
+              {scope === key && <Icon icon={Tick02Icon} size={16} className="shrink-0 text-primary" />}
+            </button>
+          ))}
+          <Button data-move-confirm="" onClick={() => onPick(choiceFor(target, scope))} className="mt-3 h-11 w-full text-[14px] font-semibold">Move to {targetName}</Button>
         </div>
       ) : (
         <>
@@ -317,7 +325,7 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeles
                 editing === s.id ? (
                   <RenameField key={s.id} speaker={s} draft={draft} setDraft={setDraft} onCommit={() => commitRename(s.id)} onCancel={() => setEditing(null)} phone />
                 ) :
-                <div key={s.id} data-speaker-row={s.id} role="button" tabIndex={isCurrent ? -1 : 0} aria-disabled={isCurrent} onClick={() => { if (isCurrent) return; scopeless ? onPick({ kind: "move", speakerId: s.id }) : setTarget({ speakerId: s.id }); }} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors active:bg-muted/60", isCurrent && "bg-primary/[0.06]")}>
+                <div key={s.id} data-speaker-row={s.id} role="button" tabIndex={isCurrent ? -1 : 0} aria-disabled={isCurrent} onClick={() => { if (isCurrent) return; if (scopeless) onPick({ kind: "move", speakerId: s.id }); else { setScope("block"); setTarget({ speakerId: s.id }); } }} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors active:bg-muted/60", isCurrent && "bg-primary/[0.06]")}>
                   <SpeakerDot speaker={s} className="size-7 text-[11px]" />
                   <Name speaker={s} className={cn("text-[14px] font-medium", isCurrent ? "text-primary" : "text-foreground")} />
                   {onRename && (
@@ -330,7 +338,6 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeles
                       <Icon icon={Cancel01Icon} size={15} />
                     </button>
                   )}
-                  {!isCurrent && !scopeless && <Icon icon={ArrowRight01Icon} size={16} className="shrink-0 text-muted-foreground/60" />}
                 </div>
               );
             })}
@@ -795,7 +802,7 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
   const [adding, setAdding] = useState(false);
   /* the select opens by itself: the only thing to do here is pick */
   const [selOpen, setSelOpen] = useState(false);
-  useEffect(() => { if (open) { setTarget(""); setAdding(false); const t = window.setTimeout(() => setSelOpen(true), 250); return () => window.clearTimeout(t); } }, [open, speaker?.id]);
+  useEffect(() => { if (open) { setTarget(""); setAdding(false); const t = window.setTimeout(() => { if (!isPhone) setSelOpen(true); }, 250); return () => window.clearTimeout(t); } }, [open, speaker?.id]);
   if (!speaker) return null;
   const needsTarget = speaker.blockCount > 0 && others.length > 0;
   const to = others.find((o) => o.id === target);
@@ -811,6 +818,23 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
         {needsTarget ? (
           <>
             <p className="text-[13px] text-muted-foreground">{speaker.name} has {blocks} in this transcript. Who said them?</p>
+            {isPhone ? (
+              <div data-remove-target-list="" className="-mx-1">
+                {others.map((o) => (
+                  <button key={o.id} type="button" data-remove-target={o.id} aria-pressed={target === o.id} onClick={() => { setTarget(o.id); setAdding(false); }} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] transition-colors active:bg-muted/60", target === o.id ? "bg-primary/[0.06] font-medium text-primary" : "text-foreground")}>
+                    <SpeakerDot speaker={o} className="size-7 text-[11px]" /><span className="min-w-0 flex-1 truncate">{o.name}{o.you ? " (you)" : ""}</span>
+                    {target === o.id && <Icon icon={Tick02Icon} size={16} className="shrink-0 text-primary" />}
+                  </button>
+                ))}
+                {onAdd && (adding ? (
+                  <AddSpeakerField phone onAdd={(name) => { const id = onAdd(name); setAdding(false); if (id) setTarget(id); }} onCancel={() => setAdding(false)} />
+                ) : (
+                  <button type="button" data-remove-target-add="" onClick={() => setAdding(true)} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-primary active:bg-muted/60">
+                    <Icon icon={PlusSignIcon} size={15} /><span>Add a new speaker</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
               <Select value={target} open={selOpen} onOpenChange={(o) => { setSelOpen(o); if (!o) setAdding(false); }} onValueChange={(v) => setTarget(v)}>
                 <SelectTrigger data-remove-target-trigger="" className="h-10 w-full rounded-[12px] border-input text-[13px]">
                   <SelectValue placeholder="Choose a speaker" />
@@ -832,6 +856,7 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
                   ))}
                 </SelectContent>
               </Select>
+            )}
             {to && <p className="text-[13px] text-foreground">{blocks} will move to <span className="font-medium">{to.name}</span>. {speaker.name} disappears from the list.</p>}
           </>
         ) : (
