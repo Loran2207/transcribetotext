@@ -834,12 +834,7 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
         {needsTarget ? (
           <>
             <p className="text-[13px] text-muted-foreground">{speaker.name} has {blocks} in this transcript. Who said them?</p>
-            {adding ? (
-              <div className="rounded-[12px] border border-input px-1">
-                <AddSpeakerField offers={offersFor(suggestions, others, "")} onAdd={(name) => { const id = onAdd?.(name); setAdding(false); if (id) setTarget(id); }} onCancel={() => setAdding(false)} />
-              </div>
-            ) : (
-              <Select value={target} open={selOpen} onOpenChange={setSelOpen} onValueChange={(v) => { if (v === "__add__") { setSelOpen(false); setAdding(true); } else setTarget(v); }}>
+              <Select value={target} open={selOpen} onOpenChange={(o) => { setSelOpen(o); if (!o) setAdding(false); }} onValueChange={(v) => setTarget(v)}>
                 <SelectTrigger data-remove-target-trigger="" className="h-10 w-full rounded-[12px] border-input text-[13px]">
                   <SelectValue placeholder="Choose a speaker" />
                 </SelectTrigger>
@@ -849,14 +844,17 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
                       <span className="flex items-center gap-2.5"><SpeakerDot speaker={o} /><span className="truncate">{o.name}{o.you ? " (you)" : ""}</span></span>
                     </SelectItem>
                   ))}
-                  {onAdd && (
-                    <SelectItem value="__add__" data-remove-target-add="" className="text-primary">
-                      <span className="flex items-center gap-2.5 font-medium text-primary"><Icon icon={PlusSignIcon} size={15} />Add a new speaker</span>
-                    </SelectItem>
-                  )}
+                  {onAdd && (adding ? (
+                    <div className="border-t border-border/60 pt-1" onPointerDown={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                      <AddSpeakerField offers={offersFor(suggestions, others, "")} onAdd={(name) => { const id = onAdd(name); setAdding(false); setSelOpen(false); if (id) setTarget(id); }} onCancel={() => setAdding(false)} />
+                    </div>
+                  ) : (
+                    <div role="option" data-remove-target-add="" onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setAdding(true); }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAdding(true); }} className="flex cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-sm font-medium text-primary hover:bg-primary/[0.06]">
+                      <Icon icon={PlusSignIcon} size={15} className="text-primary" />Add a new speaker
+                    </div>
+                  ))}
                 </SelectContent>
               </Select>
-            )}
             {to && <p className="text-[13px] text-foreground">{blocks} will move to <span className="font-medium">{to.name}</span>. {speaker.name} disappears from the list.</p>}
           </>
         ) : (
