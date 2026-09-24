@@ -177,7 +177,7 @@ function useCanHover() {
 }
 
 /* ── Variant A, desktop: dropdown on the name, side menu for the scope ── */
-function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false, onManage, onRename, onRemove, note, onPreview, suggestions = [] }: { current: PickerSpeaker | null; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean; onManage?: () => void; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void; note?: string; onPreview?: (speakerId: string | null) => void; suggestions?: PickerSpeaker[] }) {
+function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false, onManage, onRename, onRemove, note, onPreview, suggestions = [], heading }: { current: PickerSpeaker | null; speakers: PickerSpeaker[]; blockCount: number; onPick: (choice: SpeakerChoice) => void; scopeless?: boolean; onManage?: () => void; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void; note?: string; onPreview?: (speakerId: string | null) => void; suggestions?: PickerSpeaker[]; heading?: string }) {
   const canHover = useCanHover();
   /* Kirill 24.09: every list of voices manages them the same way: a pencil and an x on the row */
   const reveal = canHover ? "opacity-0 group-hover/row:opacity-100 focus-visible:opacity-100" : "";
@@ -223,7 +223,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false,
       </div>
       {note && <SplitNote note={note} />}
       <div className={cn("p-1.5", list.length === 0 && canAdd && "hidden")}>
-        {list.length > 0 && <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground">{scopeless ? "Who said this part?" : "Speakers"}</p>}
+        {list.length > 0 && <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground">{heading ?? (scopeless ? "Who said this part?" : "Speakers")}</p>}
         {list.map((s) => {
           const isCurrent = s.id === current?.id;
           if (editing === s.id) {
@@ -851,6 +851,7 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
                 speakers={others}
                 blockCount={0}
                 scopeless
+                heading="Speakers"
                 suggestions={suggestions}
                 onPick={(c) => { if (c.kind === "move") setTarget(c.speakerId); else if (c.kind === "add" && onAdd) { const id = onAdd(c.name); if (id) setTarget(id); } }}
               />
