@@ -265,7 +265,8 @@ await flow("Web: the header chip opens the speakers panel; rename, merge and add
   await expect("a person added by hand appears in the list, not on any block yet", () => vis(p, "[data-speakers-panel] :text('Priya Patel')"));
   await p.hover("[data-speaker-manage-row='s2']"); await p.click("[data-remove-speaker='s2']"); await p.waitForTimeout(500);
   await expect("removing opens a dialog that asks who takes the blocks", () => vis(p, "[data-remove-dialog]:has-text('Who said them?')"));
-  await p.click("[data-remove-target-list] [data-speaker-row='s3']"); await p.waitForTimeout(300);
+  await p.waitForTimeout(400); if (!(await p.$("[data-remove-target='s3']"))) { await p.click("[data-remove-target-trigger]"); await p.waitForTimeout(300); }
+  await p.click("[data-remove-target='s3']"); await p.waitForTimeout(300);
   await expect("the dialog says what will happen", () => vis(p, "[data-remove-dialog]:has-text('will move to')"));
   await p.click("[data-remove-confirm]"); await p.waitForTimeout(600);
   await expect("after the removal Maria's blocks belong to Daniel and Maria is gone", async () => !(await vis(p, "[data-speaker-trigger]:has-text('Maria Garcia')")) && (await vis(p, "[data-speakers-chip]:has-text('2 speakers')")));

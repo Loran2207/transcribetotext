@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { useIsPhone } from "./ui/use-mobile";
 import { cn } from "./ui/utils";
 
@@ -221,7 +222,7 @@ function SpeakerMenu({ current, speakers, blockCount, onPick, scopeless = false,
         />
       </div>
       {note && <SplitNote note={note} />}
-      <div className="p-1.5">
+      <div className="max-h-[min(44vh,320px)] overflow-y-auto p-1.5">
         {list.length > 0 && <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold tracking-wide text-muted-foreground">{heading ?? (scopeless ? "Who said this part?" : "Speakers")}</p>}
         {list.map((s) => {
           const isCurrent = s.id === current?.id;
@@ -331,7 +332,7 @@ function SpeakerSheet({ current, speakers, blockCount, onPick, onClose, scopeles
               <input value={query} onChange={(e) => setQuery(e.target.value)} ref={search} placeholder="Search or type a name" aria-label="Search or type a name" className="min-w-0 flex-1 bg-transparent text-[14px] text-foreground outline-none placeholder:text-muted-foreground/60" />
             </div>
           </div>
-          <div className="px-4">
+          <div className="max-h-[48vh] overflow-y-auto px-4">
             {list.map((s) => {
               const isCurrent = s.id === current.id;
               return (
@@ -814,7 +815,10 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
   const isPhone = useIsPhone();
   /* nothing chosen until the user picks (Kirill 24.09): the list below is the same speaker list as everywhere */
   const [target, setTarget] = useState<string>("");
-  useEffect(() => { if (open) setTarget(""); }, [open, speaker?.id]);
+  const [adding, setAdding] = useState(false);
+  /* the select opens by itself: the only thing to do here is pick */
+  const [selOpen, setSelOpen] = useState(false);
+  useEffect(() => { if (open) { setTarget(""); setAdding(false); const t = window.setTimeout(() => setSelOpen(true), 250); return () => window.clearTimeout(t); } }, [open, speaker?.id]);
   if (!speaker) return null;
   const needsTarget = speaker.blockCount > 0 && others.length > 0;
   const to = others.find((o) => o.id === target);
@@ -823,24 +827,36 @@ export function RemoveSpeakerDialog({ speaker, others, open, onOpenChange, onCon
     <DialogShell open={open} onOpenChange={onOpenChange} title={`Remove ${speaker.name}`} isPhone={isPhone} footer={
       <>
         <Button variant="pill-outline" onClick={() => onOpenChange(false)} className="h-[36px] px-[18px]"><span className="text-[13px] font-medium text-foreground">Cancel</span></Button>
-        <Button variant="destructive" data-remove-confirm="" disabled={needsTarget && !to} onClick={() => { onConfirm(speaker.id, needsTarget ? target : undefined); onOpenChange(false); }} className="h-[36px] px-[18px] disabled:opacity-40"><span className="text-[13px] font-semibold">Remove</span></Button>
+        <Button variant="destructive" data-remove-confirm="" disabled={needsTarget && !to} onClick={() => { onConfirm(speaker.id, needsTarget ? target : undefined); onOpenChange(false); }} className="h-[36px] px-[18px] disabled:opacity-40"><span className="text-[13px] font-semibold">{needsTarget && to ? `Remove and move to ${to.name}` : "Remove"}</span></Button>
       </>
     }>
       <div data-remove-dialog="" className="flex flex-col gap-3">
         {needsTarget ? (
           <>
             <p className="text-[13px] text-muted-foreground">{speaker.name} has {blocks} in this transcript. Who said them?</p>
-            <div data-remove-target-list="" className="max-h-[300px] overflow-y-auto rounded-xl border border-border">
-              <SpeakerMenu
-                current={to ?? null}
-                speakers={others}
-                blockCount={0}
-                scopeless
-                heading="Speakers"
-                suggestions={suggestions}
-                onPick={(c) => { if (c.kind === "move") setTarget(c.speakerId); else if (c.kind === "add" && onAdd) { const id = onAdd(c.name); if (id) setTarget(id); } }}
-              />
-            </div>
+            {adding ? (
+              <div className="rounded-[12px] border border-input px-1">
+                <AddSpeakerField offers={offersFor(suggestions, others, "")} onAdd={(name) => { const id = onAdd?.(name); setAdding(false); if (id) setTarget(id); }} onCancel={() => setAdding(false)} />
+              </div>
+            ) : (
+              <Select value={target} open={selOpen} onOpenChange={setSelOpen} onValueChange={(v) => { if (v === "__add__") { setSelOpen(false); setAdding(true); } else setTarget(v); }}>
+                <SelectTrigger data-remove-target-trigger="" className="h-10 w-full rounded-[12px] border-input text-[13px]">
+                  <SelectValue placeholder="Choose a speaker" />
+                </SelectTrigger>
+                <SelectContent data-remove-target-list="">
+                  {others.map((o) => (
+                    <SelectItem key={o.id} value={o.id} data-remove-target={o.id}>
+                      <span className="flex items-center gap-2.5"><SpeakerDot speaker={o} /><span className="truncate">{o.name}{o.you ? " (you)" : ""}</span></span>
+                    </SelectItem>
+                  ))}
+                  {onAdd && (
+                    <SelectItem value="__add__" data-remove-target-add="" className="text-primary">
+                      <span className="flex items-center gap-2.5 font-medium text-primary"><Icon icon={PlusSignIcon} size={15} />Add a new speaker</span>
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            )}
             {to && <p className="text-[13px] text-foreground">{blocks} will move to <span className="font-medium">{to.name}</span>. {speaker.name} disappears from the list.</p>}
           </>
         ) : (
