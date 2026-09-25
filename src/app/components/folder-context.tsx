@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import { creditOnboarding } from "./onboarding/onboarding-context";
+import { isFreshAccount } from "@/lib/fresh-account";
 
 export interface FolderItem {
   id: string;
@@ -97,7 +98,7 @@ function addToTree(folders: FolderItem[], targetId: string | null, item: FolderI
 function loadFolders(): FolderItem[] {
   try {
     // Demo flags for design captures (both off by default)
-    if (localStorage.getItem("ttt_nofolders") === "1") return [];
+    if (localStorage.getItem("ttt_nofolders") === "1" || isFreshAccount()) return [];
     if (localStorage.getItem("ttt_folders_many") === "1") return [...cloneFolders(DEFAULT_FOLDERS), ...cloneFolders(MANY_FOLDERS_EXTRA)];
     const version = localStorage.getItem(DEFAULTS_VERSION_KEY);
     if (version !== CURRENT_DEFAULTS_VERSION) {
@@ -116,6 +117,7 @@ function loadFolders(): FolderItem[] {
 
 function loadAssignments(): Record<string, string> {
   try {
+    if (isFreshAccount()) return {};
     const raw = localStorage.getItem(ASSIGNMENTS_KEY);
     if (!raw) return { ...DEFAULT_ASSIGNMENTS };
     const parsed = JSON.parse(raw);

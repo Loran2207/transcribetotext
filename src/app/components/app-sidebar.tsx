@@ -16,6 +16,7 @@ import { usePlan } from "./use-plan";
 import { useNavigate } from "react-router";
 import { SourceIcon } from "./source-icons";
 import { useFolders } from "./folder-context";
+import { isFreshAccount } from "@/lib/fresh-account";
 import { useLanguage, LANGUAGES } from "./language-context";
 import { useAuth } from "./auth-context";
 import {
@@ -259,7 +260,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
     { id: "f2", name: "Internal Syncs", color: "#22C55E" },
     { id: "f3", name: "Product Demos", color: "#F59E0B" },
   ];
-  const noFoldersDemo = typeof window !== "undefined" && window.localStorage.getItem("ttt_nofolders") === "1";
+  const noFoldersDemo = typeof window !== "undefined" && (window.localStorage.getItem("ttt_nofolders") === "1" || isFreshAccount());
   const folders = userFolders.length > 0 ? userFolders : noFoldersDemo ? [] : defaultFolders;
 
   return (
@@ -344,6 +345,9 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
           </SidebarGroupLabel>
           {foldersOpen && (
             <SidebarMenuSub>
+              {folders.length === 0 && (
+                <p className="px-2 py-1 text-[13px] text-muted-foreground italic">{t("nav.noFolders")}</p>
+              )}
               {folders.map((folder, fi) => (
                 <SidebarMenuSubItem key={folder.id} className="group/folder" data-tour={fi === 0 ? "sidebar-folder-row" : undefined}>
                   <SidebarMenuSubButton

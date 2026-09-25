@@ -63,7 +63,7 @@ export function OnboardingTour() {
     if (celebration === "all") { celebrate(true); return; }
     celebrate(false);
     const left = guides.length - (celebration.index + 1);
-    toast.success(`Nice work. ${celebration.guide.title} is done.`, { description: left > 0 ? `${left} ${left === 1 ? "lesson" : "lessons"} left until your free month of Pro.` : undefined });
+    toast.success(`Lesson ${celebration.index + 1} done`, { description: left > 0 ? `${left} to go until your free month of Pro` : undefined });
     dismissCelebration();
   }, [celebration, dismissCelebration, guides.length]);
   const [rect, setRect] = useState<Rect | null>(null);
@@ -123,6 +123,8 @@ export function OnboardingTour() {
   }, [tour, nextStep, prevStep, endTour]);
 
   if (!tour || !step) return null;
+  /* the card waits for its place: nothing is drawn top-left and then moved */
+  const placed = rect !== null || missing;
   const total = tour.guide.steps.length;
   const last = tour.step === total - 1;
 
@@ -169,7 +171,7 @@ export function OnboardingTour() {
         )}
       </AnimatePresence>
 
-      <motion.div
+      {placed && <motion.div
         key={`${tour.guide.id}-${tour.step}`}
         role="dialog"
         aria-label={step.title}
@@ -220,7 +222,7 @@ export function OnboardingTour() {
             <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } nextStep(); }} className="h-8 px-4 text-[13px] font-semibold">{last ? (step.action?.label ?? "Done") : "Next"}</Button>
           </div>
         </div>
-      </motion.div>
+      </motion.div>}
     </div>,
     document.body,
   );

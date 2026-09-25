@@ -16,6 +16,8 @@ async function session(query, width = 1440, height = 900) {
   p.on("pageerror", (e) => faults.push("pageerror: " + String(e).slice(0, 200)));
   p.on("requestfailed", (r) => { if (!/favicon|hot-update/.test(r.url())) faults.push("request: " + r.url().slice(0, 120)); });
   await p.addInitScript(() => {
+    /* the flows describe the demo world; the fresh-account default of the onboarding branch is switched off here */
+    try { localStorage.setItem("ttt_demo_fresh", "0"); } catch {}
     navigator.mediaDevices.getUserMedia = async () => {
       const ac = new AudioContext(); const o = ac.createOscillator(); o.frequency.value = 180;
       const g = ac.createGain(); g.gain.value = 0.25; const d = ac.createMediaStreamDestination();

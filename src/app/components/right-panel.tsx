@@ -1,3 +1,4 @@
+import { isFreshAccount } from "@/lib/fresh-account";
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { DesktopAppCard, useBannerVariant, useDesktopBannerHidden } from "./desktop/desktop-app-banner";
 import { useShell } from "./desktop/shell";
@@ -27,6 +28,8 @@ const meetings: Meeting[] = [
   { id: "2", day: "03/17", dayLabel: "Tuesday", time: "15:00 ~ 16:00", title: "Nexora Product Team Sync", platform: "meet", attendees: 6, autoJoin: false },
   { id: "3", day: "03/18", dayLabel: "Wednesday", time: "14:00 ~ 15:00", title: "Nexora <> QL | Instance Daily Sync", platform: "teams", attendees: 3, autoJoin: false },
 ];
+/* a fresh account has no calendar connected yet */
+if (isFreshAccount()) meetings.splice(0, meetings.length);
 
 const platformSourceMap = { meet: "google-meet", zoom: "zoom", teams: "teams" } as const;
 
@@ -221,7 +224,7 @@ function SlideAIBrain() {
    ══════════════════════════════════════════════ */
 
 function FreePlanCard() {
-  const usedFiles = 3;
+  const usedFiles = isFreshAccount() ? 1 : 3;
   const totalFiles = 10;
   const pct = (usedFiles / totalFiles) * 100;
 
@@ -432,6 +435,7 @@ export function RightPanel() {
                 <Icon icon={ChevronRight} className="size-[14px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.8} />
               </button>
             </div>
+            {todayCount === 0 && <p className="py-[18px] text-center text-muted-foreground" style={{ fontSize: "13px" }}>{t("panel.noMeetings")}</p>}
             {meetingGrouped.filter(g => g.day === todayStr).map((group) => (
               <div key={group.day}>
                 {group.items.map((m) => <MeetingItem key={m.id} meeting={m} />)}

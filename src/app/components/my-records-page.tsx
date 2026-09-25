@@ -542,6 +542,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             </DropdownMenu>
             <Button
               variant="pill-outline"
+              data-tour="records-add-folder"
               onClick={() => setCreateOpen(true)}
               className="flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
             >

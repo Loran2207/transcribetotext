@@ -3,6 +3,16 @@ import type { ExportSegment } from "@/lib/export-formats";
 /* Mock transcript segments for the demo records (keyed by record id).
    Used by the export dialog live preview and exported files. */
 export const MOCK_TRANSCRIPTS: Record<string, ExportSegment[]> = {
+  welcome: [
+    { speaker: "Sam Rivera", timestamp: "0:00", text: "Hi, and welcome to Transcribe To Text. This recording is here so you can see what a finished transcript looks like before you upload your own." },
+    { speaker: "Speaker 2", timestamp: "0:11", text: "So everything we say ends up as text, with the time it was said?" },
+    { speaker: "Sam Rivera", timestamp: "0:16", text: "Exactly. Click a timecode to hear that moment. The Summary tab turns the whole conversation into notes, and Apply template picks the style." },
+    { speaker: "Speaker 2", timestamp: "0:31", text: "And if the app gets a name wrong?" },
+    { speaker: "Sam Rivera", timestamp: "0:34", text: "Click the name on any block and pick the right person. If two people share one block, select the words that belong to the other person and only those words move." },
+    { speaker: "Speaker 2", timestamp: "0:49", text: "Where do my recordings live?" },
+    { speaker: "Sam Rivera", timestamp: "0:52", text: "In My Records. Folders keep clients or projects apart, and you can share one recording or a whole folder." },
+    { speaker: "Sam Rivera", timestamp: "1:06", text: "Upload your first file from the Home page and the guide walks you through the rest." },
+  ],
   "2": [
     { speaker: "Maria Garcia", timestamp: "0:02", text: "Alright, everyone's here - let's get started. Today I want to lock the Q2 roadmap: the new export flow, transcription accuracy for noisy audio, and folder sharing." },
     { speaker: "Alex Johnson", timestamp: "0:41", text: "Export flow first. The unified dialog is in staging and QA looks good. If design signs off this week, we can ship it behind a flag by Friday." },

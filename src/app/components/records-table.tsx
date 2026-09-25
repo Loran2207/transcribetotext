@@ -938,6 +938,8 @@ function InlineFolderEditDialog({ open, folder, onClose, onSave }: { open: boole
    Data
    ══════════════════════════════════════════════ */
 
+import { isFreshAccount, WELCOME_RECORD_ID } from "@/lib/fresh-account";
+
 const tabs = ["Recent", "Starred", "Shared", "Trash"] as const;
 const DEMO_VIDEO_URL = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
 
@@ -962,6 +964,12 @@ export const records: RecordRow[] = [
   { id: "13", name: "Sales discovery - Brightline Media", iconColor: "#3B82F6", iconType: "square", duration: "31 min", dateCreated: "03/06/2026, 09:30", dateGroup: "Friday, Mar 6", template: "1 by 1", language: "en", source: "teams", summary: "Discovery call with Brightline Media, a 40-person agency. They transcribe client briefings and need workspace roles plus SSO. Sent pricing for the team plan; demo with their ops lead next week.", tasks: 4, screenshots: 3, time: "9:30 AM" },
   { id: "6", name: "Product demo - AI summary walkthrough", iconColor: "#EF4444", iconType: "circle", duration: "1 min 21s", dateCreated: "03/10/2026, 19:09", dateGroup: "Monday, Mar 10", template: "Summary", language: "en", source: "mp4", summary: "A one-minute walkthrough: upload a recording or paste a meeting link, get a speaker-labeled transcript, then export the summary and action items as text, Word or PDF.", tasks: 1, screenshots: 1, time: "8:46 AM", thumbnail: "https://images.unsplash.com/photo-1721804295754-1905f69c86ad?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxsb2dpc3RpY3MlMjB0cnVja3MlMjBmbGVldCUyMG9yYW5nZXxlbnwxfHx8fDE3NzM1MDA5NDh8MA&ixlib=rb-4.1.0&q=80&w=1080", videoUrl: DEMO_VIDEO_URL },
 ];
+/* The fresh account has exactly one recording: the welcome one, made for the
+   guide. It replaces the demo world in place so every consumer of `records`
+   sees the same list. */
+export const WELCOME_RECORD: RecordRow = { id: WELCOME_RECORD_ID, name: "Welcome to Transcribe To Text", iconColor: "#2563EB", iconType: "circle", duration: "1 min 14s", dateCreated: "Today", dateGroup: "Today", template: "Meeting Notes", language: "en", source: "mp3", summary: "A short welcome: what a finished transcript looks like, where the Summary and templates are, how to fix a speaker's name, and where recordings live.", tasks: 0, screenshots: 0, time: "Today" };
+if (isFreshAccount()) records.splice(0, records.length, WELCOME_RECORD);
+
 
 /** Shared converter: table record → exportable record (with mock transcript segments). */
 export function recordRowToExportable(record: RecordRow): ExportableRecord {
@@ -1333,7 +1341,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const scopedTrashRecords = scopedFolderId ? trashRecords.filter((r) => folderAssignments[r.id] === scopedFolderId) : trashRecords;
 
   // Shared records (mock: first 3 records are "shared with me")
-  const sharedIds = new Set(records.slice(0, 3).map(r => r.id));
+  const sharedIds = new Set(isFreshAccount() ? [] : records.slice(0, 3).map(r => r.id));
 
   let filteredRecords = activeTab === "Trash" ? scopedTrashRecords : scopedActiveRecords;
   if (searchQuery) filteredRecords = filteredRecords.filter((r) => r.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -1433,7 +1441,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
       {/* Header: Title + Search + Settings + Add Folder */}
       {!hideTopHeader && (
         <div className="flex items-center gap-[12px] mb-[16px]">
-          <button className="flex items-center gap-[4px] cursor-pointer group" onClick={onNavigateToRecords}>
+          <button data-tour="home-records" className="flex items-center gap-[4px] cursor-pointer group" onClick={onNavigateToRecords}>
             <span className="font-semibold text-[18px] text-foreground">{t("table.myRecords")}</span>
             <Icon icon={ChevronRight} className="size-[16px] text-foreground opacity-50 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
           </button>

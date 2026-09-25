@@ -25,6 +25,7 @@ const dict: Record<string, Record<LangCode, string>> = {
   "nav.starred": { en: "Starred", ru: "\u0418\u0437\u0431\u0440\u0430\u043d\u043d\u043e\u0435", es: "Destacados", de: "Markiert", fr: "Favoris", ja: "\u30b9\u30bf\u30fc\u4ed8\u304d" },
   "nav.folders": { en: "Folders", ru: "\u041f\u0430\u043f\u043a\u0438", es: "Carpetas", de: "Ordner", fr: "Dossiers", ja: "\u30d5\u30a9\u30eb\u30c0" },
   "nav.helpSupport": { en: "Help & Support", ru: "\u041f\u043e\u043c\u043e\u0449\u044c", es: "Ayuda y soporte", de: "Hilfe & Support", fr: "Aide & support", ja: "\u30d8\u30eb\u30d7" },
+  "nav.noFolders": { en: "No folders yet", ru: "\u041f\u0430\u043f\u043e\u043a \u043f\u043e\u043a\u0430 \u043d\u0435\u0442", es: "Sin carpetas", de: "Noch keine Ordner", fr: "Aucun dossier", ja: "\u30d5\u30a9\u30eb\u30c0\u306a\u3057" },
   "nav.noStarred": { en: "No starred files", ru: "\u041d\u0435\u0442 \u0438\u0437\u0431\u0440\u0430\u043d\u043d\u044b\u0445", es: "Sin archivos destacados", de: "Keine markierten", fr: "Aucun favori", ja: "\u30b9\u30bf\u30fc\u306a\u3057" },
   "nav.expandSidebar": { en: "Expand sidebar", ru: "\u0420\u0430\u0437\u0432\u0435\u0440\u043d\u0443\u0442\u044c", es: "Expandir barra", de: "Seitenleiste einblenden", fr: "\u00c9tendre la barre", ja: "\u30b5\u30a4\u30c9\u30d0\u30fc\u3092\u5c55\u958b" },
 

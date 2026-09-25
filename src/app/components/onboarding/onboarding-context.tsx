@@ -112,7 +112,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setTour((t) => {
       if (!t) return t;
       const last = t.step >= t.guide.steps.length - 1;
-      if (last) { finishGuide(t.guide); return null; }
+      if (last) { if (t.guide.completeBy !== "action") finishGuide(t.guide); return null; }
       const next = t.guide.steps[t.step + 1];
       go(next.go);
       return { guide: t.guide, step: t.step + 1 };

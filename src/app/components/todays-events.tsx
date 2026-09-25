@@ -1,3 +1,4 @@
+import { isFreshAccount } from "@/lib/fresh-account";
 import { useState } from "react";
 import { Mic, Globe, ChevronRight } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
@@ -20,6 +21,9 @@ export const meetings: Meeting[] = [
   { id: "2", day: "03/17", dayLabel: "Tuesday", time: "15:00 ~ 16:00", title: "Nexora Product Team Sync", platform: "meet", attendees: 6, autoJoin: false },
   { id: "3", day: "03/18", dayLabel: "Wednesday", time: "14:00 ~ 15:00", title: "Nexora <> QL | Instance Daily Sync", platform: "teams", attendees: 3, autoJoin: false },
 ];
+/* a fresh account has no calendar yet */
+if (isFreshAccount()) meetings.splice(0, meetings.length);
+
 
 const platformSourceMap = { meet: "google-meet", zoom: "zoom", teams: "teams" } as const;
 

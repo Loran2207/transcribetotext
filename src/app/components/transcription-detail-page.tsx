@@ -10,6 +10,7 @@ import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { creditOnboarding } from "./onboarding/onboarding-context";
+import { WELCOME_RECORD_ID } from "@/lib/fresh-account";
 import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, RemoveSpeakerDialog, SpeakersChip, PencilIcon, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
 import { LanguageSelector, SpeakerSection } from "./transcription-modals";
 import { useNotetakerSettings } from "./desktop/notetaker-settings";
@@ -366,6 +367,25 @@ const MOCK_SEGMENTS: Segment[] = [
   { id: 10, speaker: SPEAKERS[0], timestamp: "3:55", text: "Good point. Let's add that to the Q2 discussion. I'll create a separate agenda item for the next planning meeting. Anything else?" },
   { id: 11, speaker: SPEAKERS[1], timestamp: "4:18", text: "Nothing from my side. I think we're in good shape overall." },
   { id: 12, speaker: SPEAKERS[2], timestamp: "4:30", text: "Same here. Let's wrap up and get back to work. Thanks everyone." },
+];
+
+/* The welcome recording of a fresh account: two voices, short, and it
+   teaches while it talks. The second voice stays unnamed so the speakers
+   lesson has a real thing to fix. */
+const WELCOME_SPEAKERS: Speaker[] = [
+  { id: "w1", name: "Sam Rivera", color: "#2563eb", initial: "S" },
+  { id: "w2", name: "Speaker 2", color: "#a855f7", initial: "2" },
+];
+const WELCOME_SEGMENTS: Segment[] = [
+  { id: 1, speaker: WELCOME_SPEAKERS[0], timestamp: "0:00", text: "Hi, and welcome to Transcribe To Text. This recording is here so you can see what a finished transcript looks like before you upload your own." },
+  { id: 2, speaker: WELCOME_SPEAKERS[1], timestamp: "0:11", text: "So everything we say ends up as text, with the time it was said?" },
+  { id: 3, speaker: WELCOME_SPEAKERS[0], timestamp: "0:16", text: "Exactly. Click a timecode to hear that moment. The Summary tab turns the whole conversation into notes, and Apply template picks the style: meeting notes, interview, action items." },
+  { id: 4, speaker: WELCOME_SPEAKERS[1], timestamp: "0:31", text: "And if the app gets a name wrong?" },
+  { id: 5, speaker: WELCOME_SPEAKERS[0], timestamp: "0:34", text: "Click the name on any block and pick the right person. If two people share one block, select the words that belong to the other person and only those words move." },
+  { id: 6, speaker: WELCOME_SPEAKERS[1], timestamp: "0:49", text: "Where do my recordings live?" },
+  { id: 7, speaker: WELCOME_SPEAKERS[0], timestamp: "0:52", text: "In My Records. Folders keep clients or projects apart, and you can share one recording or a whole folder with a link or an invite." },
+  { id: 8, speaker: WELCOME_SPEAKERS[1], timestamp: "1:04", text: "Sounds simple enough." },
+  { id: 9, speaker: WELCOME_SPEAKERS[0], timestamp: "1:06", text: "It is. Upload your first file from the Home page and the guide walks you through the rest." },
 ];
 
 // Single-speaker (podcast / monologue / dictation) demo content - one voice, no speaker column.
@@ -1973,7 +1993,7 @@ export function MeetingCard({ meetingId, onChange, dateLabel = "Today", suggeste
 export function LiveMeetingChips() {
   const [meetingId, setMeetingId] = useSessionValue("ttt_live_meeting");
   const [dismissed, setDismissed] = useSessionValue("ttt_live_meeting_dismissed");
-  return <MeetingCard meetingId={meetingId} onChange={setMeetingId} suggestedId={dismissed ? null : calendarMeetings[0].id} onDismissSuggestion={() => setDismissed("1")} />;
+  return <MeetingCard meetingId={meetingId} onChange={setMeetingId} suggestedId={dismissed ? null : calendarMeetings[0]?.id ?? null} onDismissSuggestion={() => setDismissed("1")} />;
 }
 /* the record's event, remembered on this machine */
 function useRecordMeeting(recordId: string) {
@@ -2855,7 +2875,9 @@ export function TranscriptionDetailPage() {
     try { return window.localStorage.getItem("ttt_demo_unnamed_speakers") === "1"; } catch { return false; }
   })();
   const contentSegments = useMemo<Segment[]>(
-    () => (showCases
+    () => (selectedRecord?.id === WELCOME_RECORD_ID
+      ? WELCOME_SEGMENTS
+      : showCases
       ? CASE_SEGMENTS
       : selectedJob?.source === "microphone" && previewDetailSegments.length > 0
         ? previewDetailSegments
@@ -2864,7 +2886,7 @@ export function TranscriptionDetailPage() {
             ? { ...seg, text: seg.text + " Absolutely, I'll set something up for Wednesday morning." }
             : seg.id === 5 ? { ...seg, text: "That gives us a day to incorporate any feedback before James's team picks it up on Thursday." } : seg)
           : MOCK_SEGMENTS),
-    [previewDetailSegments, selectedJob?.source, showCases, mergedDemo],
+    [previewDetailSegments, selectedJob?.source, showCases, mergedDemo, selectedRecord?.id],
   );
   // Single-speaker / monologue mode: hide the speaker column when there's only one voice.
   // Demo flag forces it with dedicated monologue content for design captures.

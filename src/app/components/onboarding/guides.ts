@@ -1,15 +1,15 @@
-/* The six lessons of "Get started". Every lesson is a short walk through
-   real screens: a step names an anchor (`data-tour` attribute, "a|b" = the
-   first visible one wins), the place it lives on, and two plain lines.
+/* The six lessons of "Get started". A lesson is a short walk through real
+   screens: a step names an anchor (`data-tour` attribute, "a|b" = the first
+   visible one wins), the place it lives on, and one or two plain lines.
 
-   The lessons lean on the sample recording (record 2, the three-speaker
-   weekly sync): a new account has nothing of its own yet, so the guide
-   shows every feature on that recording, the way Granola and Notta seed a
-   "quick guide" note. Nothing has to be clicked blind; the one real action
-   the guide asks for is the last step of lesson 1, which opens the upload.
-
-   Copy rules (CLAUDE.md, Kirill's UX law): short, concrete, no long dashes,
-   no grey helper text, one idea per step. */
+   Rules learned from Kirill's reviews (25-26.09):
+   - a lesson never teleports: when it needs another screen, its first step
+     is on the screen the person is on and says where we go next;
+   - the lessons lean on the welcome recording, the one file a fresh account
+     has, so nothing has to be clicked blind;
+   - the only real action asked for is the end of lesson 1, "Upload a file",
+     and that lesson counts as done only when an upload really starts;
+   - as little text as possible. */
 
 export type TourTarget = { page: "dashboard" | "records" | "calendar" | "templates" | "shared" } | { path: string };
 
@@ -26,79 +26,78 @@ export type TourStep = {
 export type Guide = {
   id: string;
   title: string;
-  /* what the person gets out of it, one line under the title */
-  outcome: string;
+  /* "action": the tour does not tick the lesson, a real action does */
+  completeBy?: "action";
   steps: TourStep[];
 };
 
-export const GUIDE_RECORD_PATH = "/transcriptions/2";
+export const GUIDE_RECORD_PATH = "/transcriptions/welcome";
 
 const HOME: TourTarget = { page: "dashboard" };
 const RECORDS: TourTarget = { page: "records" };
 const RECORD: TourTarget = { path: GUIDE_RECORD_PATH };
 
+/* the way from Home into the welcome recording, shared by three lessons */
+const TO_RECORD: TourStep = { anchor: "home-records|records-table", go: HOME, side: "top", title: "Your recordings", body: "They all land here. The first one is a welcome recording we made for you. Let's open it." };
+
 export const GUIDES: Guide[] = [
   {
     id: "first-record",
     title: "Make your first transcript",
-    outcome: "Upload, record or paste a link",
+    completeBy: "action",
     steps: [
-      { anchor: "home-cards|add-fab", go: HOME, side: "bottom", title: "Four ways in", body: "A file, your voice, a meeting or a link. Each one becomes a transcript in My Records within minutes." },
-      { anchor: "home-card-record|add-fab", go: HOME, side: "bottom", title: "Instant speech", body: "Press it and talk. The words appear as you speak. Good for voice notes and quick thoughts." },
-      { anchor: "home-card-meeting|add-fab", go: HOME, side: "bottom", title: "Meeting Recorder", body: "Paste a meeting link and the recorder joins the call, records it and writes the transcript." },
-      { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "Any audio or video works. Pick one now and watch it turn into text.", action: { label: "Upload a file", kind: "upload" } },
+      { anchor: "home-cards|add-fab", go: HOME, side: "bottom", title: "Four ways in", body: "A file, your voice, a meeting or a link. Each becomes a transcript in minutes." },
+      { anchor: "home-card-record|add-fab", go: HOME, side: "bottom", title: "Instant speech", body: "Press and talk. The words appear as you speak." },
+      { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "Any audio or video. Pick one and watch it turn into text.", action: { label: "Upload a file", kind: "upload" } },
     ],
   },
   {
     id: "read-transcript",
     title: "Read a transcript",
-    outcome: "Transcript, summary, translation, export",
     steps: [
-      { anchor: "record-title", go: RECORD, side: "bottom", title: "A sample recording", body: "We put this meeting in your account so you can look around. Everything here works the same on your own recordings." },
-      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Transcript and Summary", body: "Transcript is every word. Summary turns them into notes: decisions, action items, questions." },
-      { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Apply template", body: "Pick how the summary is written: meeting notes, interview, action items, and 29 more." },
-      { anchor: "record-translate|record-tabs", go: RECORD, side: "bottom", title: "Translate", body: "Choose a language and read the whole transcript in it." },
-      { anchor: "record-export|record-tabs", go: RECORD, side: "bottom", title: "Export", body: "Save it as PDF, Word, plain text or subtitles." },
+      TO_RECORD,
+      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Transcript and Summary", body: "Transcript is every word. Summary turns them into notes." },
+      { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Apply template", body: "Meeting notes, interview, action items: pick how the summary is written." },
+      { anchor: "record-translate|record-tabs", go: RECORD, side: "bottom", title: "Translate", body: "Read the whole transcript in another language." },
+      { anchor: "record-export|record-tabs", go: RECORD, side: "bottom", title: "Export", body: "PDF, Word, plain text or subtitles." },
     ],
   },
   {
     id: "speakers",
     title: "Name the speakers",
-    outcome: "Rename, merge and fix who said what",
     steps: [
-      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Everyone who spoke", body: "Every voice on the recording is listed here. Rename or remove any of them in one place." },
-      { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Click a name to change it", body: "Click the name on a block and pick who really said it, for this block or for all of them." },
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Split a block", body: "Two people in one block? Select the words that belong to the other person and pick their name. Only those words move." },
+      TO_RECORD,
+      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Everyone who spoke", body: "Every voice, in one place. Rename or remove them here." },
+      { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Click a name to fix it", body: "Pick who really said it, for this block or for all of them." },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Two people in one block?", body: "Select the words that belong to the other person and pick their name. Only those words move." },
     ],
   },
   {
     id: "folders",
     title: "Keep records in folders",
-    outcome: "One folder per client or project",
     steps: [
-      { anchor: "sidebar-folders|menu", go: RECORDS, side: "right", title: "Folders", body: "A folder holds the recordings of one client, project or team. Click one to see only its records." },
-      { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Create a folder", body: "Name it and give it a colour. You can also pick a folder while uploading, so the record lands in the right place from the start." },
-      { anchor: "records-table", go: RECORDS, side: "top", title: "Move records", body: "Tick one or several records and choose Move to folder. A record lives in one folder at a time." },
-      { anchor: "sidebar-folder-row|menu", go: RECORDS, side: "right", title: "Share a whole folder", body: "Hover a folder and press the people icon. Everyone you invite sees every recording in it, including the ones you add later." },
+      { anchor: "sidebar-folders|menu", go: HOME, side: "right", title: "Folders", body: "One per client or project. Click a folder to see only its records." },
+      { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Create one", body: "A name and a colour. You can also pick a folder while uploading." },
+      { anchor: "records-table|home-records", go: RECORDS, side: "bottom", title: "Move records", body: "Tick one or more and choose Move to folder." },
+      { anchor: "sidebar-folders|menu", go: RECORDS, side: "right", title: "Share a whole folder", body: "Once you have one, hover it and press the people icon. Everyone invited sees every recording in it." },
     ],
   },
   {
     id: "share",
     title: "Share a recording",
-    outcome: "A link or an invite, with the summary",
     steps: [
-      { anchor: "record-share|record-speakers-chip", go: RECORD, side: "bottom", title: "Share", body: "Send a link or invite people by email. They see this recording, its transcript and summary, nothing else." },
-      { anchor: "nav-shared|menu", go: RECORD, side: "right", title: "Shared with me", body: "Recordings and folders other people share with you land here." },
+      TO_RECORD,
+      { anchor: "record-share|record-speakers-chip", go: RECORD, side: "bottom", title: "Share", body: "A link or an invite by email. They see this recording, its transcript and summary." },
+      { anchor: "nav-shared|menu", go: RECORD, side: "right", title: "Shared with me", body: "What other people share with you lands here." },
     ],
   },
   {
     id: "find",
     title: "Find anything fast",
-    outcome: "Search by the words that were said",
     steps: [
-      { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Search every transcript by the words that were said. Ctrl K opens it from anywhere." },
-      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Connect Google or Outlook and the recorder joins your meetings on its own." },
-      { anchor: "nav-templates|menu", go: HOME, side: "right", title: "Templates", body: "Every summary template in one place, with a worked example of each." },
+      { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Search every transcript by the words that were said. Ctrl K from anywhere." },
+      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Connect your calendar and the recorder joins meetings on its own." },
+      { anchor: "nav-templates|menu", go: HOME, side: "right", title: "Templates", body: "All summary templates, each with an example." },
     ],
   },
 ];
