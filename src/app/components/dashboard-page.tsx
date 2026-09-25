@@ -362,6 +362,9 @@ function useGreeting() {
   return firstName ? `${base}, ${firstName}` : base;
 }
 
+/* the guided tour lights one card at a time */
+const tourCard = (modal: "upload" | "record" | "meeting" | "link") => (modal === "record" ? "home-card-record" : modal === "meeting" ? "home-card-meeting" : undefined);
+
 export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page: string) => void; onOpenFolder?: (folderId: string) => void } = {}) {
   const greeting = useGreeting();
   const { setOpenModal, openUploadWithFiles } = useTranscriptionModals();
@@ -436,17 +439,18 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           </motion.p>
 
           {/* Tablet: the four illustrated cards in a 2x2 grid (no kbd) */}
-          <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[16px]">
+          <div data-tour="home-cards" className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[16px]">
             {cards.map(({ card, key, modal }) => (
-              <div key={key} className="relative cursor-pointer" onClick={() => setOpenModal(modal)}>
+              <div key={key} data-tour={tourCard(modal)} className="relative cursor-pointer" onClick={() => setOpenModal(modal)}>
                 {card}
               </div>
             ))}
           </div>
-          <motion.div className="hidden lg:flex gap-[12px] mt-[34px]" {...fadeUp(0.48, 50)}>
+          <motion.div data-tour="home-cards" className="hidden lg:flex gap-[12px] mt-[34px]" {...fadeUp(0.48, 50)}>
             {cards.map(({ card, key, modal }) => (
               <div
                 key={key}
+                data-tour={tourCard(modal)}
                 className="relative flex-1 min-w-0 group cursor-pointer"
                 onClick={() => {
                   if (modal === "record") {

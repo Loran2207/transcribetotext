@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { RouterProvider } from "react-router";
+import { OnboardingProvider } from "./components/onboarding/onboarding-context";
 import { router } from "./routes";
 import { StarredProvider } from "./components/starred-context";
 import { FolderProvider } from "./components/folder-context";
@@ -27,7 +28,9 @@ export default function App() {
         <StarredProvider>
           <FolderProvider>
             <TranscriptionModalsProvider userPlan="free">
-              <RouterProvider router={router} />
+              <OnboardingProvider>
+                <RouterProvider router={router} />
+              </OnboardingProvider>
               {/* Top right, clear of the search and profile bar (56px tall).
                   Three at a time: the rest wait behind the stack. */}
               <Toaster

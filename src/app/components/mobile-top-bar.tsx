@@ -41,6 +41,7 @@ export function MobileTopBar({ onNavigate }: { onNavigate: (page: string) => voi
         variant="ghost"
         size="icon"
         onClick={toggleSidebar}
+        data-tour="menu"
         className="size-[40px] shrink-0 text-foreground"
         aria-label="Open menu"
       >
@@ -48,6 +49,7 @@ export function MobileTopBar({ onNavigate }: { onNavigate: (page: string) => voi
       </Button>
 
       <button
+        data-tour="quick-find"
         onClick={() => setSearchOpen(true)}
         className="relative flex items-center flex-1 h-[40px] rounded-full bg-foreground/[0.04]"
         aria-label="Search recordings"

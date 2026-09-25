@@ -9,6 +9,7 @@ import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/n
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { creditOnboarding } from "./onboarding/onboarding-context";
 import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, RemoveSpeakerDialog, SpeakersChip, PencilIcon, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
 import { LanguageSelector, SpeakerSection } from "./transcription-modals";
 import { useNotetakerSettings } from "./desktop/notetaker-settings";
@@ -751,6 +752,7 @@ function SpeakerLabel({
     <button
       type="button"
       data-speaker-trigger=""
+      data-tour={continuation ? undefined : "record-speaker-name"}
       aria-label={`Change speaker: ${speaker.name}`}
       className={`group/spk -ml-1.5 flex max-w-full items-center gap-2.5 rounded-full py-1 pl-1.5 pr-2 text-left transition-colors hover:bg-muted/70 data-[state=open]:bg-muted/70 ${
         continuation ? "opacity-0 group-hover/seg:opacity-100 group-focus-within/seg:opacity-100 data-[state=open]:opacity-100 max-lg:opacity-100" : ""
@@ -2327,7 +2329,7 @@ function PageHeader({
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           {!sharedOwner && <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>}
           {!hasSummary && !sharedOwner && (
-            <Button className="order-first flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
+            <Button data-tour="record-apply-template" className="order-first flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
               <span className="font-medium text-[13px]">Apply template</span>
             </Button>
           )}
@@ -2339,6 +2341,7 @@ function PageHeader({
             <Button
               variant="pill-outline"
               data-qa-label="Share"
+              data-tour="record-share"
               className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden"
               onClick={onShare}
             >
@@ -2547,7 +2550,7 @@ function PageHeader({
 const EXPORT_FORMATS = ["PDF", "Word (DOCX)", "Plain text (TXT)", "Subtitles (SRT)"];
 export function ExportPill({ onExport, disabled = false }: { onExport?: () => void; disabled?: boolean }) {
   const pill = (
-    <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px]" disabled={disabled} aria-label="Export">
+    <Button variant="pill-outline" data-tour="record-export" className="flex h-9 items-center gap-[6px] px-[14px]" disabled={disabled} aria-label="Export">
       <Icon icon={Upload} className="size-[14px]" strokeWidth={1.7} />
       <span className="text-[13px] font-medium">Export</span>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
@@ -2793,6 +2796,7 @@ export function TranscriptionDetailPage() {
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [isRightPanelResizing, setIsRightPanelResizing] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  useEffect(() => { if (shareDialogOpen) creditOnboarding("share"); }, [shareDialogOpen]);
   const { shares: transcriptionShares } = useShares("transcription", selectedRecord?.id ?? id ?? "");
   const activeTranslationMeta = useMemo(
     () => TRANSLATION_LANGUAGES.find((language) => language.code === activeTranslationLang) ?? null,
@@ -2977,6 +2981,7 @@ export function TranscriptionDetailPage() {
   const askRemoveSpeaker = (id: string) => { const sp = managedSpeakers.find((x) => x.id === id); if (sp) setRemoveTarget(sp); };
   const speakersPanelActions = {
     onRename: (id: string, name: string) => {
+      creditOnboarding("speakers");
       const before = speakerNames; const from = resolved.managed.find((sp) => sp.id === id);
       setSpeakerNames((n) => ({ ...n, [id]: name }));
       toast.success(`${from?.name ?? "Speaker"} is now ${name}`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
@@ -4217,7 +4222,7 @@ export function TranscriptionDetailPage() {
               <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled={recIdx < 0 || recIdx >= records.length - 1} onClick={() => navigate(`/transcriptions/${records[recIdx + 1].id}`)}><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button>
             </div>
           )}
-          <div className={"max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
+          <div data-tour="record-translate" className={"max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
             <Select
               value={selectedTranslationLang || undefined}
               onValueChange={setSelectedTranslationLang}
@@ -4285,7 +4290,7 @@ export function TranscriptionDetailPage() {
               {!desktopShell && <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />}
               {!isSingleSpeaker && !isJobTranscribing && (
                 <SpeakersPanel speakers={managedSpeakers} actions={speakersPanelActions} open={speakersPanelOpen} onOpenChange={setSpeakersPanelOpen} onAskRemove={setRemoveTarget}>
-                  <SpeakersChip speakers={resolved.speakers} />
+                  <SpeakersChip speakers={resolved.speakers} data-tour="record-speakers-chip" />
                 </SpeakersPanel>
               )}
             </>
@@ -4332,7 +4337,7 @@ export function TranscriptionDetailPage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
           <div className="flex items-end justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
-            <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
+            <TabsList data-tour="record-tabs" variant="line" className="border-b-0 max-lg:shrink-0">
               {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
@@ -4478,7 +4483,7 @@ export function TranscriptionDetailPage() {
               </div>
             </TabsContent>
           )}
-          <TabsContent value="transcript" className="flex-1 overflow-auto relative">
+          <TabsContent value="transcript" data-tour="record-transcript-body" className="flex-1 overflow-auto relative">
             {isJobTranscribing ? (
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (

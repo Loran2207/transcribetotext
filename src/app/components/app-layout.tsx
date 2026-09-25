@@ -19,6 +19,9 @@ import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 import { DesktopWindowFrame, useShell } from "./desktop/shell";
 import { DemoSwitcher } from "./desktop/demo-switcher";
 import { DesktopNotice } from "./desktop/desktop-notice";
+import { OnboardingWidget } from "./onboarding/onboarding-widget";
+import { OnboardingTour } from "./onboarding/tour";
+import { useOnboarding } from "./onboarding/onboarding-context";
 
 export function AppLayout() {
   const [activePage, setActivePage] = useState("dashboard");
@@ -29,6 +32,17 @@ export function AppLayout() {
 
   const isSettings = activePage === "settings";
   const isSubRoute = location.pathname !== "/";
+
+  /* the guided tour asks the shell to reach a page or a record */
+  const onboarding = useOnboarding();
+  useEffect(() => {
+    onboarding.registerNavigator((target) => {
+      if ("path" in target) { if (location.pathname !== target.path) routerNavigate(target.path); return; }
+      if (isSubRoute) { routerNavigate("/", { state: { page: target.page } }); return; }
+      prevPageRef.current = target.page;
+      setActivePage(target.page);
+    });
+  }, [onboarding, isSubRoute, location.pathname, routerNavigate]);
 
   // Deep-link back into an app page (e.g. detail page breadcrumb -> Meetings)
   useEffect(() => {
@@ -88,10 +102,12 @@ export function AppLayout() {
           </main>
           <BottomNav />
           <InnerScreenBottomBar />
+          {!isSettings && <OnboardingWidget />}
         </SidebarInset>
       </SidebarProvider>
        <DesktopNotice />
        <DemoSwitcher />
+       <OnboardingTour />
      </DesktopWindowFrame>
     </UserProfileProvider>
   );

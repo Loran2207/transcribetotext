@@ -1598,7 +1598,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
 
           {/* Add Folder button (inline with tabs) */}
           {showAddFolderButton && (
-            <Button variant="pill-outline" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-[28px] px-[12px] ml-[8px] mb-[4px] shrink-0 transition-colors cursor-pointer">
+            <Button variant="pill-outline" data-tour="records-add-folder" onClick={() => setFolderModalOpen(true)} className="flex items-center gap-[6px] h-[28px] px-[12px] ml-[8px] mb-[4px] shrink-0 transition-colors cursor-pointer">
               <Icon icon={FolderPlus} className="size-[14px] text-foreground" strokeWidth={1.5} />
               <span className="font-medium text-[12px] text-foreground">{t("folder.addFolder")}</span>
             </Button>
@@ -1740,7 +1740,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                 onExport={() => setExportDialogIds(Array.from(selectedRows))}
               />
             ) : (
-            <div className="flex items-center h-[36px] border-b border-border">
+            <div data-tour="records-table" className="flex items-center h-[36px] border-b border-border">
               <div className="w-[40px] shrink-0 flex items-center justify-center"><FigmaCheckbox checked={allSelected} onChange={toggleAll} /></div>
               <div className="flex-[2.2] min-w-0 px-[12px] flex items-center"><ColumnHeaderDropdown label={t("table.type")} options={typeFilterOptions} selected={typeFilter} onToggle={(id) => setTypeFilter((s) => toggleSetItem(s, id))} /></div>
               {/* Star column - no title */}

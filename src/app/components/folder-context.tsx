@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { creditOnboarding } from "./onboarding/onboarding-context";
 
 export interface FolderItem {
   id: string;
@@ -137,6 +138,7 @@ export function FolderProvider({ children }: { children: ReactNode }) {
   const addFolder = useCallback((name: string, color: string, parentId?: string | null) => {
     const folder: FolderItem = { id: `folder_${Date.now()}`, name, color, createdAt: new Date().toISOString() };
     setFolders(prev => addToTree(prev, parentId ?? null, folder));
+    creditOnboarding("folders");
     return folder;
   }, []);
 

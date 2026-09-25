@@ -37,6 +37,7 @@ import { openQueue } from "./progress-widget";
 import { ProgressWidget } from "./progress-widget";
 import { UpgradeGateModal } from "./upgrade-gate-modal";
 import { usePlan } from "./use-plan";
+import { creditOnboarding } from "./onboarding/onboarding-context";
 
 // ════════════════════════════════════════════════════════════
 // Types
@@ -932,6 +933,7 @@ export function TranscriptionModalsProvider({
   }
 
   function addJob(name: string, fileType: "audio" | "video", opts?: TranscriptionJobOptions) {
+    creditOnboarding("first-record");
     const id = Math.random().toString(36).slice(2, 10);
     const createdAt = new Date().toISOString();
     let batchId: string | undefined;

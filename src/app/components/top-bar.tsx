@@ -8,6 +8,7 @@ import { SearchModal } from "./search-modal";
 import { useUserProfile } from "./user-profile-context";
 import { useAuth } from "./auth-context";
 import { usePlan } from "./use-plan";
+import { creditOnboarding } from "./onboarding/onboarding-context";
 
 const SUPPORT_EMAIL = "support@transcribetotext.ai";
 
@@ -116,7 +117,8 @@ export function TopBar({ onNavigate }: TopBarProps) {
     <div className="ttt-topbar shrink-0 hidden lg:flex items-center px-[16px] h-[56px] gap-[12px] bg-sidebar">
       {/* Search trigger */}
       <Button variant="ghost"
-        onClick={() => setSearchOpen(true)}
+        data-tour="quick-find"
+        onClick={() => { setSearchOpen(true); creditOnboarding("find"); }}
         className="relative flex items-center flex-1 max-w-[380px] h-[32px] rounded-full bg-foreground/[0.04] justify-start"
       >
         <Icon icon={Search} className="absolute left-[12px] size-[14px] text-muted-foreground" strokeWidth={1.5} />

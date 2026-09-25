@@ -279,6 +279,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
             {NAV_ITEMS.map(({ id, labelKey, icon: NavIcon }) => (
               <SidebarMenuItem key={id}>
                 <SidebarMenuButton
+                  data-tour={`nav-${id}`}
                   isActive={activePage === id}
                   onClick={() => { onNavigate(id); setOpenMobile(false); }}
                   tooltip={t(labelKey)}
@@ -323,6 +324,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
         {/* ── Folders ── */}
         <SidebarGroup>
           <SidebarGroupLabel
+            data-tour="sidebar-folders"
             className="cursor-pointer"
             onClick={() => setFoldersOpen(!foldersOpen)}
           >
