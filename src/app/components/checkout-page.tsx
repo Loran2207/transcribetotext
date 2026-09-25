@@ -46,6 +46,9 @@ export function CheckoutPage() {
 
   const errKey = params.get("err");
   const err = errKey && PAYMENT_ERRORS[errKey] ? PAYMENT_ERRORS[errKey] : null;
+  /* the onboarding reward: one free month, the code already applied */
+  const code = params.get("code");
+  const freeMonth = code === "WELCOME1M";
   const vParam = params.get("v");
   const variant: PaymentErrorVariant = (VARIANT_ORDER.includes(vParam as PaymentErrorVariant) ? vParam : "1") as PaymentErrorVariant;
 
@@ -62,7 +65,9 @@ export function CheckoutPage() {
           <span className="text-[13px] text-muted-foreground">Order summary</span>
           <SummaryRow label="Regular 4-week price" value="$25.99" />
           <SummaryRow label="30+ Exclusive bonuses" value="Free" />
-          <SummaryRow label="Total today:" value="$25.99" bold />
+          {freeMonth && <SummaryRow label={<span className="inline-flex items-center gap-[6px]">Code <span className="rounded-[6px] bg-primary/10 px-[6px] py-[1px] font-mono text-[12px] font-semibold text-primary">{code}</span></span>} value="-$25.99" />}
+          <SummaryRow label="Total today:" value={freeMonth ? "$0.00" : "$25.99"} bold />
+          {freeMonth && <p className="mt-[2px] text-[12px] leading-[17px] text-muted-foreground">Your first month is free. From month two it is $25.99 every 4 weeks, cancel any time.</p>}
         </div>
 
         {/* Error - above all payment buttons. Variant 1 bleeds edge to edge. */}

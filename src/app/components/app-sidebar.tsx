@@ -344,8 +344,8 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
           </SidebarGroupLabel>
           {foldersOpen && (
             <SidebarMenuSub>
-              {folders.map((folder) => (
-                <SidebarMenuSubItem key={folder.id} className="group/folder">
+              {folders.map((folder, fi) => (
+                <SidebarMenuSubItem key={folder.id} className="group/folder" data-tour={fi === 0 ? "sidebar-folder-row" : undefined}>
                   <SidebarMenuSubButton
                     onClick={userFolders.length > 0 ? () => { onNavigate("records"); onOpenFolder?.(folder.id); setOpenMobile(false); } : undefined}
                     className={`${userFolders.length > 0 ? "cursor-pointer" : ""} pr-8`}

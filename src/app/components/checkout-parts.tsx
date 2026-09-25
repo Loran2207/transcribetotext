@@ -23,7 +23,7 @@ export function CheckoutCloseButton() {
 
 /* The value is a node, not a string: the promo row shows the old price struck
    through next to the new one, and everywhere else it is still just text. */
-export function SummaryRow({ label, value, bold }: { label: string; value: ReactNode; bold?: boolean }) {
+export function SummaryRow({ label, value, bold }: { label: ReactNode; value: ReactNode; bold?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
       <span className={"text-[15px] " + (bold ? "font-semibold text-foreground" : "font-normal text-foreground")}>{label}</span>

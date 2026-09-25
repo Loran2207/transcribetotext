@@ -363,7 +363,7 @@ function useGreeting() {
 }
 
 /* the guided tour lights one card at a time */
-const tourCard = (modal: "upload" | "record" | "meeting" | "link") => (modal === "record" ? "home-card-record" : modal === "meeting" ? "home-card-meeting" : undefined);
+const tourCard = (modal: "upload" | "record" | "meeting" | "link") => (modal === "record" ? "home-card-record" : modal === "meeting" ? "home-card-meeting" : modal === "upload" ? "home-card-upload" : undefined);
 
 export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page: string) => void; onOpenFolder?: (folderId: string) => void } = {}) {
   const greeting = useGreeting();

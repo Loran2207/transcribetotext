@@ -20,6 +20,7 @@ import { DesktopWindowFrame, useShell } from "./desktop/shell";
 import { DemoSwitcher } from "./desktop/demo-switcher";
 import { DesktopNotice } from "./desktop/desktop-notice";
 import { OnboardingTour } from "./onboarding/tour";
+import { RewardDialog } from "./onboarding/reward-dialog";
 import { useOnboarding } from "./onboarding/onboarding-context";
 
 export function AppLayout() {
@@ -106,6 +107,7 @@ export function AppLayout() {
        <DesktopNotice />
        <DemoSwitcher />
        <OnboardingTour />
+       <RewardDialog />
      </DesktopWindowFrame>
     </UserProfileProvider>
   );

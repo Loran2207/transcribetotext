@@ -2323,7 +2323,7 @@ function PageHeader({
           {editingTitle && !sharedOwner ? (
             <Input ref={inputRef} value={title} onChange={(e) => onTitleChange(e.target.value)} onBlur={() => setEditingTitle(false)} onKeyDown={(e) => { if (e.key === "Enter") setEditingTitle(false); }} className="h-auto border-none bg-transparent p-0 text-2xl font-bold shadow-none focus-visible:ring-0" style={{ fontSize: "24px", lineHeight: "1.3" }} />
           ) : (
-            <h1 className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal">{title}</h1>
+            <h1 data-tour="record-title" className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal">{title}</h1>
           )}
         </div>
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">

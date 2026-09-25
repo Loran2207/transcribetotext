@@ -6,6 +6,9 @@ import { Icon } from "../ui/icon";
 import { Button } from "../ui/button";
 import { useIsPhone } from "../ui/use-mobile";
 import { cn } from "../ui/utils";
+import confetti from "canvas-confetti";
+import { toast } from "sonner";
+import { useTranscriptionModals } from "../transcription-modals";
 import { useOnboarding } from "./onboarding-context";
 
 /* The guided tour: the page dims, the one element the step is about stays
@@ -40,10 +43,29 @@ function measure(el: HTMLElement): Rect {
   return { top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 };
 }
 
+/* A short burst from the bottom of the screen; the whole-guide one is wider and longer. */
+function celebrate(big: boolean) {
+  const base = { origin: { y: 0.85 }, colors: ["#2563eb", "#60a5fa", "#f59e0b", "#10b981", "#ec4899"], disableForReducedMotion: true, zIndex: 300 };
+  confetti({ ...base, particleCount: big ? 160 : 70, spread: big ? 100 : 70, startVelocity: big ? 48 : 38 });
+  if (big) window.setTimeout(() => confetti({ ...base, particleCount: 90, spread: 120, startVelocity: 40, origin: { x: 0.2, y: 0.9 } }), 220);
+  if (big) window.setTimeout(() => confetti({ ...base, particleCount: 90, spread: 120, startVelocity: 40, origin: { x: 0.8, y: 0.9 } }), 380);
+}
+
 export function OnboardingTour() {
-  const { tour, nextStep, prevStep, endTour } = useOnboarding();
+  const { tour, nextStep, prevStep, endTour, celebration, dismissCelebration, guides } = useOnboarding();
+  const { setOpenModal } = useTranscriptionModals();
   const phone = useIsPhone();
   const reduce = useReducedMotion();
+
+  /* the moment a lesson ends: confetti and a word; the sixth opens the reward dialog instead of a toast */
+  useEffect(() => {
+    if (!celebration) return;
+    if (celebration === "all") { celebrate(true); return; }
+    celebrate(false);
+    const left = guides.length - (celebration.index + 1);
+    toast.success(`Nice work. ${celebration.guide.title} is done.`, { description: left > 0 ? `${left} ${left === 1 ? "lesson" : "lessons"} left until your free month of Pro.` : undefined });
+    dismissCelebration();
+  }, [celebration, dismissCelebration, guides.length]);
   const [rect, setRect] = useState<Rect | null>(null);
   const [missing, setMissing] = useState(false);
 
@@ -195,7 +217,7 @@ export function OnboardingTour() {
                 <Icon icon={ArrowLeft01Icon} size={14} />
               </Button>
             )}
-            <Button size="sm" data-tour-next="" onClick={nextStep} className="h-8 px-4 text-[13px] font-semibold">{last ? "Done" : "Next"}</Button>
+            <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } nextStep(); }} className="h-8 px-4 text-[13px] font-semibold">{last ? (step.action?.label ?? "Done") : "Next"}</Button>
           </div>
         </div>
       </motion.div>

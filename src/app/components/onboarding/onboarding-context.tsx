@@ -42,6 +42,8 @@ function save(s: Stored) {
 }
 
 export type Tour = { guide: Guide; step: number };
+/* what to celebrate right after a tour ends: one lesson, or the whole guide */
+export type Celebration = { kind: "guide"; guide: Guide; index: number } | "all" | null;
 
 type Ctx = {
   guides: Guide[];
@@ -55,6 +57,8 @@ type Ctx = {
   markDone: (id: string) => void;
   claimReward: () => void;
   tour: Tour | null;
+  celebration: Celebration;
+  dismissCelebration: () => void;
   startGuide: (id: string) => void;
   nextStep: () => void;
   prevStep: () => void;
@@ -68,6 +72,7 @@ const OnboardingContext = createContext<Ctx | null>(null);
 export function OnboardingProvider({ children }: { children: ReactNode }) {
   const [stored, setStored] = useState<Stored>(load);
   const [tour, setTour] = useState<Tour | null>(null);
+  const [celebration, setCelebration] = useState<Celebration>(null);
   const navigator = useRef<((t: TourTarget) => void) | null>(null);
 
   useEffect(() => { save(stored); }, [stored]);
@@ -94,16 +99,25 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   const endTour = useCallback(() => setTour(null), []);
 
+  const finishGuide = useCallback((guide: Guide) => {
+    setStored((s) => {
+      const done = s.done.includes(guide.id) ? s.done : [...s.done, guide.id];
+      const all = GUIDES.every((g) => done.includes(g.id));
+      setCelebration(all ? "all" : { kind: "guide", guide, index: GUIDES.findIndex((g) => g.id === guide.id) });
+      return { ...s, done, expanded: all ? true : s.expanded };
+    });
+  }, []);
+
   const nextStep = useCallback(() => {
     setTour((t) => {
       if (!t) return t;
       const last = t.step >= t.guide.steps.length - 1;
-      if (last) { markDone(t.guide.id); return null; }
+      if (last) { finishGuide(t.guide); return null; }
       const next = t.guide.steps[t.step + 1];
       go(next.go);
       return { guide: t.guide, step: t.step + 1 };
     });
-  }, [go, markDone]);
+  }, [go, finishGuide]);
 
   const prevStep = useCallback(() => {
     setTour((t) => {
@@ -128,13 +142,15 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       markDone,
       claimReward: () => setStored((s) => ({ ...s, rewardClaimed: true, hidden: true })),
       tour,
+      celebration,
+      dismissCelebration: () => setCelebration(null),
       startGuide,
       nextStep,
       prevStep,
       endTour,
       registerNavigator: (fn) => { navigator.current = fn; },
     };
-  }, [stored, tour, markDone, startGuide, nextStep, prevStep, endTour]);
+  }, [stored, tour, celebration, markDone, startGuide, nextStep, prevStep, endTour]);
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
 }
