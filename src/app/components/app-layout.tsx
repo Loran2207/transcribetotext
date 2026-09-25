@@ -19,7 +19,6 @@ import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 import { DesktopWindowFrame, useShell } from "./desktop/shell";
 import { DemoSwitcher } from "./desktop/demo-switcher";
 import { DesktopNotice } from "./desktop/desktop-notice";
-import { OnboardingWidget } from "./onboarding/onboarding-widget";
 import { OnboardingTour } from "./onboarding/tour";
 import { useOnboarding } from "./onboarding/onboarding-context";
 
@@ -102,7 +101,6 @@ export function AppLayout() {
           </main>
           <BottomNav />
           <InnerScreenBottomBar />
-          {!isSettings && <OnboardingWidget />}
         </SidebarInset>
       </SidebarProvider>
        <DesktopNotice />

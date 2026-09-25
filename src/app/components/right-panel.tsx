@@ -9,6 +9,7 @@ import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { usePlan } from "./use-plan";
 import { AnalyticsCard } from "./analytics-card";
+import { OnboardingCard } from "./onboarding/onboarding-widget";
 import promoSvgPaths from "../../imports/svg-panhyaoz26";
 const imgGiftBox = "/images/gift-box.png";
 
@@ -412,6 +413,8 @@ export function RightPanel() {
       <div className="h-full flex flex-col overflow-y-auto transition-colors duration-200 bg-background" style={{ width: DEFAULT_WIDTH }}>
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-[18px] py-[18px] flex flex-col gap-[14px]">
+          {/* Get started: the first card until the six guides are done */}
+          <OnboardingCard />
           {/* Widget Cards: on the web the desktop app and the ticket ride one carousel, the card first (Kirill, 12.09) */}
           <PanelPromoCarousel slides={[appCardHere ? <DesktopAppCard key="app" /> : null, plan === "free" ? <PromoCard key="promo" /> : null].filter(Boolean) as ReactNode[]} />
           {plan === "pro" && <AnalyticsCard />}

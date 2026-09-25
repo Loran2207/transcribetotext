@@ -7,6 +7,7 @@ import { useLanguage } from "./language-context";
 import { usePlan } from "./use-plan";
 import { UpgradeBanner } from "./upgrade-banner";
 import { PromoCard } from "./right-panel";
+import { OnboardingCard } from "./onboarding/onboarding-widget";
 import { ANALYTICS_FILES, ANALYTICS_HOURS, ANALYTICS_SOURCES } from "./analytics-card";
 import { meetings, MeetingItem, TODAY_STR } from "./todays-events";
 
@@ -160,6 +161,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
 
   return (
     <div className="lg:hidden flex flex-col gap-[16px]">
+      <OnboardingCard />
       {plan === "free" ? (
         <>
           {eventsCard}
