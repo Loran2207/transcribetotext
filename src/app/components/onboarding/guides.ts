@@ -91,7 +91,7 @@ export const GUIDES: Guide[] = [
     steps: [
       { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Search every transcript by the words that were said. Ctrl K opens it from anywhere." },
       { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Connect Google or Outlook and the recorder joins your meetings on its own." },
-      { anchor: "nav-templates|menu", go: HOME, side: "right", title: "Templates", body: "Every summary template in one place. Pick one as your default." },
+      { anchor: "nav-templates|menu", go: HOME, side: "right", title: "Templates", body: "Every summary template in one place, with a worked example of each." },
     ],
   },
 ];
