@@ -90,9 +90,8 @@ export function OnboardingCard() {
             <Icon icon={ArrowUp01Icon} size={15} strokeWidth={2.2} />
           </motion.span>
         </button>
-        <AnimatePresence initial={false}>
-          {open && <motion.span key="notch" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.14 }}><Notch /></motion.span>}
-        </AnimatePresence>
+        {/* the notch stays in both states: folded, it is the card's small white tab (Kirill, 26.09) */}
+        <Notch />
       </Photo>
       <motion.div initial={false} animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }} transition={reduce ? { duration: 0 } : { height: { type: "spring", stiffness: 260, damping: 32 }, opacity: { duration: 0.18 } }} style={{ overflow: "hidden" }}>
         {/* the pipeline: one rail, six stops, and the gift where the rail ends */}
