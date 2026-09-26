@@ -7,7 +7,8 @@ import { useLanguage } from "./language-context";
 import { usePlan } from "./use-plan";
 import { UpgradeBanner } from "./upgrade-banner";
 import { PromoCard } from "./right-panel";
-import { OnboardingCard } from "./onboarding/onboarding-widget";
+import { OnboardingSlide } from "./onboarding/onboarding-widget";
+import { useOnboarding } from "./onboarding/onboarding-context";
 import { ANALYTICS_FILES, ANALYTICS_HOURS, ANALYTICS_SOURCES } from "./analytics-card";
 import { meetings, MeetingItem, TODAY_STR } from "./todays-events";
 
@@ -29,7 +30,10 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   const [expanded, setExpanded] = useState<string | null>(null);
   const todays = meetings.filter((m) => m.day === TODAY_STR);
   const nextMeeting = todays[0];
-  const infoSlides = ["analytics", "events"];
+  const ob = useOnboarding();
+  const guideSlide = !ob.hidden && !ob.allDone;
+  /* the guide rides first while it is unfinished; free has no analytics card */
+  const infoSlides = [...(guideSlide ? ["guide"] : []), ...(plan === "free" ? ["events"] : ["analytics", "events"])];
   const onPromoScroll = () => { const el = promoRef.current; if (!el) return; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== promoActive) setPromoActive(i); };
   const onInfoScroll = () => { const el = infoRef.current; if (!el) return; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== infoActive) { setInfoActive(i); setExpanded(null); } };
   const toggle = (key: string) => setExpanded((v) => (v === key ? null : key));
@@ -149,7 +153,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
       <div ref={infoRef} onScroll={onInfoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[16px]" style={{ scrollbarWidth: "none" }}>
         {infoSlides.map((key) => (
           <div key={key} className="snap-center shrink-0 w-full self-start">
-            {key === "analytics" ? analyticsCard : eventsCard}
+            {key === "guide" ? <OnboardingSlide expanded={expanded === "guide"} onToggle={() => toggle("guide")} headCls={headCls} cardCls={cardCls} detailCls={detailCls} /> : key === "analytics" ? analyticsCard : eventsCard}
           </div>
         ))}
       </div>
@@ -161,15 +165,8 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
 
   return (
     <div className="lg:hidden flex flex-col gap-[16px]">
-      <OnboardingCard />
-      {plan === "free" ? (
-        <>
-          {eventsCard}
-          {promoCarousel}
-        </>
-      ) : (
-        infoCarousel
-      )}
+      {infoCarousel}
+      {plan === "free" && promoCarousel}
     </div>
   );
 }
