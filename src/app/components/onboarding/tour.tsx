@@ -10,6 +10,7 @@ import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { useTranscriptionModals } from "../transcription-modals";
 import { useOnboarding } from "./onboarding-context";
+import { GUIDE_PERSON } from "./guides";
 
 /* The guided tour: the page dims, the one element the step is about stays
    lit, and a small card beside it says what it is in two lines.
@@ -230,7 +231,13 @@ export function OnboardingTour() {
           />
         )}
         <div className="flex items-start justify-between gap-3">
-          <p className="text-[11px] font-semibold tracking-wide text-muted-foreground">{tour.step + 1} of {total}</p>
+          <span className="flex items-center gap-[8px]">
+            <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[28px] shrink-0 select-none rounded-full object-cover ring-2 ring-card" />
+            <span className="flex flex-col">
+              <span className="text-[12px] font-semibold leading-[15px] text-foreground">{GUIDE_PERSON.name}</span>
+              <span className="text-[11px] font-medium leading-[14px] tabular-nums text-muted-foreground">{tour.step + 1} of {total}</span>
+            </span>
+          </span>
           <button type="button" onClick={endTour} aria-label="Close the guide" className="-mr-1 -mt-1 flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
             <Icon icon={Cancel01Icon} size={14} />
           </button>

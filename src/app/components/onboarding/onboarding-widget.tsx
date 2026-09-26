@@ -112,7 +112,10 @@ export function OnboardingCard() {
                   )}>
                     {done ? <Icon icon={Tick02Icon} size={12} strokeWidth={3} /> : i + 1}
                   </span>
-                  <span className={cn("min-w-0 flex-1 truncate text-[13.5px] leading-[18px] transition-colors", done ? "font-medium text-muted-foreground group-hover:text-foreground/80" : isNext ? "font-semibold text-foreground" : "font-medium text-foreground/80 group-hover:text-foreground")}>{g.title}</span>
+                  <span className="flex min-w-0 flex-1 items-baseline gap-[8px]">
+                    <span className={cn("min-w-0 truncate text-[13.5px] leading-[18px] transition-colors", done ? "font-medium text-muted-foreground group-hover:text-foreground/80" : isNext ? "font-semibold text-foreground" : "font-medium text-foreground/80 group-hover:text-foreground")}>{g.title}</span>
+                    {!done && <span className="shrink-0 text-[11.5px] font-medium tabular-nums text-muted-foreground/80">{g.seconds}s</span>}
+                  </span>
                   {isNext ? (
                     <span className="flex h-[26px] shrink-0 items-center rounded-full bg-primary px-[12px] text-[12px] font-semibold text-primary-foreground transition-colors group-hover:bg-primary/90">Start</span>
                   ) : (

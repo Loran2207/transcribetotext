@@ -30,6 +30,8 @@ export type TourStep = {
 export type Guide = {
   id: string;
   title: string;
+  /* how long the lesson takes, in seconds, shown beside the title */
+  seconds: number;
   /* "action": the tour does not tick the lesson, a real action does */
   completeBy?: "action";
   steps: TourStep[];
@@ -48,6 +50,7 @@ export const GUIDES: Guide[] = [
   {
     id: "first-record",
     title: "Make your first transcript",
+    seconds: 40,
     completeBy: "action",
     steps: [
       { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "MP3, MP4, WAV, any recording. Drop it here and the transcript is ready in minutes." },
@@ -60,6 +63,7 @@ export const GUIDES: Guide[] = [
   {
     id: "read-transcript",
     title: "Read a transcript",
+    seconds: 30,
     steps: [
       TO_RECORD,
       { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Transcript and Summary", body: "Transcript is every word that was said. Summary turns it into notes." },
@@ -71,6 +75,7 @@ export const GUIDES: Guide[] = [
   {
     id: "speakers",
     title: "Name the speakers",
+    seconds: 30,
     steps: [
       TO_RECORD,
       { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Everyone who spoke", body: "Every voice in one list. Next opens it.", trigger: "speakers-close" },
@@ -82,6 +87,7 @@ export const GUIDES: Guide[] = [
   {
     id: "share",
     title: "Share a recording",
+    seconds: 20,
     steps: [
       TO_RECORD,
       { anchor: "record-share|record-speakers-chip", go: RECORD, side: "bottom", title: "Share", body: "A link or an invite by email. Next opens it.", trigger: "share-close" },
@@ -92,6 +98,7 @@ export const GUIDES: Guide[] = [
   {
     id: "folders",
     title: "Keep records in folders",
+    seconds: 30,
     steps: [
       { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Every recording lives here. Next takes you there." },
       { anchor: "sidebar-folders|menu", go: RECORDS, side: "right", title: "Folders", body: "One per client or project. Click a folder to see only its recordings." },
@@ -104,6 +111,7 @@ export const GUIDES: Guide[] = [
   {
     id: "find",
     title: "Search your recordings",
+    seconds: 20,
     steps: [
       { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Searches what was said, not only the titles. Ctrl K opens it from anywhere.", quickFind: { open: false, query: "" } },
       { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A name, a topic, a phrase. We typed one for you.", quickFind: { open: true, query: "speaker" } },
@@ -112,6 +120,10 @@ export const GUIDES: Guide[] = [
     ],
   },
 ];
+
+/* The guide who walks you through: her portrait sits on every tour card and
+   on the reward, the words are hers, the arrows only point. */
+export const GUIDE_PERSON = { name: "Mia", avatar: "/images/onboarding-guide.jpg" };
 
 /* The reward for finishing all six. */
 export const REWARD = {
