@@ -2,7 +2,7 @@ import type React from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import { ArrowDown01Icon, ArrowRight01Icon, ArrowUp01Icon, Copy01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { ArrowDown01Icon, ArrowUp01Icon, Copy01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { Button } from "../ui/button";
 import { cn } from "../ui/utils";
@@ -35,7 +35,7 @@ const focus = "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-v
 /* the site's notch, a clean transition from the photograph into the list */
 function Notch() {
   return (
-    <svg aria-hidden className="pointer-events-none absolute bottom-0 left-1/2 block h-[14px] w-[116px] -translate-x-1/2" viewBox="0 0 248 30" preserveAspectRatio="none">
+    <svg aria-hidden className="pointer-events-none absolute bottom-[-1px] left-1/2 block h-[15px] w-[116px] -translate-x-1/2" viewBox="0 0 248 30" preserveAspectRatio="none">
       <path d="M44 30 C74 30 74 0 104 0 H144 C174 0 174 30 204 30 Z" fill="var(--card)" />
     </svg>
   );
@@ -84,7 +84,7 @@ export function OnboardingCard() {
               <Notch />
             </Photo>
             {/* the pipeline: one rail, six stops, and the gift where the rail ends */}
-            <ol className="flex flex-col px-[8px] pt-[6px] pb-[8px]">
+            <ol className="relative -mt-px flex flex-col bg-card px-[8px] pt-[7px] pb-[8px]">
               {ob.guides.map((g, i) => {
                 const done = ob.done.has(g.id);
                 const isNext = next?.id === g.id;
@@ -105,7 +105,7 @@ export function OnboardingCard() {
                       {isNext ? (
                         <span className="flex h-[26px] shrink-0 items-center rounded-full bg-primary px-[12px] text-[12px] font-semibold text-primary-foreground transition-colors group-hover:bg-primary/90">Start</span>
                       ) : (
-                        <Icon icon={ArrowRight01Icon} size={14} strokeWidth={2.2} className="mr-[4px] shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
+                        <span className="flex h-[26px] shrink-0 items-center rounded-full border border-border bg-card px-[12px] text-[12px] font-semibold text-foreground opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{done ? "Again" : "Start"}</span>
                       )}
                     </button>
                   </li>
