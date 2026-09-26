@@ -1,9 +1,12 @@
 import type React from "react";
+import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowUp01Icon, Cancel01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { cn } from "../ui/utils";
 import { useOnboarding } from "./onboarding-context";
+import { useIsMobile } from "../ui/use-mobile";
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "../ui/drawer";
 
 /* "Get started": a fixed card at the top of the Home right panel (web) and
    at the top of the Home column on the phone and tablet.
@@ -51,7 +54,13 @@ export function OnboardingCard() {
   const doneCount = ob.done.size;
   const total = ob.guides.length;
   const next = ob.guides.find((g) => !ob.done.has(g.id));
-  const open = ob.expanded;
+  const mobile = useIsMobile();
+  /* Web: the card expands inline in the right panel. Phone and tablet: the card
+     is always the 66px strip (nothing below it ever moves), and the chevron opens
+     the lessons as a bottom sheet, the shape every transient thing has on the
+     compact shell. Starting a lesson closes the sheet. */
+  const [sheet, setSheet] = useState(false);
+  const open = mobile ? false : ob.expanded;
 
   /* six done: the dialog handed the gift over and the code lives in Plan Management;
      the panel needs no third copy (Kirill, 26.09) */
@@ -59,40 +68,8 @@ export function OnboardingCard() {
 
   const fade = { initial: reduce ? false : { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, exit: reduce ? undefined : { opacity: 0, y: -4 }, transition: { duration: 0.16 } } as const;
 
-  return (
-    <div data-onboarding-card="" data-state={open ? "open" : "closed"} className={card}>
-      {/* the header: one height in both states (66px; the text block is 36px either way, so the
-          padding is 15px above and below). Folded it carries the ticket's 13/11 type and the
-          promise; open, 15/12 and the count. The two texts crossfade, nothing scales. */}
-      <div className="relative -mx-px -mt-px h-[67px] overflow-hidden rounded-t-[14px]" style={{ background: NAVY }}>
-        <img src={PHOTO} alt="" aria-hidden className="absolute inset-y-0 right-0 h-full w-[72%] select-none object-cover" style={{ objectPosition: "72% 55%" }} />
-        <span aria-hidden className="absolute inset-0" style={{ background: WASH }} />
-        <button type="button" data-onboarding-pill={open ? undefined : ""} aria-label={open ? undefined : "Expand"} onClick={() => { if (!open) ob.setExpanded(true); }} className={cn("absolute inset-0 text-left", open && "cursor-default")}>
-          <AnimatePresence initial={false} mode="wait">
-            {open ? (
-              <motion.span key="open" {...fade} className="absolute left-[19px] top-[15px] right-[52px]">
-                <span className="block truncate text-[15px] font-bold leading-[20px] tracking-[-0.2px] text-white">Learn Transcribe To Text AI</span>
-                <span className="block truncate text-[12px] font-medium leading-[16px] text-white/70">{total} short lessons<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></span>
-              </motion.span>
-            ) : (
-              <motion.span key="closed" {...fade} className="absolute left-[19px] top-[15px] right-[52px]">
-                <span className="block truncate text-[13px] font-semibold leading-[19.5px] text-white">Learn Transcribe To Text AI</span>
-                <span className="mt-[1px] flex items-center gap-[5px] text-[11px] font-medium leading-[16.5px] text-white/80">
-                  <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain" />
-                  <span className="truncate">Finish {total} lessons, get 1 month free</span>
-                </span>
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </button>
-        <button type="button" onClick={() => ob.setExpanded(!open)} data-onboarding-collapse={open ? "" : undefined} aria-label={open ? "Collapse" : "Expand"} className={cn(iconButton, "absolute right-[12px] top-1/2 -translate-y-1/2", focus)}>
-          <motion.span animate={{ rotate: open ? 0 : 180 }} transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 26 }} className="flex">
-            <Icon icon={ArrowUp01Icon} size={14} strokeWidth={2.2} />
-          </motion.span>
-        </button>
-        <SideNotches />
-      </div>
-      <motion.div initial={false} animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }} transition={reduce ? { duration: 0 } : { height: { type: "spring", stiffness: 260, damping: 32 }, opacity: { duration: 0.18 } }} style={{ overflow: "hidden" }}>
+  const lessons = (
+    <>
         {/* the pipeline: one rail, six stops, and the gift where the rail ends */}
         <ol className="relative -mt-px flex flex-col bg-card px-[8px] pt-[7px] pb-[8px]">
           {ob.guides.map((g, i) => {
@@ -102,7 +79,7 @@ export function OnboardingCard() {
               <li key={g.id} className="relative">
                 {/* the rail segment down to the next stop (or to the gift): blue once this lesson is done */}
                 <span aria-hidden className={cn("absolute left-[20px] top-[19px] z-[1] w-[2px] transition-colors duration-500", done ? "bg-primary" : "bg-border")} style={{ height: ROW }} />
-                <button type="button" tabIndex={open ? 0 : -1} data-onboarding-guide={g.id} onClick={() => ob.startGuide(g.id)} className={cn("group flex w-full items-center gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors hover:bg-muted/70 active:bg-muted", focus)} style={{ height: ROW }}>
+                <button type="button" tabIndex={open || sheet ? 0 : -1} data-onboarding-guide={g.id} onClick={() => { setSheet(false); ob.startGuide(g.id); }} className={cn("group flex w-full items-center gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors hover:bg-muted/70 active:bg-muted", focus)} style={{ height: ROW }}>
                   <span className={cn(
                     "relative z-[2] flex size-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums transition-colors",
                     done ? "bg-primary text-primary-foreground"
@@ -137,7 +114,64 @@ export function OnboardingCard() {
             </div>
           </li>
         </ol>
+    </>
+  );
+
+  return (
+    <div data-onboarding-card="" data-state={open ? "open" : "closed"} className={card}>
+      {/* the header: one height in both states (66px; the text block is 36px either way, so the
+          padding is 15px above and below). Folded it carries the ticket's 13/11 type and the
+          promise; open, 15/12 and the count. The two texts crossfade, nothing scales. */}
+      <div className="relative -mx-px -mt-px h-[67px] overflow-hidden rounded-t-[14px]" style={{ background: NAVY }}>
+        <img src={PHOTO} alt="" aria-hidden className="absolute inset-y-0 right-0 h-full w-[72%] select-none object-cover" style={{ objectPosition: "72% 55%" }} />
+        <span aria-hidden className="absolute inset-0" style={{ background: WASH }} />
+        <button type="button" data-onboarding-pill={open ? undefined : ""} aria-label={open ? undefined : "Expand"} onClick={() => { if (mobile) { setSheet(true); return; } if (!open) ob.setExpanded(true); }} className={cn("absolute inset-0 text-left", open && "cursor-default")}>
+          <AnimatePresence initial={false} mode="wait">
+            {open ? (
+              <motion.span key="open" {...fade} className="absolute left-[19px] top-[15px] right-[52px]">
+                <span className="block truncate text-[15px] font-bold leading-[20px] tracking-[-0.2px] text-white">Learn Transcribe To Text AI</span>
+                <span className="block truncate text-[12px] font-medium leading-[16px] text-white/70">{total} short lessons<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></span>
+              </motion.span>
+            ) : (
+              <motion.span key="closed" {...fade} className="absolute left-[19px] top-[15px] right-[52px]">
+                <span className="block truncate text-[13px] font-semibold leading-[19.5px] text-white">Learn Transcribe To Text AI</span>
+                <span className="mt-[1px] flex items-center gap-[5px] text-[11px] font-medium leading-[16.5px] text-white/80">
+                  <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain" />
+                  <span className="truncate">Finish {total} lessons, get 1 month free</span>
+                </span>
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </button>
+        <button type="button" onClick={() => { if (mobile) { setSheet(true); return; } ob.setExpanded(!open); }} data-onboarding-collapse={open ? "" : undefined} aria-label={open ? "Collapse" : "Expand"} className={cn(iconButton, "absolute right-[12px] top-1/2 -translate-y-1/2", focus)}>
+          <motion.span animate={{ rotate: open ? 0 : 180 }} transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 26 }} className="flex">
+            <Icon icon={ArrowUp01Icon} size={14} strokeWidth={2.2} />
+          </motion.span>
+        </button>
+        <SideNotches />
+      </div>
+      <motion.div initial={false} animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }} transition={reduce ? { duration: 0 } : { height: { type: "spring", stiffness: 260, damping: 32 }, opacity: { duration: 0.18 } }} style={{ overflow: "hidden" }}>
+        {lessons}
       </motion.div>
+      {mobile && (
+        <Drawer open={sheet} onOpenChange={setSheet}>
+          <DrawerContent data-onboarding-sheet="" className="[&>div:first-child]:hidden">
+            <div className="flex items-start gap-2 px-5 pt-5 pb-1">
+              <div className="flex-1">
+                <DrawerTitle className="text-left text-[16px] font-semibold leading-[22px]">Learn Transcribe To Text AI</DrawerTitle>
+                <p className="mt-[2px] text-[12.5px] text-muted-foreground">{total} short lessons · <span className="tabular-nums text-foreground">{doneCount} of {total} done</span></p>
+              </div>
+              <button type="button" onClick={() => setSheet(false)} aria-label="Close" className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted">
+                <Icon icon={Cancel01Icon} size={18} />
+              </button>
+            </div>
+            <DrawerDescription className="sr-only">The lessons of the guide and the gift at the end.</DrawerDescription>
+            <div className="max-h-[70vh] overflow-y-auto px-3" style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}>
+              {lessons}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   );
 }
