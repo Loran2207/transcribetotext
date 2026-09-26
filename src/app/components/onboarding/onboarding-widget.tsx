@@ -27,7 +27,7 @@ const GIFT = "/images/onboarding-gift.png";
 const NAVY = "#0A1630";
 const WASH = "linear-gradient(90deg, #0A1630 0%, #0A1630 40%, rgba(10,22,48,0.6) 70%, rgba(10,22,48,0.2) 100%)";
 
-const card = "shrink-0 rounded-[14px] overflow-hidden bg-card border border-border shadow-sm";
+const card = "shrink-0 rounded-[14px] overflow-hidden bg-card ring-1 ring-inset ring-border shadow-sm";
 const ROW = 38; /* one lesson row, px */
 const focus = "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0";
 
@@ -35,7 +35,8 @@ const focus = "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-v
    on the left edge and one on the right, on the header's centre line. Drawn in
    the panel colour, so it reads as a cut, no stroke, no ring. */
 function SideNotches() {
-  const cls = "pointer-events-none absolute top-1/2 block h-[52px] w-[8px] -translate-y-1/2";
+  /* z above the header's photo and wash; at the very edge, where the card's inset ring is, so the ring is covered along the cut */
+  const cls = "pointer-events-none absolute top-1/2 z-[3] block h-[52px] w-[8px] -translate-y-1/2";
   return (
     <>
       <svg aria-hidden className={cn(cls, "left-0")} viewBox="0 0 30 248" preserveAspectRatio="none"><path d="M0 44 C0 74 30 74 30 104 V144 C30 174 0 174 0 204 Z" fill="var(--background)" /></svg>
@@ -60,7 +61,7 @@ export function OnboardingCard() {
   const fade = { initial: reduce ? false : { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, exit: reduce ? undefined : { opacity: 0, y: -4 }, transition: { duration: 0.16 } } as const;
 
   return (
-    <div data-onboarding-card="" data-state={open ? "open" : "closed"} className={cn(card, !open && "border-0")}>
+    <div data-onboarding-card="" data-state={open ? "open" : "closed"} className={cn(card, !open && "ring-0")}>
       {/* the header: one height in both states (66px; the text block is 36px either way, so the
           padding is 15px above and below). Folded it carries the ticket's 13/11 type and the
           promise; open, 15/12 and the count. The two texts crossfade, nothing scales. */}
