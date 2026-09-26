@@ -19,7 +19,8 @@ export function CalendarWeekStrip({
   todayISO,
   meetingCounts,
   onDaySelect,
-}: CalendarWeekStripProps) {
+  ...rest
+}: CalendarWeekStripProps & { "data-tour"?: string }) {
   const days: { dateISO: string; dayName: string; dayNum: number; isWeekend: boolean }[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(weekStart);
@@ -34,7 +35,7 @@ export function CalendarWeekStrip({
   }
 
   return (
-    <div className="flex items-stretch pb-2">
+    <div {...rest} className="flex items-stretch pb-2">
       {days.map((day) => {
         const isToday = day.dateISO === todayISO;
         const isSelected = day.dateISO === selectedDate;

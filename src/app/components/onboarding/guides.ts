@@ -24,7 +24,7 @@ export type TourStep = {
   /* the step opens (or closes) Quick Find, typing for the person */
   quickFind?: { open: boolean; query?: string };
   /* the step opens a real dialog of the page (`ttt-tour` window event) */
-  trigger?: "share-open" | "share-close" | "speakers-open" | "speakers-close" | "add-folder-open" | "add-folder-close";
+  trigger?: "share-open" | "share-close" | "speakers-open" | "speakers-close" | "add-folder-open" | "add-folder-close" | "export-open" | "export-close" | "edit-open" | "edit-close";
 };
 
 export type Guide = {
@@ -44,7 +44,7 @@ export const NO_ANCHOR = "none";
 
 /* Mia's hello. It opens whichever lesson the person starts FIRST, once; after
    that she stays on the cards as a small portrait with her name and title. */
-export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm Mia", body: "I look after new customers here. I'll show you around Transcribe To Text AI: six short lessons, about a minute each. I explain, the arrows point." };
+export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm Mia", body: "I look after new customers here. I'll show you around Transcribe To Text AI: ten short lessons, half a minute each. I explain, the arrows point." };
 
 const HOME: TourTarget = { page: "dashboard" };
 const RECORDS: TourTarget = { page: "records" };
@@ -54,6 +54,9 @@ const RECORD: TourTarget = { path: GUIDE_RECORD_PATH };
    each gets its own line: the first explains, the next two only point. */
 const OPEN_RECORD_FIRST: TourStep = { anchor: "record-row-welcome|home-records", go: HOME, side: "bottom", title: "Open the welcome recording", body: "Every transcript is a row here. I made this one for you. Next opens it." };
 const OPEN_RECORD_AGAIN: TourStep = { anchor: "record-row-welcome|home-records", go: HOME, side: "bottom", title: "Back to the welcome recording", body: "Same file as before. Next opens it." };
+
+const TEMPLATES: TourTarget = { page: "templates" };
+const CALENDAR: TourTarget = { page: "calendar" };
 
 export const GUIDES: Guide[] = [
   {
@@ -72,14 +75,24 @@ export const GUIDES: Guide[] = [
   {
     id: "read-transcript",
     title: "Read the result",
-    seconds: 35,
+    seconds: 30,
     steps: [
       OPEN_RECORD_FIRST,
+      { anchor: "record-title", go: RECORD, side: "bottom", title: "The title is yours", body: "Click it to rename. Underneath: who made it, the folder, the speakers, the source and the length." },
       { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Transcript and Summary", body: "Transcript is every word that was said. Summary turns it into notes." },
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Play from a timecode", body: "Click one to hear that exact moment." },
-      { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Shape the summary", body: "Meeting notes, interview, action items: pick how the summary is written." },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Play from a timecode", body: "Click one to hear that exact moment. The player at the bottom follows." },
       { anchor: "record-translate|record-tabs", go: RECORD, side: "bottom", title: "Translate it", body: "Pick a language and the whole transcript and summary come back in it." },
-      { anchor: "record-export|record-tabs", go: RECORD, side: "bottom", title: "Export", body: "PDF, Word, plain text or subtitles." },
+    ],
+  },
+  {
+    id: "edit-transcript",
+    title: "Correct the transcript",
+    seconds: 25,
+    steps: [
+      OPEN_RECORD_AGAIN,
+      { anchor: "record-edit|record-tabs", go: RECORD, side: "bottom", title: "Edit transcript", body: "Names, terms, a word the model misheard. Next switches the text into editing.", trigger: "edit-close" },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Type straight into the text", body: "Every block is editable. Timecodes and speakers stay where they are.", trigger: "edit-open" },
+      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Save or discard", body: "Save keeps your changes for everyone you share with. Discard puts the original back.", trigger: "edit-close" },
     ],
   },
   {
@@ -92,6 +105,30 @@ export const GUIDES: Guide[] = [
       { anchor: "speakers-panel", go: RECORD, side: "right", title: "Rename, add, remove", body: "Click a name to rename it. Remove a voice and its blocks go to someone else.", trigger: "speakers-open" },
       { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Wrong name on one block?", body: "Click the name on that block and pick who really said it.", trigger: "speakers-close" },
       { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Two people in one block?", body: "Select the other person's words and pick their name. Only those words move." },
+    ],
+  },
+  {
+    id: "summary",
+    title: "Shape the summary",
+    seconds: 25,
+    steps: [
+      OPEN_RECORD_AGAIN,
+      { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Apply template", body: "The summary is written by a template. Meeting notes, interview, action items: pick the shape you need." },
+      { anchor: "nav-templates|menu", go: RECORD, side: "right", title: "All templates live here", body: "Next takes you to the Templates page." },
+      { anchor: "templates-tabs", go: TEMPLATES, side: "bottom", title: "Built in and yours", body: "Every template has an example. Star the ones you use. My templates holds the ones you make." },
+      { anchor: "templates-grid|templates-tabs", go: TEMPLATES, side: "top", title: "Make your own", body: "Open any template, change its sections and save a copy. Your next summary follows it." },
+    ],
+  },
+  {
+    id: "export",
+    title: "Export a recording",
+    seconds: 30,
+    steps: [
+      OPEN_RECORD_AGAIN,
+      { anchor: "record-export|record-tabs", go: RECORD, side: "bottom", title: "Export", body: "Everything about this recording, as files. Next opens the options.", trigger: "export-close" },
+      { anchor: "export-row-transcript|export-dialog", go: RECORD, side: "right", title: "Transcript", body: "PDF, Word, plain text or subtitles. Choose whether speaker names and timestamps go in.", trigger: "export-open" },
+      { anchor: "export-row-summary|export-dialog", go: RECORD, side: "right", title: "Summary, translation, audio", body: "Each one is a switch. Turn on what you need, the rest stays out.", trigger: "export-open" },
+      { anchor: "export-go|export-dialog", go: RECORD, side: "top", title: "One click", body: "Several files come as one zip. I close this for you now.", trigger: "export-open" },
     ],
   },
   {
@@ -120,15 +157,25 @@ export const GUIDES: Guide[] = [
     ],
   },
   {
-    id: "find",
-    title: "Find anything, record meetings",
+    id: "meetings",
+    title: "Record your meetings",
     seconds: 30,
+    steps: [
+      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Your calendar, with a recorder attached. Next takes you there." },
+      { anchor: "calendar-week", go: CALENDAR, side: "bottom", title: "Your week", body: "Connect Google or Outlook once and every meeting shows up here." },
+      { anchor: "calendar-week", go: CALENDAR, side: "bottom", title: "Auto-join", body: "Switch it on for a meeting and the recorder joins by itself. The transcript is ready when the call ends." },
+      { anchor: "home-card-meeting|nav-calendar", go: HOME, side: "bottom", title: "Or record one now", body: "Paste any invite link from the Home page. Same recorder, no calendar needed." },
+    ],
+  },
+  {
+    id: "find",
+    title: "Find anything fast",
+    seconds: 25,
     steps: [
       { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Searches what was said, not only the titles. Ctrl K opens it from anywhere.", quickFind: { open: false, query: "" } },
       { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A name, a topic, a phrase. I typed one for you.", quickFind: { open: true, query: "speaker" } },
       { anchor: "quick-find-results", go: HOME, side: "bottom", title: "Every match, with its moment", body: "Each result is a recording where those words were said. Click one to open it right there.", quickFind: { open: true } },
       { anchor: "quick-find-filters", go: HOME, side: "bottom", title: "Narrow it down", body: "By folder, source, who recorded it or when.", quickFind: { open: true } },
-      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Connect your calendar and the recorder joins your calls on its own." },
     ],
   },
 ];

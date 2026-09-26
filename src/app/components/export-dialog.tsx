@@ -136,7 +136,7 @@ function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={"p-0 gap-0 overflow-hidden flex flex-col " + (dialogClass || "")} aria-describedby={undefined}>
+      <DialogContent data-tour="export-dialog" className={"p-0 gap-0 overflow-hidden flex flex-col " + (dialogClass || "")} aria-describedby={undefined} onInteractOutside={(e) => { if ((e.target as Element | null)?.closest?.("[data-onboarding-tour]")) e.preventDefault(); }}>
         {children}
       </DialogContent>
     </Dialog>
@@ -147,7 +147,7 @@ function SectionRow({ title, enabled, onToggle, disabled, children }: {
   title: string; enabled: boolean; onToggle: (v: boolean) => void; disabled?: boolean; children?: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-border last:border-b-0 py-[16px]">
+    <div data-tour={`export-row-${title.toLowerCase()}`} className="border-b border-border last:border-b-0 py-[16px]">
       <div className="flex items-center justify-between">
         <span className={disabled ? "font-semibold text-[14.5px] text-muted-foreground" : "font-semibold text-[14.5px] text-foreground"}>{title}</span>
         <Switch checked={enabled} onCheckedChange={onToggle} disabled={disabled} />
@@ -726,7 +726,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               <Button variant="pill-outline" onClick={onClose} disabled={phase === "processing"} className="h-[36px] px-[16px]">
                 <span className="font-medium text-[13px]">Cancel</span>
               </Button>
-              <Button onClick={handleExport} disabled={nothingSelected || phase === "processing"} className="h-[36px] px-[20px] gap-[6px]">
+              <Button data-tour="export-go" onClick={handleExport} disabled={nothingSelected || phase === "processing"} className="h-[36px] px-[20px] gap-[6px]">
                 {phase === "processing" && <Icon icon={Loading01Icon} size={14} className="animate-spin" strokeWidth={2} />}
                 <span className="font-semibold text-[13px]">Export</span>
               </Button>

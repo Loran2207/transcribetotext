@@ -2916,6 +2916,10 @@ export function TranscriptionDetailPage() {
       if (t === "share-close" || t === "close-all") { setShareDialogOpen(false); setTourPreview(false); }
       if (t === "speakers-open") setSpeakersPanelOpen(true);
       if (t === "speakers-close" || t === "close-all") setSpeakersPanelOpen(false);
+      if (t === "export-open") setExportDialogOpen(true);
+      if (t === "export-close" || t === "close-all") setExportDialogOpen(false);
+      if (t === "edit-open") { setActiveTab("transcript"); setEditMode(true); }
+      if (t === "edit-close" || t === "close-all") setEditMode(false);
     };
     window.addEventListener("ttt-tour", on);
     return () => window.removeEventListener("ttt-tour", on);
@@ -4437,7 +4441,7 @@ export function TranscriptionDetailPage() {
                   <>
                   <TranscriptViewChecks />
                   {sharedOwner ? null : (
-                  <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
+                  <Button variant="ghost" size="sm" data-tour="record-edit" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
                     <PencilIcon className="size-3.5" />
                     Edit transcript
                   </Button>

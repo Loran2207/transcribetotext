@@ -358,7 +358,7 @@ export function CalendarPage() {
               <Icon icon={ChevronLeft} size={16} />
             </button>
             <div className="flex-1 min-w-0">
-              <CalendarWeekStrip
+              <CalendarWeekStrip data-tour="calendar-week"
                 weekStart={weekStart}
                 selectedDate={selectedDate}
                 todayISO={TODAY_ISO}

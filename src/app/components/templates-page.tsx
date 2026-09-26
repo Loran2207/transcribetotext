@@ -1251,7 +1251,7 @@ export function TemplatesPage() {
       </div>
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="flex-1 min-w-0 gap-0">
         <div className="overflow-x-auto -mx-4 px-4 lg:-mx-[32px] lg:px-[32px] border-b border-border [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
-          <TabsList variant="line" className="gap-5 whitespace-nowrap w-max border-0">
+          <TabsList variant="line" data-tour="templates-tabs" className="gap-5 whitespace-nowrap w-max border-0">
             <TabsTrigger value="all" variant="line" className="max-lg:text-[13px]">All <span className="opacity-50 font-[inherit] ml-1">{allCount}</span></TabsTrigger>
             <TabsTrigger value="starred" variant="line" className="max-lg:text-[13px]">Starred <span className="opacity-50 font-[inherit] ml-1">{starredCount}</span></TabsTrigger>
             <TabsTrigger value="custom" variant="line" className="max-lg:text-[13px]">My templates <span className="opacity-50 font-[inherit] ml-1">{customCount}</span></TabsTrigger>
@@ -1277,7 +1277,7 @@ export function TemplatesPage() {
       ) : (
         // Flat grid: starred, custom, trash, or a single category
         <div className="mt-8">
-          <div className={CARD_GRID_CLASS}>
+          <div data-tour="templates-grid" className={CARD_GRID_CLASS}>
             {display.map((t) => <TemplateCard key={t.id} {...cardPropsFor(t)} />)}
           </div>
         </div>

@@ -25,7 +25,7 @@ function load(): Stored {
   const demo = window.localStorage.getItem("ttt_demo_onboarding");
   if (demo === "fresh") return { ...EMPTY };
   if (demo === "half") return { ...EMPTY, introSeen: true, done: GUIDES.slice(0, 3).map((g) => g.id) };
-  if (demo === "five") return { ...EMPTY, introSeen: true, done: GUIDES.slice(0, 5).map((g) => g.id) };
+  if (demo === "five") return { ...EMPTY, introSeen: true, done: GUIDES.slice(0, -1).map((g) => g.id) };
   if (demo === "done") return { ...EMPTY, done: GUIDES.map((g) => g.id) };
   if (demo === "off") return { ...EMPTY, hidden: true };
   try {
