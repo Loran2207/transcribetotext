@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu01Icon, Search, Zap } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -13,6 +13,11 @@ import { usePlan } from "./use-plan";
    the icon rail (tablet); the search pill opens the same SearchModal. */
 export function MobileTopBar({ onNavigate }: { onNavigate: (page: string) => void }) {
   const [searchOpen, setSearchOpen] = useState(false);
+  useEffect(() => {
+    const qf = (e: Event) => { const d = (e as CustomEvent<{ open?: boolean }>).detail; if (d && typeof d.open === "boolean") setSearchOpen(d.open); };
+    window.addEventListener("ttt-quick-find", qf);
+    return () => window.removeEventListener("ttt-quick-find", qf);
+  }, []);
   const { toggleSidebar } = useSidebar();
   const inner = useInnerScreen();
   const plan = usePlan();

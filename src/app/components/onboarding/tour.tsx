@@ -77,6 +77,14 @@ export function OnboardingTour() {
   const [missing, setMissing] = useState(false);
 
   const step = tour ? tour.guide.steps[tour.step] : null;
+
+  /* a step may drive Quick Find; when the lesson that used it ends, the modal closes */
+  const quickFindUsed = useRef(false);
+  useEffect(() => {
+    const qf = step?.quickFind;
+    if (qf) { quickFindUsed.current = true; window.dispatchEvent(new CustomEvent("ttt-quick-find", { detail: qf })); return; }
+    if (quickFindUsed.current) { quickFindUsed.current = false; window.dispatchEvent(new CustomEvent("ttt-quick-find", { detail: { open: false, query: "" } })); }
+  }, [step]);
   const anchorName = step?.anchor ?? null;
 
   /* wait for the anchor: the step may have just navigated to another page */
@@ -165,7 +173,7 @@ export function OnboardingTour() {
   const spring = reduce ? { duration: 0 } : { type: "spring" as const, stiffness: 320, damping: 30 };
 
   return createPortal(
-    <div data-onboarding-tour="" className="fixed inset-0 z-[200]">
+    <div data-onboarding-tour="" className="fixed inset-0 z-[300]">
       {/* click catcher: a click on the dark goes to the next step */}
       <div className="absolute inset-0" onClick={nextStep} />
       <AnimatePresence>

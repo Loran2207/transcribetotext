@@ -110,7 +110,9 @@ export function TopBar({ onNavigate }: TopBarProps) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setSearchOpen(true); }
     }
     document.addEventListener("keydown", h);
-    return () => document.removeEventListener("keydown", h);
+    const qf = (e: Event) => { const d = (e as CustomEvent<{ open?: boolean }>).detail; if (d && typeof d.open === "boolean") setSearchOpen(d.open); };
+    window.addEventListener("ttt-quick-find", qf);
+    return () => { document.removeEventListener("keydown", h); window.removeEventListener("ttt-quick-find", qf); };
   }, []);
 
   return (

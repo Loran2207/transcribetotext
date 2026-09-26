@@ -21,6 +21,8 @@ export type TourStep = {
   side?: "top" | "bottom" | "left" | "right";
   /* the last step may end on a real action instead of "Done" */
   action?: { label: string; kind: "upload" };
+  /* the step opens (or closes) Quick Find, typing for the person */
+  quickFind?: { open: boolean; query?: string };
 };
 
 export type Guide = {
@@ -96,11 +98,12 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "find",
-    title: "Find anything fast",
+    title: "Search your recordings",
     steps: [
-      { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Search every transcript by the words that were said. Ctrl K from anywhere." },
-      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Connect your calendar and the recorder joins your meetings on its own." },
-      { anchor: "nav-templates|menu", go: HOME, side: "right", title: "Templates", body: "All summary templates, each with an example." },
+      { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Searches what was said, not only the titles. Ctrl K opens it from anywhere.", quickFind: { open: false, query: "" } },
+      { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A name, a topic, a phrase. We typed one for you.", quickFind: { open: true, query: "speaker" } },
+      { anchor: "quick-find-results", go: HOME, side: "bottom", title: "Every match, with its moment", body: "Each result is a recording where those words were said. Click one to open it right there.", quickFind: { open: true } },
+      { anchor: "quick-find-filters", go: HOME, side: "bottom", title: "Narrow it down", body: "By folder, source, who recorded it or when.", quickFind: { open: true } },
     ],
   },
 ];

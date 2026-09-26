@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { isFreshAccount } from "@/lib/fresh-account";
 import { Search, X, Calendar, FolderOpen, FileText, ChevronLeft, ChevronRight, Clock, Zap, ChevronDown, User } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -22,6 +23,9 @@ const MOCK_RESULTS: SearchResult[] = [
   { id: "sr5", name: "UX interview - power user, mobile workflows", source: "zoom", date: "Mar 6, 2026 11:00", duration: "35min", creator: "Kirill Kuts", summary: "A daily-active user walked through how she records client calls from her phone. Main friction: finding old recordings." },
   { id: "sr6", name: "Customer feedback session - beta cohort", source: "zoom", date: "Mar 12, 2026 14:30", duration: "28min", creator: "Alex Johnson", summary: "Five beta users shared feedback on the new export flow. Two asked for shareable links and excluding filler words from transcripts." },
 ];
+/* a fresh account has one recording, so the search can only find that one */
+if (isFreshAccount()) MOCK_RESULTS.splice(0, MOCK_RESULTS.length, { id: "welcome", name: "Welcome to Transcribe To Text", source: "mp3", date: "Today", duration: "1min", creator: "Me", summary: "A short welcome: what a finished transcript looks like, where the Summary and templates are, how to fix a speaker's name, and where recordings live." });
+
 
 const MOCK_FOLDERS = [
   { id: "mf1", name: "Client Calls", color: "#2563EB", count: 3 },
@@ -248,9 +252,17 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [query, setQuery] = useState("");
-  const [recentSearches, setRecentSearches] = useState(RECENT_SEARCHES);
+  const [recentSearches, setRecentSearches] = useState(isFreshAccount() ? [] : RECENT_SEARCHES);
   const [scope, setScope] = useState<"recordings" | "folders">("recordings");
   const [titleOnly, setTitleOnly] = useState(false);
+
+  /* the search lesson types for the person: `ttt-quick-find` carries a query */
+  useEffect(() => {
+    /* the open effect below clears the field first, so the lesson's query lands a beat later */
+    const h = (e: Event) => { const d = (e as CustomEvent<{ open?: boolean; query?: string }>).detail; if (d && typeof d.query === "string") { const q = d.query; window.setTimeout(() => setQuery(q), d.open ? 120 : 0); } };
+    window.addEventListener("ttt-quick-find", h);
+    return () => window.removeEventListener("ttt-quick-find", h);
+  }, []);
 
   // Filter dropdowns
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -327,7 +339,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
         {/* ─── Search Header ─── */}
         <div className="flex items-center gap-[8px] px-[14px] h-[52px] shrink-0 border-b border-border">
           <div className="shrink-0 max-md:hidden"><ScopeSelector scope={scope} onChange={setScope} /></div>
-          <div className="flex items-center gap-[8px] flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+          <div data-tour="quick-find-input" className="flex items-center gap-[8px] flex-1 min-w-0" onClick={e => e.stopPropagation()}>
             <Icon icon={Search} className="size-[15px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
             <Input
               ref={inputRef}
@@ -365,7 +377,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
         </div>
 
         {/* ─── Filter Chips ─── */}
-        <div className="flex items-center gap-[6px] px-[16px] py-[10px] shrink-0 max-md:overflow-x-auto max-md:flex-nowrap max-md:[&::-webkit-scrollbar]:hidden md:flex-wrap border-b border-border">
+        <div data-tour="quick-find-filters" className="flex items-center gap-[6px] px-[16px] py-[10px] shrink-0 max-md:overflow-x-auto max-md:flex-nowrap max-md:[&::-webkit-scrollbar]:hidden md:flex-wrap border-b border-border">
           {/* Folders */}
           {scope === "recordings" && (
             <div className="relative" onClick={e => e.stopPropagation()}>
@@ -482,7 +494,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
         <div className="flex-1 overflow-y-auto min-h-0">
           {/* Recording results */}
           {scope === "recordings" && (hasQuery || hasFilters) && recordingResults.length > 0 && (
-            <div className="px-[10px] py-[6px]">
+            <div data-tour="quick-find-results" className="px-[10px] py-[6px]">
               <div className="px-[8px] pt-[6px] pb-[4px]">
                 <span className="font-medium text-[11px] text-muted-foreground tracking-[0.3px] max-lg:text-[15px] max-lg:leading-[20px] max-lg:font-semibold max-lg:text-foreground max-lg:tracking-normal">Best matches</span>
               </div>
