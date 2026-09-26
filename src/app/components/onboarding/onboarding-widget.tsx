@@ -31,16 +31,15 @@ const card = "shrink-0 rounded-[14px] overflow-hidden bg-card border border-bord
 const ROW = 38; /* one lesson row, px */
 const focus = "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0";
 
-/* the site's notch, twice and small: one bite at each side of the bottom edge,
-   so the header reads like the promo ticket next to it and the chevron sits
-   on the card's centre line */
-function Notches() {
-  const path = "M44 30 C74 30 74 0 104 0 H144 C174 0 174 30 204 30 Z";
-  const cls = "pointer-events-none absolute bottom-[-1px] block h-[10px] w-[72px]";
+/* the promo ticket's perforation: one round bite on the left edge and one on
+   the right, on the header's centre line (the ticket next to it has them at
+   its own middle, radius 8) */
+function Bites({ open }: { open: boolean }) {
+  const cls = cn("pointer-events-none absolute top-1/2 size-[16px] -translate-y-1/2 rounded-full bg-background", open && "ring-1 ring-border");
   return (
     <>
-      <svg aria-hidden className={cn(cls, "left-[22px]")} viewBox="0 0 248 30" preserveAspectRatio="none"><path d={path} fill="var(--card)" /></svg>
-      <svg aria-hidden className={cn(cls, "right-[22px]")} viewBox="0 0 248 30" preserveAspectRatio="none"><path d={path} fill="var(--card)" /></svg>
+      <span aria-hidden className={cn(cls, "left-[-8px]")} />
+      <span aria-hidden className={cn(cls, "right-[-8px]")} />
     </>
   );
 }
@@ -90,7 +89,7 @@ export function OnboardingCard() {
             <Icon icon={ArrowUp01Icon} size={14} strokeWidth={2.2} />
           </motion.span>
         </button>
-        <Notches />
+        <Bites open={open} />
       </motion.div>
       <motion.div initial={false} animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }} transition={reduce ? { duration: 0 } : { height: { type: "spring", stiffness: 260, damping: 32 }, opacity: { duration: 0.18 } }} style={{ overflow: "hidden" }}>
         {/* the pipeline: one rail, six stops, and the gift where the rail ends */}
