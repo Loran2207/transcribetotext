@@ -1,3 +1,4 @@
+import type React from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
@@ -20,28 +21,36 @@ import { useOnboarding } from "./onboarding-context";
 
 const PHOTO = "/images/onboarding-start.jpg";
 const GIFT = "/images/onboarding-gift.png";
+/* the in-app banner language (desktop-app-banner.tsx): the photograph on the
+   right, the navy laid over it from the left so the type sits on solid colour */
+const NAVY = "#0A1630";
+const WASH = "linear-gradient(90deg, #0A1630 0%, #0A1630 38%, rgba(10,22,48,0.55) 68%, rgba(10,22,48,0.15) 100%)";
 
 const card = "shrink-0 rounded-[14px] overflow-hidden bg-card border border-border shadow-sm";
 const ROW = 38; /* one lesson row, px: 22px stop + 8px padding above and below */
 
-/* the site's notch, widened so its flat top holds the gift tab */
-function Tab() {
+/* the site's notch, a clean transition from the photograph into the list */
+function Notch() {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center">
-      <div className="relative h-[28px] w-[296px]">
-        <svg aria-hidden className="absolute inset-0 block h-full w-full" viewBox="0 0 248 30" preserveAspectRatio="none">
-          <path d="M0 30 C30 30 30 0 60 0 H188 C218 0 218 30 248 30 Z" fill="var(--card)" />
-        </svg>
-        <div className="absolute inset-x-0 bottom-0 flex h-[26px] items-center justify-center gap-[6px]">
-          <img src={GIFT} alt="" aria-hidden className="size-[20px] select-none rounded-full object-cover" />
-          <span className="text-[12px] font-semibold leading-[16px] text-foreground">Free month at the end</span>
-        </div>
-      </div>
-    </div>
+    <svg aria-hidden className="pointer-events-none absolute bottom-0 left-1/2 block h-[14px] w-[116px] -translate-x-1/2" viewBox="0 0 248 30" preserveAspectRatio="none">
+      <path d="M44 30 C74 30 74 0 104 0 H144 C174 0 174 30 204 30 Z" fill="var(--card)" />
+    </svg>
   );
 }
 
-const glassButton = "flex size-[28px] shrink-0 items-center justify-center rounded-full bg-white/[0.14] text-white ring-1 ring-inset ring-white/25 transition-colors hover:bg-white/[0.24]";
+/* the bordered family on the photograph: count, buttons, the promise chip */
+const lined = "border border-white/35 text-white transition-colors hover:border-white/60 hover:bg-white/10";
+const lineButton = `flex size-[28px] shrink-0 items-center justify-center rounded-full ${lined}`;
+
+function Photo({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("relative overflow-hidden", className)} style={{ background: NAVY }}>
+      <img src={PHOTO} alt="" aria-hidden className="absolute inset-y-0 right-0 h-full w-[72%] select-none object-cover" style={{ objectPosition: "72% 40%" }} />
+      <span aria-hidden className="absolute inset-0" style={{ background: WASH }} />
+      {children}
+    </div>
+  );
+}
 
 export function OnboardingCard() {
   const ob = useOnboarding();
@@ -58,20 +67,23 @@ export function OnboardingCard() {
       <AnimatePresence initial={false} mode="wait">
         {ob.expanded ? (
           <motion.div key="open" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.18 }}>
-            <div className="relative h-[124px] overflow-hidden">
-              <img src={PHOTO} alt="" aria-hidden className="absolute inset-0 h-full w-full select-none object-cover" />
-              <div className="absolute left-[16px] top-[14px] right-[92px]">
-                <p className="text-[16px] font-semibold leading-[20px] tracking-[-0.2px] text-white">Get started</p>
-                <p className="mt-[3px] text-[12.5px] font-medium leading-[17px] text-white/75">Six lessons, about a minute each</p>
+            <Photo className="h-[136px]">
+              <div className="absolute left-[16px] top-[14px] right-[88px]">
+                <p className="text-[16px] font-bold leading-[20px] tracking-[-0.2px] text-white">Get started</p>
+                <p className="mt-[3px] text-[12.5px] font-medium leading-[17px] text-white/70">Six lessons, about a minute each</p>
               </div>
               <div className="absolute right-[12px] top-[12px] flex items-center gap-[6px]">
-                <span className="flex h-[28px] items-center rounded-full bg-white/[0.14] px-[10px] text-[12px] font-semibold text-white ring-1 ring-inset ring-white/25">{doneCount} of {total}</span>
-                <button type="button" onClick={() => ob.setExpanded(false)} data-onboarding-collapse="" aria-label="Collapse" className={glassButton}>
+                <span className="flex h-[28px] items-center rounded-full border border-white/35 px-[10px] text-[12px] font-semibold text-white">{doneCount} of {total}</span>
+                <button type="button" onClick={() => ob.setExpanded(false)} data-onboarding-collapse="" aria-label="Collapse" className={lineButton}>
                   <Icon icon={ArrowUp01Icon} size={15} />
                 </button>
               </div>
-              <Tab />
-            </div>
+              <span className="absolute bottom-[18px] left-[16px] flex h-[28px] items-center gap-[7px] rounded-full border border-white/35 pl-[5px] pr-[11px] text-[12px] font-semibold text-white">
+                <img src={GIFT} alt="" aria-hidden className="size-[18px] select-none rounded-full object-cover" />
+                Free month at the end
+              </span>
+              <Notch />
+            </Photo>
             {/* the pipeline: one rail, six stops; a whole row lights on hover */}
             <ol className="relative flex flex-col px-[8px] pt-[10px] pb-[10px]">
               <span aria-hidden className="absolute left-[29px] top-[29px] z-[1] w-[2px] rounded-full bg-border" style={{ height: ROW * (total - 1) }} />
@@ -98,16 +110,17 @@ export function OnboardingCard() {
             </ol>
           </motion.div>
         ) : (
-          <motion.button key="closed" type="button" data-onboarding-pill="" onClick={() => ob.setExpanded(true)} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.18 }} className="group relative flex h-[64px] w-full items-center gap-[12px] overflow-hidden px-[16px] pr-[12px] text-left">
-            <img src={PHOTO} alt="" aria-hidden className="absolute inset-0 h-full w-full select-none object-cover transition-transform duration-500 group-hover:scale-[1.03]" />
-            <span className="relative min-w-0 flex-1">
-              <span className="flex items-center gap-[8px]">
-                <span className="text-[13.5px] font-semibold leading-[18px] text-white">Get started</span>
-                <span className="rounded-full bg-white/[0.14] px-[7px] py-[1px] text-[11px] font-semibold leading-[15px] text-white ring-1 ring-inset ring-white/25">{doneCount} of {total}</span>
+          <motion.button key="closed" type="button" data-onboarding-pill="" onClick={() => ob.setExpanded(true)} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.18 }} className="group block w-full text-left">
+            <Photo className="flex h-[64px] items-center gap-[12px] px-[16px] pr-[12px]">
+              <span className="relative min-w-0 flex-1">
+                <span className="flex items-center gap-[8px]">
+                  <span className="text-[13.5px] font-bold leading-[18px] text-white">Get started</span>
+                  <span className="rounded-full border border-white/35 px-[7px] py-[1px] text-[11px] font-semibold leading-[15px] text-white">{doneCount} of {total}</span>
+                </span>
+                <span className="mt-[2px] block truncate text-[12.5px] font-medium leading-[17px] text-white/70">Next: {next?.title}</span>
               </span>
-              <span className="mt-[2px] block truncate text-[12.5px] font-medium leading-[17px] text-white/75">Next: {next?.title}</span>
-            </span>
-            <span className={cn(glassButton, "relative group-hover:bg-white/[0.24]")}><Icon icon={ArrowDown01Icon} size={15} /></span>
+              <span className={cn(lineButton, "relative group-hover:border-white/60 group-hover:bg-white/10")}><Icon icon={ArrowDown01Icon} size={15} /></span>
+            </Photo>
           </motion.button>
         )}
       </AnimatePresence>
