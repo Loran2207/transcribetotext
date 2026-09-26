@@ -255,11 +255,11 @@ export function OnboardingTour() {
           />
         )}
         <div className="flex items-start justify-between gap-3">
-          <span className="flex items-center gap-[8px]">
-            {!(speaking && !phone) && <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[26px] shrink-0 select-none rounded-full bg-primary/10 object-cover ring-2 ring-primary/15" />}
+          <span className="flex items-center gap-[10px]">
+            {!(speaking && !phone) && <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[34px] shrink-0 select-none rounded-full bg-primary/10 object-cover object-top ring-2 ring-primary/15" />}
             <span className="flex flex-col">
-              <span className="text-[12px] font-semibold leading-[15px] text-foreground">{GUIDE_PERSON.name}<span className="font-medium text-muted-foreground"> · {GUIDE_PERSON.title}</span></span>
-              <span className="text-[11px] font-medium leading-[14px] tabular-nums text-muted-foreground">{tour.step + 1} of {total}</span>
+              <span className="text-[13px] font-semibold leading-[17px] text-foreground">{GUIDE_PERSON.name}</span>
+              <span className="text-[11.5px] font-medium leading-[15px] text-muted-foreground">{GUIDE_PERSON.title}</span>
             </span>
           </span>
           <button type="button" onClick={endTour} aria-label="Close the guide" className="-mr-1 -mt-1 flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
@@ -280,7 +280,7 @@ export function OnboardingTour() {
                 <Icon icon={ArrowLeft01Icon} size={14} />
               </Button>
             )}
-            <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } nextStep(); }} className="h-8 px-4 text-[13px] font-semibold">{last ? (step.action?.label ?? "Done") : "Next"}</Button>
+            <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } nextStep(); }} className="h-8 pl-4 pr-3 text-[13px] font-semibold">{last ? (step.action?.label ?? "Done") : <>Next<span className="ml-2 rounded-full bg-primary-foreground/20 px-[7px] text-[11px] font-semibold tabular-nums leading-[18px]">{tour.step + 1}/{total}</span></>}</Button>
           </div>
         </div>
       </motion.div>}
