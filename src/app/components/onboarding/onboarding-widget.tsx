@@ -72,7 +72,7 @@ export function OnboardingCard() {
             {open ? (
               <motion.span key="open" {...fade} className="absolute left-[19px] top-[15px] right-[52px]">
                 <span className="block truncate text-[15px] font-bold leading-[20px] tracking-[-0.2px] text-white">Learn Transcribe To Text AI</span>
-                <span className="block truncate text-[12px] font-medium leading-[16px] text-white/70">Six short lessons<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></span>
+                <span className="block truncate text-[12px] font-medium leading-[16px] text-white/70">{total} short lessons<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></span>
               </motion.span>
             ) : (
               <motion.span key="closed" {...fade} className="absolute left-[19px] top-[15px] right-[52px]">
