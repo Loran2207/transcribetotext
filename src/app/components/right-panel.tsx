@@ -415,7 +415,8 @@ export function RightPanel() {
     <div className="flex shrink-0 h-full">
       <div className="h-full flex flex-col overflow-y-auto transition-colors duration-200 bg-background" style={{ width: DEFAULT_WIDTH }}>
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-[18px] py-[18px] flex flex-col gap-[14px]">
+        {/* one scroll for the whole panel: the cards push everything below them down, nothing shrinks (Kirill, 26.09) */}
+        <div className="flex flex-col gap-[14px] px-[18px] py-[18px] [&>*]:shrink-0">
           {/* Get started: the first card until the six guides are done */}
           <OnboardingCard />
           {/* Widget Cards: on the web the desktop app and the ticket ride one carousel, the card first (Kirill, 12.09) */}
