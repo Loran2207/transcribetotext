@@ -31,15 +31,15 @@ const card = "shrink-0 rounded-[14px] overflow-hidden bg-card border border-bord
 const ROW = 38; /* one lesson row, px */
 const focus = "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0";
 
-/* the promo ticket's perforation: one round bite on the left edge and one on
-   the right, on the header's centre line (the ticket next to it has them at
-   its own middle, radius 8) */
-function Bites({ open }: { open: boolean }) {
-  const cls = cn("pointer-events-none absolute top-1/2 size-[16px] -translate-y-1/2 rounded-full bg-background", open && "ring-1 ring-border");
+/* the site's notch (SectionCutout), turned on its side: one long concave bite
+   on the left edge and one on the right, on the header's centre line. Drawn in
+   the panel colour, so it reads as a cut, no stroke, no ring. */
+function SideNotches() {
+  const cls = "pointer-events-none absolute top-1/2 block h-[52px] w-[8px] -translate-y-1/2";
   return (
     <>
-      <span aria-hidden className={cn(cls, "left-[-8px]")} />
-      <span aria-hidden className={cn(cls, "right-[-8px]")} />
+      <svg aria-hidden className={cn(cls, "left-0")} viewBox="0 0 30 248" preserveAspectRatio="none"><path d="M0 44 C0 74 30 74 30 104 V144 C30 174 0 174 0 204 Z" fill="var(--background)" /></svg>
+      <svg aria-hidden className={cn(cls, "right-0")} viewBox="0 0 30 248" preserveAspectRatio="none"><path d="M30 44 C30 74 0 74 0 104 V144 C0 174 30 174 30 204 Z" fill="var(--background)" /></svg>
     </>
   );
 }
@@ -61,20 +61,21 @@ export function OnboardingCard() {
 
   return (
     <div data-onboarding-card="" data-state={open ? "open" : "closed"} className={cn(card, !open && "border-0")}>
-      {/* the header: folded, it is the promo ticket's size (63px, 13/11 type); open, it grows
-          to 78px with the larger type. The two texts crossfade, nothing scales. */}
-      <motion.div initial={false} animate={{ height: open ? 78 : 63 }} transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }} className="relative overflow-hidden" style={{ background: NAVY }}>
+      {/* the header: one height in both states (66px; the text block is 36px either way, so the
+          padding is 15px above and below). Folded it carries the ticket's 13/11 type and the
+          promise; open, 15/12 and the count. The two texts crossfade, nothing scales. */}
+      <div className="relative h-[66px] overflow-hidden" style={{ background: NAVY }}>
         <img src={PHOTO} alt="" aria-hidden className="absolute inset-y-0 right-0 h-full w-[72%] select-none object-cover" style={{ objectPosition: "72% 55%" }} />
         <span aria-hidden className="absolute inset-0" style={{ background: WASH }} />
         <button type="button" data-onboarding-pill={open ? undefined : ""} aria-label={open ? undefined : "Expand"} onClick={() => { if (!open) ob.setExpanded(true); }} className={cn("absolute inset-0 text-left", open && "cursor-default")}>
           <AnimatePresence initial={false} mode="wait">
             {open ? (
-              <motion.span key="open" {...fade} className="absolute left-[18px] top-[15px] right-[52px]">
-                <span className="block truncate text-[15.5px] font-bold leading-[20px] tracking-[-0.2px] text-white">Learn Transcribe To Text AI</span>
-                <span className="mt-[2px] block truncate text-[12.5px] font-medium leading-[17px] text-white/70">Six short lessons<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></span>
+              <motion.span key="open" {...fade} className="absolute left-[19px] top-[15px] right-[52px]">
+                <span className="block truncate text-[15px] font-bold leading-[20px] tracking-[-0.2px] text-white">Learn Transcribe To Text AI</span>
+                <span className="block truncate text-[12px] font-medium leading-[16px] text-white/70">Six short lessons<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></span>
               </motion.span>
             ) : (
-              <motion.span key="closed" {...fade} className="absolute left-[19px] top-[12px] right-[52px]">
+              <motion.span key="closed" {...fade} className="absolute left-[19px] top-[15px] right-[52px]">
                 <span className="block truncate text-[13px] font-semibold leading-[19.5px] text-white">Learn Transcribe To Text AI</span>
                 <span className="mt-[1px] flex items-center gap-[5px] text-[11px] font-medium leading-[16.5px] text-white/80">
                   <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain" />
@@ -89,8 +90,8 @@ export function OnboardingCard() {
             <Icon icon={ArrowUp01Icon} size={14} strokeWidth={2.2} />
           </motion.span>
         </button>
-        <Bites open={open} />
-      </motion.div>
+        <SideNotches />
+      </div>
       <motion.div initial={false} animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }} transition={reduce ? { duration: 0 } : { height: { type: "spring", stiffness: 260, damping: 32 }, opacity: { duration: 0.18 } }} style={{ overflow: "hidden" }}>
         {/* the pipeline: one rail, six stops, and the gift where the rail ends */}
         <ol className="relative -mt-px flex flex-col bg-card px-[8px] pt-[7px] pb-[8px]">
