@@ -52,7 +52,7 @@ function celebrate(big: boolean) {
 }
 
 export function OnboardingTour() {
-  const { tour, nextStep, prevStep, endTour, celebration, dismissCelebration, guides } = useOnboarding();
+  const { tour, nextStep, prevStep, endTour, celebration, dismissCelebration, guides, done, startGuide } = useOnboarding();
   const { setOpenModal } = useTranscriptionModals();
   const phone = useIsPhone();
   const reduce = useReducedMotion();
@@ -62,10 +62,16 @@ export function OnboardingTour() {
     if (!celebration) return;
     if (celebration === "all") { celebrate(true); return; }
     celebrate(false);
-    const left = guides.length - (celebration.index + 1);
-    toast.success(`Lesson ${celebration.index + 1} done`, { description: left > 0 ? `${left} to go until your free month of Pro` : undefined });
+    /* the toast carries the way on: the next lesson that is not done yet */
+    const next = guides.find((g) => g.id !== celebration.guide.id && !done.has(g.id));
+    const left = guides.filter((g) => g.id !== celebration.guide.id && !done.has(g.id)).length;
+    toast.success(`Lesson ${celebration.index + 1} done`, {
+      description: left > 0 ? `${left} ${left === 1 ? "lesson" : "lessons"} to go. A free month is waiting at the end.` : undefined,
+      action: next ? { label: "Next lesson", onClick: () => startGuide(next.id) } : undefined,
+      duration: 6000,
+    });
     dismissCelebration();
-  }, [celebration, dismissCelebration, guides.length]);
+  }, [celebration, dismissCelebration, guides, done, startGuide]);
   const [rect, setRect] = useState<Rect | null>(null);
   const [missing, setMissing] = useState(false);
 

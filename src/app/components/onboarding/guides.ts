@@ -38,7 +38,7 @@ const RECORDS: TourTarget = { page: "records" };
 const RECORD: TourTarget = { path: GUIDE_RECORD_PATH };
 
 /* the way from Home into the welcome recording, shared by three lessons */
-const TO_RECORD: TourStep = { anchor: "home-records|records-table", go: HOME, side: "top", title: "Your recordings", body: "They all land here. The first one is a welcome recording we made for you. Let's open it." };
+const TO_RECORD: TourStep = { anchor: "home-records|records-table", go: HOME, side: "top", title: "Your recordings", body: "Every transcript lands here. Open the welcome recording, the lessons use it as the example." };
 
 export const GUIDES: Guide[] = [
   {
@@ -46,9 +46,11 @@ export const GUIDES: Guide[] = [
     title: "Make your first transcript",
     completeBy: "action",
     steps: [
-      { anchor: "home-cards|add-fab", go: HOME, side: "bottom", title: "Four ways in", body: "A file, your voice, a meeting or a link. Each becomes a transcript in minutes." },
-      { anchor: "home-card-record|add-fab", go: HOME, side: "bottom", title: "Instant speech", body: "Press and talk. The words appear as you speak." },
-      { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "Any audio or video. Pick one and watch it turn into text.", action: { label: "Upload a file", kind: "upload" } },
+      { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "MP3, MP4, WAV, any recording. Drop it here and the transcript is ready in minutes." },
+      { anchor: "home-card-record|add-fab", go: HOME, side: "bottom", title: "Instant speech", body: "Press and talk. The words appear as you speak. Good for voice notes and dictation." },
+      { anchor: "home-card-meeting|add-fab", go: HOME, side: "bottom", title: "Meeting Recorder", body: "Paste a Meet, Zoom or Teams invite. A bot joins the call, records it and writes the transcript and notes while you talk." },
+      { anchor: "home-card-link|add-fab", go: HOME, side: "bottom", title: "Transcribe from URL", body: "A YouTube, Google Drive or Dropbox link. Nothing to download: paste it and go." },
+      { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Your turn", body: "Pick any audio or video file. The lesson is done the moment it starts uploading.", action: { label: "Upload a file", kind: "upload" } },
     ],
   },
   {
@@ -56,10 +58,10 @@ export const GUIDES: Guide[] = [
     title: "Read a transcript",
     steps: [
       TO_RECORD,
-      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Transcript and Summary", body: "Transcript is every word. Summary turns them into notes." },
+      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Transcript and Summary", body: "Transcript is every word that was said. Summary turns it into notes." },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Timecodes", body: "Click one to hear that exact moment." },
       { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Apply template", body: "Meeting notes, interview, action items: pick how the summary is written." },
-      { anchor: "record-translate|record-tabs", go: RECORD, side: "bottom", title: "Translate", body: "Read the whole transcript in another language." },
-      { anchor: "record-export|record-tabs", go: RECORD, side: "bottom", title: "Export", body: "PDF, Word, plain text or subtitles." },
+      { anchor: "record-export|record-tabs", go: RECORD, side: "bottom", title: "Export", body: "PDF, Word, plain text or subtitles. Translate to... above turns the whole transcript into another language first." },
     ],
   },
   {
@@ -67,19 +69,9 @@ export const GUIDES: Guide[] = [
     title: "Name the speakers",
     steps: [
       TO_RECORD,
-      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Everyone who spoke", body: "Every voice, in one place. Rename or remove them here." },
-      { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Click a name to fix it", body: "Pick who really said it, for this block or for all of them." },
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Two people in one block?", body: "Select the words that belong to the other person and pick their name. Only those words move." },
-    ],
-  },
-  {
-    id: "folders",
-    title: "Keep records in folders",
-    steps: [
-      { anchor: "sidebar-folders|menu", go: HOME, side: "right", title: "Folders", body: "One per client or project. Click a folder to see only its records." },
-      { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Create one", body: "A name and a colour. You can also pick a folder while uploading." },
-      { anchor: "records-table|home-records", go: RECORDS, side: "bottom", title: "Move records", body: "Tick one or more and choose Move to folder." },
-      { anchor: "sidebar-folders|menu", go: RECORDS, side: "right", title: "Share a whole folder", body: "Once you have one, hover it and press the people icon. Everyone invited sees every recording in it." },
+      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Everyone who spoke", body: "Every voice in one list. Rename or remove them here." },
+      { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Wrong name on a block?", body: "Click it and pick who really said it, for this block or for all of them." },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Two people in one block?", body: "Select the other person's words and pick their name. Only those words move." },
     ],
   },
   {
@@ -87,8 +79,18 @@ export const GUIDES: Guide[] = [
     title: "Share a recording",
     steps: [
       TO_RECORD,
-      { anchor: "record-share|record-speakers-chip", go: RECORD, side: "bottom", title: "Share", body: "A link or an invite by email. They see this recording, its transcript and summary." },
-      { anchor: "nav-shared|menu", go: RECORD, side: "right", title: "Shared with me", body: "What other people share with you lands here." },
+      { anchor: "record-share|record-speakers-chip", go: RECORD, side: "bottom", title: "Share", body: "A link or an invite by email. They see the recording, the transcript and the summary." },
+      { anchor: "nav-shared|menu", go: RECORD, side: "right", title: "Shared with me", body: "Recordings other people share with you land here." },
+    ],
+  },
+  {
+    id: "folders",
+    title: "Keep records in folders",
+    steps: [
+      { anchor: "sidebar-folders|menu", go: HOME, side: "right", title: "Folders", body: "One per client or project. Click a folder to see only its recordings." },
+      { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Create one", body: "A name and a colour. You can also pick a folder while uploading." },
+      { anchor: "records-table|home-records", go: RECORDS, side: "bottom", title: "Move recordings", body: "Tick one or more and choose Move to folder." },
+      { anchor: "sidebar-folders|menu", go: RECORDS, side: "right", title: "Share a whole folder", body: "Hover a folder and press the people icon. Everyone invited sees every recording in it." },
     ],
   },
   {
@@ -96,7 +98,7 @@ export const GUIDES: Guide[] = [
     title: "Find anything fast",
     steps: [
       { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Search every transcript by the words that were said. Ctrl K from anywhere." },
-      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Connect your calendar and the recorder joins meetings on its own." },
+      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Connect your calendar and the recorder joins your meetings on its own." },
       { anchor: "nav-templates|menu", go: HOME, side: "right", title: "Templates", body: "All summary templates, each with an example." },
     ],
   },
@@ -105,6 +107,6 @@ export const GUIDES: Guide[] = [
 /* The reward for finishing all six. */
 export const REWARD = {
   code: "WELCOME1M",
-  title: "1 month of Pro on us",
-  body: "You know your way around now. The first month of Pro is free with this code.",
+  title: "Your first month is on us",
+  body: "You know your way around now. This code makes the first month free.",
 };

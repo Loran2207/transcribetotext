@@ -9,12 +9,16 @@ import { REWARD } from "./guides";
 import { useOnboarding } from "./onboarding-context";
 
 /* "Get started": a fixed card at the top of the Home right panel (web) and
-   at the top of the Home column on the phone and tablet. The same card
-   language as the Free plan card next to it, and as few words as it can
-   carry: the title, what you get, the six lessons, Start on the next one,
-   and the gift in red. Folded: the next lesson and the gift in one row.
-   It cannot be hidden until the six are done; then the reward takes its
-   place until the code is used or closed. */
+   at the top of the Home column on the phone and tablet.
+
+   Review 27 (Kirill, 26.09): the card gets a face. Its top is the same navy
+   as the desktop-app banner, with a house-glass illustration, so it reads
+   as one family with the rest of the panel; the lessons sit below on white.
+   Folded, the same navy row keeps the picture, the count and the next
+   lesson. No "Pro" in the promise: a free month, said once. */
+
+const NAVY = "#0A1630"; /* the desktop-app banner's colour, see desktop/desktop-app-banner.tsx */
+const ART = "/images/onboarding-start.png";
 
 const card = "shrink-0 rounded-[14px] overflow-hidden bg-card border border-border shadow-sm";
 
@@ -33,16 +37,17 @@ export function OnboardingCard() {
       <AnimatePresence initial={false} mode="wait">
         {ob.expanded ? (
           <motion.div key="open" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.18 }}>
-            <div className="flex items-start justify-between gap-3 px-[18px] pt-[16px]">
-              <div className="min-w-0">
-                <p className="text-foreground" style={{ fontWeight: 700, fontSize: "18px", letterSpacing: "-0.3px" }}>Get started</p>
-                <p className="mt-[2px] text-[13px] leading-[18px] text-muted-foreground">Learn the app, get <span className="font-semibold text-destructive">1 month of Pro free</span>.</p>
+            <div className="relative overflow-hidden px-[18px] pt-[16px] pb-[18px]" style={{ background: NAVY }}>
+              <img src={ART} alt="" aria-hidden className="pointer-events-none absolute -right-[14px] -top-[6px] h-[124px] w-[124px] select-none object-contain" />
+              <div className="relative max-w-[62%]">
+                <p className="text-white" style={{ fontWeight: 700, fontSize: "18px", letterSpacing: "-0.3px", lineHeight: "22px" }}>Get started</p>
+                <p className="mt-[6px] text-[13px] leading-[18px] text-white/70">Six short lessons. Finish them and your first month is on us.</p>
               </div>
-              <button type="button" onClick={() => ob.setExpanded(false)} data-onboarding-collapse="" aria-label="Collapse" className="-mr-2 -mt-1 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+              <button type="button" onClick={() => ob.setExpanded(false)} data-onboarding-collapse="" aria-label="Collapse" className="absolute right-[10px] bottom-[10px] flex size-7 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white">
                 <Icon icon={ArrowUp01Icon} size={14} />
               </button>
             </div>
-            <ul className="flex flex-col gap-[2px] px-[8px] pt-[12px] pb-[10px]">
+            <ul className="flex flex-col gap-[2px] px-[8px] pt-[10px] pb-[8px]">
               {ob.guides.map((g, i) => {
                 const done = ob.done.has(g.id);
                 const isNext = next?.id === g.id;
@@ -59,37 +64,24 @@ export function OnboardingCard() {
                 );
               })}
             </ul>
-            <div className="flex items-center gap-[10px] border-t border-border px-[18px] py-[10px]">
-              <Icon icon={GiftIcon} size={16} className="shrink-0 text-destructive" />
-              <span className="text-[12.5px] font-medium text-foreground">{doneCount} of {total} done</span>
-              <span className="ml-auto text-[12px] text-muted-foreground">Gift at 6</span>
+            <div className="flex items-center gap-[8px] border-t border-border px-[18px] py-[10px]">
+              <Icon icon={GiftIcon} size={15} className="shrink-0 text-destructive" />
+              <span className="text-[12.5px] text-muted-foreground"><span className="font-medium text-foreground">{doneCount} of {total}</span> done</span>
+              <span className="ml-auto text-[12px] font-medium text-destructive">Free month at the end</span>
             </div>
           </motion.div>
         ) : (
-          <motion.button key="closed" type="button" data-onboarding-pill="" onClick={() => ob.setExpanded(true)} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.18 }} className="flex w-full items-center gap-[12px] px-[14px] py-[11px] text-left transition-colors hover:bg-muted/40">
-            <Ring done={doneCount} total={total} />
+          <motion.button key="closed" type="button" data-onboarding-pill="" onClick={() => ob.setExpanded(true)} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.18 }} className="relative flex w-full items-center gap-[12px] overflow-hidden px-[14px] py-[10px] text-left" style={{ background: NAVY }}>
+            <img src={ART} alt="" aria-hidden className="pointer-events-none size-[44px] shrink-0 select-none object-contain" />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13.5px] font-semibold text-foreground">Next: {next?.title}</span>
-              <span className="block truncate text-[12px] leading-[16px] text-muted-foreground"><span className="font-medium text-destructive">1 month of Pro free</span> after lesson 6</span>
+              <span className="block truncate text-[13.5px] font-semibold text-white">Get started <span className="font-medium text-white/50">{doneCount} of {total}</span></span>
+              <span className="block truncate text-[12px] leading-[16px] text-white/70">Next: {next?.title}</span>
             </span>
-            <Icon icon={ArrowDown01Icon} size={16} className="shrink-0 text-muted-foreground" />
+            <Icon icon={ArrowDown01Icon} size={16} className="shrink-0 text-white/60" />
           </motion.button>
         )}
       </AnimatePresence>
     </div>
-  );
-}
-
-function Ring({ done, total }: { done: number; total: number }) {
-  const r = 12, c = 2 * Math.PI * r;
-  return (
-    <span className="relative flex size-[36px] shrink-0 items-center justify-center">
-      <svg className="absolute inset-0 -rotate-90" viewBox="0 0 32 32" aria-hidden>
-        <circle cx="16" cy="16" r={r} fill="none" stroke="var(--border)" strokeWidth="3" />
-        <circle cx="16" cy="16" r={r} fill="none" stroke="var(--primary)" strokeWidth="3" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - done / total)} />
-      </svg>
-      <span className="text-[11px] font-semibold text-foreground">{done}/{total}</span>
-    </span>
   );
 }
 
