@@ -136,10 +136,6 @@ export function OnboardingCard() {
               </span>
             </div>
           </li>
-          {/* prototype only: start over as a new person (Kirill reviews with a hard refresh) */}
-          <li className="flex justify-end pt-[6px] pr-[6px]">
-            <button type="button" data-onboarding-reset="" onClick={ob.reset} className="text-[11px] font-medium text-muted-foreground/70 transition-colors hover:text-foreground">Start over</button>
-          </li>
         </ol>
       </motion.div>
     </div>
