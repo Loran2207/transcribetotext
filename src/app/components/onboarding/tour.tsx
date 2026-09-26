@@ -78,6 +78,14 @@ export function OnboardingTour() {
 
   const step = tour ? tour.guide.steps[tour.step] : null;
 
+  /* a step may open a real dialog of the page; when the lesson ends, everything it opened closes */
+  const triggerUsed = useRef(false);
+  useEffect(() => {
+    const t = step?.trigger;
+    if (t) { triggerUsed.current = true; window.dispatchEvent(new CustomEvent("ttt-tour", { detail: t })); return; }
+    if (triggerUsed.current) { triggerUsed.current = false; window.dispatchEvent(new CustomEvent("ttt-tour", { detail: "close-all" })); }
+  }, [step]);
+
   /* a step may drive Quick Find; when the lesson that used it ends, the modal closes */
   const quickFindUsed = useRef(false);
   useEffect(() => {
@@ -173,7 +181,7 @@ export function OnboardingTour() {
   const spring = reduce ? { duration: 0 } : { type: "spring" as const, stiffness: 320, damping: 30 };
 
   return createPortal(
-    <div data-onboarding-tour="" className="fixed inset-0 z-[300]">
+    <div data-onboarding-tour="" className="pointer-events-auto fixed inset-0 z-[300]">
       {/* click catcher: a click on the dark goes to the next step */}
       <div className="absolute inset-0" onClick={nextStep} />
       <AnimatePresence>

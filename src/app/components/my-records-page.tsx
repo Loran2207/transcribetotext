@@ -138,7 +138,7 @@ function FolderFormDialog({ open, onClose, folder, onSave, title, submitLabel }:
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative rounded-[20px] w-[400px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
+      <div data-tour="add-folder-dialog" className="relative rounded-[20px] w-[400px] max-w-[calc(100vw-32px)] overflow-hidden bg-popover" style={{ boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" }}>
         <div className="flex items-center justify-between px-[24px] pt-[22px] pb-[4px]">
           <h2 className="font-semibold text-[17px] text-foreground">{title}</h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="size-[28px] rounded-full flex items-center justify-center">
@@ -282,6 +282,12 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
 
   // Create folder dialog
   const [createOpen, setCreateOpen] = useState(false);
+  /* the onboarding tour opens the real form */
+  useEffect(() => {
+    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "add-folder-open") setCreateOpen(true); if (t === "add-folder-close" || t === "close-all") setCreateOpen(false); };
+    window.addEventListener("ttt-tour", on);
+    return () => window.removeEventListener("ttt-tour", on);
+  }, []);
   const [folderAddOpen, setFolderAddOpen] = useState(false);
   const [folderActionsOpen, setFolderActionsOpen] = useState(false);
   // If set, after creating a new folder we move this folder ID into it

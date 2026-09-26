@@ -23,6 +23,8 @@ export type TourStep = {
   action?: { label: string; kind: "upload" };
   /* the step opens (or closes) Quick Find, typing for the person */
   quickFind?: { open: boolean; query?: string };
+  /* the step opens a real dialog of the page (`ttt-tour` window event) */
+  trigger?: "share-open" | "share-close" | "speakers-open" | "speakers-close" | "add-folder-open" | "add-folder-close";
 };
 
 export type Guide = {
@@ -71,8 +73,9 @@ export const GUIDES: Guide[] = [
     title: "Name the speakers",
     steps: [
       TO_RECORD,
-      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Everyone who spoke", body: "Every voice in one list. Rename or remove them here." },
-      { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Wrong name on a block?", body: "Click it and pick who really said it, for this block or for all of them." },
+      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Everyone who spoke", body: "Every voice in one list. Next opens it.", trigger: "speakers-close" },
+      { anchor: "speakers-panel", go: RECORD, side: "right", title: "Rename, add, remove", body: "Click a name to rename it. Remove a voice and its blocks go to someone else.", trigger: "speakers-open" },
+      { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Wrong name on a block?", body: "Click it and pick who really said it, for this block or for all of them.", trigger: "speakers-close" },
       { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Two people in one block?", body: "Select the other person's words and pick their name. Only those words move." },
     ],
   },
@@ -81,8 +84,9 @@ export const GUIDES: Guide[] = [
     title: "Share a recording",
     steps: [
       TO_RECORD,
-      { anchor: "record-share|record-speakers-chip", go: RECORD, side: "bottom", title: "Share", body: "A link or an invite by email. They see the recording, the transcript and the summary." },
-      { anchor: "nav-shared|menu", go: RECORD, side: "right", title: "Shared with me", body: "Recordings other people share with you land here." },
+      { anchor: "record-share|record-speakers-chip", go: RECORD, side: "bottom", title: "Share", body: "A link or an invite by email. Next opens it.", trigger: "share-close" },
+      { anchor: "share-dialog", go: RECORD, side: "right", title: "Who can see it", body: "Anyone with the link, or only the people you invite. They see the recording, its transcript and summary.", trigger: "share-open" },
+      { anchor: "nav-shared|menu", go: RECORD, side: "right", title: "Shared with me", body: "Recordings other people share with you land here.", trigger: "share-close" },
     ],
   },
   {
@@ -91,8 +95,9 @@ export const GUIDES: Guide[] = [
     steps: [
       { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Every recording lives here. Next takes you there." },
       { anchor: "sidebar-folders|menu", go: RECORDS, side: "right", title: "Folders", body: "One per client or project. Click a folder to see only its recordings." },
-      { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Create one", body: "A name and a colour. You can also pick a folder while uploading." },
-      { anchor: "records-table|home-records", go: RECORDS, side: "bottom", title: "Move recordings", body: "Tick one or more and choose Move to folder." },
+      { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Create one", body: "Next opens the form.", trigger: "add-folder-close" },
+      { anchor: "add-folder-dialog", go: RECORDS, side: "right", title: "A name and a colour", body: "That is all a folder needs. It appears in the sidebar the moment you press Create.", trigger: "add-folder-open" },
+      { anchor: "records-table|home-records", go: RECORDS, side: "bottom", title: "Move recordings", body: "Tick one or more and choose Move to folder. You can also pick a folder while uploading.", trigger: "add-folder-close" },
       { anchor: "sidebar-folders|menu", go: RECORDS, side: "right", title: "Share a whole folder", body: "Hover a folder and press the people icon. Everyone invited sees every recording in it." },
     ],
   },

@@ -25,6 +25,7 @@ function load(): Stored {
   const demo = window.localStorage.getItem("ttt_demo_onboarding");
   if (demo === "fresh") return { ...EMPTY };
   if (demo === "half") return { ...EMPTY, done: GUIDES.slice(0, 3).map((g) => g.id) };
+  if (demo === "five") return { ...EMPTY, done: GUIDES.slice(0, 5).map((g) => g.id) };
   if (demo === "done") return { ...EMPTY, done: GUIDES.map((g) => g.id) };
   if (demo === "off") return { ...EMPTY, hidden: true };
   try {
@@ -83,7 +84,17 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   /* real actions count: see the header comment */
   useEffect(() => {
-    const on = (e: Event) => { const id = (e as CustomEvent<string>).detail; if (GUIDES.some((g) => g.id === id)) markDone(id); };
+    const on = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      const guide = GUIDES.find((g) => g.id === id); if (!guide) return;
+      setStored((s) => {
+        if (s.done.includes(guide.id)) return s;
+        const done = [...s.done, guide.id];
+        const all = GUIDES.every((g) => done.includes(g.id));
+        setCelebration(all ? "all" : { kind: "guide", guide, index: GUIDES.findIndex((g) => g.id === guide.id) });
+        return { ...s, done, expanded: all ? true : s.expanded };
+      });
+    };
     window.addEventListener(EVENT, on);
     return () => window.removeEventListener(EVENT, on);
   }, [markDone]);

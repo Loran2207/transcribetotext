@@ -920,7 +920,7 @@ export function SpeakersPanel({ speakers, actions, open, onOpenChange, onAskRemo
         {dialog}
         {children && <span onClick={() => onOpenChange(true)} className="contents">{children}</span>}
         <Drawer open={open} onOpenChange={onOpenChange}>
-          <DrawerContent className="[&>div:first-child]:hidden">
+          <DrawerContent data-tour="speakers-panel" className="[&>div:first-child]:hidden">
             <DrawerHeader className="flex flex-row items-center justify-between px-4 pt-4 pb-2 text-left">
               <DrawerTitle className="text-[17px] font-semibold">Speakers</DrawerTitle>
               <button type="button" aria-label="Close" onClick={() => onOpenChange(false)} className="-mr-1 flex size-8 items-center justify-center rounded-full text-muted-foreground active:bg-muted/60"><Icon icon={Cancel01Icon} size={18} /></button>
@@ -936,7 +936,7 @@ export function SpeakersPanel({ speakers, actions, open, onOpenChange, onAskRemo
       {dialog}
       <Popover open={open} onOpenChange={onOpenChange}>
         {children ? <PopoverTrigger asChild>{children}</PopoverTrigger> : <PopoverTrigger asChild><span className="absolute" aria-hidden /></PopoverTrigger>}
-        <PopoverContent align="start" sideOffset={6} className="w-[320px] p-0" data-speakers-panel="" onOpenAutoFocus={(e) => e.preventDefault()}>
+        <PopoverContent align="start" sideOffset={6} className="w-[320px] p-0" data-speakers-panel="" data-tour="speakers-panel" onOpenAutoFocus={(e) => e.preventDefault()} onInteractOutside={(e) => { if ((e.target as Element | null)?.closest?.("[data-onboarding-tour]")) e.preventDefault(); }}>
           <p className="border-b border-border/60 px-3.5 pt-3 pb-2.5 text-[13px] font-semibold text-foreground">Speakers</p>
           <SpeakersList speakers={speakers} phone={false} actions={actions} onAskRemove={askRemove} />
         </PopoverContent>

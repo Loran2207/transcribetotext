@@ -2,9 +2,8 @@ import type React from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import { ArrowUp01Icon, Copy01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { ArrowUp01Icon, Cancel01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
-import { Button } from "../ui/button";
 import { cn } from "../ui/utils";
 import { REWARD } from "./guides";
 import { useOnboarding } from "./onboarding-context";
@@ -67,7 +66,7 @@ export function OnboardingCard() {
   const fade = { initial: reduce ? false : { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, exit: reduce ? undefined : { opacity: 0, y: -4 }, transition: { duration: 0.16 } } as const;
 
   return (
-    <div data-onboarding-card="" data-state={open ? "open" : "closed"} className={card}>
+    <div data-onboarding-card="" data-state={open ? "open" : "closed"} className={cn(card, !open && "border-0")}>
       {/* the header is the same in both states; only its second line and the list change */}
       <Photo className="h-[78px]">
         <button type="button" data-onboarding-pill={open ? undefined : ""} aria-label={open ? undefined : "Expand"} onClick={() => { if (!open) ob.setExpanded(true); }} className={cn("absolute inset-0 text-left", open && "cursor-default")}>
@@ -143,23 +142,20 @@ export function OnboardingCard() {
 function RewardCard({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
-  const copy = async () => { try { await navigator.clipboard.writeText(REWARD.code); toast.success("Code copied"); } catch { toast(REWARD.code); } };
+  const hide = () => { onClose(); toast("Your code is saved", { description: "Settings, Plan Management, whenever you want it." }); };
   return (
     <motion.div data-onboarding-reward="" initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className={card}>
-      <div className="flex flex-col gap-[12px] px-[18px] pt-[16px] pb-[14px]">
-        <div className="flex items-start gap-[12px]">
-          <img src={GIFT} alt="" aria-hidden className="size-[44px] shrink-0 select-none object-contain" />
-          <div className="min-w-0">
-            <p className="text-foreground" style={{ fontWeight: 700, fontSize: "18px", letterSpacing: "-0.3px" }}>{REWARD.title}</p>
-            <p className="mt-[3px] text-[13px] leading-[19px] text-foreground/80">{REWARD.body}</p>
-          </div>
+      {/* the promo card's language: the same ticket tint, the open gift, the code in colour */}
+      <div className="relative flex h-[84px] items-center bg-primary/[0.06] pl-[18px] pr-[104px]">
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold leading-[18px] text-foreground">Your free month</p>
+          <p className="font-mono text-[13px] font-bold leading-[18px] tracking-wide text-primary">{REWARD.code}</p>
+          <button type="button" data-onboarding-redeem="" onClick={() => { onClose(); navigate(`/checkout?code=${REWARD.code}`); }} className="mt-[3px] flex items-center gap-[2px] text-[12px] font-medium text-primary hover:underline">Claim now <span aria-hidden>›</span></button>
         </div>
-        <button type="button" onClick={copy} data-onboarding-code="" className={cn("flex items-center justify-between gap-2 rounded-[10px] border border-dashed border-primary/40 bg-primary/[0.05] px-[12px] py-[9px] text-left transition-colors hover:bg-primary/[0.09]", focus)}>
-          <span className="font-mono text-[14px] font-semibold tracking-wide text-primary">{REWARD.code}</span>
-          <span className="flex items-center gap-1 text-[12px] font-medium text-primary"><Icon icon={Copy01Icon} size={13} />Copy</span>
+        <img src="/images/discount-gift.png" alt="" aria-hidden className="pointer-events-none absolute right-[34px] top-1/2 size-[78px] -translate-y-1/2 select-none object-contain" />
+        <button type="button" onClick={hide} aria-label="Hide" className="absolute right-[8px] top-[8px] flex size-[22px] items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground transition-colors hover:bg-foreground/[0.12] hover:text-foreground">
+          <Icon icon={Cancel01Icon} size={12} strokeWidth={2.4} />
         </button>
-        <Button data-onboarding-redeem="" onClick={() => { onClose(); navigate(`/checkout?code=${REWARD.code}`); }} className="h-10 w-full text-[13px] font-semibold">Claim my free month</Button>
-        <button type="button" onClick={onClose} className={cn("self-center rounded-full px-[8px] py-[2px] text-[12px] font-medium text-muted-foreground hover:text-foreground", focus)}>Later</button>
       </div>
     </motion.div>
   );

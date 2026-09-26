@@ -52,6 +52,8 @@ import { toastAccessRemoved } from "./app-toast";
 interface ShareDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /* the onboarding lesson shows the real dialog without the plan gate */
+  preview?: boolean;
   resourceType: ResourceType;
   resourceId: string;
   resourceName: string;
@@ -88,6 +90,7 @@ function toPerson(share: Share, index: number): SharePerson {
 export function ShareDialog({
   open,
   onOpenChange,
+  preview = false,
   resourceType,
   resourceId,
   resourceName,
@@ -311,7 +314,7 @@ export function ShareDialog({
      pressing it lands on the plan the product already sells. The gate lives in
      the dialog rather than at each of the four entry points, so a new entry
      point cannot be built without it. */
-  if (plan !== "pro") {
+  if (plan !== "pro" && !preview) {
     return <UpgradeGateModal open={open} onOpenChange={onOpenChange} variant="share" />;
   }
 
@@ -417,7 +420,7 @@ export function ShareDialog({
   if (isPhone) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="[&>div:first-child]:hidden">
+        <DrawerContent data-tour="share-dialog" className="[&>div:first-child]:hidden">
           <div className="flex items-start gap-2 px-5 pt-5 pb-1">
             <DrawerTitle className="flex-1 text-left text-[16px] font-semibold leading-[22px]">
               {dialogTitle}
@@ -447,7 +450,7 @@ export function ShareDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[520px] gap-4">
+      <DialogContent data-tour="share-dialog" className="sm:max-w-[520px] gap-4" onInteractOutside={(e) => { if ((e.target as Element | null)?.closest?.("[data-onboarding-tour]")) e.preventDefault(); }}>
         <DialogHeader>
           <DialogTitle className="pr-6 text-left">{dialogTitle}</DialogTitle>
           <DialogDescription className="sr-only">

@@ -2816,7 +2816,9 @@ export function TranscriptionDetailPage() {
   const [rightPanelWidth, setRightPanelWidth] = useState(320);
   const [isRightPanelResizing, setIsRightPanelResizing] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  useEffect(() => { if (shareDialogOpen) creditOnboarding("share"); }, [shareDialogOpen]);
+  /* opened by the lesson: the real dialog, no plan gate, and it does not count as sharing */
+  const [tourPreview, setTourPreview] = useState(false);
+  useEffect(() => { if (shareDialogOpen && !tourPreview) creditOnboarding("share"); }, [shareDialogOpen, tourPreview]);
   const { shares: transcriptionShares } = useShares("transcription", selectedRecord?.id ?? id ?? "");
   const activeTranslationMeta = useMemo(
     () => TRANSLATION_LANGUAGES.find((language) => language.code === activeTranslationLang) ?? null,
@@ -2906,6 +2908,18 @@ export function TranscriptionDetailPage() {
   const [extraSpeakers, setExtraSpeakers] = useState<Speaker[]>([]);
   const [removedSpeakers, setRemovedSpeakers] = useState<string[]>([]);
   const [speakersPanelOpen, setSpeakersPanelOpen] = useState(false);
+  /* the onboarding tour opens the real dialogs of this page */
+  useEffect(() => {
+    const on = (e: Event) => {
+      const t = (e as CustomEvent<string>).detail;
+      if (t === "share-open") { setTourPreview(true); setShareDialogOpen(true); }
+      if (t === "share-close" || t === "close-all") { setShareDialogOpen(false); setTourPreview(false); }
+      if (t === "speakers-open") setSpeakersPanelOpen(true);
+      if (t === "speakers-close" || t === "close-all") setSpeakersPanelOpen(false);
+    };
+    window.addEventListener("ttt-tour", on);
+    return () => window.removeEventListener("ttt-tour", on);
+  }, []);
   /* The model sometimes glues two people into one block ("Hi! Hi!"). A split
      hands a run of words to another voice: the block becomes up to three,
      the middle one under the other speaker. Ids stay unique (id * 1000 + n). */
@@ -4349,7 +4363,8 @@ export function TranscriptionDetailPage() {
 
         <ShareDialog
           open={shareDialogOpen}
-          onOpenChange={setShareDialogOpen}
+          onOpenChange={(o) => { setShareDialogOpen(o); if (!o) setTourPreview(false); }}
+          preview={tourPreview}
           resourceType="transcription"
           resourceId={selectedRecord?.id ?? id ?? ""}
           resourceName={title}
