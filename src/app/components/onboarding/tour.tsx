@@ -210,8 +210,8 @@ export function OnboardingTour() {
         )}
       </AnimatePresence>
 
-      {/* Mia: she stands in the bottom-right corner for the whole lesson and the card is her line */}
-      {!phone && (
+      {/* Mia: she steps in from the corner only to say hello; afterwards she stays on the cards */}
+      {!phone && speaking && (
         <motion.img
           key="mia"
           src={GUIDE_PERSON.figure}
@@ -256,7 +256,7 @@ export function OnboardingTour() {
         )}
         <div className="flex items-start justify-between gap-3">
           <span className="flex items-center gap-[8px]">
-            {phone && <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[24px] shrink-0 select-none rounded-full object-cover" />}
+            {!(speaking && !phone) && <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[26px] shrink-0 select-none rounded-full bg-primary/10 object-cover ring-2 ring-primary/15" />}
             <span className="flex flex-col">
               <span className="text-[12px] font-semibold leading-[15px] text-foreground">{GUIDE_PERSON.name}<span className="font-medium text-muted-foreground"> · {GUIDE_PERSON.title}</span></span>
               <span className="text-[11px] font-medium leading-[14px] tabular-nums text-muted-foreground">{tour.step + 1} of {total}</span>

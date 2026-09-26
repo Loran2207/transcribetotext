@@ -42,6 +42,10 @@ export const GUIDE_RECORD_PATH = "/transcriptions/welcome";
 /* a step with this anchor lights nothing: Mia speaks from her corner */
 export const NO_ANCHOR = "none";
 
+/* Mia's hello. It opens whichever lesson the person starts FIRST, once; after
+   that she stays on the cards as a small portrait with her name and title. */
+export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm Mia", body: "I look after new customers here. I'll show you around Transcribe To Text AI: six short lessons, about a minute each. I explain, the arrows point." };
+
 const HOME: TourTarget = { page: "dashboard" };
 const RECORDS: TourTarget = { page: "records" };
 const RECORD: TourTarget = { path: GUIDE_RECORD_PATH };
@@ -56,7 +60,6 @@ export const GUIDES: Guide[] = [
     seconds: 40,
     completeBy: "action",
     steps: [
-      { anchor: NO_ANCHOR, go: HOME, title: "Hi, I'm Mia", body: "I look after new customers here. I'll show you around Transcribe To Text AI: six short lessons, about a minute each. I explain, the arrows point. Let's make your first transcript." },
       { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "MP3, MP4, WAV, any recording. Drop it here and the transcript is ready in minutes." },
       { anchor: "home-card-record|add-fab", go: HOME, side: "bottom", title: "Instant speech", body: "Press and talk. The words appear as you speak. Good for voice notes and dictation." },
       { anchor: "home-card-meeting|add-fab", go: HOME, side: "bottom", title: "Meeting Recorder", body: "Paste a Meet, Zoom or Teams invite. A bot joins the call, records it and writes the transcript and notes while you talk." },
@@ -127,7 +130,7 @@ export const GUIDES: Guide[] = [
 
 /* The guide who walks you through: her portrait sits on every tour card and
    on the reward, the words are hers, the arrows only point. */
-export const GUIDE_PERSON = { name: "Mia", title: "Customer Success Lead", avatar: "/images/onboarding-guide.jpg", figure: "/images/onboarding-mia.png" };
+export const GUIDE_PERSON = { name: "Mia", title: "Customer Success Lead", avatar: "/images/onboarding-guide.png", figure: "/images/onboarding-mia.png" };
 
 
 /* The reward for finishing all six. */

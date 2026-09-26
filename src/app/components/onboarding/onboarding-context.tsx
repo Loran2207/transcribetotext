@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { GUIDES, type Guide, type TourTarget } from "./guides";
+import { GUIDES, INTRO_STEP, type Guide, type TourTarget } from "./guides";
 
 /* State of the "Get started" widget and its tours.
 
@@ -17,15 +17,15 @@ import { GUIDES, type Guide, type TourTarget } from "./guides";
 const KEY = "ttt_onboarding_v1";
 const EVENT = "ttt-onboarding";
 
-type Stored = { done: string[]; hidden: boolean; rewardClaimed: boolean; expanded: boolean };
-const EMPTY: Stored = { done: [], hidden: false, rewardClaimed: false, expanded: true };
+type Stored = { done: string[]; hidden: boolean; rewardClaimed: boolean; expanded: boolean; introSeen: boolean };
+const EMPTY: Stored = { done: [], hidden: false, rewardClaimed: false, expanded: true, introSeen: false };
 
 function load(): Stored {
   if (typeof window === "undefined") return EMPTY;
   const demo = window.localStorage.getItem("ttt_demo_onboarding");
   if (demo === "fresh") return { ...EMPTY };
-  if (demo === "half") return { ...EMPTY, done: GUIDES.slice(0, 3).map((g) => g.id) };
-  if (demo === "five") return { ...EMPTY, done: GUIDES.slice(0, 5).map((g) => g.id) };
+  if (demo === "half") return { ...EMPTY, introSeen: true, done: GUIDES.slice(0, 3).map((g) => g.id) };
+  if (demo === "five") return { ...EMPTY, introSeen: true, done: GUIDES.slice(0, 5).map((g) => g.id) };
   if (demo === "done") return { ...EMPTY, done: GUIDES.map((g) => g.id) };
   if (demo === "off") return { ...EMPTY, hidden: true };
   try {
@@ -102,11 +102,13 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const go = useCallback((t: TourTarget) => { navigator.current?.(t); }, []);
 
   const startGuide = useCallback((id: string) => {
-    const guide = GUIDES.find((g) => g.id === id); if (!guide) return;
-    setStored((s) => ({ ...s, expanded: false }));
+    const base = GUIDES.find((g) => g.id === id); if (!base) return;
+    /* the first lesson ever started opens with Mia's hello, whichever lesson it is */
+    const guide: Guide = stored.introSeen ? base : { ...base, steps: [INTRO_STEP, ...base.steps] };
+    setStored((s) => ({ ...s, expanded: false, introSeen: true }));
     go(guide.steps[0].go);
     setTour({ guide, step: 0 });
-  }, [go]);
+  }, [go, stored.introSeen]);
 
   const endTour = useCallback(() => setTour(null), []);
 
