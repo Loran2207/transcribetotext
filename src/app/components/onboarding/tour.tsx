@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
@@ -73,6 +73,7 @@ export function OnboardingTour() {
     dismissCelebration();
   }, [celebration, dismissCelebration, guides, done, startGuide]);
   const [rect, setRect] = useState<Rect | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const [missing, setMissing] = useState(false);
 
   const step = tour ? tour.guide.steps[tour.step] : null;
@@ -152,6 +153,12 @@ export function OnboardingTour() {
     if (side === "left") { cardStyle = { top: Math.max(12, rect.top), left: rect.left - GAP - CARD_W }; arrow = "right"; }
   }
 
+  /* side "top" needs the card's real height so `top` can be animated like the other sides */
+  if (rect && !phone && "bottom" in cardStyle) {
+    const h = cardRef.current?.offsetHeight ?? 150;
+    cardStyle = { top: rect.top - GAP - h, left: cardStyle.left };
+  }
+
   /* on the phone the card sits at the bottom, unless the lit element is down there too */
   const phoneTop = !!(phone && rect && rect.top + rect.height > window.innerHeight - 240);
 
@@ -178,7 +185,8 @@ export function OnboardingTour() {
       </AnimatePresence>
 
       {placed && <motion.div
-        key={`${tour.guide.id}-${tour.step}`}
+        key={tour.guide.id}
+        ref={cardRef}
         role="dialog"
         aria-label={step.title}
         data-tour-card=""
@@ -187,10 +195,10 @@ export function OnboardingTour() {
           phone && "left-3 right-3",
           phone && (phoneTop ? "top-[calc(12px+env(safe-area-inset-top))]" : "bottom-[calc(16px+env(safe-area-inset-bottom))]"),
         )}
-        style={phone ? undefined : { width: CARD_W, ...cardStyle }}
-        initial={reduce ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={reduce ? { duration: 0 } : { duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        style={phone ? undefined : { width: CARD_W }}
+        initial={reduce ? false : { opacity: 0, y: 8, ...(phone ? {} : cardStyle) }}
+        animate={{ opacity: 1, y: 0, ...(phone ? {} : cardStyle) }}
+        transition={spring}
         onClick={(e) => e.stopPropagation()}
       >
         {!phone && rect && (

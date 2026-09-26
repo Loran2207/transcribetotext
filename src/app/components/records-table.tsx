@@ -654,7 +654,7 @@ function InlineNameEditor({ value, onSave, onCancel }: { value: string; onSave: 
 function RecordCard({ record, isStarred, onStar }: { record: RecordRow; isStarred: boolean; onStar: () => void }) {
   const [expanded, setExpanded] = useState(false);
   return (
-    <div className="rounded-[14px] p-[20px] transition-all bg-card border border-border cursor-default">
+    <div data-tour={record.id === WELCOME_RECORD_ID ? "record-row-welcome" : undefined} className="rounded-[14px] p-[20px] transition-all bg-card border border-border cursor-default">
       <div className="flex items-start gap-[12px]">
         <div className="flex-1 min-w-0">
           <h3 className="truncate font-semibold text-[15px] leading-[22px] text-foreground tracking-[-0.01em]">{record.name}</h3>
@@ -2047,7 +2047,7 @@ function TableRow({ record, folder, folderColumnMode, visibleColumns, isSelected
   const shortSummary = record.summary.length > 120 ? record.summary.slice(0, 120) + "\u2026" : record.summary;
 
   return (
-    <div draggable={!!onRowDragStart} onDragStart={onRowDragStart} onDragEnd={onRowDragEnd} className={`flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer relative border-b border-border ${isTrash ? "opacity-60 hover:opacity-80" : ""} ${rowBg} ${rowDragging ? "opacity-40" : ""}`} onMouseEnter={(e) => { onMouseEnter(); summaryTimer.current = setTimeout(() => setShowSummary(true), 600); }} onMouseLeave={(e) => { onMouseLeave(); clearTimeout(summaryTimer.current); setShowSummary(false); }} onDoubleClick={onDoubleClick}>
+    <div data-tour={record.id === WELCOME_RECORD_ID ? "record-row-welcome" : undefined} draggable={!!onRowDragStart} onDragStart={onRowDragStart} onDragEnd={onRowDragEnd} className={`flex items-center h-[40px] last:border-b-0 transition-colors cursor-pointer relative border-b border-border ${isTrash ? "opacity-60 hover:opacity-80" : ""} ${rowBg} ${rowDragging ? "opacity-40" : ""}`} onMouseEnter={(e) => { onMouseEnter(); summaryTimer.current = setTimeout(() => setShowSummary(true), 600); }} onMouseLeave={(e) => { onMouseLeave(); clearTimeout(summaryTimer.current); setShowSummary(false); }} onDoubleClick={onDoubleClick}>
       {/* Summary hover card */}
       {showSummary && record.summary && !isEditing && (
         <div className="absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+6px)] z-[60] pointer-events-none" style={{ animation: "fadeInUp 0.2s ease" }}>

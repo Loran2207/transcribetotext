@@ -132,6 +132,7 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
 
   return (
     <div
+      data-tour={record.id === "welcome" ? "record-row-welcome" : undefined}
       onClick={() => { if (selectEnabled && selectionMode) toggle(); else open(); }}
       className={"group flex items-start gap-[10px] px-[14px] py-[12px] rounded-[16px] border transition-colors cursor-pointer " + (selected ? "bg-primary/[0.05] border-primary/40" : "bg-card border-border/60 active:bg-muted/60")}
     >

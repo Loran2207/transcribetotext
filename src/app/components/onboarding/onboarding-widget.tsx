@@ -65,21 +65,18 @@ export function OnboardingCard() {
 
   if (ob.allDone) return <RewardCard onClose={ob.claimReward} />;
 
-  const count = <span className={cn("flex h-[26px] items-center rounded-full px-[10px] text-[12px] font-semibold tabular-nums", lined)}>{doneCount} of {total}</span>;
-
   return (
     <div data-onboarding-card="" data-state={ob.expanded ? "open" : "closed"} className={card}>
       <AnimatePresence initial={false} mode="wait">
         {ob.expanded ? (
           <motion.div key="open" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.18 }}>
             {/* the header says what this is; the promise lives at the end of the rail, where it is earned */}
-            <Photo className="h-[96px]">
-              <div className="absolute left-[18px] top-[16px] right-[96px]">
-                <p className="text-[16px] font-bold leading-[20px] tracking-[-0.2px] text-white">Learn Transcribe To Text</p>
-                <p className="mt-[3px] text-[12.5px] font-medium leading-[17px] text-white/70">Six short lessons</p>
+            <Photo className="h-[82px]">
+              <div className="absolute left-[18px] top-[13px] right-[52px]">
+                <p className="truncate text-[15.5px] font-bold leading-[20px] tracking-[-0.2px] text-white">Learn Transcribe To Text AI</p>
+                <p className="mt-[1px] text-[12.5px] font-medium leading-[17px] text-white/70">Six short lessons<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></p>
               </div>
-              <div className="absolute right-[14px] top-[13px] flex items-center gap-[6px]">
-                {count}
+              <div className="absolute right-[14px] top-[12px] flex items-center gap-[6px]">
                 <button type="button" onClick={() => ob.setExpanded(false)} data-onboarding-collapse="" aria-label="Collapse" className={cn(lineButton, "hover:border-white/70 hover:bg-white/10", focus)}>
                   <Icon icon={ArrowUp01Icon} size={14} strokeWidth={2.2} />
                 </button>
@@ -117,8 +114,8 @@ export function OnboardingCard() {
               {/* the destination: the gift, on the same rail, in the same column */}
               <li className="relative mt-[4px]">
                 <div data-onboarding-goal="" className="flex h-[54px] items-center gap-[12px] rounded-[12px] bg-primary/[0.06] pl-[7px] pr-[12px]">
-                  <span className="relative z-[2] flex size-[28px] shrink-0 items-center justify-center rounded-full ring-[3px] ring-card">
-                    <img src={GIFT} alt="" aria-hidden className="size-[28px] select-none rounded-full object-cover" />
+                  <span className="relative z-[2] flex size-[28px] shrink-0 items-center justify-center rounded-full bg-card ring-[3px] ring-card">
+                    <img src={GIFT} alt="" aria-hidden className="size-[26px] select-none object-contain" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[13.5px] font-semibold leading-[18px] text-foreground">Your gift: 1 month free</span>
@@ -132,9 +129,9 @@ export function OnboardingCard() {
           <motion.button key="closed" type="button" data-onboarding-pill="" onClick={() => ob.setExpanded(true)} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.18 }} className={cn("group block w-full text-left", focus)}>
             <Photo zoom className="flex h-[66px] items-center gap-[12px] pl-[18px] pr-[14px]">
               <span className="relative min-w-0 flex-1">
-                <span className="block truncate text-[14px] font-bold leading-[18px] tracking-[-0.1px] text-white">Learn Transcribe To Text</span>
+                <span className="block truncate text-[14px] font-bold leading-[18px] tracking-[-0.1px] text-white">Learn Transcribe To Text AI</span>
                 <span className="mt-[4px] flex items-center gap-[6px] text-[12px] font-semibold leading-[16px] text-white/80">
-                  <img src={GIFT} alt="" aria-hidden className="size-[16px] shrink-0 select-none rounded-full object-cover" />
+                  <img src={GIFT} alt="" aria-hidden className="size-[17px] shrink-0 select-none object-contain" />
                   <span className="truncate">Finish {total} lessons, get 1 month free</span>
                 </span>
               </span>
@@ -155,7 +152,7 @@ function RewardCard({ onClose }: { onClose: () => void }) {
     <motion.div data-onboarding-reward="" initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className={card}>
       <div className="flex flex-col gap-[12px] px-[18px] pt-[16px] pb-[14px]">
         <div className="flex items-start gap-[12px]">
-          <img src={GIFT} alt="" aria-hidden className="size-[44px] shrink-0 select-none rounded-[12px] object-cover" />
+          <img src={GIFT} alt="" aria-hidden className="size-[44px] shrink-0 select-none object-contain" />
           <div className="min-w-0">
             <p className="text-foreground" style={{ fontWeight: 700, fontSize: "18px", letterSpacing: "-0.3px" }}>{REWARD.title}</p>
             <p className="mt-[3px] text-[13px] leading-[19px] text-foreground/80">{REWARD.body}</p>

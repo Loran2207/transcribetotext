@@ -13,6 +13,14 @@ import { AuthLayout } from "./auth-layout";
 import { BrowserHandoff } from "./auth-browser-handoff";
 import { useShell } from "./desktop/shell";
 import { useAuth } from "./auth-context";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+
+/* Prototype only: the demo account behind one button, so nobody types
+   admin@test.com again (Kirill, 26.09). `ttt_demo_quicklogin=0` hides it. */
+const DEMO = { email: "admin@test.com", password: "admin123" };
+function quickLoginOffered() {
+  try { return window.localStorage.getItem("ttt_demo_quicklogin") !== "0"; } catch { return true; }
+}
 
 interface LoginFormValues {
   email: string;
@@ -27,6 +35,7 @@ export function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quick, setQuick] = useState(() => quickLoginOffered());
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   /* in the desktop app Google signs in through the system browser, so the window hands over and waits */
   const { desktop: desktopShell } = useShell();
@@ -49,6 +58,14 @@ export function LoginPage() {
   if (!loading && user) {
     return <Navigate to="/" replace />;
   }
+
+  const signInAsAdmin = async () => {
+    setQuick(false);
+    setIsSubmitting(true);
+    const { error } = await signIn(DEMO.email, DEMO.password);
+    if (error) { setErrorMessage(error.message); setIsSubmitting(false); return; }
+    navigate("/");
+  };
 
   const onSubmit = async (data: LoginFormValues) => {
     setIsSubmitting(true);
@@ -98,6 +115,18 @@ export function LoginPage() {
   return (
     <DesktopWindowFrame>
     <AuthLayout>
+      <Dialog open={quick && !desktopShell} onOpenChange={(o) => { if (!o) setQuick(false); }}>
+        <DialogContent className="max-w-[360px] rounded-[16px] p-6" data-quick-login="">
+          <DialogHeader>
+            <DialogTitle className="text-[18px] font-semibold">Sign in to the prototype</DialogTitle>
+            <DialogDescription className="text-[13px]">One click opens the demo account. Skip to use the form.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-2 flex-col gap-2 sm:flex-col">
+            <Button data-quick-login-go="" onClick={signInAsAdmin} className="h-10 w-full text-[13px] font-semibold">Sign in as admin</Button>
+            <Button variant="pill-outline" data-quick-login-skip="" onClick={() => setQuick(false)} className="h-10 w-full text-[13px] font-semibold">Skip</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {handoff ? (
         <BrowserHandoff provider="Google" onOpenAgain={() => toast("Google sign-in opened in your browser again")} onBack={() => setHandoff(false)} />
       ) : (

@@ -38,7 +38,7 @@ const RECORDS: TourTarget = { page: "records" };
 const RECORD: TourTarget = { path: GUIDE_RECORD_PATH };
 
 /* the way from Home into the welcome recording, shared by three lessons */
-const TO_RECORD: TourStep = { anchor: "home-records|records-table", go: HOME, side: "top", title: "Your recordings", body: "Every transcript lands here. Open the welcome recording, the lessons use it as the example." };
+const TO_RECORD: TourStep = { anchor: "record-row-welcome|home-records", go: HOME, side: "bottom", title: "Open the welcome recording", body: "Every transcript is a row here. Click one to open it. Next opens this one for you." };
 
 export const GUIDES: Guide[] = [
   {
@@ -87,7 +87,8 @@ export const GUIDES: Guide[] = [
     id: "folders",
     title: "Keep records in folders",
     steps: [
-      { anchor: "sidebar-folders|menu", go: HOME, side: "right", title: "Folders", body: "One per client or project. Click a folder to see only its recordings." },
+      { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Every recording lives here. Next takes you there." },
+      { anchor: "sidebar-folders|menu", go: RECORDS, side: "right", title: "Folders", body: "One per client or project. Click a folder to see only its recordings." },
       { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Create one", body: "A name and a colour. You can also pick a folder while uploading." },
       { anchor: "records-table|home-records", go: RECORDS, side: "bottom", title: "Move recordings", body: "Tick one or more and choose Move to folder." },
       { anchor: "sidebar-folders|menu", go: RECORDS, side: "right", title: "Share a whole folder", body: "Hover a folder and press the people icon. Everyone invited sees every recording in it." },
