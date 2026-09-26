@@ -10,7 +10,7 @@ import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { useTranscriptionModals } from "../transcription-modals";
 import { useOnboarding } from "./onboarding-context";
-import { GUIDE_PERSON } from "./guides";
+import { GUIDE_PERSON, NO_ANCHOR } from "./guides";
 
 /* The guided tour: the page dims, the one element the step is about stays
    lit, and a small card beside it says what it is in two lines.
@@ -24,6 +24,9 @@ import { GUIDE_PERSON } from "./guides";
 const PAD = 8;
 const RADIUS = 14;
 const CARD_W = 300;
+/* Mia's figure in the corner, web only */
+const MIA_W = 240;
+const MIA_H = 360;
 const GAP = 14;
 
 type Rect = { top: number; left: number; width: number; height: number };
@@ -94,7 +97,8 @@ export function OnboardingTour() {
     if (qf) { quickFindUsed.current = true; window.dispatchEvent(new CustomEvent("ttt-quick-find", { detail: qf })); return; }
     if (quickFindUsed.current) { quickFindUsed.current = false; window.dispatchEvent(new CustomEvent("ttt-quick-find", { detail: { open: false, query: "" } })); }
   }, [step]);
-  const anchorName = step?.anchor ?? null;
+  const anchorName = step?.anchor && step.anchor !== NO_ANCHOR ? step.anchor : null;
+  const speaking = step?.anchor === NO_ANCHOR;
 
   /* wait for the anchor: the step may have just navigated to another page */
   useLayoutEffect(() => {
@@ -148,13 +152,18 @@ export function OnboardingTour() {
 
   if (!tour || !step) return null;
   /* the card waits for its place: nothing is drawn top-left and then moved */
-  const placed = rect !== null || missing;
+  const placed = rect !== null || missing || speaking;
   const total = tour.guide.steps.length;
   const last = tour.step === total - 1;
 
   /* card placement on web: preferred side, flipped when it would leave the window */
   let cardStyle: React.CSSProperties = {};
   let arrow: "top" | "bottom" | "left" | "right" = "top";
+  if (speaking && !phone) {
+    /* beside Mia, who stands in the bottom-right corner */
+    cardStyle = { right: MIA_W + 28, bottom: 40 };
+    arrow = "right";
+  }
   if (rect && !phone) {
     const vw = window.innerWidth, vh = window.innerHeight;
     const est = 150;
@@ -171,7 +180,7 @@ export function OnboardingTour() {
   }
 
   /* side "top" needs the card's real height so `top` can be animated like the other sides */
-  if (rect && !phone && "bottom" in cardStyle) {
+  if (rect && !phone && "bottom" in cardStyle && !speaking) {
     const h = cardRef.current?.offsetHeight ?? 150;
     cardStyle = { top: rect.top - GAP - h, left: cardStyle.left };
   }
@@ -201,6 +210,21 @@ export function OnboardingTour() {
         )}
       </AnimatePresence>
 
+      {/* Mia: she stands in the bottom-right corner for the whole lesson and the card is her line */}
+      {!phone && (
+        <motion.img
+          key="mia"
+          src={GUIDE_PERSON.figure}
+          alt=""
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 right-[16px] select-none object-contain object-bottom"
+          style={{ width: MIA_W, height: MIA_H, filter: "drop-shadow(0 18px 30px rgba(10,22,48,0.45))" }}
+          initial={reduce ? false : { opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 220, damping: 26 }}
+        />
+      )}
+
       {placed && <motion.div
         key={tour.guide.id}
         ref={cardRef}
@@ -218,7 +242,7 @@ export function OnboardingTour() {
         transition={spring}
         onClick={(e) => e.stopPropagation()}
       >
-        {!phone && rect && (
+        {!phone && (rect || speaking) && (
           <span
             aria-hidden
             className={cn(
@@ -232,9 +256,9 @@ export function OnboardingTour() {
         )}
         <div className="flex items-start justify-between gap-3">
           <span className="flex items-center gap-[8px]">
-            <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[28px] shrink-0 select-none rounded-full object-cover ring-2 ring-card" />
+            {phone && <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[24px] shrink-0 select-none rounded-full object-cover" />}
             <span className="flex flex-col">
-              <span className="text-[12px] font-semibold leading-[15px] text-foreground">{GUIDE_PERSON.name}</span>
+              <span className="text-[12px] font-semibold leading-[15px] text-foreground">{GUIDE_PERSON.name}<span className="font-medium text-muted-foreground"> · {GUIDE_PERSON.title}</span></span>
               <span className="text-[11px] font-medium leading-[14px] tabular-nums text-muted-foreground">{tour.step + 1} of {total}</span>
             </span>
           </span>

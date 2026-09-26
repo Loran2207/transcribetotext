@@ -29,7 +29,7 @@ export function RewardDialog() {
             <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="absolute -right-[6px] bottom-[6px] size-[44px] select-none rounded-full object-cover ring-[3px] ring-card" />
           </div>
           <DialogTitle className="mt-2 text-[22px] font-bold tracking-[-0.3px] text-foreground">{REWARD.title}</DialogTitle>
-          <DialogDescription className="mt-2 text-[14px] leading-[20px] text-muted-foreground">{GUIDE_PERSON.name}: "Six lessons done. {REWARD.body}"</DialogDescription>
+          <DialogDescription className="mt-2 text-[14px] leading-[20px] text-muted-foreground">{GUIDE_PERSON.name}, {GUIDE_PERSON.title}: "Six lessons done. {REWARD.body}"</DialogDescription>
           <button type="button" onClick={copy} className="mt-5 flex w-full items-center justify-between gap-2 rounded-[12px] border border-dashed border-primary/50 bg-primary/[0.05] px-[14px] py-[11px] text-left transition-colors hover:bg-primary/[0.09]">
             <span className="font-mono text-[15px] font-semibold tracking-wide text-primary">{REWARD.code}</span>
             <span className="flex items-center gap-1 text-[12px] font-medium text-primary"><Icon icon={Copy01Icon} size={13} />Copy</span>
