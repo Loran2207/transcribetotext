@@ -72,30 +72,29 @@ export function OnboardingCard() {
       <AnimatePresence initial={false} mode="wait">
         {ob.expanded ? (
           <motion.div key="open" initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.18 }}>
-            <Photo className="h-[108px]">
-              <p className="absolute left-[18px] top-[16px] text-[16px] font-bold leading-[20px] tracking-[-0.2px] text-white">Get started</p>
+            {/* the header says what this is; the promise lives at the end of the rail, where it is earned */}
+            <Photo className="h-[96px]">
+              <div className="absolute left-[18px] top-[16px] right-[96px]">
+                <p className="text-[16px] font-bold leading-[20px] tracking-[-0.2px] text-white">Learn Transcribe To Text</p>
+                <p className="mt-[3px] text-[12.5px] font-medium leading-[17px] text-white/70">Six short lessons</p>
+              </div>
               <div className="absolute right-[14px] top-[13px] flex items-center gap-[6px]">
                 {count}
                 <button type="button" onClick={() => ob.setExpanded(false)} data-onboarding-collapse="" aria-label="Collapse" className={cn(lineButton, "hover:border-white/70 hover:bg-white/10", focus)}>
                   <Icon icon={ArrowUp01Icon} size={14} strokeWidth={2.2} />
                 </button>
               </div>
-              <span className={cn("absolute bottom-[24px] left-[18px] flex h-[26px] items-center gap-[7px] rounded-full pl-[4px] pr-[11px] text-[12px] font-semibold", lined)}>
-                <img src={GIFT} alt="" aria-hidden className="size-[18px] select-none rounded-full object-cover" />
-                Free month when you finish
-              </span>
               <Notch />
             </Photo>
-            {/* the pipeline: one rail, six stops; a whole row lights on hover */}
+            {/* the pipeline: one rail, six stops, and the gift where the rail ends */}
             <ol className="flex flex-col px-[8px] pt-[6px] pb-[8px]">
               {ob.guides.map((g, i) => {
                 const done = ob.done.has(g.id);
                 const isNext = next?.id === g.id;
-                const last = i === total - 1;
                 return (
                   <li key={g.id} className="relative">
-                    {/* the rail segment down to the next stop: blue once this lesson is done */}
-                    {!last && <span aria-hidden className={cn("absolute left-[20px] top-[19px] z-[1] w-[2px] transition-colors duration-500", done ? "bg-primary" : "bg-border")} style={{ height: ROW }} />}
+                    {/* the rail segment down to the next stop (or to the gift): blue once this lesson is done */}
+                    <span aria-hidden className={cn("absolute left-[20px] top-[19px] z-[1] w-[2px] transition-colors duration-500", done ? "bg-primary" : "bg-border")} style={{ height: ROW }} />
                     <button type="button" data-onboarding-guide={g.id} onClick={() => ob.startGuide(g.id)} className={cn("group flex w-full items-center gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors hover:bg-muted/70 active:bg-muted", focus)} style={{ height: ROW }}>
                       <span className={cn(
                         "relative z-[2] flex size-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums transition-colors",
@@ -115,17 +114,29 @@ export function OnboardingCard() {
                   </li>
                 );
               })}
+              {/* the destination: the gift, on the same rail, in the same column */}
+              <li className="relative mt-[4px]">
+                <div data-onboarding-goal="" className="flex h-[54px] items-center gap-[12px] rounded-[12px] bg-primary/[0.06] pl-[7px] pr-[12px]">
+                  <span className="relative z-[2] flex size-[28px] shrink-0 items-center justify-center rounded-full ring-[3px] ring-card">
+                    <img src={GIFT} alt="" aria-hidden className="size-[28px] select-none rounded-full object-cover" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13.5px] font-semibold leading-[18px] text-foreground">Your gift: 1 month free</span>
+                    <span className="block truncate text-[12px] font-medium leading-[16px] text-muted-foreground">Unlocks after lesson {total}</span>
+                  </span>
+                </div>
+              </li>
             </ol>
           </motion.div>
         ) : (
           <motion.button key="closed" type="button" data-onboarding-pill="" onClick={() => ob.setExpanded(true)} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} exit={reduce ? undefined : { opacity: 0 }} transition={{ duration: 0.18 }} className={cn("group block w-full text-left", focus)}>
-            <Photo zoom className="flex h-[64px] items-center gap-[12px] pl-[18px] pr-[14px]">
+            <Photo zoom className="flex h-[66px] items-center gap-[12px] pl-[18px] pr-[14px]">
               <span className="relative min-w-0 flex-1">
-                <span className="flex items-center gap-[8px]">
-                  <span className="text-[14px] font-bold leading-[18px] tracking-[-0.1px] text-white">Get started</span>
-                  <span className={cn("rounded-full px-[7px] text-[11px] font-semibold leading-[17px] tabular-nums", lined)}>{doneCount} of {total}</span>
+                <span className="block truncate text-[14px] font-bold leading-[18px] tracking-[-0.1px] text-white">Learn Transcribe To Text</span>
+                <span className="mt-[4px] flex items-center gap-[6px] text-[12px] font-semibold leading-[16px] text-white/80">
+                  <img src={GIFT} alt="" aria-hidden className="size-[16px] shrink-0 select-none rounded-full object-cover" />
+                  <span className="truncate">Finish {total} lessons, get 1 month free</span>
                 </span>
-                <span className="mt-[3px] block truncate text-[12px] font-semibold leading-[16px] text-white/70">Next: {next?.title}</span>
               </span>
               <span className={cn(lineButton, "relative group-hover:border-white/70 group-hover:bg-white/10")}><Icon icon={ArrowDown01Icon} size={14} strokeWidth={2.2} /></span>
             </Photo>
