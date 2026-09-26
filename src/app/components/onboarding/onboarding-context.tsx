@@ -55,6 +55,8 @@ type Ctx = {
   expanded: boolean;
   setExpanded: (v: boolean) => void;
   hide: () => void;
+  /* prototype: start over as a brand-new person */
+  reset: () => void;
   markDone: (id: string) => void;
   claimReward: () => void;
   tour: Tour | null;
@@ -104,11 +106,14 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const startGuide = useCallback((id: string) => {
     const base = GUIDES.find((g) => g.id === id); if (!base) return;
     /* the first lesson ever started opens with Mia's hello, whichever lesson it is */
-    const guide: Guide = stored.introSeen ? base : { ...base, steps: [INTRO_STEP, ...base.steps] };
+    /* she says hello on the first lesson started, and again on any later start as long as
+       nothing is finished yet (the person closed the tour and came back) */
+    const hello = !stored.introSeen || stored.done.length === 0;
+    const guide: Guide = hello ? { ...base, steps: [INTRO_STEP, ...base.steps] } : base;
     setStored((s) => ({ ...s, expanded: false, introSeen: true }));
     go(guide.steps[0].go);
     setTour({ guide, step: 0 });
-  }, [go, stored.introSeen]);
+  }, [go, stored.introSeen, stored.done.length]);
 
   const endTour = useCallback(() => setTour(null), []);
 
@@ -152,6 +157,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       expanded: stored.expanded,
       setExpanded: (v) => setStored((s) => ({ ...s, expanded: v })),
       hide: () => setStored((s) => ({ ...s, hidden: true })),
+      reset: () => { setTour(null); setCelebration(null); setStored({ ...EMPTY }); },
       markDone,
       claimReward: () => setStored((s) => ({ ...s, rewardClaimed: true, hidden: true })),
       tour,
