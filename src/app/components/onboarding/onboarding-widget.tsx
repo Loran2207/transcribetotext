@@ -1,11 +1,8 @@
 import type React from "react";
-import { useNavigate } from "react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { toast } from "sonner";
 import { ArrowUp01Icon, Cancel01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { cn } from "../ui/utils";
-import { REWARD } from "./guides";
 import { useOnboarding } from "./onboarding-context";
 
 /* "Get started": a fixed card at the top of the Home right panel (web) and
@@ -56,7 +53,9 @@ export function OnboardingCard() {
   const next = ob.guides.find((g) => !ob.done.has(g.id));
   const open = ob.expanded;
 
-  if (ob.allDone) return <RewardCard onClose={ob.claimReward} />;
+  /* six done: the dialog handed the gift over and the code lives in Plan Management;
+     the panel needs no third copy (Kirill, 26.09) */
+  if (ob.allDone) return null;
 
   const fade = { initial: reduce ? false : { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, exit: reduce ? undefined : { opacity: 0, y: -4 }, transition: { duration: 0.16 } } as const;
 
@@ -144,27 +143,5 @@ export function OnboardingCard() {
         </ol>
       </motion.div>
     </div>
-  );
-}
-
-function RewardCard({ onClose }: { onClose: () => void }) {
-  const navigate = useNavigate();
-  const reduce = useReducedMotion();
-  const hide = () => { onClose(); toast("Your code is saved", { description: "Settings, Plan Management, whenever you want it." }); };
-  return (
-    <motion.div data-onboarding-reward="" initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className={card}>
-      {/* the promo card's language: the same ticket tint, the open gift, the code in colour */}
-      <div className="relative flex h-[84px] items-center bg-primary/[0.06] pl-[18px] pr-[104px]">
-        <div className="min-w-0">
-          <p className="text-[13px] font-semibold leading-[18px] text-foreground">Your free month</p>
-          <p className="font-mono text-[13px] font-bold leading-[18px] tracking-wide text-primary">{REWARD.code}</p>
-          <button type="button" data-onboarding-redeem="" onClick={() => { onClose(); navigate(`/checkout?code=${REWARD.code}`); }} className="mt-[3px] flex items-center gap-[2px] text-[12px] font-medium text-primary hover:underline">Claim now <span aria-hidden>›</span></button>
-        </div>
-        <img src="/images/discount-gift.png" alt="" aria-hidden className="pointer-events-none absolute right-[34px] top-1/2 size-[78px] -translate-y-1/2 select-none object-contain" />
-        <button type="button" onClick={hide} aria-label="Hide" className="absolute right-[8px] top-[8px] flex size-[22px] items-center justify-center rounded-full bg-foreground/[0.06] text-muted-foreground transition-colors hover:bg-foreground/[0.12] hover:text-foreground">
-          <Icon icon={Cancel01Icon} size={12} strokeWidth={2.4} />
-        </button>
-      </div>
-    </motion.div>
   );
 }
