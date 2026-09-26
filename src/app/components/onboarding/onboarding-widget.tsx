@@ -31,26 +31,21 @@ const card = "shrink-0 rounded-[14px] overflow-hidden bg-card border border-bord
 const ROW = 38; /* one lesson row, px */
 const focus = "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0";
 
-/* the site's notch, a clean transition from the photograph into the list */
-function Notch() {
+/* the site's notch, twice and small: one bite at each side of the bottom edge,
+   so the header reads like the promo ticket next to it and the chevron sits
+   on the card's centre line */
+function Notches() {
+  const path = "M44 30 C74 30 74 0 104 0 H144 C174 0 174 30 204 30 Z";
+  const cls = "pointer-events-none absolute bottom-[-1px] block h-[10px] w-[72px]";
   return (
-    <svg aria-hidden className="pointer-events-none absolute bottom-[-1px] left-1/2 block h-[15px] w-[116px] -translate-x-1/2" viewBox="0 0 248 30" preserveAspectRatio="none">
-      <path d="M44 30 C74 30 74 0 104 0 H144 C174 0 174 30 204 30 Z" fill="var(--card)" />
-    </svg>
+    <>
+      <svg aria-hidden className={cn(cls, "left-[22px]")} viewBox="0 0 248 30" preserveAspectRatio="none"><path d={path} fill="var(--card)" /></svg>
+      <svg aria-hidden className={cn(cls, "right-[22px]")} viewBox="0 0 248 30" preserveAspectRatio="none"><path d={path} fill="var(--card)" /></svg>
+    </>
   );
 }
 
-const iconButton = "flex size-[28px] shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white";
-
-function Photo({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn("relative overflow-hidden", className)} style={{ background: NAVY }}>
-      <img src={PHOTO} alt="" aria-hidden className="absolute inset-y-0 right-0 h-full w-[72%] select-none object-cover" style={{ objectPosition: "72% 55%" }} />
-      <span aria-hidden className="absolute inset-0" style={{ background: WASH }} />
-      {children}
-    </div>
-  );
-}
+const iconButton = "flex size-[26px] shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white";
 
 export function OnboardingCard() {
   const ob = useOnboarding();
@@ -67,31 +62,36 @@ export function OnboardingCard() {
 
   return (
     <div data-onboarding-card="" data-state={open ? "open" : "closed"} className={cn(card, !open && "border-0")}>
-      {/* the header is the same in both states; only its second line and the list change */}
-      <Photo className="h-[78px]">
+      {/* the header: folded, it is the promo ticket's size (63px, 13/11 type); open, it grows
+          to 78px with the larger type. The two texts crossfade, nothing scales. */}
+      <motion.div initial={false} animate={{ height: open ? 78 : 63 }} transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }} className="relative overflow-hidden" style={{ background: NAVY }}>
+        <img src={PHOTO} alt="" aria-hidden className="absolute inset-y-0 right-0 h-full w-[72%] select-none object-cover" style={{ objectPosition: "72% 55%" }} />
+        <span aria-hidden className="absolute inset-0" style={{ background: WASH }} />
         <button type="button" data-onboarding-pill={open ? undefined : ""} aria-label={open ? undefined : "Expand"} onClick={() => { if (!open) ob.setExpanded(true); }} className={cn("absolute inset-0 text-left", open && "cursor-default")}>
-          <span className="absolute left-[18px] top-[13px] right-[52px]">
-            <span className="block truncate text-[15.5px] font-bold leading-[20px] tracking-[-0.2px] text-white">Learn Transcribe To Text AI</span>
-            <AnimatePresence initial={false} mode="wait">
-              {open ? (
-                <motion.span key="open" {...fade} className="mt-[1px] block truncate text-[12.5px] font-medium leading-[17px] text-white/70">Six short lessons<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></motion.span>
-              ) : (
-                <motion.span key="closed" {...fade} className="mt-[1px] flex items-center gap-[6px] text-[12.5px] font-medium leading-[17px] text-white/85">
-                  <img src={GIFT} alt="" aria-hidden className="size-[16px] shrink-0 select-none object-contain" />
+          <AnimatePresence initial={false} mode="wait">
+            {open ? (
+              <motion.span key="open" {...fade} className="absolute left-[18px] top-[15px] right-[52px]">
+                <span className="block truncate text-[15.5px] font-bold leading-[20px] tracking-[-0.2px] text-white">Learn Transcribe To Text AI</span>
+                <span className="mt-[2px] block truncate text-[12.5px] font-medium leading-[17px] text-white/70">Six short lessons<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></span>
+              </motion.span>
+            ) : (
+              <motion.span key="closed" {...fade} className="absolute left-[19px] top-[12px] right-[52px]">
+                <span className="block truncate text-[13px] font-semibold leading-[19.5px] text-white">Learn Transcribe To Text AI</span>
+                <span className="mt-[1px] flex items-center gap-[5px] text-[11px] font-medium leading-[16.5px] text-white/80">
+                  <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain" />
                   <span className="truncate">Finish {total} lessons, get 1 month free</span>
-                </motion.span>
-              )}
-            </AnimatePresence>
-          </span>
+                </span>
+              </motion.span>
+            )}
+          </AnimatePresence>
         </button>
-        <button type="button" onClick={() => ob.setExpanded(!open)} data-onboarding-collapse={open ? "" : undefined} aria-label={open ? "Collapse" : "Expand"} className={cn(iconButton, "absolute right-[12px] top-[12px]", focus)}>
+        <button type="button" onClick={() => ob.setExpanded(!open)} data-onboarding-collapse={open ? "" : undefined} aria-label={open ? "Collapse" : "Expand"} className={cn(iconButton, "absolute right-[12px] top-1/2 -translate-y-1/2", focus)}>
           <motion.span animate={{ rotate: open ? 0 : 180 }} transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 26 }} className="flex">
-            <Icon icon={ArrowUp01Icon} size={15} strokeWidth={2.2} />
+            <Icon icon={ArrowUp01Icon} size={14} strokeWidth={2.2} />
           </motion.span>
         </button>
-        {/* the notch stays in both states: folded, it is the card's small white tab (Kirill, 26.09) */}
-        <Notch />
-      </Photo>
+        <Notches />
+      </motion.div>
       <motion.div initial={false} animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }} transition={reduce ? { duration: 0 } : { height: { type: "spring", stiffness: 260, damping: 32 }, opacity: { duration: 0.18 } }} style={{ overflow: "hidden" }}>
         {/* the pipeline: one rail, six stops, and the gift where the rail ends */}
         <ol className="relative -mt-px flex flex-col bg-card px-[8px] pt-[7px] pb-[8px]">
