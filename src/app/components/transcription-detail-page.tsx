@@ -2371,7 +2371,7 @@ function PageHeader({
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="pill-outline" className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden">
+              <Button variant="pill-outline" data-tour="record-copy" className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden">
                 <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
                 <span className="font-medium text-[13px]">Copy</span>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
@@ -2609,7 +2609,7 @@ export function LiveHeaderActions({ onShare, transcriptText, thoughtsText, compa
     </Button>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden">
+        <Button variant="pill-outline" data-tour="record-copy" className="flex h-9 items-center gap-[6px] px-[14px] max-md:hidden">
           <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
           <span className="text-[13px] font-medium">Copy</span>
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
