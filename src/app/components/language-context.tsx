@@ -19,6 +19,7 @@ const dict: Record<string, Record<LangCode, string>> = {
   // ── Sidebar nav ──
   "nav.home": { en: "Home", ru: "\u0413\u043b\u0430\u0432\u043d\u0430\u044f", es: "Inicio", de: "Startseite", fr: "Accueil", ja: "\u30db\u30fc\u30e0" },
   "nav.calendar": { en: "Meetings", ru: "\u0412\u0441\u0442\u0440\u0435\u0447\u0438", es: "Reuniones", de: "Meetings", fr: "R\u00e9unions", ja: "\u30df\u30fc\u30c6\u30a3\u30f3\u30b0" },
+  "nav.academy": { en: "Academy", ru: "\u0410\u043a\u0430\u0434\u0435\u043c\u0438\u044f", es: "Academia", de: "Akademie", fr: "Acad\u00e9mie", ja: "\u30a2\u30ab\u30c7\u30df\u30fc" },
   "nav.templates": { en: "Templates", ru: "\u0428\u0430\u0431\u043b\u043e\u043d\u044b", es: "Plantillas", de: "Vorlagen", fr: "Mod\u00e8les", ja: "\u30c6\u30f3\u30d7\u30ec\u30fc\u30c8" },
   "nav.myRecords": { en: "My Records", ru: "\u041c\u043e\u0438 \u0437\u0430\u043f\u0438\u0441\u0438", es: "Mis grabaciones", de: "Meine Aufnahmen", fr: "Mes enregistrements", ja: "\u30de\u30a4\u30ec\u30b3\u30fc\u30c9" },
   "nav.integrations": { en: "Integrations", ru: "\u0418\u043d\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438", es: "Integraciones", de: "Integrationen", fr: "Int\u00e9grations", ja: "\u30a4\u30f3\u30c6\u30b0\u30ec\u30fc\u30b7\u30e7\u30f3" },

@@ -1,38 +1,47 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { GUIDES, INTRO_STEP, type Guide, type TourTarget } from "./guides";
+import { GUIDES, INTRO_STEP, SETUP, type Guide, type TourTarget } from "./guides";
 
-/* State of the "Get started" widget and its tours.
+/* State of the guide: the Academy (ten lessons, competence) and Account Setup
+   (six real actions, the thing that makes the account useful). Two different
+   motivations, kept apart on purpose (Artem + Kirill, 29.09): the Academy is
+   read or toured, Account Setup is done, and the gift rewards the setup.
 
-   Storage: one key, `ttt_onboarding_v1`, holding the finished guide ids, the
-   two dismiss states and whether the reward was taken. Real actions count as
-   well: a component fires `window.dispatchEvent(new CustomEvent("ttt-onboarding",
-   { detail: "<guide id>" }))` and the guide is marked done without a tour.
+   Storage: one key, `ttt_onboarding_v1`:
+   - done: lessons finished by a tour
+   - seen: lessons read in the Academy panel (count as watched)
+   - actions: real actions performed (setup items; a matching lesson is ticked too)
+   Real actions arrive as `window.dispatchEvent(new CustomEvent("ttt-onboarding",
+   { detail: "<id>" }))` from the component that did the thing.
 
    Demo flags (capture and QA):
-   - `ttt_demo_onboarding=fresh`  nothing done, widget expanded
-   - `ttt_demo_onboarding=half`   three guides done
-   - `ttt_demo_onboarding=done`   all six done, reward shown
+   - `ttt_demo_onboarding=fresh`  nothing done
+   - `ttt_demo_onboarding=half`   three lessons done, two setup actions done
+   - `ttt_demo_onboarding=five`   all lessons but the last, all setup but the last
+   - `ttt_demo_onboarding=done`   everything done, reward shown
    - `ttt_demo_onboarding=off`    widget hidden */
 
 const KEY = "ttt_onboarding_v1";
 const EVENT = "ttt-onboarding";
 
-type Stored = { done: string[]; hidden: boolean; rewardClaimed: boolean; expanded: boolean; introSeen: boolean };
-const EMPTY: Stored = { done: [], hidden: false, rewardClaimed: false, expanded: true, introSeen: false };
+type Stored = { done: string[]; seen: string[]; actions: string[]; hidden: boolean; rewardClaimed: boolean; expanded: boolean; introSeen: boolean };
+const EMPTY: Stored = { done: [], seen: [], actions: [], hidden: false, rewardClaimed: false, expanded: true, introSeen: false };
 
 function load(): Stored {
   if (typeof window === "undefined") return EMPTY;
   const demo = window.localStorage.getItem("ttt_demo_onboarding");
+  const gid = (n: number) => GUIDES.slice(0, n).map((g) => g.id);
+  const sid = (n: number) => SETUP.slice(0, n).map((s) => s.id);
   if (demo === "fresh") return { ...EMPTY };
-  if (demo === "half") return { ...EMPTY, introSeen: true, done: GUIDES.slice(0, 3).map((g) => g.id) };
-  if (demo === "five") return { ...EMPTY, introSeen: true, done: GUIDES.slice(0, -1).map((g) => g.id) };
-  if (demo === "done") return { ...EMPTY, done: GUIDES.map((g) => g.id) };
+  if (demo === "half") return { ...EMPTY, introSeen: true, done: gid(3), seen: gid(4), actions: sid(2) };
+  if (demo === "five") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length - 1), seen: gid(GUIDES.length - 1), actions: sid(SETUP.length - 1) };
+  if (demo === "done") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length), seen: gid(GUIDES.length), actions: sid(SETUP.length) };
   if (demo === "off") return { ...EMPTY, hidden: true };
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as Partial<Stored>;
-    return { ...EMPTY, ...parsed, done: Array.isArray(parsed.done) ? parsed.done : [] };
+    const arr = (v: unknown) => (Array.isArray(v) ? (v as string[]) : []);
+    return { ...EMPTY, ...parsed, done: arr(parsed.done), seen: arr(parsed.seen), actions: arr(parsed.actions) };
   } catch {
     return EMPTY;
   }
@@ -43,21 +52,26 @@ function save(s: Stored) {
 }
 
 export type Tour = { guide: Guide; step: number };
-/* what to celebrate right after a tour ends: one lesson, or the whole guide */
-export type Celebration = { kind: "guide"; guide: Guide; index: number } | "all" | null;
+/* what to celebrate right after something finishes: one lesson, the whole Academy, or the setup (the gift) */
+export type Celebration = { kind: "guide"; guide: Guide; index: number } | { kind: "academy" } | "all" | null;
 
 type Ctx = {
   guides: Guide[];
+  setup: typeof SETUP;
   done: Set<string>;
+  seen: Set<string>;
+  actions: Set<string>;
+  /* the gift: every setup action done */
   allDone: boolean;
+  academyDone: boolean;
   hidden: boolean;
   rewardClaimed: boolean;
   expanded: boolean;
   setExpanded: (v: boolean) => void;
   hide: () => void;
-  /* prototype: start over as a brand-new person */
   reset: () => void;
   markDone: (id: string) => void;
+  markSeen: (id: string) => void;
   claimReward: () => void;
   tour: Tour | null;
   celebration: Celebration;
@@ -66,7 +80,7 @@ type Ctx = {
   nextStep: () => void;
   prevStep: () => void;
   endTour: () => void;
-  /* the app shell registers how to reach a page or a path */
+  navigate: (t: TourTarget) => void;
   registerNavigator: (fn: (t: TourTarget) => void) => void;
 };
 
@@ -83,29 +97,36 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const markDone = useCallback((id: string) => {
     setStored((s) => (s.done.includes(id) ? s : { ...s, done: [...s.done, id] }));
   }, []);
+  const markSeen = useCallback((id: string) => {
+    setStored((s) => (s.seen.includes(id) ? s : { ...s, seen: [...s.seen, id] }));
+  }, []);
 
-  /* real actions count: see the header comment */
+  /* real actions count: a setup item is done, and the lesson with the same id is ticked */
   useEffect(() => {
     const on = (e: Event) => {
       const id = (e as CustomEvent<string>).detail;
-      const guide = GUIDES.find((g) => g.id === id); if (!guide) return;
+      const setupItem = SETUP.find((x) => x.id === id);
+      const guide = GUIDES.find((g) => g.id === id);
+      if (!setupItem && !guide) return;
       setStored((s) => {
-        if (s.done.includes(guide.id)) return s;
-        const done = [...s.done, guide.id];
-        const all = GUIDES.every((g) => done.includes(g.id));
-        setCelebration(all ? "all" : { kind: "guide", guide, index: GUIDES.findIndex((g) => g.id === guide.id) });
-        return { ...s, done, expanded: all ? true : s.expanded };
+        const actions = setupItem && !s.actions.includes(id) ? [...s.actions, id] : s.actions;
+        const done = guide && !s.done.includes(id) ? [...s.done, id] : s.done;
+        if (actions === s.actions && done === s.done) return s;
+        const setupComplete = SETUP.every((x) => actions.includes(x.id));
+        const setupWasComplete = SETUP.every((x) => s.actions.includes(x.id));
+        if (setupComplete && !setupWasComplete) setCelebration("all");
+        else if (guide && done !== s.done) setCelebration({ kind: "guide", guide, index: GUIDES.findIndex((g) => g.id === id) });
+        return { ...s, actions, done };
       });
     };
     window.addEventListener(EVENT, on);
     return () => window.removeEventListener(EVENT, on);
-  }, [markDone]);
+  }, []);
 
   const go = useCallback((t: TourTarget) => { navigator.current?.(t); }, []);
 
   const startGuide = useCallback((id: string) => {
     const base = GUIDES.find((g) => g.id === id); if (!base) return;
-    /* the first lesson ever started opens with Mia's hello, whichever lesson it is */
     /* she says hello on the first lesson started, and again on any later start as long as
        nothing is finished yet (the person closed the tour and came back) */
     const hello = !stored.introSeen || stored.done.length === 0;
@@ -119,10 +140,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   const finishGuide = useCallback((guide: Guide) => {
     setStored((s) => {
-      const done = s.done.includes(guide.id) ? s.done : [...s.done, guide.id];
+      if (s.done.includes(guide.id)) return s;
+      const done = [...s.done, guide.id];
       const all = GUIDES.every((g) => done.includes(g.id));
-      setCelebration(all ? "all" : { kind: "guide", guide, index: GUIDES.findIndex((g) => g.id === guide.id) });
-      return { ...s, done, expanded: all ? true : s.expanded };
+      setCelebration(all ? { kind: "academy" } : { kind: "guide", guide, index: GUIDES.findIndex((g) => g.id === guide.id) });
+      return { ...s, done };
     });
   }, []);
 
@@ -148,10 +170,16 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(() => {
     const done = new Set(stored.done);
+    const seen = new Set(stored.seen);
+    const actions = new Set(stored.actions);
     return {
       guides: GUIDES,
+      setup: SETUP,
       done,
-      allDone: GUIDES.every((g) => done.has(g.id)),
+      seen,
+      actions,
+      allDone: SETUP.every((x) => actions.has(x.id)),
+      academyDone: GUIDES.every((g) => done.has(g.id)),
       hidden: stored.hidden,
       rewardClaimed: stored.rewardClaimed,
       expanded: stored.expanded,
@@ -159,6 +187,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       hide: () => setStored((s) => ({ ...s, hidden: true })),
       reset: () => { setTour(null); setCelebration(null); setStored({ ...EMPTY }); },
       markDone,
+      markSeen,
       claimReward: () => setStored((s) => ({ ...s, rewardClaimed: true, hidden: true })),
       tour,
       celebration,
@@ -167,9 +196,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       nextStep,
       prevStep,
       endTour,
+      navigate: go,
       registerNavigator: (fn) => { navigator.current = fn; },
     };
-  }, [stored, tour, celebration, markDone, startGuide, nextStep, prevStep, endTour]);
+  }, [stored, tour, celebration, markDone, markSeen, startGuide, nextStep, prevStep, endTour, go]);
 
   return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
 }
@@ -182,7 +212,7 @@ export function useOnboarding() {
 
 /* For components that want to give credit for a real action without pulling
    the whole context: fire and forget. */
-export function creditOnboarding(guideId: string) {
+export function creditOnboarding(id: string) {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(EVENT, { detail: guideId }));
+  window.dispatchEvent(new CustomEvent(EVENT, { detail: id }));
 }

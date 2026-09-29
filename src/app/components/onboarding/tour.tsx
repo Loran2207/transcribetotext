@@ -65,12 +65,18 @@ export function OnboardingTour() {
   useEffect(() => {
     if (!celebration) return;
     if (celebration === "all") { celebrate(true); return; }
+    if (celebration.kind === "academy") {
+      celebrate(true);
+      toast.success("You finished the Academy", { description: `${GUIDE_PERSON.name}: "That was every lesson. The app is yours now."`, duration: 6000 });
+      dismissCelebration();
+      return;
+    }
     celebrate(false);
     /* the toast carries the way on: the next lesson that is not done yet */
     const next = guides.find((g) => g.id !== celebration.guide.id && !done.has(g.id));
     const left = guides.filter((g) => g.id !== celebration.guide.id && !done.has(g.id)).length;
     toast.success(`Lesson ${celebration.index + 1} done`, {
-      description: left > 0 ? `${left} ${left === 1 ? "lesson" : "lessons"} to go. A free month is waiting at the end.` : undefined,
+      description: left > 0 ? `${left} ${left === 1 ? "lesson" : "lessons"} left in the Academy.` : undefined,
       action: next ? { label: "Next lesson", onClick: () => startGuide(next.id) } : undefined,
       duration: 6000,
     });

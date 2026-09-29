@@ -11,7 +11,7 @@
      and that lesson counts as done only when an upload really starts;
    - as little text as possible. */
 
-export type TourTarget = { page: "dashboard" | "records" | "calendar" | "templates" | "shared" } | { path: string };
+export type TourTarget = { page: "dashboard" | "records" | "calendar" | "templates" | "shared" | "academy" } | { path: string };
 
 export type TourStep = {
   anchor: string;
@@ -32,6 +32,10 @@ export type Guide = {
   title: string;
   /* how long the lesson takes, in seconds, shown beside the title */
   seconds: number;
+  /* Academy: the cover photograph, the section it sits in, one line of what you can do after */
+  cover: string;
+  category: string;
+  summary: string;
   /* "action": the tour does not tick the lesson, a real action does */
   completeBy?: "action";
   steps: TourStep[];
@@ -44,7 +48,7 @@ export const NO_ANCHOR = "none";
 
 /* Mia's hello. It opens whichever lesson the person starts FIRST, once; after
    that she stays on the cards as a small portrait with her name and title. */
-export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm Mia", body: "I look after new customers here. I'll show you around Transcribe To Text AI: ten short lessons, half a minute each. I explain, the arrows point." };
+export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm Mia", body: "I look after new customers here. I'll show you around Transcribe To Text AI: ten short lessons in the Academy, half a minute each. I explain, the arrows point." };
 
 const HOME: TourTarget = { page: "dashboard" };
 const RECORDS: TourTarget = { page: "records" };
@@ -58,7 +62,7 @@ const OPEN_RECORD_AGAIN: TourStep = { anchor: "record-row-welcome|home-records",
 const TEMPLATES: TourTarget = { page: "templates" };
 const CALENDAR: TourTarget = { page: "calendar" };
 
-export const GUIDES: Guide[] = [
+const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
   {
     id: "first-record",
     title: "Make your first transcript",
@@ -178,6 +182,42 @@ export const GUIDES: Guide[] = [
       { anchor: "quick-find-filters", go: HOME, side: "bottom", title: "Narrow it down", body: "By folder, source, who recorded it or when.", quickFind: { open: true } },
     ],
   },
+];
+
+/* The Academy: every lesson gets a cover, a section and one plain line of
+   what you can do once it is done. Sections are the order the page shows. */
+export const ACADEMY_SECTIONS: { id: string; title: string; subtitle: string }[] = [
+  { id: "create", title: "Create", subtitle: "Get a transcript out of anything" },
+  { id: "work", title: "Work with a transcript", subtitle: "Read it, fix it, shape the notes" },
+  { id: "share", title: "Share and export", subtitle: "Get it to the people who need it" },
+  { id: "organize", title: "Organize and find", subtitle: "Keep a hundred recordings in order" },
+];
+
+const GUIDE_META: Record<string, { cover: string; category: string; summary: string }> = {
+  "first-record": { cover: "/images/academy/first-record.jpg", category: "create", summary: "Turn a file, your voice, a meeting or a link into a transcript." },
+  "meetings": { cover: "/images/academy/meetings.jpg", category: "create", summary: "Connect a calendar and let the recorder join your calls by itself." },
+  "read-transcript": { cover: "/images/academy/read-transcript.jpg", category: "work", summary: "Read the transcript, jump by timecode, translate it." },
+  "edit-transcript": { cover: "/images/academy/edit-transcript.jpg", category: "work", summary: "Fix names and misheard words straight in the text." },
+  "speakers": { cover: "/images/academy/speakers.jpg", category: "work", summary: "Name the voices and move words to the right person." },
+  "summary": { cover: "/images/academy/summary.jpg", category: "work", summary: "Pick a template and get the notes in the shape you need." },
+  "export": { cover: "/images/academy/export.jpg", category: "share", summary: "PDF, Word, text or subtitles, with the options you choose." },
+  "share": { cover: "/images/academy/share.jpg", category: "share", summary: "Invite people, turn on a link, copy the text." },
+  "folders": { cover: "/images/academy/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
+  "find": { cover: "/images/academy/find.jpg", category: "organize", summary: "Search what was said, across every recording." },
+};
+export const GUIDES: Guide[] = RAW_GUIDES.map((g) => ({ ...g, ...GUIDE_META[g.id] }));
+
+/* Account Setup: the six real actions that make the account useful. Each is
+   done by doing it in the product (the component fires `creditOnboarding(id)`);
+   `how` is the Academy lesson that walks you there. The gift rewards this list. */
+export type SetupItem = { id: string; title: string; why: string; how: string; run: "upload" | "calendar" | "tour" };
+export const SETUP: SetupItem[] = [
+  { id: "first-record", title: "Upload your first recording", why: "Everything starts from a transcript.", how: "first-record", run: "upload" },
+  { id: "calendar", title: "Connect your calendar", why: "The recorder joins your meetings by itself.", how: "meetings", run: "calendar" },
+  { id: "template", title: "Apply a template", why: "Notes in the shape you need, every time.", how: "summary", run: "tour" },
+  { id: "speakers", title: "Name a speaker", why: "So the notes say who said what.", how: "speakers", run: "tour" },
+  { id: "folders", title: "Create a folder", why: "One per client or project.", how: "folders", run: "tour" },
+  { id: "share", title: "Share a recording", why: "A link or an invite, in one click.", how: "share", run: "tour" },
 ];
 
 /* The guide who walks you through: her portrait sits on every tour card and

@@ -22,6 +22,7 @@ import { cn } from "@/app/components/ui/utils";
 import { useLanguage, type LangCode } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
 import { CalendarWeekStrip } from "./calendar-week-strip";
+import { creditOnboarding } from "./onboarding/onboarding-context";
 import { CalendarMeetingCard } from "./calendar-meeting-card";
 import {
   CalendarConnectScreen,
@@ -118,6 +119,8 @@ export function CalendarPage() {
     disconnectAccount,
   } = useCalendarAccounts();
 
+  /* Account Setup: a connected calendar is a real action */
+  const connectAndCredit = async (provider: CalendarProvider) => { const ok = await connectAccount(provider); if (ok) creditOnboarding("calendar"); return ok; };
   const isDisconnected = accounts.length === 0 || isConnectDemoState();
   const showEmptyDemo = isEmptyDemoState();
 
@@ -278,7 +281,7 @@ export function CalendarPage() {
             <span className="max-lg:hidden">Record a meeting</span>
           </Button>
         </div>
-        <CalendarConnectScreen connecting={connecting} onConnect={connectAccount} />
+        <CalendarConnectScreen connecting={connecting} onConnect={connectAndCredit} />
       </div>
     );
   }
@@ -383,7 +386,7 @@ export function CalendarPage() {
             <MeetingsSettingsTab
               accounts={accounts}
               connecting={connecting}
-              onConnect={connectAccount}
+              onConnect={connectAndCredit}
               onDisconnect={disconnectAccount}
               autoRecordMode={autoRecordMode}
               onAutoRecordModeChange={handleAutoRecordModeChange}

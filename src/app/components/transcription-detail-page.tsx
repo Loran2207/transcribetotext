@@ -2801,7 +2801,7 @@ export function TranscriptionDetailPage() {
     setSummaryStage("Analyzing the transcript");
     applyTimersRef.current.push(window.setTimeout(() => setSummaryStage("Generating sections"), 1300));
     applyTimersRef.current.push(window.setTimeout(() => setSummaryStage("Polishing the summary"), 2600));
-    applyTimersRef.current.push(window.setTimeout(() => { setIsSummaryLoading(false); toast.success(`Template "${selected.name}" applied`); }, 3600));
+    applyTimersRef.current.push(window.setTimeout(() => { setIsSummaryLoading(false); toast.success(`Template "${selected.name}" applied`); creditOnboarding("template"); }, 3600));
     navigate(location.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templates]);
@@ -3943,7 +3943,7 @@ export function TranscriptionDetailPage() {
     setTimeout(() => setSummaryStage("Polishing the summary"), 2600);
     setTimeout(() => {
       setIsSummaryLoading(false);
-      toast.success(`Template "${selected.name}" applied`);
+      toast.success(`Template "${selected.name}" applied`); creditOnboarding("template");
     }, 3600);
   };
   /* Generate notes on the desktop shell: the recording ends and the note is

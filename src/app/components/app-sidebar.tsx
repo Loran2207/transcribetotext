@@ -1,4 +1,4 @@
-import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon, Mic01Icon } from "@hugeicons/core-free-icons";
+import { House, Calendar, Layers, GraduationScrollIcon, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon, Mic01Icon } from "@hugeicons/core-free-icons";
 import { useShell } from "./desktop/shell";
 import { SidebarAppPlaque } from "./desktop/desktop-app-banner";
 
@@ -236,6 +236,7 @@ const NAV_ITEMS = [
   { id: "shared", labelKey: "nav.sharedWithMe", icon: UserMultiple02Icon },
   { id: "calendar", labelKey: "nav.calendar", icon: Calendar },
   { id: "templates", labelKey: "nav.templates", icon: Layers },
+  { id: "academy", labelKey: "nav.academy", icon: GraduationScrollIcon },
 ] as const;
 
 /* Free-plan quota, the way the old design carried it: the sidebar is the only
