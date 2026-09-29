@@ -16,6 +16,7 @@ import { usePlan } from "./use-plan";
 import { useNavigate } from "react-router";
 import { SourceIcon } from "./source-icons";
 import { useFolders } from "./folder-context";
+import { GUIDES } from "./onboarding/guides";
 import { isFreshAccount } from "@/lib/fresh-account";
 import { useLanguage, LANGUAGES } from "./language-context";
 import { useAuth } from "./auth-context";
@@ -236,7 +237,6 @@ const NAV_ITEMS = [
   { id: "shared", labelKey: "nav.sharedWithMe", icon: UserMultiple02Icon },
   { id: "calendar", labelKey: "nav.calendar", icon: Calendar },
   { id: "templates", labelKey: "nav.templates", icon: Layers },
-  { id: "academy", labelKey: "nav.academy", icon: GraduationScrollIcon },
 ] as const;
 
 /* Free-plan quota, the way the old design carried it: the sidebar is the only
@@ -252,6 +252,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
   const [shareFolderName, setShareFolderName] = useState<string | null>(null);
   const { starredRecords } = useStarred();
   const { folders: userFolders, addFolder } = useFolders();
+  const academyCount = GUIDES.length;
   const { desktop: desktopShell } = useShell();
   const { t } = useLanguage();
   const { toggleSidebar, setOpenMobile } = useSidebar();
@@ -387,6 +388,21 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
         <SidebarAppPlaque />
         <SidebarSeparator />
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              data-tour="nav-academy"
+              isActive={activePage === "academy"}
+              onClick={() => { onNavigate("academy"); setOpenMobile(false); }}
+              tooltip={t("nav.academy")}
+            >
+              <Icon icon={GraduationScrollIcon} strokeWidth={1.3} />
+              <span className="flex-1">{t("nav.academy")}</span>
+              <span className="ml-auto flex items-center gap-[6px] group-data-[collapsible=icon]:hidden">
+                <span className="text-[12px] font-medium tabular-nums text-muted-foreground">{academyCount}</span>
+                <span className="rounded-full bg-primary px-[6px] py-px text-[9.5px] font-bold uppercase leading-[14px] tracking-[0.04em] text-primary-foreground">New</span>
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               isActive={activePage === "integrations"}

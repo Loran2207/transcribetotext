@@ -82,7 +82,7 @@ export function OnboardingCard() {
                 <span className="block truncate text-[13px] font-semibold leading-[19.5px] text-white">Set up your account</span>
                 <span className="mt-[1px] flex items-center gap-[5px] text-[11px] font-medium leading-[16.5px] text-white/80">
                   <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain" />
-                  <span className="truncate">{total - doneCount} left, then 1 month free</span>
+                  <span className="truncate">{total - doneCount} to do, then 1 month free</span>
                 </span>
               </motion.span>
             )}
@@ -126,7 +126,7 @@ function SetupList({ compact }: { compact: boolean }) {
   const total = ob.setup.length;
   const next = ob.setup.find((x) => !ob.actions.has(x.id));
   const ROW_H = compact ? 34 : ROW;
-  const label = (run: string) => (run === "upload" ? "Upload" : run === "calendar" ? "Connect" : "Show me");
+  const label = (run: string) => (run === "upload" ? "Upload" : run === "calendar" ? "Connect" : "Do it");
   return (
     <ol className="relative -mt-px flex flex-col bg-card px-[8px] pt-[7px] pb-[8px]">
       {ob.setup.map((x, i) => {
