@@ -255,7 +255,7 @@ export function SceneCover({ id, src, size = "sm", className }: { id: string; sr
       <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/2" style={{ background: "linear-gradient(180deg, rgba(4,10,26,0) 0%, rgba(4,10,26,0.42) 100%)" }} />
       {W && (
         <div aria-hidden data-pose={pose.at} className={cn("absolute", place.box, size === "md" && "p-[20px]")}>
-          <div className={cn("shrink-0", place.origin, size === "md" ? "w-[236px] scale-[1.28]" : "w-[224px] scale-[0.8] @[250px]:scale-[0.92] @[300px]:scale-100")}>
+          <div className={cn("shrink-0", place.origin, size === "md" ? "w-[236px] scale-[0.92] @[400px]:scale-[1.1] @[560px]:scale-[1.28]" : "w-[224px] scale-[0.8] @[250px]:scale-[0.92] @[300px]:scale-100")}>
             <div style={{ transform: pose.t }} className="relative">
               {pose.ghost && <span className="absolute inset-0 translate-x-[9px] -translate-y-[9px] rotate-[3deg] rounded-[10px] bg-white/[0.07] ring-1 ring-inset ring-white/15" />}
               <div className="relative transition-transform duration-300 ease-out group-hover:-translate-y-[3px]"><W /></div>

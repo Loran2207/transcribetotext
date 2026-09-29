@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AcademyCourse } from "./academy-course";
+import { ONBOARDING_VARIANT } from "./onboarding/variant";
 import { Cancel01Icon, Clock01Icon, PlayIcon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -25,6 +27,10 @@ import { useOnboarding } from "./onboarding/onboarding-context";
 const NAVY = "#0A1630";
 
 export function AcademyPage() {
+  return ONBOARDING_VARIANT === "b" ? <AcademyCourse /> : <AcademyGallery />;
+}
+
+function AcademyGallery() {
   const ob = useOnboarding();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -151,7 +157,7 @@ function LessonCard({ guide, done, seen, isNext, onOpen, onStart }: { guide: Gui
 }
 
 /* ── the lesson panel: read the steps, then start the tour ── */
-function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; done: boolean; onClose: () => void; onStart: () => void }) {
+export function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; done: boolean; onClose: () => void; onStart: () => void }) {
   const phone = useIsPhone();
   const openState = guide !== null;
   const [last, setLast] = useState<Guide | null>(guide);

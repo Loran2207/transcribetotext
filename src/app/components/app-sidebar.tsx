@@ -1,4 +1,5 @@
 import { House, Calendar, Layers, GraduationScrollIcon, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon, Mic01Icon } from "@hugeicons/core-free-icons";
+import { FirstStepsLauncher } from "./onboarding/onboarding-widget";
 import { useShell } from "./desktop/shell";
 import { SidebarAppPlaque } from "./desktop/desktop-app-banner";
 
@@ -388,6 +389,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
         <SidebarAppPlaque />
         <SidebarSeparator />
         <SidebarMenu>
+          <FirstStepsLauncher />
           <SidebarMenuItem>
             <SidebarMenuButton
               data-tour="nav-academy"

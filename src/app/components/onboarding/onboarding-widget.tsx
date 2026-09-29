@@ -5,6 +5,11 @@ import { Icon } from "../ui/icon";
 import { cn } from "../ui/utils";
 import { useOnboarding } from "./onboarding-context";
 import { SETUP_GROUPS, SETUP_REQUIRED, isSetupDone, type SetupItem } from "./guides";
+import { ONBOARDING_VARIANT } from "./variant";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
+import { useState } from "react";
+import { useIsPhone } from "../ui/use-mobile";
 import { useTranscriptionModals } from "../transcription-modals";
 
 /* "First steps": a fixed card at the top of the Home right panel (web) and a
@@ -62,7 +67,7 @@ function useRunSetup() {
 export function OnboardingCard() {
   const ob = useOnboarding();
   const reduce = useReducedMotion();
-  if (ob.hidden) return null;
+  if (ob.hidden || ONBOARDING_VARIANT === "b") return null;
   const has = (id: string) => ob.actions.has(id);
   const doneCount = SETUP_REQUIRED.filter((x) => isSetupDone(x, has)).length;
   const total = SETUP_REQUIRED.length;
@@ -193,7 +198,7 @@ function SetupList({ compact }: { compact: boolean }) {
    shared expand state, the same bounded detail. */
 export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCls }: { expanded: boolean; onToggle: () => void; headCls: string; cardCls: string; detailCls: string }) {
   const ob = useOnboarding();
-  if (ob.hidden || ob.allDone) return null;
+  if (ob.hidden || ob.allDone || ONBOARDING_VARIANT === "b") return null;
   const has = (id: string) => ob.actions.has(id);
   const doneCount = SETUP_REQUIRED.filter((x) => isSetupDone(x, has)).length;
   const total = SETUP_REQUIRED.length;
@@ -221,5 +226,54 @@ export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCl
         </div>
       )}
     </div>
+  );
+}
+
+/* Variant b (branch academy-b, review 59): First steps lives in the sidebar,
+   right above the Academy, as one row with a progress ring. The list opens in
+   a popover beside the sidebar, the same list and gift as the Home card of
+   variant a; picking a step closes it and starts that step. */
+function Ring({ done, total }: { done: number; total: number }) {
+  const r = 8, c = 2 * Math.PI * r;
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" className="shrink-0 -rotate-90" aria-hidden>
+      <circle cx="10" cy="10" r={r} fill="none" stroke="currentColor" strokeWidth="2.5" className="text-border" />
+      <circle cx="10" cy="10" r={r} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - done / Math.max(1, total))} className="text-primary transition-[stroke-dashoffset] duration-500" />
+    </svg>
+  );
+}
+
+export function FirstStepsLauncher() {
+  const ob = useOnboarding();
+  const phone = useIsPhone();
+  const [open, setOpen] = useState(false);
+  if (ONBOARDING_VARIANT !== "b" || ob.hidden || ob.allDone) return null;
+  const has = (id: string) => ob.actions.has(id);
+  const done = SETUP_REQUIRED.filter((x) => isSetupDone(x, has)).length;
+  const total = SETUP_REQUIRED.length;
+  return (
+    <SidebarMenuItem>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <div className="w-full">
+          <SidebarMenuButton data-tour="nav-first-steps" data-onboarding-launcher="" className={open ? "bg-sidebar-accent" : undefined}>
+            <Ring done={done} total={total} />
+            <span className="flex min-w-0 flex-1 items-center gap-[6px]">
+              <span className="truncate">First steps</span>
+              <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain group-data-[collapsible=icon]:hidden" />
+            </span>
+            <span className="ml-auto text-[12px] font-medium tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">{done} of {total}</span>
+          </SidebarMenuButton>
+          </div>
+        </PopoverTrigger>
+        <PopoverContent side={phone ? "top" : "right"} align={phone ? "start" : "end"} sideOffset={phone ? 8 : 12} collisionPadding={12} data-onboarding-card="" className="z-[60] max-h-[calc(100vh-24px)] w-[min(340px,calc(100vw-24px))] overflow-y-auto rounded-[14px] p-0" onClick={(e) => { if ((e.target as HTMLElement).closest("button[data-onboarding-setup]")) setOpen(false); }}>
+          <div className="px-[18px] pt-[14px] pb-[6px]">
+            <p className="text-[15px] font-bold leading-[20px] tracking-[-0.2px] text-foreground">First steps</p>
+            <p className="text-[12px] font-medium leading-[16px] text-muted-foreground">Try each once<span className="text-border"> · </span><span className="tabular-nums">{done} of {total} done</span></p>
+          </div>
+          <SetupList compact={false} />
+        </PopoverContent>
+      </Popover>
+    </SidebarMenuItem>
   );
 }
