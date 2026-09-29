@@ -180,7 +180,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Where your calls live", body: "Meetings, in the sidebar. Next takes you there." },
       PAGE_MEETINGS,
       { anchor: "meetings-tabs", go: CALENDAR, side: "bottom", title: "Upcoming, past, settings", body: "What is coming, what was recorded, and the calendars behind it.", trigger: "meetings-upcoming" },
-      { anchor: "meetings-accounts|meetings-tabs", go: CALENDAR, side: "bottom", title: "Connect a calendar once", body: "Google or Outlook. Every meeting shows up here by itself. With nothing connected, this page asks you to connect first.", trigger: "meetings-upcoming" },
+      { anchor: "meetings-accounts|meetings-connect|meetings-tabs", go: CALENDAR, side: "top", title: "Connect a calendar once", body: "Google or Outlook. Every meeting shows up here by itself. With nothing connected, this page asks you to connect first.", trigger: "meetings-upcoming" },
       { anchor: "calendar-week|meetings-tabs", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Each meeting has a switch. On, and the recorder joins by itself; the transcript is ready when the call ends.", trigger: "meetings-upcoming" },
       { anchor: "home-card-meeting|nav-calendar", go: HOME, side: "bottom", title: "Or record one now", body: "Paste any invite link from the Home page. Same recorder, no calendar needed." },
     ],
@@ -197,27 +197,15 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     ],
   },
   {
-    id: "upload-options",
-    title: "Set it up before you start",
-    seconds: 30,
-    steps: [
-      PAGE_HOME,
-      { anchor: "upload-drop", go: HOME, side: "bottom", title: "Drop a file", body: "Audio or video. The upload opens right here, from the first card on Home.", trigger: "upload-open" },
-      { anchor: "upload-template", go: HOME, side: "top", title: "Pick the notes first", body: "Choose a template now and the summary comes back in that shape.", trigger: "upload-open" },
-      { anchor: "upload-folder", go: HOME, side: "top", title: "Send it to a folder", body: "The transcript lands where it belongs, no sorting later.", trigger: "upload-open" },
-      { anchor: "upload-drop", go: HOME, side: "bottom", title: "Language and speakers", body: "Once a file is in, set its language, turn on speaker names or live translation. Advanced options hold the rest.", trigger: "upload-open" },
-    ],
-  },
-  {
     id: "meeting-settings",
     title: "Tune the meeting recorder",
     seconds: 30,
     steps: [
       { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Where your calls live", body: "Meetings, in the sidebar. Next takes you there." },
       PAGE_MEETINGS,
-      { anchor: "meetings-tabs|meetings-accounts", go: CALENDAR, side: "bottom", title: "Settings", body: "Everything the recorder does by itself is set here, once a calendar is connected.", trigger: "meetings-settings" },
-      { anchor: "meetings-autorecord|meetings-accounts", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Choose which meetings the recorder joins on its own.", trigger: "meetings-settings" },
-      { anchor: "meetings-recap|meetings-accounts", go: CALENDAR, side: "top", title: "After the call", body: "Who gets the recap email and access to the recording.", trigger: "meetings-settings" },
+      { anchor: "meetings-tabs|meetings-connect", go: CALENDAR, side: "bottom", title: "Settings", body: "Everything the recorder does by itself is set here, once a calendar is connected.", trigger: "meetings-settings" },
+      { anchor: "meetings-autorecord|meetings-connect", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Choose which meetings the recorder joins on its own.", trigger: "meetings-settings" },
+      { anchor: "meetings-recap|meetings-connect", go: CALENDAR, side: "top", title: "After the call", body: "Who gets the recap email and access to the recording.", trigger: "meetings-settings" },
     ],
   },
   {
@@ -276,7 +264,6 @@ const GUIDE_META: Record<string, { cover: string; category: string; summary: str
   "share": { cover: "/images/academy3/share.jpg", category: "share", summary: "Invite people, turn on a link, copy the text." },
   "folders": { cover: "/images/academy3/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
   "find": { cover: "/images/academy3/find.jpg", category: "organize", summary: "Search what was said, across every recording." },
-  "upload-options": { cover: "/images/academy3/upload-options.jpg", category: "create", summary: "Template, folder, language and speakers, set before the transcript starts." },
   "meeting-settings": { cover: "/images/academy3/meeting-settings.jpg", category: "create", summary: "Which calls the recorder joins, and who gets the recap." },
   "highlights": { cover: "/images/academy3/highlights.jpg", category: "work", summary: "Highlight, comment and share one part; play it at your pace." },
   "trash": { cover: "/images/academy3/trash.jpg", category: "organize", summary: "Restore a deleted recording, or remove it for good." },
@@ -284,27 +271,27 @@ const GUIDE_META: Record<string, { cover: string; category: string; summary: str
 };
 export const GUIDES: Guide[] = RAW_GUIDES.map((g) => ({ ...g, ...GUIDE_META[g.id] }));
 
-/* First steps (review 58, Kirill 29.09): the real actions a new account tries
-   once. Each is done by doing it in the product (the component fires
-   `creditOnboarding(id)`); `how` is the Academy lesson that walks you there.
-   The first item is the four ways in, one chip each, so the user tries every
-   way to make a transcript. Every required item works on the Free plan, so the
-   gift can always be earned: sharing is Pro, so it is not on this list. The
-   photo is optional and never holds the gift back. */
-export type SetupPart = { id: string; label: string; modal: "upload" | "record" | "meeting" | "link" };
-export type SetupItem = { id: string; title: string; why: string; how: string; run: "create" | "calendar" | "tour" | "profile"; parts?: SetupPart[]; optional?: boolean };
+/* First steps (review 58-59, Kirill 29.09): the real actions a new account
+   tries once, each done by doing it in the product (the component fires
+   `creditOnboarding(id)`); `how` is the Academy lesson behind it. Review 59:
+   every way in is its own step, so the list reads "try this, try that". Every
+   required step works on the Free plan, so the gift can always be earned
+   (sharing is paid, so it is not here). The photo is optional. */
+export type SetupItem = { id: string; title: string; why: string; how: string; group: "try" | "yours"; run: "modal" | "calendar" | "tour" | "profile"; modal?: "upload" | "record" | "meeting" | "link"; cta: string; parts?: { id: string }[]; optional?: boolean };
 export const SETUP: SetupItem[] = [
-  { id: "create", title: "Make a transcript four ways", why: "A file, your voice, a meeting, a link.", how: "first-record", run: "create", parts: [
-    { id: "way-file", label: "File", modal: "upload" },
-    { id: "way-voice", label: "Voice", modal: "record" },
-    { id: "way-meeting", label: "Meeting", modal: "meeting" },
-    { id: "way-link", label: "Link", modal: "link" },
-  ] },
-  { id: "calendar", title: "Connect your calendar", why: "The recorder joins your meetings by itself.", how: "meetings", run: "calendar" },
-  { id: "template", title: "Apply a template", why: "Notes in the shape you need, every time.", how: "summary", run: "tour" },
-  { id: "speakers", title: "Name a speaker", why: "So the notes say who said what.", how: "speakers", run: "tour" },
-  { id: "folders", title: "Create a folder", why: "One per client or project.", how: "folders", run: "tour" },
-  { id: "photo", title: "Add your photo", why: "So people know who shared the notes.", how: "", run: "profile", optional: true },
+  { id: "way-file", title: "Upload a file", why: "Audio or video from your computer.", how: "first-record", group: "try", run: "modal", modal: "upload", cta: "Upload" },
+  { id: "way-voice", title: "Try Instant speech", why: "Talk, and watch it become text.", how: "first-record", group: "try", run: "modal", modal: "record", cta: "Try" },
+  { id: "way-meeting", title: "Send the recorder to a call", why: "Paste a Zoom, Meet or Teams link.", how: "first-record", group: "try", run: "modal", modal: "meeting", cta: "Try" },
+  { id: "way-link", title: "Transcribe a link", why: "YouTube, Drive, Dropbox and more.", how: "first-record", group: "try", run: "modal", modal: "link", cta: "Paste" },
+  { id: "calendar", title: "Connect your calendar", why: "The recorder joins your meetings by itself.", how: "meetings", group: "yours", run: "calendar", cta: "Connect" },
+  { id: "template", title: "Apply a template", why: "Notes in the shape you need, every time.", how: "summary", group: "yours", run: "tour", cta: "Show me" },
+  { id: "speakers", title: "Name a speaker", why: "So the notes say who said what.", how: "speakers", group: "yours", run: "tour", cta: "Show me" },
+  { id: "folders", title: "Create a folder", why: "One per client or project.", how: "folders", group: "yours", run: "tour", cta: "Show me" },
+  { id: "photo", title: "Add your photo", why: "So people know who shared the notes.", how: "", group: "yours", run: "profile", cta: "Add", optional: true },
+];
+export const SETUP_GROUPS: { id: SetupItem["group"]; title: string }[] = [
+  { id: "try", title: "Try every way in" },
+  { id: "yours", title: "Make it yours" },
 ];
 export const setupIds = (x: SetupItem) => (x.parts ? x.parts.map((p) => p.id) : [x.id]);
 export const isSetupDone = (x: SetupItem, has: (id: string) => boolean) => setupIds(x).every(has);

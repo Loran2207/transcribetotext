@@ -1,3 +1,4 @@
+import { isFreshAccount } from "@/lib/fresh-account";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
@@ -36,12 +37,15 @@ const ACCOUNT_POOL: Record<CalendarProvider, Omit<CalendarAccount, "id">[]> = {
 function loadAccounts(): CalendarAccount[] {
   try {
     // Demo flag: ttt_cal_state=connect → start with nothing connected
-    if (localStorage.getItem(CAL_STATE_KEY) === "connect") return [];
     const raw = localStorage.getItem(ACCOUNTS_KEY);
     if (raw) {
       const parsed: unknown = JSON.parse(raw);
       if (Array.isArray(parsed)) return parsed as CalendarAccount[];
     }
+    /* a new account has nothing connected yet (review 59): the First steps
+       "Connect your calendar" lands on the connect screen, not on a calendar
+       that was somehow connected already */
+    if (localStorage.getItem(CAL_STATE_KEY) === "connect" || isFreshAccount()) return [];
   } catch { /* localStorage unavailable or corrupted */ }
   return DEFAULT_ACCOUNTS;
 }

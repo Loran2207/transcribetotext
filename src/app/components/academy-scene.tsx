@@ -168,13 +168,6 @@ function Pick({ k, v }: { k: string; v: string }) {
 }
 
 Object.assign(WIDGETS, {
-  "upload-options": () => (
-    <div className={cn(GLASS, "p-[9px]")}>
-      <Head icon={SlidersHorizontalIcon}>Before you start</Head>
-      <Pick k="Template" v="Meeting notes" />
-      <Pick k="Folder" v="Clients / Acme" />
-    </div>
-  ),
   "meeting-settings": () => (
     <div className={cn(GLASS, "p-[9px]")}>
       <Head icon={Settings02Icon}>Recorder settings</Head>
@@ -221,16 +214,53 @@ Object.assign(WIDGETS, {
   ),
 });
 
+/* Review 59: the pieces of interface are not all laid the same way. Each
+   lesson has its own pose: where the piece sits in the frame, a tilt in
+   perspective or a slight turn, sometimes a second card behind it. Same
+   material, same scale of type; only the placement differs. */
+type Pose = { at: "bl" | "br" | "b" | "c" | "l" | "r"; t?: string; ghost?: boolean };
+const POSES: Record<string, Pose> = {
+  "first-record": { at: "bl" },
+  "meetings": { at: "r", t: "perspective(800px) rotateY(-16deg) rotateX(4deg)" },
+  "read-transcript": { at: "br", t: "rotate(-2.5deg)" },
+  "edit-transcript": { at: "c", t: "perspective(800px) rotateX(12deg)" },
+  "speakers": { at: "bl", t: "perspective(800px) rotateY(14deg)" },
+  "summary": { at: "br", t: "rotate(1.5deg)", ghost: true },
+  "export": { at: "b", t: "perspective(900px) rotateX(16deg)" },
+  "share": { at: "r", t: "perspective(800px) rotateY(-14deg)" },
+  "folders": { at: "l", t: "rotate(-2deg)", ghost: true },
+  "find": { at: "c" },
+  "trash": { at: "br", t: "rotate(3deg)" },
+  "meeting-settings": { at: "l", t: "perspective(800px) rotateY(16deg)" },
+  "plan": { at: "b" },
+  "highlights": { at: "bl", t: "rotate(-2deg)", ghost: true },
+};
+const PLACE: Record<Pose["at"], { box: string; origin: string }> = {
+  bl: { box: "inset-0 flex items-end justify-start p-[12px]", origin: "origin-bottom-left" },
+  br: { box: "inset-0 flex items-end justify-end p-[12px]", origin: "origin-bottom-right" },
+  b: { box: "inset-0 flex items-end justify-center p-[12px]", origin: "origin-bottom" },
+  c: { box: "inset-0 flex items-center justify-center p-[12px]", origin: "origin-center" },
+  l: { box: "inset-0 flex items-center justify-start p-[14px]", origin: "origin-left" },
+  r: { box: "inset-0 flex items-center justify-end p-[14px]", origin: "origin-right" },
+};
+
 /* The cover: the photograph, the site's whisper of a wash, the lesson's piece of interface. */
 export function SceneCover({ id, src, size = "sm", className }: { id: string; src: string; size?: "sm" | "md"; className?: string }) {
   const W = WIDGETS[id];
+  const pose = POSES[id] ?? { at: "bl" };
+  const place = PLACE[pose.at];
   return (
-    <div className={cn("relative overflow-hidden bg-[#0A1630]", className)}>
+    <div className={cn("@container relative overflow-hidden bg-[#0A1630]", className)}>
       <img src={src} alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full select-none object-cover transition-transform duration-[1600ms] ease-out group-hover:scale-[1.05]" style={{ objectPosition: "50% 40%" }} />
       <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/2" style={{ background: "linear-gradient(180deg, rgba(4,10,26,0) 0%, rgba(4,10,26,0.42) 100%)" }} />
       {W && (
-        <div aria-hidden className={cn("absolute", size === "md" ? "bottom-[18px] left-[20px] w-[236px] origin-bottom-left scale-[1.3]" : "bottom-[12px] left-[12px] w-[min(76%,232px)]")}>
-          <div className="transition-transform duration-300 ease-out group-hover:-translate-y-[3px]"><W /></div>
+        <div aria-hidden data-pose={pose.at} className={cn("absolute", place.box, size === "md" && "p-[20px]")}>
+          <div className={cn("shrink-0", place.origin, size === "md" ? "w-[236px] scale-[1.28]" : "w-[224px] scale-[0.8] @[250px]:scale-[0.92] @[300px]:scale-100")}>
+            <div style={{ transform: pose.t }} className="relative">
+              {pose.ghost && <span className="absolute inset-0 translate-x-[9px] -translate-y-[9px] rotate-[3deg] rounded-[10px] bg-white/[0.07] ring-1 ring-inset ring-white/15" />}
+              <div className="relative transition-transform duration-300 ease-out group-hover:-translate-y-[3px]"><W /></div>
+            </div>
+          </div>
         </div>
       )}
     </div>

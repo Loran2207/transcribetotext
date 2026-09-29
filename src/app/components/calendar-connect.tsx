@@ -123,7 +123,7 @@ export function CalendarConnectScreen({ connecting, onConnect }: CalendarConnect
           transcribe them automatically.
         </p>
 
-        <div className="w-full flex flex-col gap-2.5 mt-7">
+        <div data-tour="meetings-connect" className="w-full flex flex-col gap-2.5 mt-7">
           {PROVIDERS.map((p) => (
             <ProviderRow key={p.id} provider={p} connecting={connecting} onConnect={onConnect} />
           ))}

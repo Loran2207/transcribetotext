@@ -4,7 +4,7 @@ import { ArrowRight01Icon, ArrowUp01Icon, Tick02Icon } from "@hugeicons/core-fre
 import { Icon } from "../ui/icon";
 import { cn } from "../ui/utils";
 import { useOnboarding } from "./onboarding-context";
-import { SETUP_REQUIRED, isSetupDone, type SetupItem } from "./guides";
+import { SETUP_GROUPS, SETUP_REQUIRED, isSetupDone, type SetupItem } from "./guides";
 import { useTranscriptionModals } from "../transcription-modals";
 
 /* "First steps": a fixed card at the top of the Home right panel (web) and a
@@ -50,8 +50,10 @@ function useRunSetup() {
   const { setOpenModal } = useTranscriptionModals();
   return (id: string) => {
     const item = ob.setup.find((x) => x.id === id); if (!item) return;
-    if (item.run === "create") { const part = item.parts?.find((p) => !ob.actions.has(p.id)) ?? item.parts?.[0]; if (part) setOpenModal(part.modal); return; }
-    if (item.run === "calendar") { ob.navigate({ page: "calendar" }); return; }
+    if (item.run === "modal" && item.modal) { setOpenModal(item.modal); return; }
+    /* review 59: Connect used to land on a calendar that looked connected already;
+       now the Meetings lesson walks to the connect screen of a new account */
+    if (item.run === "calendar") { ob.startGuide("meetings"); return; }
     if (item.run === "profile") { ob.navigate({ page: "settings" }); return; }
     ob.startGuide(item.how);
   };
@@ -124,63 +126,54 @@ function AcademyLink() {
   );
 }
 
-/* The first steps and the gift on one rail. Shared by the web card and the
-   compact-shell slide. The four ways in sit on one row as chips; the photo is
-   marked optional and the gift does not wait for it. */
+/* The first steps and the gift on one rail, in two groups: every way in, then
+   the things that make the account yours. Shared by the web card and the
+   compact-shell slide. The photo is marked optional and the gift does not wait
+   for it. */
 function SetupList({ compact }: { compact: boolean }) {
   const ob = useOnboarding();
   const run = useRunSetup();
-  const { setOpenModal } = useTranscriptionModals();
   const has = (id: string) => ob.actions.has(id);
   const total = SETUP_REQUIRED.length;
   const next = SETUP_REQUIRED.find((x) => !isSetupDone(x, has));
   const ROW_H = compact ? 34 : ROW;
-  const heightOf = (x: SetupItem) => (x.parts && !isSetupDone(x, has) ? ROW_H + 30 : ROW_H);
-  const label = (x: SetupItem) => (x.run === "calendar" ? "Connect" : x.run === "profile" ? "Add" : x.run === "create" ? "Start" : "Do it");
+  let n = 0;
   return (
-    <ol className="relative -mt-px flex flex-col bg-card px-[8px] pt-[7px] pb-[8px]">
-      {ob.setup.map((x, i) => {
-        const done = isSetupDone(x, has);
-        const isNext = next?.id === x.id;
-        const h = heightOf(x);
-        const partsDone = x.parts ? x.parts.filter((p) => has(p.id)).length : 0;
-        return (
-          <li key={x.id} className="relative">
-            <span aria-hidden className={cn("absolute left-[20px] top-[20px] z-[1] w-[2px] transition-colors duration-500", done ? "bg-primary" : "bg-border")} style={{ height: h }} />
-            <div className={cn("group flex w-full gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors hover:bg-muted/70", x.parts && !done ? "items-start pt-[8px]" : "items-center")} style={{ height: h }}>
-              <span className={cn(
-                "relative z-[2] flex size-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums transition-colors",
-                done ? "bg-primary text-primary-foreground" : isNext ? "border-2 border-primary bg-card text-primary" : "border-2 border-border bg-card text-muted-foreground group-hover:border-foreground/25 group-hover:text-foreground",
-              )}>
-                {done ? <Icon icon={Tick02Icon} size={12} strokeWidth={3} /> : i + 1}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-baseline gap-[6px]">
-                  <span className={cn("truncate text-[13.5px] leading-[18px] transition-colors", done ? "font-medium text-muted-foreground" : isNext ? "font-semibold text-foreground" : "font-medium text-foreground/80 group-hover:text-foreground")}>{x.title}</span>
-                  {x.parts && !done && <span className="shrink-0 text-[11.5px] font-medium tabular-nums text-muted-foreground">{partsDone} of {x.parts.length}</span>}
-                  {x.optional && !done && <span className="shrink-0 text-[11.5px] font-medium text-muted-foreground">Optional</span>}
-                </span>
-                {x.parts && !done && (
-                  <span className="mt-[7px] flex gap-[5px]">
-                    {x.parts.map((p) => {
-                      const on = has(p.id);
-                      return (
-                        <button key={p.id} type="button" data-onboarding-way={p.id} onClick={() => setOpenModal(p.modal)} className={cn("flex h-[22px] items-center gap-[4px] rounded-full px-[8px] text-[11.5px] font-semibold transition-colors", on ? "bg-primary/10 text-primary" : "border border-border bg-card text-foreground/80 hover:border-foreground/25 hover:text-foreground", focus)}>
-                          {on && <Icon icon={Tick02Icon} size={10} strokeWidth={3} />}{p.label}
-                        </button>
-                      );
-                    })}
-                  </span>
-                )}
-              </span>
-              {!done && !x.parts && (
-                <button type="button" data-onboarding-setup={x.id} onClick={() => run(x.id)} className={cn("flex h-[26px] shrink-0 items-center rounded-full px-[12px] text-[12px] font-semibold transition-colors", isNext ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border bg-card text-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-muted", focus)}>{label(x)}</button>
-              )}
-            </div>
-          </li>
-        );
-      })}
-      <li className="relative mt-[4px]">
+    <ol className="relative -mt-px flex flex-col bg-card px-[8px] pt-[4px] pb-[8px]">
+      {SETUP_GROUPS.map((grp, gi) => (
+        <li key={grp.id} className="flex flex-col">
+          <p className={cn("px-[10px] pb-[2px] text-[11.5px] font-semibold text-muted-foreground", gi === 0 ? "pt-[6px]" : "pt-[10px]")}>{grp.title}</p>
+          <ol className="flex flex-col">
+            {ob.setup.filter((x) => x.group === grp.id).map((x, i, arr) => {
+              n += 1;
+              const done = isSetupDone(x, has);
+              const isNext = next?.id === x.id;
+              const last = i === arr.length - 1;
+              return (
+                <li key={x.id} className="relative">
+                  {!last && <span aria-hidden className={cn("absolute left-[20px] top-[20px] z-[1] w-[2px] transition-colors duration-500", done ? "bg-primary" : "bg-border")} style={{ height: ROW_H }} />}
+                  <div className="group flex w-full items-center gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors hover:bg-muted/70" style={{ height: ROW_H }}>
+                    <span className={cn(
+                      "relative z-[2] flex size-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums transition-colors",
+                      done ? "bg-primary text-primary-foreground" : isNext ? "border-2 border-primary bg-card text-primary" : "border-2 border-border bg-card text-muted-foreground group-hover:border-foreground/25 group-hover:text-foreground",
+                    )}>
+                      {done ? <Icon icon={Tick02Icon} size={12} strokeWidth={3} /> : n}
+                    </span>
+                    <span className="flex min-w-0 flex-1 items-baseline gap-[6px]">
+                      <span className={cn("truncate text-[13.5px] leading-[18px] transition-colors", done ? "font-medium text-muted-foreground" : isNext ? "font-semibold text-foreground" : "font-medium text-foreground/80 group-hover:text-foreground")}>{x.title}</span>
+                      {x.optional && !done && <span className="shrink-0 text-[11.5px] font-medium text-muted-foreground">Optional</span>}
+                    </span>
+                    {!done && (
+                      <button type="button" data-onboarding-setup={x.id} onClick={() => run(x.id)} className={cn("flex h-[26px] shrink-0 items-center rounded-full px-[12px] text-[12px] font-semibold transition-colors", isNext ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border bg-card text-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-muted", focus)}>{x.cta}</button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </li>
+      ))}
+      <li className="relative mt-[6px]">
         <div data-onboarding-goal="" className="flex h-[54px] items-center gap-[12px] rounded-[12px] bg-primary/[0.06] pl-[7px] pr-[12px]">
           <span className="relative z-[2] flex size-[28px] shrink-0 items-center justify-center rounded-full bg-card ring-[3px] ring-card">
             <img src={GIFT} alt="" aria-hidden className="size-[26px] select-none object-contain" />
@@ -222,7 +215,7 @@ export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCl
         <Icon icon={ArrowUp01Icon} size={18} strokeWidth={2} className="shrink-0 text-muted-foreground transition-transform duration-200" style={{ transform: expanded ? "rotate(0deg)" : "rotate(180deg)" }} />
       </button>
       {expanded && (
-        <div className={cn(detailCls, "!max-h-[340px] px-[6px] py-[6px]")}>
+        <div className={cn(detailCls, "!max-h-[420px] px-[6px] py-[6px]")}>
           <SetupList compact />
           <AcademyLink />
         </div>

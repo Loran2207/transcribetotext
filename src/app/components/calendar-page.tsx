@@ -77,11 +77,6 @@ function isEmptyDemoState(): boolean {
   } catch { return false; }
 }
 
-function isConnectDemoState(): boolean {
-  try {
-    return localStorage.getItem(CAL_STATE_KEY) === "connect";
-  } catch { return false; }
-}
 
 const WEEKDAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -121,7 +116,7 @@ export function CalendarPage() {
 
   /* Account Setup: a connected calendar is a real action */
   const connectAndCredit = async (provider: CalendarProvider) => { const ok = await connectAccount(provider); if (ok) creditOnboarding("calendar"); return ok; };
-  const isDisconnected = accounts.length === 0 || isConnectDemoState();
+  const isDisconnected = accounts.length === 0;
   const showEmptyDemo = isEmptyDemoState();
 
   const meetings = useMemo(

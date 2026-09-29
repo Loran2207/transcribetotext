@@ -41,7 +41,7 @@ export function AcademyPage() {
   return (
     <div ref={scrollRef} className="flex-1 overflow-auto min-w-0" data-tour="academy-page">
       <ScrollFade scrollRef={scrollRef} />
-      <div className="px-4 pt-[16px] pb-[40px] lg:px-[32px] lg:pt-[24px]">
+      <div className="@container px-4 pt-[16px] pb-[40px] lg:px-[32px] lg:pt-[24px]">
         <Banner watched={watched.size} total={total} next={next} onContinue={() => next && startTour(next)} />
 
         <Tabs value={tab} onValueChange={setTab} className="mt-[22px] gap-0">
@@ -64,7 +64,7 @@ export function AcademyPage() {
                 <h2 className="text-[16px] font-semibold leading-[22px] tracking-[-0.2px] text-foreground">{sec.title}<span className="ml-[8px] text-[13px] font-normal text-muted-foreground">{sec.subtitle}</span></h2>
                 <span className="shrink-0 text-[12.5px] font-medium tabular-nums text-muted-foreground">{doneIn} of {inSec.length}</span>
               </div>
-              <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid grid-cols-1 gap-[14px] @[520px]:grid-cols-2 @[680px]:grid-cols-3 @[1040px]:grid-cols-4">
                 {inSec.map((g) => (
                   <LessonCard key={g.id} guide={g} done={ob.done.has(g.id)} seen={ob.seen.has(g.id)} isNext={next?.id === g.id} onOpen={() => open(g)} onStart={() => startTour(g)} />
                 ))}
@@ -83,12 +83,12 @@ export function AcademyPage() {
 function Banner({ watched, total, next, onContinue }: { watched: number; total: number; next: Guide | undefined; onContinue: () => void }) {
   const ob = useOnboarding();
   return (
-    <div data-tour="academy-banner" className="relative overflow-hidden rounded-[18px]" style={{ background: NAVY, boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}>
-      <img src="/images/academy3/banner.jpg" alt="" aria-hidden className="absolute inset-0 h-full w-full select-none object-cover" style={{ objectPosition: BANNER_FOCUS }} />
+    <div data-tour="academy-banner" className="@container relative overflow-hidden rounded-[18px]" style={{ background: NAVY, boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}>
+      <img src="/images/academy3/banner.jpg" alt="" aria-hidden className="absolute inset-0 h-full w-full select-none object-cover object-[92%_45%] @[640px]:object-[50%_45%]" />
       <div className="relative flex min-h-[220px] flex-col justify-between gap-6 px-[24px] py-[24px] lg:min-h-[280px] lg:px-[32px] lg:py-[30px]">
         <div>
           <h1 className="text-[26px] font-bold leading-[32px] tracking-[-0.6px] text-white lg:text-[30px] lg:leading-[36px]">Academy</h1>
-          <p className="mt-[6px] max-w-[400px] text-[14px] leading-[20px] text-white/75">Short guides, one per feature. Read one in a minute or let {GUIDE_PERSON.name} walk you through it on the real screens.</p>
+          <p className="mt-[6px] max-w-[400px] text-[14px] leading-[20px] text-white/75 @[860px]:max-w-[380px]">Short guides, one per feature. Read one in a minute or let {GUIDE_PERSON.name} walk you through it on the real screens.</p>
         </div>
         <div className="flex flex-col items-start gap-[16px]">
           <div>
@@ -104,9 +104,9 @@ function Banner({ watched, total, next, onContinue }: { watched: number; total: 
             </div>
           </div>
           {next ? (
-            <button type="button" data-tour="academy-continue" onClick={onContinue} className="flex h-[40px] shrink-0 items-center gap-[8px] rounded-full bg-white pl-[16px] pr-[14px] text-[13.5px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
+            <button type="button" data-tour="academy-continue" onClick={onContinue} className="flex h-[40px] max-w-full items-center gap-[8px] rounded-full bg-white pl-[16px] pr-[14px] text-[13.5px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
               <Icon icon={PlayIcon} size={13} strokeWidth={2.6} />
-              <span className="max-w-[240px] truncate">{watched === 0 ? "Start" : "Continue"}: {next.title}</span>
+              <span className="min-w-0 max-w-[240px] truncate">{watched === 0 ? "Start" : "Continue"}: {next.title}</span>
               <span className="text-[12px] font-medium tabular-nums text-[#0A1630]/55">{next.seconds}s</span>
             </button>
           ) : (
@@ -114,15 +114,15 @@ function Banner({ watched, total, next, onContinue }: { watched: number; total: 
           )}
         </div>
       </div>
-      <div className="pointer-events-none absolute bottom-[30px] hidden w-[330px] lg:block" style={{ left: LIVE_LEFT }}>
+      {/* review 59: the scene shows only where it fits beside the words, never over them */}
+      <div className="pointer-events-none absolute bottom-[30px] hidden w-[330px] @[860px]:block" style={{ left: LIVE_LEFT }}>
         <BannerStage />
       </div>
     </div>
   );
 }
 
-const BANNER_FOCUS = "50% 45%";
-const LIVE_LEFT = "40%";
+const LIVE_LEFT = "max(44%, 460px)";
 
 /* ── a lesson card: the photograph with its scene; one translucent chip; title and one line ── */
 function LessonCard({ guide, done, seen, isNext, onOpen, onStart }: { guide: Guide; done: boolean; seen: boolean; isNext: boolean; onOpen: () => void; onStart: () => void }) {
