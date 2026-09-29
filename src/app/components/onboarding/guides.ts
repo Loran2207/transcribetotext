@@ -208,16 +208,16 @@ export const ACADEMY_SECTIONS: { id: string; title: string; subtitle: string }[]
 ];
 
 const GUIDE_META: Record<string, { cover: string; category: string; summary: string }> = {
-  "first-record": { cover: "/images/academy2/first-record.jpg", category: "create", summary: "Turn a file, your voice, a meeting or a link into a transcript." },
-  "meetings": { cover: "/images/academy2/meetings.jpg", category: "create", summary: "Connect a calendar and let the recorder join your calls by itself." },
-  "read-transcript": { cover: "/images/academy2/read-transcript.jpg", category: "work", summary: "Read the transcript, jump by timecode, translate it." },
-  "edit-transcript": { cover: "/images/academy2/edit-transcript.jpg", category: "work", summary: "Fix names and misheard words straight in the text." },
-  "speakers": { cover: "/images/academy2/speakers.jpg", category: "work", summary: "Name the voices and move words to the right person." },
-  "summary": { cover: "/images/academy2/summary.jpg", category: "work", summary: "Pick a template and get the notes in the shape you need." },
-  "export": { cover: "/images/academy2/export.jpg", category: "share", summary: "PDF, Word, text or subtitles, with the options you choose." },
-  "share": { cover: "/images/academy2/share.jpg", category: "share", summary: "Invite people, turn on a link, copy the text." },
-  "folders": { cover: "/images/academy2/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
-  "find": { cover: "/images/academy2/find.jpg", category: "organize", summary: "Search what was said, across every recording." },
+  "first-record": { cover: "/images/academy3/first-record.jpg", category: "create", summary: "Turn a file, your voice, a meeting or a link into a transcript." },
+  "meetings": { cover: "/images/academy3/meetings.jpg", category: "create", summary: "Connect a calendar and let the recorder join your calls by itself." },
+  "read-transcript": { cover: "/images/academy3/read-transcript.jpg", category: "work", summary: "Read the transcript, jump by timecode, translate it." },
+  "edit-transcript": { cover: "/images/academy3/edit-transcript.jpg", category: "work", summary: "Fix names and misheard words straight in the text." },
+  "speakers": { cover: "/images/academy3/speakers.jpg", category: "work", summary: "Name the voices and move words to the right person." },
+  "summary": { cover: "/images/academy3/summary.jpg", category: "work", summary: "Pick a template and get the notes in the shape you need." },
+  "export": { cover: "/images/academy3/export.jpg", category: "share", summary: "PDF, Word, text or subtitles, with the options you choose." },
+  "share": { cover: "/images/academy3/share.jpg", category: "share", summary: "Invite people, turn on a link, copy the text." },
+  "folders": { cover: "/images/academy3/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
+  "find": { cover: "/images/academy3/find.jpg", category: "organize", summary: "Search what was said, across every recording." },
 };
 export const GUIDES: Guide[] = RAW_GUIDES.map((g) => ({ ...g, ...GUIDE_META[g.id] }));
 
