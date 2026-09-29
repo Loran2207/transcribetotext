@@ -5,6 +5,7 @@ import { Icon } from "../ui/icon";
 import { cn } from "../ui/utils";
 import { useOnboarding } from "./onboarding-context";
 import { SETUP_REQUIRED, isSetupDone, type SetupItem } from "./guides";
+import { FIRST_RUN_VARIANT } from "../first-run/variant";
 import { useTranscriptionModals } from "../transcription-modals";
 
 /* "First steps": a fixed card at the top of the Home right panel (web) and a
@@ -60,7 +61,8 @@ function useRunSetup() {
 export function OnboardingCard() {
   const ob = useOnboarding();
   const reduce = useReducedMotion();
-  if (ob.hidden) return null;
+  /* branch first-run: the first-run screen replaces the checklist */
+  if (FIRST_RUN_VARIANT || ob.hidden) return null;
   const has = (id: string) => ob.actions.has(id);
   const doneCount = SETUP_REQUIRED.filter((x) => isSetupDone(x, has)).length;
   const total = SETUP_REQUIRED.length;
@@ -200,7 +202,7 @@ function SetupList({ compact }: { compact: boolean }) {
    shared expand state, the same bounded detail. */
 export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCls }: { expanded: boolean; onToggle: () => void; headCls: string; cardCls: string; detailCls: string }) {
   const ob = useOnboarding();
-  if (ob.hidden || ob.allDone) return null;
+  if (FIRST_RUN_VARIANT || ob.hidden || ob.allDone) return null;
   const has = (id: string) => ob.actions.has(id);
   const doneCount = SETUP_REQUIRED.filter((x) => isSetupDone(x, has)).length;
   const total = SETUP_REQUIRED.length;

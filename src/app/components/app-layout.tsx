@@ -15,6 +15,7 @@ import { MobileTopBar } from "./mobile-top-bar";
 import { BottomNav } from "./bottom-nav";
 import { InnerScreenBottomBar } from "./inner-screen";
 import { SettingsPage } from "./settings-modal";
+import { FirstRun } from "./first-run/first-run";
 import { UserProfileProvider } from "./user-profile-context";
 import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 import { DesktopWindowFrame, useShell } from "./desktop/shell";
@@ -107,6 +108,7 @@ export function AppLayout() {
         </SidebarInset>
       </SidebarProvider>
        <DesktopNotice />
+       <FirstRun />
        <DemoSwitcher />
        <OnboardingTour />
        <RewardDialog />

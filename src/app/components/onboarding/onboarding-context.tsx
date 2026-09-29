@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { FIRST_RUN_VARIANT } from "../first-run/variant";
 import { GUIDES, INTRO_STEP, SETUP, SETUP_ACTION_IDS, SETUP_REQUIRED, setupComplete, setupIds, type Guide, type TourTarget } from "./guides";
 
 /* State of the guide: the Academy (ten lessons, competence) and Account Setup
@@ -115,7 +116,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
         const nowComplete = setupComplete((x) => actions.includes(x));
         const wasComplete = setupComplete((x) => s.actions.includes(x));
         if (nowComplete && !wasComplete) setCelebration("all");
-        else if (guide && done !== s.done) setCelebration({ kind: "guide", guide, index: GUIDES.findIndex((g) => g.id === id) });
+        else if (guide && done !== s.done && !FIRST_RUN_VARIANT) setCelebration({ kind: "guide", guide, index: GUIDES.findIndex((g) => g.id === id) });
         return { ...s, actions, done };
       });
     };
