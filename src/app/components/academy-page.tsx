@@ -91,6 +91,8 @@ function Banner({ watched, total, next, onContinue }: { watched: number; total: 
   return (
     <div data-tour="academy-banner" className="@container relative overflow-hidden rounded-[18px]" style={{ background: NAVY, boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}>
       <img src="/images/academy3/banner.jpg" alt="" aria-hidden className="absolute inset-0 h-full w-full select-none object-cover object-[92%_45%] @[640px]:object-[50%_45%]" />
+      {/* on a narrow banner the words sit over the photograph: the in-app banner's navy wash from the left keeps them readable */}
+      <span aria-hidden className="absolute inset-0 @[640px]:hidden" style={{ background: "linear-gradient(90deg, rgba(10,22,48,0.92) 0%, rgba(10,22,48,0.7) 55%, rgba(10,22,48,0.25) 100%)" }} />
       <div className="relative flex min-h-[220px] flex-col justify-between gap-6 px-[24px] py-[24px] lg:min-h-[280px] lg:px-[32px] lg:py-[30px]">
         <div>
           <h1 className="text-[26px] font-bold leading-[32px] tracking-[-0.6px] text-white lg:text-[30px] lg:leading-[36px]">Academy</h1>

@@ -2332,8 +2332,10 @@ function PageHeader({
   }, [editingTitle]);
 
   return (
-    <div className="px-4 pt-4 pb-0 lg:px-8 lg:pt-6">
-      <div className="mb-2 flex items-start justify-between gap-4">
+    <div className="@container px-4 pt-4 pb-0 lg:px-8 lg:pt-6">
+      {/* review 60: when the page is narrow (1024 with the side panel open) the
+          actions wrap under the title instead of running over it */}
+      <div className="mb-2 flex flex-col gap-2 @[720px]:flex-row @[720px]:items-start @[720px]:justify-between @[720px]:gap-4">
         <div
           className={`min-w-0 flex-1 rounded-xl py-2 pr-2 pl-0 transition-colors ${
             sharedOwner ? "" : editingTitle ? "bg-muted/55" : "cursor-text hover:bg-muted/45"
@@ -2346,7 +2348,7 @@ function PageHeader({
             <h1 data-tour="record-title" className="text-[20px] leading-[26px] tracking-[-0.3px] font-bold text-foreground lg:text-2xl lg:leading-tight lg:tracking-normal">{title}</h1>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-start gap-2 @[720px]:shrink-0 @[720px]:justify-end">
           {!sharedOwner && <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>}
           {!hasSummary && !sharedOwner && (
             <Button data-tour="record-apply-template" className="order-first flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
@@ -4206,7 +4208,7 @@ export function TranscriptionDetailPage() {
   );
 
   return (
-    <div ref={pageRef} className="flex flex-1 overflow-hidden">
+    <div ref={pageRef} data-tour="page-record" className="flex flex-1 overflow-hidden">
       {/* Left column */}
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
         <div className="max-md:hidden flex items-center justify-between gap-3 px-4 pt-4 lg:px-8">
