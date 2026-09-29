@@ -396,11 +396,11 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
               tooltip={t("nav.academy")}
             >
               <Icon icon={GraduationScrollIcon} strokeWidth={1.3} />
-              <span className="flex-1">{t("nav.academy")}</span>
-              <span className="ml-auto flex items-center gap-[6px] group-data-[collapsible=icon]:hidden">
-                <span className="text-[12px] font-medium tabular-nums text-muted-foreground">{academyCount}</span>
-                <span className="rounded-full bg-primary px-[6px] py-px text-[9.5px] font-bold uppercase leading-[14px] tracking-[0.04em] text-primary-foreground">New</span>
+              <span className="flex min-w-0 flex-1 items-center gap-[8px]">
+                <span className="truncate">{t("nav.academy")}</span>
+                <span className="rounded-full bg-primary px-[6px] py-px text-[9.5px] font-bold uppercase leading-[14px] tracking-[0.04em] text-primary-foreground group-data-[collapsible=icon]:hidden">New</span>
               </span>
+              <span className="ml-auto text-[12px] font-medium tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">{academyCount} guides</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

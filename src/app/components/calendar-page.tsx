@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import {
   ChevronLeft,
@@ -132,6 +132,12 @@ export function CalendarPage() {
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(TODAY));
   const [selectedDate, setSelectedDate] = useState<string>(TODAY_ISO);
   const [activeTab, setActiveTab] = useState<MeetingsTab>("upcoming");
+  /* the onboarding tour switches tabs so every step lights something that is on screen */
+  useEffect(() => {
+    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "meetings-upcoming") setActiveTab("upcoming"); if (t === "meetings-settings") setActiveTab("settings"); if (t === "close-all") setActiveTab("upcoming"); };
+    window.addEventListener("ttt-tour", on);
+    return () => window.removeEventListener("ttt-tour", on);
+  }, []);
   const [autoRecordMode, setAutoRecordMode] = useState<AutoRecordMode>(loadAutoRecordMode);
 
   // Calendar sync indicator (demo)
@@ -268,7 +274,7 @@ export function CalendarPage() {
   /* ── Disconnected: full-page connect screen ── */
   if (isDisconnected) {
     return (
-      <div className="flex-1 flex flex-col overflow-hidden px-4 pt-4 md:px-6 md:pt-5 lg:px-8 lg:pt-7 pb-0">
+      <div data-tour="page-meetings" className="flex-1 flex flex-col overflow-hidden px-4 pt-4 md:px-6 md:pt-5 lg:px-8 lg:pt-7 pb-0">
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px]">
             Meetings
@@ -288,7 +294,7 @@ export function CalendarPage() {
 
   return (
     <TooltipProvider>
-      <div className="flex-1 flex flex-col overflow-hidden px-4 pt-4 md:px-6 md:pt-5 lg:px-8 lg:pt-7 pb-0">
+      <div data-tour="page-meetings" className="flex-1 flex flex-col overflow-hidden px-4 pt-4 md:px-6 md:pt-5 lg:px-8 lg:pt-7 pb-0">
         {/* Row 1: Title + Today + Record button (full width) */}
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px]">
@@ -327,7 +333,7 @@ export function CalendarPage() {
         {/* Tabs + connected calendars indicator - full width so the line reaches the edge */}
         <div className="flex items-end justify-between border-b border-border mt-4">
             <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as MeetingsTab)} className="gap-0 min-w-0">
-              <TabsList variant="line" className="gap-5 lg:gap-6 justify-start border-0 max-lg:overflow-x-auto scrollbar-hide">
+              <TabsList variant="line" data-tour="meetings-tabs" className="gap-5 lg:gap-6 justify-start border-0 max-lg:overflow-x-auto scrollbar-hide">
                 <TabsTrigger value="upcoming" variant="line" className="max-lg:shrink-0 max-lg:text-[13px]">
                   <span className="lg:hidden">Upcoming</span><span className="max-lg:hidden">Upcoming meetings</span>
                   <span className="opacity-50 font-[inherit]">{upcomingCount}</span>
@@ -342,7 +348,7 @@ export function CalendarPage() {
               </TabsList>
             </Tabs>
 
-            <div className="max-md:hidden">
+            <div className="max-md:hidden" data-tour="meetings-accounts">
               <ConnectedCalendarsIndicator
                 accounts={accounts}
                 onClick={() => setActiveTab("settings")}

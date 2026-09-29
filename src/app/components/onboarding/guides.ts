@@ -24,7 +24,7 @@ export type TourStep = {
   /* the step opens (or closes) Quick Find, typing for the person */
   quickFind?: { open: boolean; query?: string };
   /* the step opens a real dialog of the page (`ttt-tour` window event) */
-  trigger?: "share-open" | "share-close" | "speakers-open" | "speakers-close" | "add-folder-open" | "add-folder-close" | "export-open" | "export-close" | "edit-open" | "edit-close";
+  trigger?: "share-open" | "share-close" | "speakers-open" | "speakers-close" | "add-folder-open" | "add-folder-close" | "export-open" | "export-close" | "edit-open" | "edit-close" | "meetings-upcoming" | "meetings-settings";
 };
 
 export type Guide = {
@@ -62,13 +62,22 @@ const OPEN_RECORD_AGAIN: TourStep = { anchor: "record-row-welcome|home-records",
 const TEMPLATES: TourTarget = { page: "templates" };
 const CALENDAR: TourTarget = { page: "calendar" };
 
+/* Every lesson opens on the whole page it lives on, so the person sees where
+   they are before one control lights up (Kirill, review 55). */
+const PAGE_HOME: TourStep = { anchor: "page-home", go: HOME, side: "bottom", title: "This is Home", body: "Four ways to make a transcript at the top, your recordings below, your plan and the guide on the right." };
+const PAGE_RECORD: TourStep = { anchor: "page-record", go: RECORD, side: "bottom", title: "A recording", body: "The transcript on the left, the tools above it, notes and outline on the right." };
+const PAGE_RECORDS: TourStep = { anchor: "page-records", go: RECORDS, side: "bottom", title: "My Records", body: "Every recording you own, in one table. Tabs above, folders in the sidebar." };
+const PAGE_TEMPLATES: TourStep = { anchor: "page-templates", go: TEMPLATES, side: "bottom", title: "Templates", body: "Every way a summary can be written, built in and yours." };
+const PAGE_MEETINGS: TourStep = { anchor: "page-meetings", go: CALENDAR, side: "bottom", title: "Meetings", body: "Your calendar with a recorder attached. Upcoming, past, and the calendars you connected.", trigger: "meetings-upcoming" };
+
 const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
   {
     id: "first-record",
     title: "Make your first transcript",
-    seconds: 40,
+    seconds: 45,
     completeBy: "action",
     steps: [
+      PAGE_HOME,
       { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "MP3, MP4, WAV, any recording. Drop it here and the transcript is ready in minutes." },
       { anchor: "home-card-record|add-fab", go: HOME, side: "bottom", title: "Instant speech", body: "Press and talk. The words appear as you speak. Good for voice notes and dictation." },
       { anchor: "home-card-meeting|add-fab", go: HOME, side: "bottom", title: "Meeting Recorder", body: "Paste a Meet, Zoom or Teams invite. A bot joins the call, records it and writes the notes while you talk." },
@@ -79,9 +88,10 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
   {
     id: "read-transcript",
     title: "Read the result",
-    seconds: 30,
+    seconds: 35,
     steps: [
       OPEN_RECORD_FIRST,
+      PAGE_RECORD,
       { anchor: "record-title", go: RECORD, side: "bottom", title: "The title is yours", body: "Click it to rename. Underneath: who made it, the folder, the speakers, the source and the length." },
       { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Transcript and Summary", body: "Transcript is every word that was said. Summary turns it into notes." },
       { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Play from a timecode", body: "Click one to hear that exact moment. The player at the bottom follows." },
@@ -114,11 +124,12 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
   {
     id: "summary",
     title: "Shape the summary",
-    seconds: 25,
+    seconds: 30,
     steps: [
       OPEN_RECORD_AGAIN,
       { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Apply template", body: "The summary is written by a template. Meeting notes, interview, action items: pick the shape you need." },
       { anchor: "nav-templates|menu", go: RECORD, side: "right", title: "All templates live here", body: "Next takes you to the Templates page." },
+      PAGE_TEMPLATES,
       { anchor: "templates-tabs", go: TEMPLATES, side: "bottom", title: "Built in and yours", body: "Every template has an example. Star the ones you use. My templates holds the ones you make." },
       { anchor: "templates-grid|templates-tabs", go: TEMPLATES, side: "top", title: "Make your own", body: "Open any template, change its sections and save a copy. Your next summary follows it." },
     ],
@@ -152,7 +163,8 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     title: "Organize your records",
     seconds: 35,
     steps: [
-      { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Every recording lives here. Next takes you there." },
+      { anchor: "nav-records|menu", go: HOME, side: "right", title: "Where recordings live", body: "My Records, in the sidebar. Next takes you there." },
+      PAGE_RECORDS,
       { anchor: "records-tabs|home-records", go: RECORDS, side: "bottom", title: "Recent, Starred, Shared, Trash", body: "Star what you come back to. Trash keeps deleted recordings until you empty it." },
       { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Create a folder", body: "One per client or project. Next opens the form.", trigger: "add-folder-close" },
       { anchor: "add-folder-dialog", go: RECORDS, side: "right", title: "A name and a colour", body: "That is all a folder needs. It appears in the sidebar the moment you press Create.", trigger: "add-folder-open" },
@@ -163,11 +175,13 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
   {
     id: "meetings",
     title: "Record your meetings",
-    seconds: 30,
+    seconds: 35,
     steps: [
-      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Your calendar, with a recorder attached. Next takes you there." },
-      { anchor: "calendar-week", go: CALENDAR, side: "bottom", title: "Your week", body: "Connect Google or Outlook once and every meeting shows up here." },
-      { anchor: "calendar-week", go: CALENDAR, side: "bottom", title: "Auto-join", body: "Switch it on for a meeting and the recorder joins by itself. The transcript is ready when the call ends." },
+      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Where your calls live", body: "Meetings, in the sidebar. Next takes you there." },
+      PAGE_MEETINGS,
+      { anchor: "meetings-tabs", go: CALENDAR, side: "bottom", title: "Upcoming, past, settings", body: "What is coming, what was recorded, and the calendars behind it.", trigger: "meetings-upcoming" },
+      { anchor: "meetings-accounts|meetings-tabs", go: CALENDAR, side: "bottom", title: "Connect a calendar once", body: "Google or Outlook. Every meeting shows up here by itself. With nothing connected, this page asks you to connect first.", trigger: "meetings-upcoming" },
+      { anchor: "calendar-week|meetings-tabs", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Each meeting has a switch. On, and the recorder joins by itself; the transcript is ready when the call ends.", trigger: "meetings-upcoming" },
       { anchor: "home-card-meeting|nav-calendar", go: HOME, side: "bottom", title: "Or record one now", body: "Paste any invite link from the Home page. Same recorder, no calendar needed." },
     ],
   },
@@ -194,16 +208,16 @@ export const ACADEMY_SECTIONS: { id: string; title: string; subtitle: string }[]
 ];
 
 const GUIDE_META: Record<string, { cover: string; category: string; summary: string }> = {
-  "first-record": { cover: "/images/academy/first-record.jpg", category: "create", summary: "Turn a file, your voice, a meeting or a link into a transcript." },
-  "meetings": { cover: "/images/academy/meetings.jpg", category: "create", summary: "Connect a calendar and let the recorder join your calls by itself." },
-  "read-transcript": { cover: "/images/academy/read-transcript.jpg", category: "work", summary: "Read the transcript, jump by timecode, translate it." },
-  "edit-transcript": { cover: "/images/academy/edit-transcript.jpg", category: "work", summary: "Fix names and misheard words straight in the text." },
-  "speakers": { cover: "/images/academy/speakers.jpg", category: "work", summary: "Name the voices and move words to the right person." },
-  "summary": { cover: "/images/academy/summary.jpg", category: "work", summary: "Pick a template and get the notes in the shape you need." },
-  "export": { cover: "/images/academy/export.jpg", category: "share", summary: "PDF, Word, text or subtitles, with the options you choose." },
-  "share": { cover: "/images/academy/share.jpg", category: "share", summary: "Invite people, turn on a link, copy the text." },
-  "folders": { cover: "/images/academy/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
-  "find": { cover: "/images/academy/find.jpg", category: "organize", summary: "Search what was said, across every recording." },
+  "first-record": { cover: "/images/academy2/first-record.jpg", category: "create", summary: "Turn a file, your voice, a meeting or a link into a transcript." },
+  "meetings": { cover: "/images/academy2/meetings.jpg", category: "create", summary: "Connect a calendar and let the recorder join your calls by itself." },
+  "read-transcript": { cover: "/images/academy2/read-transcript.jpg", category: "work", summary: "Read the transcript, jump by timecode, translate it." },
+  "edit-transcript": { cover: "/images/academy2/edit-transcript.jpg", category: "work", summary: "Fix names and misheard words straight in the text." },
+  "speakers": { cover: "/images/academy2/speakers.jpg", category: "work", summary: "Name the voices and move words to the right person." },
+  "summary": { cover: "/images/academy2/summary.jpg", category: "work", summary: "Pick a template and get the notes in the shape you need." },
+  "export": { cover: "/images/academy2/export.jpg", category: "share", summary: "PDF, Word, text or subtitles, with the options you choose." },
+  "share": { cover: "/images/academy2/share.jpg", category: "share", summary: "Invite people, turn on a link, copy the text." },
+  "folders": { cover: "/images/academy2/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
+  "find": { cover: "/images/academy2/find.jpg", category: "organize", summary: "Search what was said, across every recording." },
 };
 export const GUIDES: Guide[] = RAW_GUIDES.map((g) => ({ ...g, ...GUIDE_META[g.id] }));
 

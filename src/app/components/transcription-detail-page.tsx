@@ -3965,7 +3965,7 @@ export function TranscriptionDetailPage() {
       <>
       <TemplateLibraryDialog open={padLibraryOpen} onOpenChange={setPadLibraryOpen} value={null} onSelect={(tid) => { if (tid) insertTemplate(tid); }} gate={false} />
       <ShareDialog open={shareDialogOpen} onOpenChange={setShareDialogOpen} resourceType="transcription" resourceId="live" resourceName={window.sessionStorage.getItem("ttt_live_title") || "Untitled call"} />
-      <div ref={pageRef} className="flex flex-1 overflow-hidden">
+      <div ref={pageRef} data-tour="page-record" className="flex flex-1 overflow-hidden">
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <div className={(desktopShell ? "" : "border-b border-border ") + (desktopShell ? "px-4 pt-[18px] pb-5 lg:px-8" : "px-4 pt-6 pb-5 lg:px-8")}>
             {/* the same top row, title row and action row as a finished note, in the same

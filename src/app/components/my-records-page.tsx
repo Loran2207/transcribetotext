@@ -446,6 +446,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
   return (
     <div
       ref={pageScrollRef}
+      data-tour="page-records"
       className={`flex-1 overflow-auto min-w-0 relative ${dragOver ? "bg-primary/[0.04]" : ""}`}
       style={{ transition: "background-color 0.15s ease" }}
       onDragEnter={handleDragEnter}

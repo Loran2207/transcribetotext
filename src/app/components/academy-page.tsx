@@ -7,24 +7,21 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "./ui/sheet";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "./ui/drawer";
 import { useIsPhone } from "./ui/use-mobile";
 import { ScrollFade } from "./scroll-fade";
-import { LessonCover } from "./academy-covers";
 import { ACADEMY_SECTIONS, GUIDE_PERSON, NO_ANCHOR, type Guide } from "./onboarding/guides";
 import { useOnboarding } from "./onboarding/onboarding-context";
 
-/* The Academy: every feature of the product as a short lesson you can read
-   or be walked through. Separate from Account Setup (Artem + Kirill, 29.09):
-   setup is done once, the Academy is competence.
+/* The Academy: every feature as a short lesson you can read or be walked
+   through. Separate from Account Setup: setup is done once, the Academy is
+   competence.
 
-   Review 54 (Kirill): compact and professional. The banner is a slim navy
-   strip with the title, one number and a segmented bar, no figure. Cards are
-   short, the cover is the site's feature-block language: a photograph as the
-   environment with a white panel carrying a real piece of the interface.
-   The lesson panel opens without dimming the page; Enter starts the tour,
-   Escape closes. */
+   Review 55 (Kirill, 29.09): the covers are generated product renders, glass
+   interface panels floating in a cobalt night, one per lesson; the card shows
+   the cover clean, with only a translucent time chip; no lesson numbers. The
+   banner is taller and uses the same render language. The lesson panel keeps
+   the page dim; Enter starts the tour, Escape closes. Every tour now opens on
+   the whole page before a control lights. */
 
-const PHOTO = "/images/onboarding-start.jpg";
 const NAVY = "#0A1630";
-const WASH = "linear-gradient(90deg, #0A1630 0%, #0A1630 52%, rgba(10,22,48,0.75) 72%, rgba(10,22,48,0.3) 100%)";
 
 export function AcademyPage() {
   const ob = useOnboarding();
@@ -49,14 +46,14 @@ export function AcademyPage() {
           const inSec = ob.guides.filter((g) => g.category === sec.id);
           const doneIn = inSec.filter((g) => watched.has(g.id)).length;
           return (
-            <section key={sec.id} className="mt-8">
+            <section key={sec.id} className="mt-9">
               <div className="mb-[12px] flex items-baseline justify-between gap-4">
                 <h2 className="text-[16px] font-semibold leading-[22px] tracking-[-0.2px] text-foreground">{sec.title}<span className="ml-[8px] text-[13px] font-normal text-muted-foreground">{sec.subtitle}</span></h2>
                 <span className="shrink-0 text-[12.5px] font-medium tabular-nums text-muted-foreground">{doneIn} of {inSec.length}</span>
               </div>
               <div className="grid grid-cols-1 gap-[14px] sm:grid-cols-2 xl:grid-cols-4">
                 {inSec.map((g) => (
-                  <LessonCard key={g.id} guide={g} index={ob.guides.indexOf(g) + 1} done={ob.done.has(g.id)} seen={ob.seen.has(g.id)} isNext={next?.id === g.id} onOpen={() => open(g)} onStart={() => startTour(g)} />
+                  <LessonCard key={g.id} guide={g} done={ob.done.has(g.id)} seen={ob.seen.has(g.id)} isNext={next?.id === g.id} onOpen={() => open(g)} onStart={() => startTour(g)} />
                 ))}
               </div>
             </section>
@@ -64,30 +61,31 @@ export function AcademyPage() {
         })}
       </div>
 
-      <LessonPanel guide={openGuide} index={openGuide ? ob.guides.indexOf(openGuide) + 1 : 0} done={openGuide ? ob.done.has(openGuide.id) : false} onClose={() => setOpenId(null)} onStart={() => openGuide && startTour(openGuide)} />
+      <LessonPanel guide={openGuide} done={openGuide ? ob.done.has(openGuide.id) : false} onClose={() => setOpenId(null)} onStart={() => openGuide && startTour(openGuide)} />
     </div>
   );
 }
 
-/* ── the banner: one slim strip ── */
+/* ── the banner: the next lesson's render as the backdrop, the numbers on the left ── */
 function Banner({ watched, total, next, onContinue }: { watched: number; total: number; next: Guide | undefined; onContinue: () => void }) {
   const ob = useOnboarding();
+  const backdrop = (next ?? ob.guides[ob.guides.length - 1]).cover;
   return (
-    <div data-tour="academy-banner" className="relative overflow-hidden rounded-[16px]" style={{ background: NAVY }}>
-      <img src={PHOTO} alt="" aria-hidden className="absolute inset-y-0 right-0 h-full w-[56%] select-none object-cover" style={{ objectPosition: "70% 45%" }} />
-      <span aria-hidden className="absolute inset-0" style={{ background: WASH }} />
-      <div className="relative flex flex-wrap items-center gap-x-8 gap-y-4 px-[20px] py-[18px] lg:px-[24px] lg:py-[20px]">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-[20px] font-bold leading-[26px] tracking-[-0.4px] text-white">Academy</h1>
-          <p className="mt-[2px] text-[13px] leading-[18px] text-white/70">{total} lessons, one per feature. Read it in a minute or take the tour.</p>
+    <div data-tour="academy-banner" className="relative overflow-hidden rounded-[18px]" style={{ background: NAVY, boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}>
+      <img src={backdrop} alt="" aria-hidden className="absolute inset-y-0 right-0 h-full w-[68%] select-none object-cover" style={{ objectPosition: "60% 50%" }} />
+      <span aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0A1630 0%, #0A1630 38%, rgba(10,22,48,0.85) 55%, rgba(10,22,48,0.15) 100%)" }} />
+      <div className="relative flex min-h-[176px] flex-col justify-between gap-6 px-[24px] py-[22px] lg:min-h-[196px] lg:px-[28px] lg:py-[26px]">
+        <div>
+          <h1 className="text-[24px] font-bold leading-[30px] tracking-[-0.5px] text-white lg:text-[26px] lg:leading-[32px]">Academy</h1>
+          <p className="mt-[4px] max-w-[440px] text-[13.5px] leading-[19px] text-white/70">{total} short guides, one per feature. Read one in a minute or let {GUIDE_PERSON.name} walk you through it on the real screens.</p>
         </div>
-        <div className="flex w-full flex-wrap items-center gap-x-[14px] gap-y-[12px] lg:w-auto lg:flex-nowrap">
+        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
           <div>
-            <div className="flex items-baseline gap-[6px] text-white">
-              <span className="text-[24px] font-bold leading-none tracking-[-0.6px] tabular-nums">{watched}</span>
-              <span className="text-[12.5px] font-medium text-white/70">of {total} watched</span>
+            <div className="flex items-baseline gap-[8px] text-white">
+              <span className="text-[30px] font-bold leading-none tracking-[-0.7px] tabular-nums">{watched}</span>
+              <span className="text-[13.5px] font-medium text-white/70">of {total} watched</span>
             </div>
-            <div className="mt-[8px] flex w-[200px] gap-[3px]" aria-hidden>
+            <div className="mt-[10px] flex w-[260px] max-w-full gap-[4px]" aria-hidden>
               {ob.guides.map((g) => {
                 const state = ob.done.has(g.id) ? "done" : ob.seen.has(g.id) ? "seen" : "none";
                 return <span key={g.id} className={cn("h-[5px] flex-1 rounded-full transition-colors", state === "done" ? "bg-white" : state === "seen" ? "bg-white/55" : "bg-white/20")} />;
@@ -95,12 +93,13 @@ function Banner({ watched, total, next, onContinue }: { watched: number; total: 
             </div>
           </div>
           {next ? (
-            <button type="button" data-tour="academy-continue" onClick={onContinue} className="flex h-[36px] shrink-0 items-center gap-[8px] rounded-full bg-white pl-[14px] pr-[12px] text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
-              <Icon icon={PlayIcon} size={12} strokeWidth={2.6} />
-              <span className="max-w-[240px] truncate">{watched === 0 ? "Start" : "Continue"}: {next.title}</span>
+            <button type="button" data-tour="academy-continue" onClick={onContinue} className="flex h-[38px] shrink-0 items-center gap-[8px] rounded-full bg-white pl-[16px] pr-[12px] text-[13.5px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
+              <Icon icon={PlayIcon} size={13} strokeWidth={2.6} />
+              <span className="max-w-[260px] truncate">{watched === 0 ? "Start" : "Continue"}: {next.title}</span>
+              <span className="text-[12px] font-medium tabular-nums text-[#0A1630]/55">{next.seconds}s</span>
             </button>
           ) : (
-            <span className="flex h-[36px] items-center gap-[6px] rounded-full border border-white/30 px-[14px] text-[13px] font-semibold text-white"><Icon icon={Tick02Icon} size={13} strokeWidth={3} />All done</span>
+            <span className="flex h-[38px] items-center gap-[6px] rounded-full border border-white/30 px-[14px] text-[13.5px] font-semibold text-white"><Icon icon={Tick02Icon} size={13} strokeWidth={3} />All done</span>
           )}
         </div>
       </div>
@@ -108,19 +107,19 @@ function Banner({ watched, total, next, onContinue }: { watched: number; total: 
   );
 }
 
-/* ── a lesson card ── */
-function LessonCard({ guide, index, done, seen, isNext, onOpen, onStart }: { guide: Guide; index: number; done: boolean; seen: boolean; isNext: boolean; onOpen: () => void; onStart: () => void }) {
-  const badge = (
-    <span className="flex h-[22px] items-center gap-[4px] rounded-full bg-white px-[8px] text-[11px] font-bold tabular-nums text-[#0A1630]">
-      {done ? <><Icon icon={Tick02Icon} size={11} strokeWidth={3} />Done</> : seen ? "Read" : <><Icon icon={Clock01Icon} size={11} strokeWidth={2.2} />{guide.seconds}s</>}
-    </span>
-  );
+/* ── a lesson card: the render, clean; one translucent chip; title and one line ── */
+function LessonCard({ guide, done, seen, isNext, onOpen, onStart }: { guide: Guide; done: boolean; seen: boolean; isNext: boolean; onOpen: () => void; onStart: () => void }) {
   return (
     <div data-academy-card={guide.id} className={cn("group relative flex flex-col overflow-hidden rounded-[14px] border bg-card transition-[box-shadow,border-color] hover:shadow-[var(--elevation-md)]", isNext ? "border-primary/40" : "border-border")}>
       <button type="button" onClick={onOpen} className="flex flex-1 flex-col text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <LessonCover id={guide.id} photo={guide.cover} badge={badge} className="aspect-[4/3] w-full" />
+        <div className="relative aspect-[3/2] w-full overflow-hidden" style={{ background: NAVY }}>
+          <img src={guide.cover} alt="" className="h-full w-full select-none object-cover transition-transform duration-500 group-hover:scale-[1.03]" loading="lazy" />
+          <span className={cn("absolute left-[10px] top-[10px] flex h-[22px] items-center gap-[4px] rounded-full px-[8px] text-[11px] font-semibold tabular-nums text-white", done ? "bg-white/90 !text-[#0A1630]" : "bg-[#0A1630]/45 ring-1 ring-white/20")}>
+            {done ? <><Icon icon={Tick02Icon} size={11} strokeWidth={3} />Done</> : <><Icon icon={Clock01Icon} size={11} strokeWidth={2.2} />{guide.seconds}s{seen && <span className="text-white/60"> · read</span>}</>}
+          </span>
+        </div>
         <div className="flex flex-1 flex-col px-[14px] pt-[12px] pb-[10px]">
-          <p className="text-[14px] font-semibold leading-[19px] tracking-[-0.1px] text-foreground"><span className="mr-[6px] tabular-nums text-muted-foreground">{index}.</span>{guide.title}</p>
+          <p className="text-[14px] font-semibold leading-[19px] tracking-[-0.1px] text-foreground">{guide.title}</p>
           <p className="mt-[3px] line-clamp-2 text-[12.5px] leading-[17px] text-muted-foreground">{guide.summary}</p>
         </div>
       </button>
@@ -135,12 +134,11 @@ function LessonCard({ guide, index, done, seen, isNext, onOpen, onStart }: { gui
 }
 
 /* ── the lesson panel: read the steps, then start the tour ── */
-function LessonPanel({ guide, index, done, onClose, onStart }: { guide: Guide | null; index: number; done: boolean; onClose: () => void; onStart: () => void }) {
+function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; done: boolean; onClose: () => void; onStart: () => void }) {
   const phone = useIsPhone();
   const openState = guide !== null;
   const [last, setLast] = useState<Guide | null>(guide);
   useEffect(() => { if (guide) setLast(guide); }, [guide]);
-  /* Enter starts the tour, Escape closes (Escape is Radix's, Enter is ours) */
   useEffect(() => {
     if (!openState) return;
     const key = (e: KeyboardEvent) => { if (e.key === "Enter" && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); onStart(); } };
@@ -153,10 +151,12 @@ function LessonPanel({ guide, index, done, onClose, onStart }: { guide: Guide | 
 
   const body = (
     <div className="flex flex-col">
-      <LessonCover id={g.id} photo={g.cover} className="aspect-[16/9] w-full" />
+      <div className="relative aspect-[16/9] w-full overflow-hidden" style={{ background: NAVY }}>
+        <img src={g.cover} alt="" className="h-full w-full select-none object-cover" />
+      </div>
       <div className="px-[20px] pt-[16px] pb-[6px]">
-        <p className="text-[12px] font-medium text-muted-foreground">Lesson {index} · {g.seconds}s</p>
-        <h3 className="mt-[2px] text-[19px] font-bold leading-[25px] tracking-[-0.3px] text-foreground">{g.title}</h3>
+        <p className="flex items-center gap-[6px] text-[12px] font-medium text-muted-foreground"><Icon icon={Clock01Icon} size={12} strokeWidth={2.2} />{g.seconds}s{done && <span className="text-primary">· done</span>}</p>
+        <h3 className="mt-[4px] text-[19px] font-bold leading-[25px] tracking-[-0.3px] text-foreground">{g.title}</h3>
         <p className="mt-[6px] text-[13.5px] leading-[19px] text-foreground/80">{g.summary}</p>
       </div>
       <div className="px-[20px] pt-[10px]">
@@ -201,7 +201,7 @@ function LessonPanel({ guide, index, done, onClose, onStart }: { guide: Guide | 
   }
   return (
     <Sheet open={openState} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <SheetContent side="right" data-academy-panel="" overlayClassName="bg-transparent" className="flex w-[420px] max-w-[92vw] flex-col gap-0 border-l p-0 shadow-[var(--elevation-md)] sm:max-w-[420px] [&>button]:hidden">
+      <SheetContent side="right" data-academy-panel="" overlayClassName="bg-[#0A1630]/35" className="flex w-[420px] max-w-[92vw] flex-col gap-0 border-l p-0 shadow-[var(--elevation-md)] sm:max-w-[420px] [&>button]:hidden">
         <SheetTitle className="sr-only">{g.title}</SheetTitle>
         <SheetDescription className="sr-only">{g.summary}</SheetDescription>
         <button type="button" onClick={onClose} aria-label="Close" className="absolute right-[12px] top-[12px] z-10 flex size-8 items-center justify-center rounded-full bg-[#0A1630]/55 text-white transition-colors hover:bg-[#0A1630]/75"><Icon icon={Cancel01Icon} size={16} /></button>

@@ -170,7 +170,17 @@ export function OnboardingTour() {
     cardStyle = { right: MIA_W + 28, bottom: 40 };
     arrow = "right";
   }
-  if (rect && !phone) {
+  /* a whole-page anchor: the card floats top-centre inside the lit area, no arrow */
+  /* a "page-*" anchor is the whole content area: the card floats inside it, near the top, no arrow */
+  const pageWide = !!(rect && !phone && (anchorName?.startsWith("page-") || (rect.width > window.innerWidth * 0.5 && rect.height > window.innerHeight * 0.7)));
+  if (pageWide && rect) {
+    /* the lit page may be taller than the window: keep the card inside the visible part */
+    const top = Math.max(24, rect.top + 24);
+    const left = Math.round(Math.max(12, Math.min(window.innerWidth - CARD_W - 12, rect.left + Math.min(rect.width, window.innerWidth - rect.left) / 2 - CARD_W / 2)));
+    cardStyle = { top: Math.min(top, window.innerHeight - 220), left };
+    arrow = "top";
+  }
+  if (rect && !phone && !pageWide) {
     const vw = window.innerWidth, vh = window.innerHeight;
     const est = 150;
     let side = step.side ?? "bottom";
@@ -248,7 +258,7 @@ export function OnboardingTour() {
         transition={spring}
         onClick={(e) => e.stopPropagation()}
       >
-        {!phone && (rect || speaking) && (
+        {!phone && (rect || speaking) && !pageWide && (
           <span
             aria-hidden
             className={cn(
