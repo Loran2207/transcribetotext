@@ -81,7 +81,7 @@ function Banner({ watched, total, next, onContinue }: { watched: number; total: 
           <h1 className="text-[20px] font-bold leading-[26px] tracking-[-0.4px] text-white">Academy</h1>
           <p className="mt-[2px] text-[13px] leading-[18px] text-white/70">{total} lessons, one per feature. Read it in a minute or take the tour.</p>
         </div>
-        <div className="flex items-center gap-[14px]">
+        <div className="flex w-full flex-wrap items-center gap-x-[14px] gap-y-[12px] lg:w-auto lg:flex-nowrap">
           <div>
             <div className="flex items-baseline gap-[6px] text-white">
               <span className="text-[24px] font-bold leading-none tracking-[-0.6px] tabular-nums">{watched}</span>
@@ -97,7 +97,7 @@ function Banner({ watched, total, next, onContinue }: { watched: number; total: 
           {next ? (
             <button type="button" data-tour="academy-continue" onClick={onContinue} className="flex h-[36px] shrink-0 items-center gap-[8px] rounded-full bg-white pl-[14px] pr-[12px] text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
               <Icon icon={PlayIcon} size={12} strokeWidth={2.6} />
-              <span className="max-w-[220px] truncate">{watched === 0 ? "Start" : "Continue"}: {next.title}</span>
+              <span className="max-w-[240px] truncate">{watched === 0 ? "Start" : "Continue"}: {next.title}</span>
             </button>
           ) : (
             <span className="flex h-[36px] items-center gap-[6px] rounded-full border border-white/30 px-[14px] text-[13px] font-semibold text-white"><Icon icon={Tick02Icon} size={13} strokeWidth={3} />All done</span>
