@@ -934,6 +934,7 @@ export function TranscriptionModalsProvider({
 
   function addJob(name: string, fileType: "audio" | "video", opts?: TranscriptionJobOptions) {
     creditOnboarding("first-record");
+    creditOnboarding(opts?.source === "microphone" ? "way-voice" : opts?.kind === "meeting" ? "way-meeting" : opts?.source === "mp3" || opts?.source === "mp4" ? "way-file" : "way-link");
     const id = Math.random().toString(36).slice(2, 10);
     const createdAt = new Date().toISOString();
     let batchId: string | undefined;
@@ -2141,6 +2142,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
           {/* Drop zone - clickable + drag-and-drop, shrinks after files added */}
           <div
+            data-tour="upload-drop"
             onDragOver={e => { e.preventDefault(); setDragActive(true); }}
             onDragLeave={() => setDragActive(false)}
             onDrop={handleDrop}
@@ -2242,10 +2244,10 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
           {/* Footer: template + folder row, then Cancel + Start row */}
           <div className="flex flex-col gap-[12px]">
             <div className="flex items-start gap-[8px] max-sm:flex-col max-sm:items-stretch">
-              <div className="flex-1 min-w-0">
+              <div data-tour="upload-template" className="flex-1 min-w-0">
                 <TemplateSelector value={selectedTemplateId} onChange={setSelectedTemplateId} />
               </div>
-              <div className="flex-1 min-w-0">
+              <div data-tour="upload-folder" className="flex-1 min-w-0">
                 <FolderSelector value={selectedFolderId} onChange={setSelectedFolderId} />
               </div>
             </div>
@@ -3258,6 +3260,11 @@ function DemoLeaveAlert() {
 function AllModals() {
   const { openModal, setOpenModal } = useTranscriptionModals();
   const close = () => setOpenModal(null);
+  useEffect(() => {
+    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "upload-open") setOpenModal("upload"); if (t === "upload-close" || t === "close-all") setOpenModal(null); };
+    window.addEventListener("ttt-tour", on);
+    return () => window.removeEventListener("ttt-tour", on);
+  }, [setOpenModal]);
   return (
     <>
       <InstantSpeechSetupModal open={openModal === "record"} onClose={close} />

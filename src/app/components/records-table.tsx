@@ -1161,6 +1161,11 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
   const [dragRecordId, setDragRecordId] = useState<string | null>(null);
   const [dragOverFolderId, setDragOverFolderId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("Recent");
+  useEffect(() => {
+    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "records-trash") setActiveTab("Trash"); if (t === "close-all") setActiveTab("Recent"); };
+    window.addEventListener("ttt-tour", on);
+    return () => window.removeEventListener("ttt-tour", on);
+  }, []);
   const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<Set<string>>(new Set());
@@ -1579,7 +1584,7 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
                 const isTrash = tab === "Trash";
                 const count = tab === "Recent" ? recentCount : tab === "Starred" ? starredCount : tab === "Shared" ? sharedCount : trashCount;
                 return (
-                  <TabsTrigger key={tab} value={tab} variant="line" className={`max-lg:text-[13px] max-lg:whitespace-nowrap max-lg:shrink-0 ${activeTab === tab && isTrash ? "text-destructive data-[state=active]:text-destructive data-[state=active]:after:bg-destructive" : ""}`}>
+                  <TabsTrigger key={tab} value={tab} variant="line" data-tour={`records-tab-${tab.toLowerCase()}`} className={`max-lg:text-[13px] max-lg:whitespace-nowrap max-lg:shrink-0 ${activeTab === tab && isTrash ? "text-destructive data-[state=active]:text-destructive data-[state=active]:after:bg-destructive" : ""}`}>
                     {tab === "Recent" ? t("table.recent") : tab === "Starred" ? t("table.starred") : tab === "Shared" ? t("table.shared") : t("table.trash")}
                     <span className="opacity-50 font-[inherit]">{count}</span>
                   </TabsTrigger>

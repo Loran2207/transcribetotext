@@ -231,7 +231,7 @@ function FreePlanCard() {
   const features = ["AI Notes", "Recordings and transcripts export", "Transcript translation", "Up to 5 hours per transcription"];
 
   return (
-    <div className="rounded-[14px] overflow-hidden bg-card border border-border shadow-sm">
+    <div data-tour="plan-card" className="rounded-[14px] overflow-hidden bg-card border border-border shadow-sm">
       {/* Header with plan name */}
       <div className="px-[18px] pt-[16px] pb-[14px]">
         <span className="text-foreground" style={{ fontWeight: 700, fontSize: "18px", letterSpacing: "-0.3px" }}>You on Free Plan</span>
@@ -255,7 +255,7 @@ function FreePlanCard() {
       <div className="mx-[18px] h-px bg-border" />
 
       {/* CTA section */}
-      <div className="px-[18px] py-[16px] flex flex-col items-center gap-[10px]">
+      <div data-tour="plan-cta" className="px-[18px] py-[16px] flex flex-col items-center gap-[10px]">
         <Button
           className="w-full h-[38px] rounded-full gap-[6px] hover:-translate-y-px bg-primary text-primary-foreground"
           style={{

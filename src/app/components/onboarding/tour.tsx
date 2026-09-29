@@ -61,7 +61,7 @@ export function OnboardingTour() {
   const phone = useIsPhone();
   const reduce = useReducedMotion();
 
-  /* the moment a lesson ends: confetti and a word; the sixth opens the reward dialog instead of a toast */
+  /* the moment a lesson ends: confetti and a word; the last first step opens the reward dialog instead of a toast */
   useEffect(() => {
     if (!celebration) return;
     if (celebration === "all") { celebrate(true); return; }

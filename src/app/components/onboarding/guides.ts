@@ -11,7 +11,7 @@
      and that lesson counts as done only when an upload really starts;
    - as little text as possible. */
 
-export type TourTarget = { page: "dashboard" | "records" | "calendar" | "templates" | "shared" | "academy" } | { path: string };
+export type TourTarget = { page: "dashboard" | "records" | "calendar" | "templates" | "shared" | "academy" | "settings" } | { path: string };
 
 export type TourStep = {
   anchor: string;
@@ -196,6 +196,63 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       { anchor: "quick-find-filters", go: HOME, side: "bottom", title: "Narrow it down", body: "By folder, source, who recorded it or when.", quickFind: { open: true } },
     ],
   },
+  {
+    id: "upload-options",
+    title: "Set it up before you start",
+    seconds: 30,
+    steps: [
+      PAGE_HOME,
+      { anchor: "upload-drop", go: HOME, side: "bottom", title: "Drop a file", body: "Audio or video. The upload opens right here, from the first card on Home.", trigger: "upload-open" },
+      { anchor: "upload-template", go: HOME, side: "top", title: "Pick the notes first", body: "Choose a template now and the summary comes back in that shape.", trigger: "upload-open" },
+      { anchor: "upload-folder", go: HOME, side: "top", title: "Send it to a folder", body: "The transcript lands where it belongs, no sorting later.", trigger: "upload-open" },
+      { anchor: "upload-drop", go: HOME, side: "bottom", title: "Language and speakers", body: "Once a file is in, set its language, turn on speaker names or live translation. Advanced options hold the rest.", trigger: "upload-open" },
+    ],
+  },
+  {
+    id: "meeting-settings",
+    title: "Tune the meeting recorder",
+    seconds: 30,
+    steps: [
+      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Where your calls live", body: "Meetings, in the sidebar. Next takes you there." },
+      PAGE_MEETINGS,
+      { anchor: "meetings-tabs|meetings-accounts", go: CALENDAR, side: "bottom", title: "Settings", body: "Everything the recorder does by itself is set here, once a calendar is connected.", trigger: "meetings-settings" },
+      { anchor: "meetings-autorecord|meetings-accounts", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Choose which meetings the recorder joins on its own.", trigger: "meetings-settings" },
+      { anchor: "meetings-recap|meetings-accounts", go: CALENDAR, side: "top", title: "After the call", body: "Who gets the recap email and access to the recording.", trigger: "meetings-settings" },
+    ],
+  },
+  {
+    id: "highlights",
+    title: "Play, highlight, comment",
+    seconds: 30,
+    steps: [
+      OPEN_RECORD_AGAIN,
+      PAGE_RECORD,
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Hover a block", body: "A bar appears: highlight it, comment on it, share or copy just that part." },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Select a few words", body: "Only those words get the highlight or the comment." },
+      { anchor: "record-speed|record-transcript-body", go: RECORD, side: "top", title: "Set the pace", body: "Half speed to double. The text follows the voice as it plays." },
+    ],
+  },
+  {
+    id: "trash",
+    title: "Bring back a deleted file",
+    seconds: 20,
+    steps: [
+      { anchor: "nav-records|menu", go: HOME, side: "right", title: "Where recordings live", body: "My Records, in the sidebar. Next takes you there." },
+      PAGE_RECORDS,
+      { anchor: "records-tab-trash|records-tabs", go: RECORDS, side: "bottom", title: "Trash", body: "A deleted recording waits here. Nothing is gone at once.", trigger: "records-trash" },
+      { anchor: "records-table|records-tabs", go: RECORDS, side: "bottom", title: "Restore or delete for good", body: "Open a row's menu: put it back where it was, or remove it forever.", trigger: "records-trash" },
+    ],
+  },
+  {
+    id: "plan",
+    title: "Your plan and limits",
+    seconds: 20,
+    steps: [
+      PAGE_HOME,
+      { anchor: "plan-card", go: HOME, side: "left", title: "What Free includes", body: "The files you have used this month and the day the count resets." },
+      { anchor: "plan-cta|plan-card", go: HOME, side: "left", title: "When you need more", body: "Start the trial or upgrade. A gift code goes in at checkout." },
+    ],
+  },
 ];
 
 /* The Academy: every lesson gets a cover, a section and one plain line of
@@ -205,6 +262,7 @@ export const ACADEMY_SECTIONS: { id: string; tab: string; title: string; subtitl
   { id: "work", tab: "Transcripts", title: "Work with a transcript", subtitle: "Read it, fix it, shape the notes" },
   { id: "share", tab: "Share", title: "Share and export", subtitle: "Get it to the people who need it" },
   { id: "organize", tab: "Organize", title: "Organize and find", subtitle: "Keep a hundred recordings in order" },
+  { id: "account", tab: "Account", title: "Your account", subtitle: "Plan, limits and what is included" },
 ];
 
 const GUIDE_META: Record<string, { cover: string; category: string; summary: string }> = {
@@ -218,28 +276,48 @@ const GUIDE_META: Record<string, { cover: string; category: string; summary: str
   "share": { cover: "/images/academy3/share.jpg", category: "share", summary: "Invite people, turn on a link, copy the text." },
   "folders": { cover: "/images/academy3/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
   "find": { cover: "/images/academy3/find.jpg", category: "organize", summary: "Search what was said, across every recording." },
+  "upload-options": { cover: "/images/academy3/upload-options.jpg", category: "create", summary: "Template, folder, language and speakers, set before the transcript starts." },
+  "meeting-settings": { cover: "/images/academy3/meeting-settings.jpg", category: "create", summary: "Which calls the recorder joins, and who gets the recap." },
+  "highlights": { cover: "/images/academy3/highlights.jpg", category: "work", summary: "Highlight, comment and share one part; play it at your pace." },
+  "trash": { cover: "/images/academy3/trash.jpg", category: "organize", summary: "Restore a deleted recording, or remove it for good." },
+  "plan": { cover: "/images/academy3/plan.jpg", category: "account", summary: "What Free includes, and how to get more." },
 };
 export const GUIDES: Guide[] = RAW_GUIDES.map((g) => ({ ...g, ...GUIDE_META[g.id] }));
 
-/* Account Setup: the six real actions that make the account useful. Each is
-   done by doing it in the product (the component fires `creditOnboarding(id)`);
-   `how` is the Academy lesson that walks you there. The gift rewards this list. */
-export type SetupItem = { id: string; title: string; why: string; how: string; run: "upload" | "calendar" | "tour" };
+/* First steps (review 58, Kirill 29.09): the real actions a new account tries
+   once. Each is done by doing it in the product (the component fires
+   `creditOnboarding(id)`); `how` is the Academy lesson that walks you there.
+   The first item is the four ways in, one chip each, so the user tries every
+   way to make a transcript. Every required item works on the Free plan, so the
+   gift can always be earned: sharing is Pro, so it is not on this list. The
+   photo is optional and never holds the gift back. */
+export type SetupPart = { id: string; label: string; modal: "upload" | "record" | "meeting" | "link" };
+export type SetupItem = { id: string; title: string; why: string; how: string; run: "create" | "calendar" | "tour" | "profile"; parts?: SetupPart[]; optional?: boolean };
 export const SETUP: SetupItem[] = [
-  { id: "first-record", title: "Upload your first recording", why: "Everything starts from a transcript.", how: "first-record", run: "upload" },
+  { id: "create", title: "Make a transcript four ways", why: "A file, your voice, a meeting, a link.", how: "first-record", run: "create", parts: [
+    { id: "way-file", label: "File", modal: "upload" },
+    { id: "way-voice", label: "Voice", modal: "record" },
+    { id: "way-meeting", label: "Meeting", modal: "meeting" },
+    { id: "way-link", label: "Link", modal: "link" },
+  ] },
   { id: "calendar", title: "Connect your calendar", why: "The recorder joins your meetings by itself.", how: "meetings", run: "calendar" },
   { id: "template", title: "Apply a template", why: "Notes in the shape you need, every time.", how: "summary", run: "tour" },
   { id: "speakers", title: "Name a speaker", why: "So the notes say who said what.", how: "speakers", run: "tour" },
   { id: "folders", title: "Create a folder", why: "One per client or project.", how: "folders", run: "tour" },
-  { id: "share", title: "Share a recording", why: "A link or an invite, in one click.", how: "share", run: "tour" },
+  { id: "photo", title: "Add your photo", why: "So people know who shared the notes.", how: "", run: "profile", optional: true },
 ];
+export const setupIds = (x: SetupItem) => (x.parts ? x.parts.map((p) => p.id) : [x.id]);
+export const isSetupDone = (x: SetupItem, has: (id: string) => boolean) => setupIds(x).every(has);
+export const SETUP_REQUIRED = SETUP.filter((x) => !x.optional);
+export const SETUP_ACTION_IDS = SETUP.flatMap(setupIds);
+export const setupComplete = (has: (id: string) => boolean) => SETUP_REQUIRED.every((x) => isSetupDone(x, has));
 
 /* The guide who walks you through: her portrait sits on every tour card and
    on the reward, the words are hers, the arrows only point. */
 export const GUIDE_PERSON = { name: "Mia", title: "Customer Success Lead", avatar: "/images/onboarding-guide.png", figure: "/images/onboarding-mia.png" };
 
 
-/* The reward for finishing all six. */
+/* The reward for finishing the first steps. */
 export const REWARD = {
   code: "WELCOME1M",
   title: "Your first month is on us",

@@ -4,14 +4,18 @@ import { ArrowRight01Icon, ArrowUp01Icon, Tick02Icon } from "@hugeicons/core-fre
 import { Icon } from "../ui/icon";
 import { cn } from "../ui/utils";
 import { useOnboarding } from "./onboarding-context";
+import { SETUP_REQUIRED, isSetupDone, type SetupItem } from "./guides";
 import { useTranscriptionModals } from "../transcription-modals";
 
-/* "Account Setup": a fixed card at the top of the Home right panel (web) and a
+/* "First steps": a fixed card at the top of the Home right panel (web) and a
    slide of the Home info carousel on the phone and tablet.
 
-   The split (Artem + Kirill, 29.09): this card is the six real actions that
-   make the account useful, each done by doing it; the ten lessons that explain
-   the product live on the Academy page. The gift rewards the setup.
+   The split (Artem + Kirill, 29.09): this card is the real actions a new
+   account tries once, each done by doing it; the lessons that explain the
+   product live on the Academy page. The gift rewards the first steps.
+   Review 58: renamed from "Set up your account" (half of it is trying the
+   product, not configuring it); the first step is the four ways in, one chip
+   each; the photo is optional; every required step works on the Free plan.
 
    Built in the in-app banner language: navy laid over a dark photograph from
    the left, sentence-case type on it, the site's notch as a bite on each side.
@@ -46,8 +50,9 @@ function useRunSetup() {
   const { setOpenModal } = useTranscriptionModals();
   return (id: string) => {
     const item = ob.setup.find((x) => x.id === id); if (!item) return;
-    if (item.run === "upload") { setOpenModal("upload"); return; }
+    if (item.run === "create") { const part = item.parts?.find((p) => !ob.actions.has(p.id)) ?? item.parts?.[0]; if (part) setOpenModal(part.modal); return; }
     if (item.run === "calendar") { ob.navigate({ page: "calendar" }); return; }
+    if (item.run === "profile") { ob.navigate({ page: "settings" }); return; }
     ob.startGuide(item.how);
   };
 }
@@ -56,11 +61,12 @@ export function OnboardingCard() {
   const ob = useOnboarding();
   const reduce = useReducedMotion();
   if (ob.hidden) return null;
-  const doneCount = ob.actions.size;
-  const total = ob.setup.length;
+  const has = (id: string) => ob.actions.has(id);
+  const doneCount = SETUP_REQUIRED.filter((x) => isSetupDone(x, has)).length;
+  const total = SETUP_REQUIRED.length;
   const open = ob.expanded;
 
-  /* all six done: the dialog handed the gift over and the code lives in Plan Management */
+  /* all first steps done: the dialog handed the gift over and the code lives in Plan Management */
   if (ob.allDone) return null;
 
   const fade = { initial: reduce ? false : { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, exit: reduce ? undefined : { opacity: 0, y: -4 }, transition: { duration: 0.16 } } as const;
@@ -74,12 +80,12 @@ export function OnboardingCard() {
           <AnimatePresence initial={false} mode="wait">
             {open ? (
               <motion.span key="open" {...fade} className="absolute left-[19px] top-[15px] right-[52px]">
-                <span className="block truncate text-[15px] font-bold leading-[20px] tracking-[-0.2px] text-white">Set up your account</span>
-                <span className="block truncate text-[12px] font-medium leading-[16px] text-white/70">{total} things to do once<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></span>
+                <span className="block truncate text-[15px] font-bold leading-[20px] tracking-[-0.2px] text-white">First steps</span>
+                <span className="block truncate text-[12px] font-medium leading-[16px] text-white/70">Try each once<span className="text-white/45"> · </span><span className="tabular-nums text-white/85">{doneCount} of {total} done</span></span>
               </motion.span>
             ) : (
               <motion.span key="closed" {...fade} className="absolute left-[19px] top-[15px] right-[52px]">
-                <span className="block truncate text-[13px] font-semibold leading-[19.5px] text-white">Set up your account</span>
+                <span className="block truncate text-[13px] font-semibold leading-[19.5px] text-white">First steps</span>
                 <span className="mt-[1px] flex items-center gap-[5px] text-[11px] font-medium leading-[16.5px] text-white/80">
                   <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain" />
                   <span className="truncate">{total - doneCount} to do, then 1 month free</span>
@@ -111,31 +117,37 @@ function AcademyLink() {
     <button type="button" data-onboarding-academy="" onClick={() => ob.navigate({ page: "academy" })} className={cn("group flex w-full items-center gap-[10px] border-t border-border px-[18px] py-[11px] text-left transition-colors hover:bg-muted/60", focus)}>
       <span className="min-w-0 flex-1">
         <span className="block text-[13px] font-semibold leading-[18px] text-foreground">Academy</span>
-        <span className="block truncate text-[12px] leading-[16px] text-muted-foreground">{ob.guides.length} short lessons on every feature<span className="text-border"> · </span><span className="tabular-nums">{watched} of {ob.guides.length} watched</span></span>
+        <span className="block truncate text-[12px] leading-[16px] text-muted-foreground">Short lessons on every feature<span className="text-border"> · </span><span className="tabular-nums">{watched} watched</span></span>
       </span>
       <Icon icon={ArrowRight01Icon} size={16} strokeWidth={2} className="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-[2px]" />
     </button>
   );
 }
 
-/* The six actions and the gift on one rail. Shared by the web card and the
-   compact-shell slide. */
+/* The first steps and the gift on one rail. Shared by the web card and the
+   compact-shell slide. The four ways in sit on one row as chips; the photo is
+   marked optional and the gift does not wait for it. */
 function SetupList({ compact }: { compact: boolean }) {
   const ob = useOnboarding();
   const run = useRunSetup();
-  const total = ob.setup.length;
-  const next = ob.setup.find((x) => !ob.actions.has(x.id));
+  const { setOpenModal } = useTranscriptionModals();
+  const has = (id: string) => ob.actions.has(id);
+  const total = SETUP_REQUIRED.length;
+  const next = SETUP_REQUIRED.find((x) => !isSetupDone(x, has));
   const ROW_H = compact ? 34 : ROW;
-  const label = (run: string) => (run === "upload" ? "Upload" : run === "calendar" ? "Connect" : "Do it");
+  const heightOf = (x: SetupItem) => (x.parts && !isSetupDone(x, has) ? ROW_H + 30 : ROW_H);
+  const label = (x: SetupItem) => (x.run === "calendar" ? "Connect" : x.run === "profile" ? "Add" : x.run === "create" ? "Start" : "Do it");
   return (
     <ol className="relative -mt-px flex flex-col bg-card px-[8px] pt-[7px] pb-[8px]">
       {ob.setup.map((x, i) => {
-        const done = ob.actions.has(x.id);
+        const done = isSetupDone(x, has);
         const isNext = next?.id === x.id;
+        const h = heightOf(x);
+        const partsDone = x.parts ? x.parts.filter((p) => has(p.id)).length : 0;
         return (
           <li key={x.id} className="relative">
-            <span aria-hidden className={cn("absolute left-[20px] top-[20px] z-[1] w-[2px] transition-colors duration-500", done ? "bg-primary" : "bg-border")} style={{ height: ROW_H }} />
-            <div className={cn("group flex w-full items-center gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors hover:bg-muted/70")} style={{ height: ROW_H }}>
+            <span aria-hidden className={cn("absolute left-[20px] top-[20px] z-[1] w-[2px] transition-colors duration-500", done ? "bg-primary" : "bg-border")} style={{ height: h }} />
+            <div className={cn("group flex w-full gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors hover:bg-muted/70", x.parts && !done ? "items-start pt-[8px]" : "items-center")} style={{ height: h }}>
               <span className={cn(
                 "relative z-[2] flex size-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums transition-colors",
                 done ? "bg-primary text-primary-foreground" : isNext ? "border-2 border-primary bg-card text-primary" : "border-2 border-border bg-card text-muted-foreground group-hover:border-foreground/25 group-hover:text-foreground",
@@ -143,10 +155,26 @@ function SetupList({ compact }: { compact: boolean }) {
                 {done ? <Icon icon={Tick02Icon} size={12} strokeWidth={3} /> : i + 1}
               </span>
               <span className="min-w-0 flex-1">
-                <span className={cn("block truncate text-[13.5px] leading-[18px] transition-colors", done ? "font-medium text-muted-foreground" : isNext ? "font-semibold text-foreground" : "font-medium text-foreground/80 group-hover:text-foreground")}>{x.title}</span>
+                <span className="flex items-baseline gap-[6px]">
+                  <span className={cn("truncate text-[13.5px] leading-[18px] transition-colors", done ? "font-medium text-muted-foreground" : isNext ? "font-semibold text-foreground" : "font-medium text-foreground/80 group-hover:text-foreground")}>{x.title}</span>
+                  {x.parts && !done && <span className="shrink-0 text-[11.5px] font-medium tabular-nums text-muted-foreground">{partsDone} of {x.parts.length}</span>}
+                  {x.optional && !done && <span className="shrink-0 text-[11.5px] font-medium text-muted-foreground">Optional</span>}
+                </span>
+                {x.parts && !done && (
+                  <span className="mt-[7px] flex gap-[5px]">
+                    {x.parts.map((p) => {
+                      const on = has(p.id);
+                      return (
+                        <button key={p.id} type="button" data-onboarding-way={p.id} onClick={() => setOpenModal(p.modal)} className={cn("flex h-[22px] items-center gap-[4px] rounded-full px-[8px] text-[11.5px] font-semibold transition-colors", on ? "bg-primary/10 text-primary" : "border border-border bg-card text-foreground/80 hover:border-foreground/25 hover:text-foreground", focus)}>
+                          {on && <Icon icon={Tick02Icon} size={10} strokeWidth={3} />}{p.label}
+                        </button>
+                      );
+                    })}
+                  </span>
+                )}
               </span>
-              {!done && (
-                <button type="button" data-onboarding-setup={x.id} onClick={() => run(x.id)} className={cn("flex h-[26px] shrink-0 items-center rounded-full px-[12px] text-[12px] font-semibold transition-colors", isNext ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border bg-card text-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-muted", focus)}>{label(x.run)}</button>
+              {!done && !x.parts && (
+                <button type="button" data-onboarding-setup={x.id} onClick={() => run(x.id)} className={cn("flex h-[26px] shrink-0 items-center rounded-full px-[12px] text-[12px] font-semibold transition-colors", isNext ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border bg-card text-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-muted", focus)}>{label(x)}</button>
               )}
             </div>
           </li>
@@ -159,7 +187,7 @@ function SetupList({ compact }: { compact: boolean }) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13.5px] font-semibold leading-[18px] text-foreground">Your gift: 1 month free</span>
-            <span className="block truncate text-[12px] font-medium leading-[16px] text-muted-foreground">Unlocks when all {total} are done</span>
+            <span className="block truncate text-[12px] font-medium leading-[16px] text-muted-foreground">Unlocks when the {total} steps are done</span>
           </span>
         </div>
       </li>
@@ -173,13 +201,14 @@ function SetupList({ compact }: { compact: boolean }) {
 export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCls }: { expanded: boolean; onToggle: () => void; headCls: string; cardCls: string; detailCls: string }) {
   const ob = useOnboarding();
   if (ob.hidden || ob.allDone) return null;
-  const doneCount = ob.actions.size;
-  const total = ob.setup.length;
+  const has = (id: string) => ob.actions.has(id);
+  const doneCount = SETUP_REQUIRED.filter((x) => isSetupDone(x, has)).length;
+  const total = SETUP_REQUIRED.length;
   return (
     <div data-onboarding-card="" data-state={expanded ? "open" : "closed"} className={cardCls}>
       <button type="button" data-onboarding-collapse={expanded ? "" : undefined} data-onboarding-pill={expanded ? undefined : ""} onClick={onToggle} aria-expanded={expanded} className={headCls}>
         <span className="flex min-w-0 flex-col gap-[8px]">
-          <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>Set up your account</span>
+          <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>First steps</span>
           <span className="flex items-baseline gap-[8px] text-foreground">
             <span className="tabular-nums" style={{ fontWeight: 700, fontSize: "26px", letterSpacing: "-0.6px", lineHeight: 1 }}>{doneCount}</span>
             <span className="text-muted-foreground" style={{ fontWeight: 500, fontSize: "12px", lineHeight: "16px" }}>of {total} done</span>
@@ -193,7 +222,7 @@ export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCl
         <Icon icon={ArrowUp01Icon} size={18} strokeWidth={2} className="shrink-0 text-muted-foreground transition-transform duration-200" style={{ transform: expanded ? "rotate(0deg)" : "rotate(180deg)" }} />
       </button>
       {expanded && (
-        <div className={cn(detailCls, "!max-h-[300px] px-[6px] py-[6px]")}>
+        <div className={cn(detailCls, "!max-h-[340px] px-[6px] py-[6px]")}>
           <SetupList compact />
           <AcademyLink />
         </div>

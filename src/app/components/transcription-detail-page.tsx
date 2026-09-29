@@ -1610,7 +1610,7 @@ function MediaPlayer({
         <div className="flex items-center justify-end gap-2">
           {trailing && <span className="mr-auto pl-4">{trailing}</span>}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button data-tour="record-speed" variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
           </DropdownMenu>
           <span className="text-xs tabular-nums text-muted-foreground">{duration}</span>

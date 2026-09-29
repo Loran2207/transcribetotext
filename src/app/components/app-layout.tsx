@@ -40,7 +40,7 @@ export function AppLayout() {
     onboarding.registerNavigator((target) => {
       if ("path" in target) { if (location.pathname !== target.path) routerNavigate(target.path); return; }
       if (isSubRoute) { routerNavigate("/", { state: { page: target.page } }); return; }
-      prevPageRef.current = target.page;
+      if (target.page !== "settings") prevPageRef.current = target.page;
       setActivePage(target.page);
     });
   }, [onboarding, isSubRoute, location.pathname, routerNavigate]);

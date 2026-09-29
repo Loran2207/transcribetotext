@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   AiMagicIcon, Calendar03Icon, CheckmarkSquare02Icon, Copy01Icon, Download04Icon, FileAudioIcon,
-  Folder01Icon, Link01Icon, PencilEdit01Icon, Search01Icon, SquareIcon, StarIcon, Tick02Icon, TranslateIcon,
+  Comment01Icon, Delete02Icon, Folder01Icon, Link01Icon, Mail01Icon, PencilEdit01Icon, PlayIcon, Search01Icon,
+  Settings02Icon, SlidersHorizontalIcon, SquareIcon, StarIcon, Tick02Icon, TranslateIcon, Undo02Icon,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { cn } from "./ui/utils";
@@ -155,6 +156,70 @@ const WIDGETS: Record<string, () => React.ReactElement> = {
     </div>
   ),
 };
+
+/* Review 58: the five lessons added after the feature audit. */
+function Pick({ k, v }: { k: string; v: string }) {
+  return (
+    <div className={cn(ROW, "mt-[5px] flex items-center gap-[7px] px-[7px] py-[4px]")}>
+      <span className="w-[54px] text-[9.5px] font-semibold text-white/55">{k}</span>
+      <span className="min-w-0 flex-1 truncate text-[10px] font-semibold text-white">{v}</span>
+    </div>
+  );
+}
+
+Object.assign(WIDGETS, {
+  "upload-options": () => (
+    <div className={cn(GLASS, "p-[9px]")}>
+      <Head icon={SlidersHorizontalIcon}>Before you start</Head>
+      <Pick k="Template" v="Meeting notes" />
+      <Pick k="Folder" v="Clients / Acme" />
+    </div>
+  ),
+  "meeting-settings": () => (
+    <div className={cn(GLASS, "p-[9px]")}>
+      <Head icon={Settings02Icon}>Recorder settings</Head>
+      <div className={cn(ROW, "mt-[5px] flex items-center gap-[7px] px-[7px] py-[4px]")}>
+        <span className="min-w-0 flex-1 truncate text-[10px] font-semibold text-white">Auto-record meetings I own</span>
+        <Toggle on />
+      </div>
+      <div className={cn(ROW, "mt-[5px] flex items-center gap-[7px] px-[7px] py-[4px]")}>
+        <Icon icon={Mail01Icon} size={10} strokeWidth={2.2} className="text-white/60" />
+        <span className="min-w-0 flex-1 truncate text-[10px] font-semibold text-white">Recap to all participants</span>
+        <Toggle on />
+      </div>
+    </div>
+  ),
+  "highlights": () => (
+    <div className={cn(GLASS, "p-[9px]")}>
+      <p className="text-[10px] font-semibold leading-[14px] text-white/90">
+        <span className={ACCENT}>Anna</span> We ship <span className="rounded-[3px] bg-[#FFD66B]/40 px-[2px] text-white">on Monday</span> and tell support Friday.
+      </p>
+      <div className="mt-[7px] flex items-center gap-[6px]">
+        <span className="flex items-center gap-[4px] rounded-full bg-white/[0.12] px-[7px] py-[2px] text-[9.5px] font-semibold text-white"><Icon icon={Comment01Icon} size={10} strokeWidth={2.2} className={ACCENT} />2 comments</span>
+        <span className="ml-auto flex items-center gap-[4px] rounded-full bg-white px-[7px] py-[2px] text-[9.5px] font-bold text-[#0A1630]"><Icon icon={PlayIcon} size={9} strokeWidth={2.6} />1.5x</span>
+      </div>
+    </div>
+  ),
+  "trash": () => (
+    <div className={cn(GLASS, "p-[9px]")}>
+      <Head icon={Delete02Icon} right={<span className={LABEL}>Trash</span>}>Weekly sync.m4a</Head>
+      <div className="mt-[7px] flex gap-[5px]">
+        <span className="flex items-center gap-[4px] rounded-full bg-white px-[8px] py-[3px] text-[9.5px] font-bold text-[#0A1630]"><Icon icon={Undo02Icon} size={10} strokeWidth={2.4} />Restore</span>
+        <span className="rounded-full bg-white/[0.10] px-[8px] py-[3px] text-[9.5px] font-semibold text-white/75">Delete forever</span>
+      </div>
+    </div>
+  ),
+  "plan": () => (
+    <div className={cn(GLASS, "p-[9px]")}>
+      <Head icon={AiMagicIcon} right={<span className="text-[9.5px] font-semibold tabular-nums text-white/70">1 of 10</span>}>Free plan</Head>
+      <span className="mt-[7px] block h-[4px] overflow-hidden rounded-full bg-white/20"><span className="block h-full w-[10%] rounded-full bg-[#8FC2FF]" /></span>
+      <div className="mt-[7px] flex items-center gap-[6px]">
+        <span className="text-[9.5px] font-semibold text-white/60">Files this month</span>
+        <span className="ml-auto rounded-full bg-white px-[8px] py-[2px] text-[9.5px] font-bold text-[#0A1630]">Start trial</span>
+      </div>
+    </div>
+  ),
+});
 
 /* The cover: the photograph, the site's whisper of a wash, the lesson's piece of interface. */
 export function SceneCover({ id, src, size = "sm", className }: { id: string; src: string; size?: "sm" | "md"; className?: string }) {

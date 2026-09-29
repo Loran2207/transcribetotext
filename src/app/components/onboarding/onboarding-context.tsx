@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { GUIDES, INTRO_STEP, SETUP, type Guide, type TourTarget } from "./guides";
+import { GUIDES, INTRO_STEP, SETUP, SETUP_ACTION_IDS, SETUP_REQUIRED, setupComplete, setupIds, type Guide, type TourTarget } from "./guides";
 
 /* State of the guide: the Academy (ten lessons, competence) and Account Setup
-   (six real actions, the thing that makes the account useful). Two different
+   (the first steps, real actions that makes the account useful). Two different
    motivations, kept apart on purpose (Artem + Kirill, 29.09): the Academy is
    read or toured, Account Setup is done, and the gift rewards the setup.
 
@@ -30,11 +30,11 @@ function load(): Stored {
   if (typeof window === "undefined") return EMPTY;
   const demo = window.localStorage.getItem("ttt_demo_onboarding");
   const gid = (n: number) => GUIDES.slice(0, n).map((g) => g.id);
-  const sid = (n: number) => SETUP.slice(0, n).map((s) => s.id);
+  const sid = (n: number) => SETUP_REQUIRED.slice(0, n).flatMap(setupIds);
   if (demo === "fresh") return { ...EMPTY };
   if (demo === "half") return { ...EMPTY, introSeen: true, done: gid(3), seen: gid(4), actions: sid(2) };
-  if (demo === "five") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length - 1), seen: gid(GUIDES.length - 1), actions: sid(SETUP.length - 1) };
-  if (demo === "done") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length), seen: gid(GUIDES.length), actions: sid(SETUP.length) };
+  if (demo === "five") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length - 1), seen: gid(GUIDES.length - 1), actions: sid(SETUP_REQUIRED.length - 1) };
+  if (demo === "done") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length), seen: gid(GUIDES.length), actions: sid(SETUP_REQUIRED.length) };
   if (demo === "off") return { ...EMPTY, hidden: true };
   try {
     const raw = window.localStorage.getItem(KEY);
@@ -105,16 +105,16 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const on = (e: Event) => {
       const id = (e as CustomEvent<string>).detail;
-      const setupItem = SETUP.find((x) => x.id === id);
+      const setupItem = SETUP_ACTION_IDS.includes(id);
       const guide = GUIDES.find((g) => g.id === id);
       if (!setupItem && !guide) return;
       setStored((s) => {
         const actions = setupItem && !s.actions.includes(id) ? [...s.actions, id] : s.actions;
         const done = guide && !s.done.includes(id) ? [...s.done, id] : s.done;
         if (actions === s.actions && done === s.done) return s;
-        const setupComplete = SETUP.every((x) => actions.includes(x.id));
-        const setupWasComplete = SETUP.every((x) => s.actions.includes(x.id));
-        if (setupComplete && !setupWasComplete) setCelebration("all");
+        const nowComplete = setupComplete((x) => actions.includes(x));
+        const wasComplete = setupComplete((x) => s.actions.includes(x));
+        if (nowComplete && !wasComplete) setCelebration("all");
         else if (guide && done !== s.done) setCelebration({ kind: "guide", guide, index: GUIDES.findIndex((g) => g.id === id) });
         return { ...s, actions, done };
       });
@@ -178,7 +178,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       done,
       seen,
       actions,
-      allDone: SETUP.every((x) => actions.has(x.id)),
+      allDone: setupComplete((x) => actions.has(x)),
       academyDone: GUIDES.every((g) => done.has(g.id)),
       hidden: stored.hidden,
       rewardClaimed: stored.rewardClaimed,

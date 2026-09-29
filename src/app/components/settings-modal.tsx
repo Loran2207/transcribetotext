@@ -61,6 +61,7 @@ import { setInnerScreen } from "./inner-screen";
 import { useAuth } from "./auth-context";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { creditOnboarding } from "./onboarding/onboarding-context";
 
 // ── Reusable action button ────────────────────────────────────
 interface ActionBtnProps {
@@ -487,6 +488,7 @@ export function AccountSettingsDetailed({ onOpenSection }: { onOpenSection: (id:
     const file = e.target.files?.[0];
     if (!file) return;
     setAvatarSrc(URL.createObjectURL(file));
+    creditOnboarding("photo");
     e.target.value = "";
   }
 
@@ -730,7 +732,8 @@ function FormLabel({ children }: { children: React.ReactNode }) {
 }
 
 function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void }) {
-  const { displayName: localName, setDisplayName: setLocalName } = useUserProfile();
+  const { displayName: localName, setDisplayName: setLocalName, avatarSrc, setAvatarSrc } = useUserProfile();
+  const photoRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { desktop } = useShell();
 
@@ -757,6 +760,17 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void
     toast.success("Profile updated");
   }
 
+  /* The photo people see next to your name when you share (review 58: the
+     First steps list offers it as an optional step, so the page must have it). */
+  function pickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarSrc(URL.createObjectURL(file));
+    creditOnboarding("photo");
+    toast.success("Photo updated");
+    e.target.value = "";
+  }
+
   return (
     <>
       {showSetPw && <ChangePasswordDialog onClose={() => setShowSetPw(false)} />}
@@ -769,6 +783,14 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void
       />}
 
       <div className="flex flex-col">
+        <div data-account-photo="" className="mb-6 flex items-center gap-4">
+          <Avatar className="size-14">
+            {avatarSrc ? <AvatarImage src={avatarSrc} alt="" className="object-cover" /> : null}
+            <AvatarFallback className="bg-primary/10 text-base font-semibold text-primary">{initialsOf(name)}</AvatarFallback>
+          </Avatar>
+          <Button variant="pill-outline" onClick={() => photoRef.current?.click()} className="h-9 px-4 text-[13px] font-semibold">Upload photo</Button>
+          <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={pickPhoto} />
+        </div>
         {/* Name and email sit side by side on anything wider than a phone,
             exactly as the product lays them out. */}
         <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">

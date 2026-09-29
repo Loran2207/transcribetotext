@@ -115,9 +115,9 @@ function saveSettings(settings: MeetingSettings) {
    Building blocks
    ═══════════════════════════════════════════ */
 
-export function SettingsCard({ children }: { children: React.ReactNode }) {
+export function SettingsCard({ children, tour }: { children: React.ReactNode; tour?: string }) {
   return (
-    <section className="rounded-xl border border-border bg-card px-6 py-5">
+    <section data-tour={tour} className="rounded-xl border border-border bg-card px-6 py-5">
       {children}
     </section>
   );
@@ -303,7 +303,7 @@ export function MeetingsSettingsContent({
         />
 
         {/* Auto-recording */}
-        <SettingsCard>
+        <SettingsCard tour="meetings-autorecord">
           <SettingsCardTitle
             title="Auto-recording"
             subtitle="Only available for meetings you own."
@@ -326,7 +326,7 @@ export function MeetingsSettingsContent({
         </SettingsCard>
 
         {/* After-meeting settings */}
-        <SettingsCard>
+        <SettingsCard tour="meetings-recap">
           <SettingsCardTitle title="After-meeting settings" />
 
           <div className="flex flex-col gap-6">
