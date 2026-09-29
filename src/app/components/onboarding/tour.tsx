@@ -130,7 +130,7 @@ export function OnboardingTour() {
         window.setTimeout(settle, reduce ? 0 : 320);
         return;
       }
-      if (tries++ < 90) frame = requestAnimationFrame(look); else setMissing(true);
+      if (tries++ < 90) frame = requestAnimationFrame(look); else { setMissing(true); setRect(null); }
     };
     look();
     return () => { cancelled = true; cancelAnimationFrame(frame); };
@@ -182,10 +182,11 @@ export function OnboardingTour() {
   }
   if (rect && !phone && !pageWide) {
     const vw = window.innerWidth, vh = window.innerHeight;
-    const est = 150;
+    const est = cardRef.current?.offsetHeight ?? 200;
     let side = step.side ?? "bottom";
-    if (side === "bottom" && rect.top + rect.height + GAP + est > vh) side = "top";
-    if (side === "top" && rect.top - GAP - est < 0) side = "bottom";
+    const below = vh - (rect.top + rect.height + GAP), above = rect.top - GAP;
+    if (side === "bottom" && below < est + 12) side = above > below ? "top" : "bottom";
+    else if (side === "top" && above < est + 12) side = below > above ? "bottom" : "top";
     if (side === "right" && rect.left + rect.width + GAP + CARD_W > vw) side = "bottom";
     if (side === "left" && rect.left - GAP - CARD_W < 0) side = "bottom";
     const clampX = (x: number) => Math.max(12, Math.min(vw - CARD_W - 12, x));
@@ -199,6 +200,12 @@ export function OnboardingTour() {
   if (rect && !phone && "bottom" in cardStyle && !speaking) {
     const h = cardRef.current?.offsetHeight ?? 150;
     cardStyle = { top: rect.top - GAP - h, left: cardStyle.left };
+  }
+
+  /* review 60: whatever the side, the card stays on the screen (1024x768 ran it off the bottom) */
+  if (rect && !phone && typeof cardStyle.top === "number" && !speaking) {
+    const h = cardRef.current?.offsetHeight ?? 200;
+    cardStyle = { ...cardStyle, top: Math.max(12, Math.min(window.innerHeight - h - 12, cardStyle.top)) };
   }
 
   /* on the phone the card sits at the bottom, unless the lit element is down there too */
