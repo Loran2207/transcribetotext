@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useInView } from "motion/react";
 import { Cancel01Icon, Clock01Icon, PlayIcon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -8,7 +7,8 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from "./ui/sheet";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "./ui/drawer";
 import { useIsPhone } from "./ui/use-mobile";
 import { ScrollFade } from "./scroll-fade";
-import { LiveTranscript, SceneCover } from "./academy-scene";
+import { BannerStage, SceneCover } from "./academy-scene";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { ACADEMY_SECTIONS, GUIDE_PERSON, NO_ANCHOR, type Guide } from "./onboarding/guides";
 import { useOnboarding } from "./onboarding/onboarding-context";
 
@@ -17,9 +17,10 @@ import { useOnboarding } from "./onboarding/onboarding-context";
    competence.
 
    Review 56 (Kirill, 29.09): covers and banner speak the marketing site v2
-   language, see academy-scene.tsx. Real night photographs, the product as
-   naked type on them, a live transcript typing in the banner. No lesson
-   numbers, the time chip stays translucent, the panel keeps the page dim. */
+   language, see academy-scene.tsx. Real night photographs; the banner plays
+   the scenes of one meeting; each card holds still with one frosted piece of
+   its interface (review 57). Tabs with counters as on Templates. The copy
+   never states how many guides exist: the Academy will keep growing. */
 
 const NAVY = "#0A1630";
 
@@ -27,6 +28,7 @@ export function AcademyPage() {
   const ob = useOnboarding();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [tab, setTab] = useState("all");
   const openGuide = ob.guides.find((g) => g.id === openId) ?? null;
 
   const watched = useMemo(() => new Set([...ob.done, ...ob.seen]), [ob.done, ob.seen]);
@@ -42,11 +44,22 @@ export function AcademyPage() {
       <div className="px-4 pt-[16px] pb-[40px] lg:px-[32px] lg:pt-[24px]">
         <Banner watched={watched.size} total={total} next={next} onContinue={() => next && startTour(next)} />
 
-        {ACADEMY_SECTIONS.map((sec) => {
+        <Tabs value={tab} onValueChange={setTab} className="mt-[22px] gap-0">
+          <div className="overflow-x-auto -mx-4 px-4 lg:-mx-[32px] lg:px-[32px] border-b border-border [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: "none" }}>
+            <TabsList variant="line" data-tour="academy-tabs" className="gap-5 whitespace-nowrap w-max border-0">
+              <TabsTrigger value="all" variant="line" className="max-lg:text-[13px]">All <span className="opacity-50 font-[inherit] ml-1">{total}</span></TabsTrigger>
+              {ACADEMY_SECTIONS.map((sec) => (
+                <TabsTrigger key={sec.id} value={sec.id} variant="line" className="max-lg:text-[13px]">{sec.tab} <span className="opacity-50 font-[inherit] ml-1">{ob.guides.filter((g) => g.category === sec.id).length}</span></TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+        </Tabs>
+
+        {ACADEMY_SECTIONS.filter((sec) => tab === "all" || tab === sec.id).map((sec) => {
           const inSec = ob.guides.filter((g) => g.category === sec.id);
           const doneIn = inSec.filter((g) => watched.has(g.id)).length;
           return (
-            <section key={sec.id} className="mt-9">
+            <section key={sec.id} className="mt-7">
               <div className="mb-[12px] flex items-baseline justify-between gap-4">
                 <h2 className="text-[16px] font-semibold leading-[22px] tracking-[-0.2px] text-foreground">{sec.title}<span className="ml-[8px] text-[13px] font-normal text-muted-foreground">{sec.subtitle}</span></h2>
                 <span className="shrink-0 text-[12.5px] font-medium tabular-nums text-muted-foreground">{doneIn} of {inSec.length}</span>
@@ -75,7 +88,7 @@ function Banner({ watched, total, next, onContinue }: { watched: number; total: 
       <div className="relative flex min-h-[220px] flex-col justify-between gap-6 px-[24px] py-[24px] lg:min-h-[280px] lg:px-[32px] lg:py-[30px]">
         <div>
           <h1 className="text-[26px] font-bold leading-[32px] tracking-[-0.6px] text-white lg:text-[30px] lg:leading-[36px]">Academy</h1>
-          <p className="mt-[6px] max-w-[400px] text-[14px] leading-[20px] text-white/75">{total} short guides, one per feature. Read one in a minute or let {GUIDE_PERSON.name} walk you through it on the real screens.</p>
+          <p className="mt-[6px] max-w-[400px] text-[14px] leading-[20px] text-white/75">Short guides, one per feature. Read one in a minute or let {GUIDE_PERSON.name} walk you through it on the real screens.</p>
         </div>
         <div className="flex flex-col items-start gap-[16px]">
           <div>
@@ -102,7 +115,7 @@ function Banner({ watched, total, next, onContinue }: { watched: number; total: 
         </div>
       </div>
       <div className="pointer-events-none absolute bottom-[30px] hidden w-[330px] lg:block" style={{ left: LIVE_LEFT }}>
-        <LiveTranscript />
+        <BannerStage />
       </div>
     </div>
   );
@@ -113,14 +126,11 @@ const LIVE_LEFT = "40%";
 
 /* ── a lesson card: the photograph with its scene; one translucent chip; title and one line ── */
 function LessonCard({ guide, done, seen, isNext, onOpen, onStart }: { guide: Guide; done: boolean; seen: boolean; isNext: boolean; onOpen: () => void; onStart: () => void }) {
-  const coverRef = useRef<HTMLDivElement>(null);
-  const inView = useInView(coverRef, { once: true, amount: 0.6 });
-  const [hovers, setHovers] = useState(0);
   return (
-    <div data-academy-card={guide.id} onMouseEnter={() => setHovers((h) => h + 1)} className={cn("group relative flex flex-col overflow-hidden rounded-[14px] border bg-card transition-[box-shadow,border-color] hover:shadow-[var(--elevation-md)]", isNext ? "border-primary/40" : "border-border")}>
+    <div data-academy-card={guide.id} className={cn("group relative flex flex-col overflow-hidden rounded-[14px] border bg-card transition-[box-shadow,border-color] hover:shadow-[var(--elevation-md)]", isNext ? "border-primary/40" : "border-border")}>
       <button type="button" onClick={onOpen} className="flex flex-1 flex-col text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <div ref={coverRef} className="relative aspect-[3/2] w-full overflow-hidden" style={{ background: NAVY }}>
-          <SceneCover id={guide.id} src={guide.cover} play={inView ? 1 + hovers : 0} className="absolute inset-0" />
+        <div className="relative aspect-[3/2] w-full overflow-hidden" style={{ background: NAVY }}>
+          <SceneCover id={guide.id} src={guide.cover} className="absolute inset-0" />
           <span className={cn("absolute left-[10px] top-[10px] flex h-[22px] items-center gap-[4px] rounded-full px-[8px] text-[11px] font-semibold tabular-nums text-white", done ? "bg-white/90 !text-[#0A1630]" : "bg-[#0A1630]/45 ring-1 ring-white/20")}>
             {done ? <><Icon icon={Tick02Icon} size={11} strokeWidth={3} />Done</> : <><Icon icon={Clock01Icon} size={11} strokeWidth={2.2} />{guide.seconds}s{seen && <span className="text-white/60"> · read</span>}</>}
           </span>
@@ -158,7 +168,7 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
 
   const body = (
     <div className="flex flex-col">
-      <SceneCover id={g.id} src={g.cover} play={openState ? 1 : 0} size="md" className="aspect-[16/10] w-full" />
+      <SceneCover id={g.id} src={g.cover} size="md" className="aspect-[16/10] w-full" />
       <div className="px-[20px] pt-[16px] pb-[6px]">
         <p className="flex items-center gap-[6px] text-[12px] font-medium text-muted-foreground"><Icon icon={Clock01Icon} size={12} strokeWidth={2.2} />{g.seconds}s{done && <span className="text-primary">· done</span>}</p>
         <h3 className="mt-[4px] text-[19px] font-bold leading-[25px] tracking-[-0.3px] text-foreground">{g.title}</h3>

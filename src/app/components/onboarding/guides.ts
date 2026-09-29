@@ -1,4 +1,4 @@
-/* The six lessons of "Get started". A lesson is a short walk through real
+/* The Academy lessons. A lesson is a short walk through real
    screens: a step names an anchor (`data-tour` attribute, "a|b" = the first
    visible one wins), the place it lives on, and one or two plain lines.
 
@@ -130,8 +130,8 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Apply template", body: "The summary is written by a template. Meeting notes, interview, action items: pick the shape you need." },
       { anchor: "nav-templates|menu", go: RECORD, side: "right", title: "All templates live here", body: "Next takes you to the Templates page." },
       PAGE_TEMPLATES,
-      { anchor: "templates-tabs", go: TEMPLATES, side: "bottom", title: "Built in and yours", body: "Every template has an example. Star the ones you use. My templates holds the ones you make." },
-      { anchor: "templates-grid|templates-tabs", go: TEMPLATES, side: "top", title: "Make your own", body: "Open any template, change its sections and save a copy. Your next summary follows it." },
+      { anchor: "templates-tabs", go: TEMPLATES, side: "bottom", title: "Ready to use", body: "Meeting notes, interviews, lectures and more. Star the ones you use and they stay close." },
+      { anchor: "templates-grid|templates-tabs", go: TEMPLATES, side: "top", title: "See it before you apply", body: "Open a template to read its example summary. Then apply it from any recording." },
     ],
   },
   {
@@ -200,11 +200,11 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
 
 /* The Academy: every lesson gets a cover, a section and one plain line of
    what you can do once it is done. Sections are the order the page shows. */
-export const ACADEMY_SECTIONS: { id: string; title: string; subtitle: string }[] = [
-  { id: "create", title: "Create", subtitle: "Get a transcript out of anything" },
-  { id: "work", title: "Work with a transcript", subtitle: "Read it, fix it, shape the notes" },
-  { id: "share", title: "Share and export", subtitle: "Get it to the people who need it" },
-  { id: "organize", title: "Organize and find", subtitle: "Keep a hundred recordings in order" },
+export const ACADEMY_SECTIONS: { id: string; tab: string; title: string; subtitle: string }[] = [
+  { id: "create", tab: "Create", title: "Create", subtitle: "Get a transcript out of anything" },
+  { id: "work", tab: "Transcripts", title: "Work with a transcript", subtitle: "Read it, fix it, shape the notes" },
+  { id: "share", tab: "Share", title: "Share and export", subtitle: "Get it to the people who need it" },
+  { id: "organize", tab: "Organize", title: "Organize and find", subtitle: "Keep a hundred recordings in order" },
 ];
 
 const GUIDE_META: Record<string, { cover: string; category: string; summary: string }> = {
