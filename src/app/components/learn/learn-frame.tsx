@@ -5,7 +5,7 @@ import { Icon } from "../ui/icon";
 import { Button } from "../ui/button";
 import { cn } from "../ui/utils";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "../ui/drawer";
-import { SceneCover } from "../academy-scene";
+import { SceneCover, thumbOf } from "../academy-scene";
 import { GUIDE_PERSON } from "../onboarding/guides";
 
 /* One frame for the two learning pages of variant b, First steps and the
@@ -99,7 +99,7 @@ export function ListRow({ attr, thumb, title, meta, done, active, next, onClick 
     <li>
       <button type="button" {...attr} onClick={onClick} className={cn("group flex h-[56px] w-full items-center gap-[12px] rounded-[12px] p-[6px] pr-[10px] text-left transition-colors", active ? "bg-primary/[0.07] ring-1 ring-inset ring-primary/25" : "hover:bg-muted/70")}>
         <span className="relative h-[44px] w-[66px] shrink-0 overflow-hidden rounded-[8px] bg-[#0A1630]">
-          <img src={thumb} alt="" aria-hidden decoding="async" className="h-full w-full select-none object-cover" />
+          <img src={thumbOf(thumb)} alt="" aria-hidden decoding="async" className="h-full w-full select-none object-cover" />
           {done && <span className="absolute inset-0 flex items-center justify-center bg-[#0A1630]/55"><Icon icon={Tick02Icon} size={16} strokeWidth={3} className="text-white" /></span>}
         </span>
         <span className="min-w-0 flex-1">
