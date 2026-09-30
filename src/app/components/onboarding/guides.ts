@@ -48,7 +48,7 @@ export const NO_ANCHOR = "none";
 
 /* Mia's hello. It opens whichever lesson the person starts FIRST, once; after
    that she stays on the cards as a small portrait with her name and title. */
-export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm Mia", body: "I look after new customers here. I'll show you around Transcribe To Text AI: ten short lessons in the Academy, half a minute each. I explain, the arrows point." };
+export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm Mia", body: "I look after new customers here. Every lesson in the Academy takes half a minute: I show you the real screens, you can stop any time." };
 
 const HOME: TourTarget = { page: "dashboard" };
 const RECORDS: TourTarget = { page: "records" };
@@ -87,26 +87,43 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
   },
   {
     id: "read-transcript",
-    title: "Read the result",
-    seconds: 35,
+    title: "Read and listen",
+    seconds: 40,
     steps: [
       OPEN_RECORD_FIRST,
       PAGE_RECORD,
       { anchor: "record-title", go: RECORD, side: "bottom", title: "The title is yours", body: "Click it to rename. Underneath: who made it, the folder, the speakers, the source and the length." },
-      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Transcript and Summary", body: "Transcript is every word that was said. Summary turns it into notes." },
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Play from a timecode", body: "Click one to hear that exact moment. The player at the bottom follows." },
-      { anchor: "record-translate|record-tabs", go: RECORD, side: "bottom", title: "Translate it", body: "Pick a language and the whole transcript and summary come back in it." },
+      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Transcript and Summary", body: "Transcript is every word, as it was said. Summary is the notes. We start on the transcript.", trigger: "tab-transcript" },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Click a timecode", body: "The player jumps to that moment. While it plays, the words follow the voice." },
+      { anchor: "record-transport|record-play", go: RECORD, side: "top", title: "Play, back, forward", body: "Play starts where you are. The arrows step back or forward five seconds when you missed a word." },
+      { anchor: "record-speed|record-transport", go: RECORD, side: "top", title: "Set the pace", body: "Half speed for a fast talker, double speed for a long call." },
+      { anchor: "record-view-toggles|record-tabs", go: RECORD, side: "bottom", title: "Hide the names", body: "I switched Speakers off: the text reads as one clean block. Switch it back any time.", trigger: "view-speakers-off" },
+      { anchor: "record-view-toggles|record-tabs", go: RECORD, side: "bottom", title: "And the timecodes", body: "Timestamps goes the same way. I put both back for you.", trigger: "view-timestamps-off" },
+    ],
+  },
+  {
+    id: "translate",
+    title: "Translate a recording",
+    seconds: 30,
+    steps: [
+      OPEN_RECORD_AGAIN,
+      { anchor: "record-translate|record-tabs", go: RECORD, side: "bottom", title: "Translate to", body: "The transcript and the summary, in another language. Next opens the list.", trigger: "view-reset" },
+      { anchor: "record-translate-menu|record-translate", go: RECORD, side: "left", title: "Pick a language", body: "Dozens of them. I'll take Spanish for this one.", trigger: "translate-open" },
+      { anchor: "record-translate", go: RECORD, side: "bottom", title: "Then press Translate", body: "Spanish is picked. The Translate button next to it starts the work.", trigger: "translate-pick" },
+      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "A tab for each language", body: "The Spanish transcript opens next to the original. Nothing is replaced: switch between them any time.", trigger: "translate-run" },
+      { anchor: "record-copy|record-tabs", go: RECORD, side: "bottom", title: "Copy or export it", body: "Copy and Export now ask which language you want." },
     ],
   },
   {
     id: "edit-transcript",
     title: "Correct the transcript",
-    seconds: 25,
+    seconds: 30,
     steps: [
       OPEN_RECORD_AGAIN,
-      { anchor: "record-edit|record-tabs", go: RECORD, side: "bottom", title: "Edit transcript", body: "Names, terms, a word the model misheard. Next switches the text into editing.", trigger: "edit-close" },
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Type straight into the text", body: "Every block is editable. Timecodes and speakers stay where they are.", trigger: "edit-open" },
-      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Save or discard", body: "Save keeps your changes for everyone you share with. Discard puts the original back.", trigger: "edit-close" },
+      { anchor: "record-edit|record-tabs", go: RECORD, side: "bottom", title: "Edit transcript", body: "A name, a term, a word the model misheard. Next turns the text into editing.", trigger: "edit-close" },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Click straight into the text", body: "Every block is a field now. I put the cursor in the first one: type to fix it, like in any document.", trigger: "edit-focus" },
+      { anchor: "record-edit-bar|record-tabs", go: RECORD, side: "bottom", title: "Undo, reset, save", body: "Undo steps back one change. Reset to original brings back what the model wrote. Save keeps it for everyone you share with.", trigger: "edit-open" },
+      { anchor: "record-edit|record-tabs", go: RECORD, side: "bottom", title: "Nothing is lost", body: "Timecodes and speakers stay where they are. I leave editing now without saving.", trigger: "edit-close" },
     ],
   },
   {
@@ -124,11 +141,12 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
   {
     id: "summary",
     title: "Shape the summary",
-    seconds: 30,
+    seconds: 35,
     steps: [
       OPEN_RECORD_AGAIN,
-      { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Apply template", body: "The summary is written by a template. Meeting notes, interview, action items: pick the shape you need." },
-      { anchor: "nav-templates|menu", go: RECORD, side: "right", title: "All templates live here", body: "Next takes you to the Templates page." },
+      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "The Summary tab", body: "Notes written from the transcript: the decisions, the action items, what to remember.", trigger: "tab-summary" },
+      { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Apply template", body: "A template decides the shape: meeting notes, interview, lecture, action items. Pick one and the summary is rewritten in it." },
+      { anchor: "nav-templates|menu", go: RECORD, side: "right", title: "All templates live here", body: "Next takes you to the Templates page.", trigger: "tab-transcript" },
       PAGE_TEMPLATES,
       { anchor: "templates-tabs", go: TEMPLATES, side: "bottom", title: "Ready to use", body: "Meeting notes, interviews, lectures and more. Star the ones you use and they stay close." },
       { anchor: "templates-grid|templates-tabs", go: TEMPLATES, side: "top", title: "See it before you apply", body: "Open a template to read its example summary. Then apply it from any recording." },
@@ -149,13 +167,14 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
   {
     id: "share",
     title: "Share and copy",
-    seconds: 25,
+    seconds: 30,
     steps: [
       OPEN_RECORD_AGAIN,
       { anchor: "record-share|record-speakers-chip", go: RECORD, side: "bottom", title: "Share", body: "Invite people by email or turn on a link. Next opens it.", trigger: "share-close" },
-      { anchor: "share-dialog", go: RECORD, side: "right", title: "Who can see it", body: "Only the people you invite, or anyone with the link. They see the recording, its transcript and summary.", trigger: "share-open" },
-      { anchor: "record-copy|record-share", go: RECORD, side: "bottom", title: "Copy the text", body: "The transcript, the summary or a link, straight to your clipboard. No export needed.", trigger: "share-close" },
-      { anchor: "nav-shared|menu", go: RECORD, side: "right", title: "Shared with me", body: "Recordings other people share with you land here." },
+      { anchor: "share-dialog", go: RECORD, side: "right", title: "Who can see it", body: "Only the people you invite, or anyone with the link. They see the recording, its transcript and its summary.", trigger: "share-open" },
+      { anchor: "record-copy|record-share", go: RECORD, side: "bottom", title: "Or just copy", body: "No invite needed when you only want the words. Next opens Copy.", trigger: "share-close" },
+      { anchor: "record-copy-menu|record-copy", go: RECORD, side: "left", title: "Transcript or summary", body: "Either one goes straight to your clipboard, ready to paste into an email or a doc.", trigger: "copy-open" },
+      { anchor: "nav-shared|menu", go: RECORD, side: "right", title: "Shared with me", body: "Recordings other people share with you land here.", trigger: "copy-close" },
     ],
   },
   {
@@ -210,14 +229,13 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
   },
   {
     id: "highlights",
-    title: "Play, highlight, comment",
-    seconds: 30,
+    title: "Highlight, comment, share a part",
+    seconds: 25,
     steps: [
       OPEN_RECORD_AGAIN,
-      PAGE_RECORD,
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Hover a block", body: "A bar appears: highlight it, comment on it, share or copy just that part." },
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Select a few words", body: "Only those words get the highlight or the comment." },
-      { anchor: "record-speed|record-transcript-body", go: RECORD, side: "top", title: "Set the pace", body: "Half speed to double. The text follows the voice as it plays." },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Point at a block", body: "When the mouse is over a block, a small bar appears on it. I show it for you.", trigger: "tab-transcript" },
+      { anchor: "record-hover-bar|record-transcript-body", go: RECORD, side: "left", title: "Four things for one block", body: "Highlight it, comment on it, share just that part, or copy its text.", trigger: "hoverbar-show" },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Or select a few words", body: "Select the words you need: only they get the highlight, the comment or the new speaker.", trigger: "hoverbar-hide" },
     ],
   },
   {
@@ -256,16 +274,17 @@ export const ACADEMY_SECTIONS: { id: string; tab: string; title: string; subtitl
 const GUIDE_META: Record<string, { cover: string; category: string; summary: string }> = {
   "first-record": { cover: "/images/academy3/first-record.jpg", category: "create", summary: "Turn a file, your voice, a meeting or a link into a transcript." },
   "meetings": { cover: "/images/academy3/meetings.jpg", category: "create", summary: "Connect a calendar and let the recorder join your calls by itself." },
-  "read-transcript": { cover: "/images/academy3/read-transcript.jpg", category: "work", summary: "Read the transcript, jump by timecode, translate it." },
+  "read-transcript": { cover: "/images/academy3/read-transcript.jpg", category: "work", summary: "Read it, play it from any word, set the pace, hide what you do not need." },
+  "translate": { cover: "/images/academy3/translate.jpg", category: "work", summary: "The transcript and summary in another language, next to the original." },
   "edit-transcript": { cover: "/images/academy3/edit-transcript.jpg", category: "work", summary: "Fix names and misheard words straight in the text." },
   "speakers": { cover: "/images/academy3/speakers.jpg", category: "work", summary: "Name the voices and move words to the right person." },
   "summary": { cover: "/images/academy3/summary.jpg", category: "work", summary: "Pick a template and get the notes in the shape you need." },
   "export": { cover: "/images/academy3/export.jpg", category: "share", summary: "PDF, Word, text or subtitles, with the options you choose." },
-  "share": { cover: "/images/academy3/share.jpg", category: "share", summary: "Invite people, turn on a link, copy the text." },
+  "share": { cover: "/images/academy3/share.jpg", category: "share", summary: "Invite people, turn on a link, or copy the transcript, summary or link." },
   "folders": { cover: "/images/academy3/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
   "find": { cover: "/images/academy3/find.jpg", category: "organize", summary: "Search what was said, across every recording." },
   "meeting-settings": { cover: "/images/academy3/meeting-settings.jpg", category: "create", summary: "Which calls the recorder joins, and who gets the recap." },
-  "highlights": { cover: "/images/academy3/highlights.jpg", category: "work", summary: "Highlight, comment and share one part; play it at your pace." },
+  "highlights": { cover: "/images/academy3/highlights.jpg", category: "work", summary: "Mark the part that matters, comment on it, share or copy just that." },
   "trash": { cover: "/images/academy3/trash.jpg", category: "organize", summary: "Restore a deleted recording, or remove it for good." },
   "plan": { cover: "/images/academy3/plan.jpg", category: "account", summary: "What Free includes, and how to get more." },
 };
