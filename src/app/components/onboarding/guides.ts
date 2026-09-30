@@ -21,6 +21,8 @@ export type TourStep = {
   side?: "top" | "bottom" | "left" | "right";
   /* the last step may end on a real action instead of "Done" */
   action?: { label: string; kind: "upload" };
+  /* the last step of a "Show me" tour: the page stays live under Mia's card, so the person does the thing right there */
+  handoff?: boolean;
   /* the step opens (or closes) Quick Find, typing for the person */
   quickFind?: { open: boolean; query?: string };
   /* the step opens a real dialog of the page (`ttt-tour` window event) */
@@ -28,6 +30,8 @@ export type TourStep = {
 };
 
 export type Guide = {
+  /* a "Show me" tour for one First step (variant b); it ends by itself when that step is done */
+  forStep?: string;
   id: string;
   title: string;
   /* how long the lesson takes, in seconds, shown beside the title */
@@ -331,3 +335,49 @@ export const REWARD = {
   title: "Your first month is on us",
   body: "You know your way around now. This code makes the first month free.",
 };
+
+/* "Show me" (variant b, review 61): one short tour per First step. It walks to
+   the exact control, opens what needs opening and hands over: the last card
+   stays while the person does it, and the tour ends by itself when the step
+   is credited. Not listed in the Academy. */
+const STEP_META = { cover: "", category: "", summary: "" };
+export const STEP_TOURS: Guide[] = [
+  { ...STEP_META, id: "step-way-file", forStep: "way-file", title: "Upload a file", seconds: 15, steps: [
+    { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Audio and video files", body: "This card takes any recording from your computer. Next opens it.", trigger: "upload-close" },
+    { anchor: "upload-drop", go: HOME, side: "bottom", title: "Drop it here", body: "Drag a file in or click to choose one. The step is done the moment the upload starts.", trigger: "upload-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-way-voice", forStep: "way-voice", title: "Try Instant speech", seconds: 15, steps: [
+    { anchor: "home-card-record|add-fab", go: HOME, side: "bottom", title: "Instant speech", body: "Talk, and the words appear as you speak. Next opens it.", trigger: "record-close" },
+    { anchor: "record-start", go: HOME, side: "top", title: "Press Start recording", body: "Allow the microphone once, then say a few sentences. Stop when you are done.", trigger: "record-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-way-meeting", forStep: "way-meeting", title: "Send the recorder to a call", seconds: 15, steps: [
+    { anchor: "home-card-meeting|add-fab", go: HOME, side: "bottom", title: "Meeting Recorder", body: "A bot joins a Zoom, Meet or Teams call and writes the notes. Next opens it.", trigger: "meeting-close" },
+    { anchor: "meeting-url", go: HOME, side: "bottom", title: "Paste the invite link", body: "Copy it from the calendar invite, paste it here and start. The bot joins within seconds.", trigger: "meeting-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-way-link", forStep: "way-link", title: "Transcribe a link", seconds: 15, steps: [
+    { anchor: "home-card-link|add-fab", go: HOME, side: "bottom", title: "Transcribe from URL", body: "YouTube, Google Drive, Dropbox and more. Next opens it.", trigger: "link-close" },
+    { anchor: "link-url", go: HOME, side: "bottom", title: "Paste a link", body: "Any public video or audio link, then Start transcription.", trigger: "link-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-calendar", forStep: "calendar", title: "Connect your calendar", seconds: 15, steps: [
+    { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Your calendar lives here. Next takes you there." },
+    { anchor: "meetings-connect|meetings-accounts|meetings-tabs", go: CALENDAR, side: "top", title: "Connect Google or Outlook", body: "Pick one and sign in. Your meetings then appear here by themselves.", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-template", forStep: "template", title: "Apply a template", seconds: 15, steps: [
+    OPEN_RECORD_AGAIN,
+    { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Press Apply template", body: "Pick the shape you want: meeting notes, interview, action items. The summary is rewritten in it.", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-speakers", forStep: "speakers", title: "Name a speaker", seconds: 15, steps: [
+    OPEN_RECORD_AGAIN,
+    { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Two voices, one unnamed", body: "Speaker 2 still needs a name. Next opens the list.", trigger: "speakers-close" },
+    { anchor: "speakers-panel", go: RECORD, side: "right", title: "Give Speaker 2 a name", body: "Click the name, type the real one, press Enter.", trigger: "speakers-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-folders", forStep: "folders", title: "Create a folder", seconds: 15, steps: [
+    { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Folders live here. Next takes you there." },
+    { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Add Folder", body: "Next opens the form.", trigger: "add-folder-close" },
+    { anchor: "add-folder-dialog", go: RECORDS, side: "right", title: "Name it, press Create", body: "One folder per client or project. It appears in the sidebar at once.", trigger: "add-folder-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-photo", forStep: "photo", title: "Add your photo", seconds: 10, steps: [
+    { anchor: "account-photo", go: { page: "settings" }, side: "bottom", title: "Upload a photo", body: "Press Upload photo and choose one. People you share with see it next to your name.", handoff: true },
+  ] },
+];
+export const stepTourId = (stepId: string) => `step-${stepId}`;

@@ -10,7 +10,7 @@ import { ScrollFade } from "../scroll-fade";
 import { SceneCover } from "../academy-scene";
 import { useTranscriptionModals } from "../transcription-modals";
 import { useOnboarding } from "../onboarding/onboarding-context";
-import { SETUP_GROUPS, SETUP_REQUIRED, isSetupDone, type SetupItem } from "../onboarding/guides";
+import { GUIDE_PERSON, SETUP_GROUPS, SETUP_REQUIRED, isSetupDone, stepTourId, type SetupItem } from "../onboarding/guides";
 
 /* First steps as a page (variant b, review 60, Kirill 29.09): the same steps
    as the Home card of variant a, given room. A dark photographic head with one
@@ -99,42 +99,54 @@ export function FirstStepsPage() {
   }, [selDone]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const go = (d: number) => { const n = ob.setup[index + d]; if (n) setSelId(n.id); };
+  const nextOpen = SETUP_REQUIRED.find((x) => !isSetupDone(x, has)) ?? ob.setup.find((x) => !isSetupDone(x, has));
 
   let n = 0;
   return (
     <div ref={scrollRef} data-tour="page-first-steps" className="flex-1 overflow-auto min-w-0">
       <ScrollFade scrollRef={scrollRef} />
       <div className="@container px-4 pt-[16px] pb-[104px] lg:px-[32px] lg:pt-[24px]">
-        {/* the head: one photograph, one ring, the gift */}
-        <header className="relative overflow-hidden rounded-[18px] bg-[#0A1630]" style={{ boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}>
-          <img src={HERO} alt="" aria-hidden className="absolute inset-0 h-full w-full select-none object-cover object-[85%_50%] @[640px]:object-[60%_50%]" />
-          <span aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(10,22,48,0.85) 0%, rgba(10,22,48,0.55) 45%, rgba(10,22,48,0.1) 100%)" }} />
-          <div className="relative flex flex-col gap-6 px-[24px] py-[24px] @[640px]:flex-row @[640px]:items-center @[640px]:justify-between lg:px-[32px] lg:py-[30px]">
-            <div className="flex flex-col items-start gap-[16px] @[520px]:flex-row @[520px]:items-center @[520px]:gap-[20px]">
+        {/* the head: the Academy header's language, a little taller (review 61) */}
+        <header className="@container relative overflow-hidden rounded-[18px] bg-[#0A1630]" style={{ boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}>
+          <img src={HERO} alt="" aria-hidden className="absolute inset-0 h-full w-full select-none object-cover object-[85%_50%] @[640px]:object-[60%_55%]" />
+          <span aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(10,22,48,0.9) 0%, rgba(10,22,48,0.6) 50%, rgba(10,22,48,0.12) 100%)" }} />
+          <div className="relative flex flex-col gap-5 px-[24px] py-[28px] @[720px]:min-h-[168px] @[720px]:flex-row @[720px]:items-center @[720px]:justify-between lg:px-[32px]">
+            <div className="flex items-center gap-[18px]">
               <div className="relative shrink-0">
-                <span className="@[520px]:hidden"><ProgressRing done={doneCount} total={total} size={68} stroke={6} light /></span>
-                <span className="hidden @[520px]:block"><ProgressRing done={doneCount} total={total} size={96} stroke={8} light /></span>
+                <ProgressRing done={doneCount} total={total} size={84} stroke={7} light />
                 <span className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                  <span className="text-[20px] font-bold leading-none tabular-nums tracking-[-0.5px] @[520px]:text-[26px]">{doneCount}</span>
-                  <span className="mt-[3px] text-[10px] font-semibold text-white/65 @[520px]:text-[11px]">of {total}</span>
+                  <span className="text-[22px] font-bold leading-none tabular-nums tracking-[-0.5px]">{doneCount}</span>
+                  <span className="mt-[3px] text-[10.5px] font-semibold text-white/60">of {total}</span>
                 </span>
               </div>
               <div>
                 <h1 className="text-[24px] font-bold leading-[30px] tracking-[-0.5px] text-white lg:text-[28px] lg:leading-[34px]">First steps</h1>
-                <p className="mt-[4px] max-w-[380px] text-[14px] leading-[20px] text-white/75">Try every way in once, then make the account yours. Each step is done by doing it.</p>
-                <p className="mt-[10px] inline-flex items-center gap-[7px] rounded-full bg-white/10 py-[5px] pl-[6px] pr-[12px] text-[12.5px] font-semibold text-white ring-1 ring-inset ring-white/20">
-                  <img src={GIFT} alt="" aria-hidden className="size-[18px] select-none object-contain" />
-                  {ob.allDone ? "Your free month is unlocked" : "1 month free when they are done"}
-                </p>
+                <p className="mt-[4px] max-w-[400px] text-[14px] leading-[20px] text-white/75">Try every way in once, then make the account yours. {GUIDE_PERSON.name} shows you each one on the real screen.</p>
               </div>
             </div>
-            <div className="shrink-0 self-start @[640px]:self-center"><DisplayPrefs dark /></div>
+            <div className="flex flex-wrap items-center gap-[10px]">
+              <DisplayPrefs dark />
+              {nextOpen && (
+                <button type="button" data-first-steps-show-next="" onClick={() => ob.startGuide(stepTourId(nextOpen.id))} className="flex h-9 max-w-full items-center gap-[8px] rounded-full bg-white pl-[14px] pr-[16px] text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
+                  <Icon icon={PlayIcon} size={12} strokeWidth={2.6} /><span className="min-w-0 truncate">Show me: {nextOpen.title}</span>
+                </button>
+              )}
+            </div>
           </div>
         </header>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(280px,320px)_1fr]">
           {/* the rail */}
           <nav aria-label="Steps" className="order-2 flex flex-col gap-4 lg:order-1">
+            <div data-first-steps-scale="" className="rounded-[14px] border border-border bg-card px-[14px] py-[12px]">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[13px] font-semibold text-foreground">Your progress</span>
+                <span className="text-[12.5px] font-semibold tabular-nums text-muted-foreground">{doneCount} of {total} done</span>
+              </div>
+              <div className="mt-[10px] flex gap-[4px]" aria-hidden>
+                {ob.setup.map((x) => <span key={x.id} className={cn("h-[6px] flex-1 rounded-full transition-colors duration-500", isSetupDone(x, has) ? "bg-primary" : x.optional ? "bg-border/60" : "bg-border")} />)}
+              </div>
+            </div>
             {SETUP_GROUPS.map((grp) => (
               <section key={grp.id}>
                 <h2 className="mb-[4px] px-[6px] text-[12.5px] font-semibold text-muted-foreground">{grp.title}</h2>
@@ -161,6 +173,17 @@ export function FirstStepsPage() {
                 </ol>
               </section>
             ))}
+            {/* the goal: what all of this is for */}
+            <div data-first-steps-goal="" className="relative overflow-hidden rounded-[16px] bg-[#0A1630] px-[16px] py-[16px] text-white" style={{ boxShadow: "0 6px 18px rgba(10,22,48,0.18)" }}>
+              <span aria-hidden className="absolute -right-6 -top-8 size-[140px] rounded-full bg-primary/40 blur-2xl" />
+              <img src={GIFT} alt="" aria-hidden className="absolute right-[10px] top-1/2 size-[64px] -translate-y-1/2 select-none object-contain" />
+              <div className="relative pr-[72px]">
+                <p className="text-[12px] font-semibold text-white/60">Your goal</p>
+                <p className="mt-[2px] text-[16px] font-bold leading-[21px] tracking-[-0.2px]">{ob.allDone ? "Your free month is unlocked" : "1 month free"}</p>
+                <p className="mt-[3px] text-[12.5px] leading-[17px] text-white/70">{ob.allDone ? "The code is in Plan Management." : `${total - doneCount} ${total - doneCount === 1 ? "step" : "steps"} to go. The photo is a bonus, not a condition.`}</p>
+                <span className="mt-[10px] block h-[5px] overflow-hidden rounded-full bg-white/15"><span className="block h-full rounded-full bg-white transition-[width] duration-700" style={{ width: `${Math.round((doneCount / Math.max(1, total)) * 100)}%` }} /></span>
+              </div>
+            </div>
           </nav>
 
           {/* the open step */}
@@ -182,10 +205,10 @@ export function FirstStepsPage() {
                     {selDone ? (
                       <span className="flex h-10 items-center gap-[7px] rounded-full bg-primary/10 px-[16px] text-[13.5px] font-semibold text-primary"><Icon icon={Tick02Icon} size={14} strokeWidth={3} />Done</span>
                     ) : (
-                      <Button data-first-steps-do="" onClick={() => run(sel)} className="h-10 gap-[8px] px-[20px] text-[13.5px] font-semibold">{sel.action}</Button>
-                    )}
-                    {sel.how && sel.run !== "calendar" && (
-                      <Button variant="pill-outline" onClick={() => ob.startGuide(sel.how)} className="h-10 gap-[7px] px-[16px] text-[13.5px] font-semibold"><Icon icon={PlayIcon} size={11} strokeWidth={2.6} />Show me how</Button>
+                      <>
+                        <Button data-first-steps-show="" onClick={() => ob.startGuide(stepTourId(sel.id))} className="h-10 gap-[8px] px-[20px] text-[13.5px] font-semibold"><Icon icon={PlayIcon} size={12} strokeWidth={2.6} />Show me</Button>
+                        <Button variant="pill-outline" data-first-steps-do="" onClick={() => run(sel)} className="h-10 px-[16px] text-[13.5px] font-semibold">{sel.action}</Button>
+                      </>
                     )}
                   </div>
                 </div>

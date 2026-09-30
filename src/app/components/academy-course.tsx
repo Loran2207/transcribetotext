@@ -46,10 +46,10 @@ export function AcademyCourse() {
         <header data-tour="academy-banner" className="@container relative overflow-hidden rounded-[18px] bg-[#0A1630]" style={{ boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}>
           <img src="/images/academy3/banner.jpg" alt="" aria-hidden className="absolute inset-0 h-full w-full select-none object-cover object-[92%_45%] @[640px]:object-[60%_40%]" />
           <span aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(10,22,48,0.9) 0%, rgba(10,22,48,0.6) 50%, rgba(10,22,48,0.15) 100%)" }} />
-          <div className="relative flex flex-col gap-5 px-[22px] py-[22px] @[720px]:flex-row @[720px]:items-center @[720px]:justify-between lg:px-[28px]">
+          <div className="relative flex flex-col gap-5 px-[24px] py-[28px] @[720px]:min-h-[168px] @[720px]:flex-row @[720px]:items-center @[720px]:justify-between lg:px-[32px]">
             <div className="flex items-center gap-[18px]">
               <div className="relative shrink-0">
-                <ProgressRing done={watched.size} total={total} size={72} stroke={6} light />
+                <ProgressRing done={watched.size} total={total} size={84} stroke={7} light />
                 <span className="absolute inset-0 flex flex-col items-center justify-center text-white">
                   <span className="text-[19px] font-bold leading-none tabular-nums">{watched.size}</span>
                   <span className="mt-[2px] text-[10px] font-semibold text-white/60">of {total}</span>

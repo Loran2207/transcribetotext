@@ -783,7 +783,7 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void
       />}
 
       <div className="flex flex-col">
-        <div data-account-photo="" className="mb-6 flex items-center gap-4">
+        <div data-account-photo="" data-tour="account-photo" className="mb-6 flex items-center gap-4">
           <Avatar className="size-14">
             {avatarSrc ? <AvatarImage src={avatarSrc} alt="" className="object-cover" /> : null}
             <AvatarFallback className="bg-primary/10 text-base font-semibold text-primary">{initialsOf(name)}</AvatarFallback>

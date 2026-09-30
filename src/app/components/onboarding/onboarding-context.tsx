@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { STEP_TOURS } from "./guides";
 import { GUIDES, INTRO_STEP, SETUP, SETUP_ACTION_IDS, SETUP_REQUIRED, setupComplete, setupIds, type Guide, type TourTarget } from "./guides";
 
 /* State of the guide: the Academy (ten lessons, competence) and Account Setup
@@ -112,6 +113,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       const id = (e as CustomEvent<string>).detail;
       const setupItem = SETUP_ACTION_IDS.includes(id);
       const guide = GUIDES.find((g) => g.id === id);
+      if (setupItem) setTour((t) => (t && t.guide.forStep === id ? null : t));
       if (!setupItem && !guide) return;
       setStored((s) => {
         const actions = setupItem && !s.actions.includes(id) ? [...s.actions, id] : s.actions;
@@ -131,10 +133,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const go = useCallback((t: TourTarget) => { navigator.current?.(t); }, []);
 
   const startGuide = useCallback((id: string) => {
-    const base = GUIDES.find((g) => g.id === id); if (!base) return;
+    const base = GUIDES.find((g) => g.id === id) ?? STEP_TOURS.find((g) => g.id === id); if (!base) return;
     /* she says hello on the first lesson started, and again on any later start as long as
        nothing is finished yet (the person closed the tour and came back) */
-    const hello = !stored.introSeen || stored.done.length === 0;
+    const hello = !base.forStep && (!stored.introSeen || stored.done.length === 0);
     const guide: Guide = hello ? { ...base, steps: [INTRO_STEP, ...base.steps] } : base;
     setStored((s) => ({ ...s, expanded: false, introSeen: true }));
     go(guide.steps[0].go);
@@ -157,7 +159,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setTour((t) => {
       if (!t) return t;
       const last = t.step >= t.guide.steps.length - 1;
-      if (last) { if (t.guide.completeBy !== "action") finishGuide(t.guide); return null; }
+      if (last) { if (t.guide.completeBy !== "action" && !t.guide.forStep) finishGuide(t.guide); return null; }
       const next = t.guide.steps[t.step + 1];
       go(next.go);
       return { guide: t.guide, step: t.step + 1 };

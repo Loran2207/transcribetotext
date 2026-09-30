@@ -90,9 +90,13 @@ export function OnboardingTour() {
 
   /* a step may open a real dialog of the page; when the lesson ends, everything it opened closes */
   const triggerUsed = useRef(false);
+  const handedOver = useRef(false);
   useEffect(() => {
     const t = step?.trigger;
+    if (step) handedOver.current = !!step.handoff;
     if (t) { triggerUsed.current = true; window.dispatchEvent(new CustomEvent("ttt-tour", { detail: t })); return; }
+    /* a "Show me" tour ends on the real thing, open: leave it for the person */
+    if (!step && handedOver.current) { triggerUsed.current = false; handedOver.current = false; return; }
     if (triggerUsed.current) { triggerUsed.current = false; window.dispatchEvent(new CustomEvent("ttt-tour", { detail: "close-all" })); }
   }, [step]);
 
@@ -214,7 +218,7 @@ export function OnboardingTour() {
   const spring = reduce ? { duration: 0 } : { type: "spring" as const, stiffness: 320, damping: 30 };
 
   return createPortal(
-    <div data-onboarding-tour="" className="pointer-events-auto fixed inset-0 z-[300]">
+    <div data-onboarding-tour="" className={cn("fixed inset-0 z-[300]", step?.handoff ? "pointer-events-none" : "pointer-events-auto")}>
       {/* click catcher: a click on the dark goes to the next step */}
       <div className="absolute inset-0" onClick={nextStep} />
       <AnimatePresence>

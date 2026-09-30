@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
-import { ArrowDown01Icon, ArrowLeft01Icon, ArrowRight01Icon, MoreHorizontalIcon } from "@hugeicons/core-free-icons";
+import { ArrowDown01Icon, ArrowLeft01Icon, ArrowRight01Icon, MoreHorizontalIcon, PlayIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { useIsPhone } from "../ui/use-mobile";
 import { cn } from "../ui/utils";
@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { useOnboarding } from "../onboarding/onboarding-context";
 import { useTranscriptionModals } from "../transcription-modals";
 import { useShell } from "../desktop/shell";
-import { SETUP_REQUIRED, isSetupDone } from "../onboarding/guides";
+import { SETUP_REQUIRED, isSetupDone, stepTourId } from "../onboarding/guides";
 import { ProgressRing, useRunStep } from "./first-steps-page";
 
 /* The First steps helper (variant b, review 60): on every page, at the bottom
@@ -67,7 +67,7 @@ export function FirstStepsHelper({ onFirstStepsPage, busyBottom }: { onFirstStep
                   <motion.span key={step.id} initial={reduce ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={reduce ? undefined : { opacity: 0, y: -4 }} transition={{ duration: 0.16 }} className="block truncate text-[13.5px] font-semibold leading-[18px]">{step.title}</motion.span>
                 </AnimatePresence>
               </button>
-              <button type="button" data-first-steps-helper-do="" onClick={() => run(step)} className="mr-[4px] flex h-[32px] shrink-0 items-center rounded-full bg-white px-[14px] text-[12.5px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">{step.cta}</button>
+              <button type="button" data-first-steps-helper-do="" onClick={() => ob.startGuide(stepTourId(step.id))} className="mr-[4px] flex h-[32px] shrink-0 items-center gap-[5px] rounded-full bg-white pl-[11px] pr-[14px] text-[12.5px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]"><Icon icon={PlayIcon} size={10} strokeWidth={2.8} />Show me</button>
               <span className="flex shrink-0 items-center max-[480px]:hidden">
                 <button type="button" aria-label="Previous step" disabled={open.length < 2} onClick={() => setPos((p) => (p - 1 + open.length) % open.length)} className="flex size-[32px] items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30"><Icon icon={ArrowLeft01Icon} size={16} /></button>
                 <button type="button" aria-label="Next step" disabled={open.length < 2} onClick={() => setPos((p) => (p + 1) % open.length)} className="flex size-[32px] items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-30"><Icon icon={ArrowRight01Icon} size={16} /></button>
