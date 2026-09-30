@@ -95,7 +95,7 @@ export function OnboardingTour() {
     const t = step?.trigger;
     if (step) handedOver.current = !!step.handoff;
     if (t) { triggerUsed.current = true; window.dispatchEvent(new CustomEvent("ttt-tour", { detail: t })); return; }
-    /* a "Show me" tour ends on the real thing, open: leave it for the person */
+    /* a "Guide me" tour ends on the real thing, open: leave it for the person */
     if (!step && handedOver.current) { triggerUsed.current = false; handedOver.current = false; return; }
     if (triggerUsed.current) { triggerUsed.current = false; window.dispatchEvent(new CustomEvent("ttt-tour", { detail: "close-all" })); }
   }, [step]);

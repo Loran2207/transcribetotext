@@ -21,7 +21,7 @@ export type TourStep = {
   side?: "top" | "bottom" | "left" | "right";
   /* the last step may end on a real action instead of "Done" */
   action?: { label: string; kind: "upload" };
-  /* the last step of a "Show me" tour: the page stays live under Mia's card, so the person does the thing right there */
+  /* the last step of a "Guide me" tour: the page stays live under Mia's card, so the person does the thing right there */
   handoff?: boolean;
   /* the step opens (or closes) Quick Find, typing for the person */
   quickFind?: { open: boolean; query?: string };
@@ -30,7 +30,7 @@ export type TourStep = {
 };
 
 export type Guide = {
-  /* a "Show me" tour for one First step (variant b); it ends by itself when that step is done */
+  /* a "Guide me" tour for one First step (variant b); it ends by itself when that step is done */
   forStep?: string;
   id: string;
   title: string;
@@ -309,9 +309,9 @@ export const SETUP: SetupItem[] = [
   { id: "way-meeting", title: "Send the recorder to a call", why: "Paste a Zoom, Meet or Teams link.", how: "first-record", group: "try", run: "modal", modal: "meeting", cta: "Try", cover: "/images/academy3/meetings.jpg", widget: "way-meeting", action: "Paste a call link" },
   { id: "way-link", title: "Transcribe a link", why: "YouTube, Drive, Dropbox and more.", how: "first-record", group: "try", run: "modal", modal: "link", cta: "Paste", cover: "/images/first-steps/way-link.jpg", widget: "way-link", action: "Paste a link" },
   { id: "calendar", title: "Connect your calendar", why: "The recorder joins your meetings by itself.", how: "meetings", group: "yours", run: "calendar", cta: "Connect", cover: "/images/academy3/meeting-settings.jpg", widget: "meetings", action: "Connect a calendar" },
-  { id: "template", title: "Apply a template", why: "Notes in the shape you need, every time.", how: "summary", group: "yours", run: "tour", cta: "Show me", cover: "/images/academy3/summary.jpg", widget: "summary", action: "Show me where" },
-  { id: "speakers", title: "Name a speaker", why: "So the notes say who said what.", how: "speakers", group: "yours", run: "tour", cta: "Show me", cover: "/images/academy3/speakers.jpg", widget: "speakers", action: "Show me where" },
-  { id: "folders", title: "Create a folder", why: "One per client or project.", how: "folders", group: "yours", run: "tour", cta: "Show me", cover: "/images/academy3/folders.jpg", widget: "folders", action: "Show me where" },
+  { id: "template", title: "Apply a template", why: "Notes in the shape you need, every time.", how: "summary", group: "yours", run: "tour", cta: "Show me", cover: "/images/academy3/summary.jpg", widget: "summary", action: "Full lesson" },
+  { id: "speakers", title: "Name a speaker", why: "So the notes say who said what.", how: "speakers", group: "yours", run: "tour", cta: "Show me", cover: "/images/academy3/speakers.jpg", widget: "speakers", action: "Full lesson" },
+  { id: "folders", title: "Create a folder", why: "One per client or project.", how: "folders", group: "yours", run: "tour", cta: "Show me", cover: "/images/academy3/folders.jpg", widget: "folders", action: "Full lesson" },
   { id: "photo", title: "Add your photo", why: "So people know who shared the notes.", how: "", group: "yours", run: "profile", cta: "Add", optional: true, cover: "/images/first-steps/photo.jpg", widget: "photo", action: "Add a photo" },
 ];
 export const SETUP_GROUPS: { id: SetupItem["group"]; title: string }[] = [
@@ -336,7 +336,7 @@ export const REWARD = {
   body: "You know your way around now. This code makes the first month free.",
 };
 
-/* "Show me" (variant b, review 61): one short tour per First step. It walks to
+/* "Guide me" (variant b, reviews 61-62): one short tour per First step. It walks to
    the exact control, opens what needs opening and hands over: the last card
    stays while the person does it, and the tour ends by itself when the step
    is credited. Not listed in the Academy. */
