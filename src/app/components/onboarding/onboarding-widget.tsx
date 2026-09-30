@@ -59,7 +59,7 @@ function useRunSetup() {
   };
 }
 
-export function OnboardingCard() {
+export function OnboardingCard({ inAcademy = false }: { inAcademy?: boolean } = {}) {
   const ob = useOnboarding();
   const reduce = useReducedMotion();
   if (ob.hidden) return null;
@@ -105,7 +105,7 @@ export function OnboardingCard() {
       </div>
       <motion.div initial={false} animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }} transition={reduce ? { duration: 0 } : { height: { type: "spring", stiffness: 260, damping: 32 }, opacity: { duration: 0.18 } }} style={{ overflow: "hidden" }}>
         <SetupList compact={false} />
-        <AcademyLink />
+        {!inAcademy && <AcademyLink />}
       </motion.div>
     </div>
   );

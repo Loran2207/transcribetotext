@@ -66,7 +66,7 @@ const WIDGETS: Record<string, () => React.ReactElement> = {
       ))}
     </div>
   ),
-  "read-transcript": () => (
+  "translate": () => (
     <div className={cn(GLASS, "p-[9px]")}>
       <Head icon={TranslateIcon} right={<span className={cn(ROW, "px-[6px] py-[1px] text-[9px] font-semibold text-white")}>English · Español</span>}>Transcript</Head>
       {[["00:16", "The new plan starts in May."], ["00:31", "Then we tell the team."]].map(([t, s], i) => (
@@ -214,6 +214,24 @@ Object.assign(WIDGETS, {
   ),
 });
 
+/* Review 61: Read and listen shows the player. */
+Object.assign(WIDGETS, {
+  "read-transcript": () => (
+    <div className={cn(GLASS, "p-[9px]")}>
+      <p className="truncate text-[10px] font-semibold leading-[14px] text-white/90"><span className={ACCENT}>0:16</span> The new plan starts in May.</p>
+      <div className="mt-[7px] flex h-[16px] items-center gap-[2px]">
+        {[5, 9, 6, 12, 8, 14, 6, 10, 13, 7, 15, 9, 11, 5, 13, 8, 10, 6, 14, 9, 11, 7, 9, 12].map((h, i) => <span key={i} className={cn("w-[2.5px] rounded-full", i < 9 ? "bg-[#8FC2FF]" : "bg-white/30")} style={{ height: h }} />)}
+      </div>
+      <div className="mt-[7px] flex items-center gap-[6px]">
+        <span className="text-[9.5px] font-semibold tabular-nums text-white/60">0:16</span>
+        <span className="flex items-center gap-[3px] rounded-full bg-white px-[8px] py-[2px] text-[9.5px] font-bold text-[#0A1630]"><Icon icon={PlayIcon} size={9} strokeWidth={2.6} />Play</span>
+        <span className="rounded-full bg-white/[0.12] px-[6px] py-[1px] text-[9px] font-semibold text-white">1.5x</span>
+        <span className="ml-auto text-[9.5px] font-semibold tabular-nums text-white/60">1:14</span>
+      </div>
+    </div>
+  ),
+});
+
 /* Review 59: the pieces of interface are not all laid the same way. Each
    lesson has its own pose: where the piece sits in the frame, a tilt in
    perspective or a slight turn, sometimes a second card behind it. Same
@@ -222,7 +240,8 @@ type Pose = { at: "bl" | "br" | "b" | "c" | "l" | "r"; t?: string; ghost?: boole
 const POSES: Record<string, Pose> = {
   "first-record": { at: "bl" },
   "meetings": { at: "r", t: "perspective(800px) rotateY(-16deg) rotateX(4deg)" },
-  "read-transcript": { at: "br", t: "rotate(-2.5deg)" },
+  "read-transcript": { at: "b", t: "perspective(900px) rotateX(12deg)" },
+  "translate": { at: "br", t: "rotate(-2.5deg)" },
   "edit-transcript": { at: "c", t: "perspective(800px) rotateX(12deg)" },
   "speakers": { at: "bl", t: "perspective(800px) rotateY(14deg)" },
   "summary": { at: "br", t: "rotate(1.5deg)", ghost: true },

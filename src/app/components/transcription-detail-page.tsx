@@ -609,6 +609,7 @@ function SegmentInlineActions({
 }) {
   return (
     <div
+      data-tour="record-hover-bar"
       className="absolute right-2 top-3 z-20 flex items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1.5 shadow-sm backdrop-blur-[2px] transition-all duration-150 opacity-0 pointer-events-none translate-y-1 group-hover/seg:opacity-100 group-hover/seg:pointer-events-auto group-hover/seg:translate-y-0 group-focus-within/seg:opacity-100 group-focus-within/seg:pointer-events-auto group-focus-within/seg:translate-y-0"
     >
       <Tooltip>
@@ -1589,11 +1590,12 @@ function MediaPlayer({
           fractions, so Play stays centred whatever the label does. */}
       <div className="grid grid-cols-[1fr_auto_1fr] items-center">
         <span className="min-w-[50px] text-xs tabular-nums text-muted-foreground">{formatTime(currentSeconds)}</span>
-        <div className="flex items-center justify-center gap-1.5">
+        <div data-tour="record-transport" className="flex items-center justify-center gap-1.5">
           <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.max(0, progress[0] - (5 / totalSeconds) * 100))])} title="Back 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 19l-7-7 7-7" /><text x="14" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
           <Button
+            data-tour="record-play"
             onClick={onPlayPause}
             className={`rounded-full gap-1.5 transition-all ${isPlaying ? "h-9 w-9 px-0" : "h-9 px-4"} bg-primary text-primary-foreground hover:bg-primary/90`}
           >
@@ -2063,7 +2065,7 @@ export function useTranscriptView() {
 export function TranscriptViewChecks() {
   const { view, toggle } = useTranscriptView();
   return (
-    <div className="flex items-center gap-3">
+    <div data-tour="record-view-toggles" className="flex items-center gap-3">
       {([["speakers", "Speakers"], ["timestamps", "Timestamps"]] as const).map(([k, label]) => (
         <label key={k} className="flex h-7 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
           <FigmaCheckbox checked={view[k]} onChange={() => toggle(k)} />
@@ -2330,6 +2332,13 @@ function PageHeader({
   useEffect(() => {
     if (editingTitle && inputRef.current) { inputRef.current.focus(); inputRef.current.select(); }
   }, [editingTitle]);
+  /* the onboarding tour opens the Copy menu to show what it holds */
+  const [copyOpen, setCopyOpen] = useState(false);
+  useEffect(() => {
+    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "copy-open") setCopyOpen(true); if (t === "copy-close" || t === "close-all") setCopyOpen(false); };
+    window.addEventListener("ttt-tour", on);
+    return () => window.removeEventListener("ttt-tour", on);
+  }, []);
 
   return (
     <div className="@container px-4 pt-4 pb-0 lg:px-8 lg:pt-6">
@@ -2371,7 +2380,7 @@ function PageHeader({
               <span className="font-medium text-[13px]">Share</span>
             </Button>
           )}
-          <DropdownMenu>
+          <DropdownMenu open={copyOpen} onOpenChange={setCopyOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="pill-outline" data-tour="record-copy" className="flex items-center gap-[6px] h-9 px-[14px] max-md:hidden">
                 <Icon icon={Copy} className="size-[14px]" strokeWidth={1.7} />
@@ -2379,7 +2388,7 @@ function PageHeader({
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80"><path d="M6 9l6 6 6-6" /></svg>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={6} className={"z-[120] " + (copyMenu.translation ? "w-[236px]" : "w-[190px]")}>
+            <DropdownMenuContent data-tour="record-copy-menu" align="end" sideOffset={6} className={"z-[120] " + (copyMenu.translation ? "w-[236px]" : "w-[190px]")}>
               {copyMenu.translation ? (
                 <>
                   {/* With a translation on the record, "Copy transcript" no longer
@@ -2910,10 +2919,37 @@ export function TranscriptionDetailPage() {
   const [extraSpeakers, setExtraSpeakers] = useState<Speaker[]>([]);
   const [removedSpeakers, setRemovedSpeakers] = useState<string[]>([]);
   const [speakersPanelOpen, setSpeakersPanelOpen] = useState(false);
-  /* the onboarding tour opens the real dialogs of this page */
+  const [translateOpen, setTranslateOpen] = useState(false);
+  /* functions the tour calls later; kept fresh every render so the listener below never holds a stale one */
+  const tourActs = useRef<{ translate: () => void; pick: (code: string) => void; tab: (t: "transcript" | "summary") => void }>({ translate: () => {}, pick: () => {}, tab: () => {} });
+  const viewBefore = useRef<string | null>(null);
+  /* the onboarding tour opens the real dialogs of this page, and shows the real controls at work */
   useEffect(() => {
+    const setView = (v: { speakers: boolean; timestamps: boolean } | null) => {
+      try {
+        if (v) { if (viewBefore.current === null) viewBefore.current = window.localStorage.getItem(VIEW_KEY) ?? ""; window.localStorage.setItem(VIEW_KEY, JSON.stringify(v)); }
+        else if (viewBefore.current !== null) { if (viewBefore.current) window.localStorage.setItem(VIEW_KEY, viewBefore.current); else window.localStorage.removeItem(VIEW_KEY); viewBefore.current = null; }
+      } catch { /* private mode */ }
+      window.dispatchEvent(new Event(VIEW_EVENT));
+    };
     const on = (e: Event) => {
       const t = (e as CustomEvent<string>).detail;
+      if (t === "tab-transcript") tourActs.current.tab("transcript");
+      if (t === "tab-summary") tourActs.current.tab("summary");
+      if (t === "view-speakers-off") setView({ speakers: false, timestamps: true });
+      if (t === "view-timestamps-off") setView({ speakers: true, timestamps: false });
+      if (t === "view-reset" || t === "close-all") setView(null);
+      if (t === "edit-focus") {
+        tourActs.current.tab("transcript"); setEditMode(true);
+        window.setTimeout(() => { const el = document.querySelector<HTMLTextAreaElement>("[data-tour='record-transcript-body'] textarea"); if (el) { el.focus({ preventScroll: true }); el.setSelectionRange(el.value.length, el.value.length); } }, 250);
+      }
+      /* the hover bar shows on hover or focus: the tour focuses the first block's bar */
+      if (t === "hoverbar-show") { tourActs.current.tab("transcript"); window.setTimeout(() => document.querySelector<HTMLButtonElement>("[data-tour='record-hover-bar'] button")?.focus({ preventScroll: true }), 200); }
+      if (t === "hoverbar-hide" || t === "close-all") { const a = document.activeElement as HTMLElement | null; if (a && a.closest("[data-tour='record-hover-bar']")) a.blur(); }
+      if (t === "translate-open") setTranslateOpen(true);
+      if (t === "translate-close" || t === "close-all") setTranslateOpen(false);
+      if (t === "translate-pick") { setTranslateOpen(false); tourActs.current.pick("es"); }
+      if (t === "translate-run") { setTranslateOpen(false); tourActs.current.translate(); }
       if (t === "share-open") { setTourPreview(true); setShareDialogOpen(true); }
       if (t === "share-close" || t === "close-all") { setShareDialogOpen(false); setTourPreview(false); }
       if (t === "speakers-open") setSpeakersPanelOpen(true);
@@ -4193,6 +4229,7 @@ export function TranscriptionDetailPage() {
   };
   const barActiveTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
   const isTranscriptTab = activeTab === "transcript" || activeTab === "transcript-translated";
+  tourActs.current = { translate: () => { void handleTranslate("es"); }, pick: (code) => setSelectedTranslationLang(code), tab: (t) => setActiveTab(t) };
   const templateCta = barActiveTemplate ? (
     <Button variant="pill-outline" onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] gap-1.5 px-3 justify-between text-[14px] font-medium">
       <span className="flex items-center gap-1.5 min-w-0">
@@ -4269,11 +4306,13 @@ export function TranscriptionDetailPage() {
               value={selectedTranslationLang || undefined}
               onValueChange={setSelectedTranslationLang}
               disabled={isTranslationLoading || isJobTranscribing}
+              open={translateOpen}
+              onOpenChange={setTranslateOpen}
             >
               <SelectTrigger size="sm" className="h-8 w-[190px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
                 <SelectValue placeholder="Translate to..." />
               </SelectTrigger>
-              <SelectContent align="end">
+              <SelectContent data-tour="record-translate-menu" align="end">
                 {TRANSLATION_LANGUAGES.map((language) => (
                   <SelectItem key={language.code} value={language.code}>
                     <span className="inline-flex items-center gap-2">
@@ -4292,6 +4331,7 @@ export function TranscriptionDetailPage() {
               }`}
             >
               <Button
+                data-tour="record-translate-go"
                 variant="ghost"
                 size="sm"
                 className={`h-8 rounded-full px-3 text-sm transition-colors ${
@@ -4427,7 +4467,7 @@ export function TranscriptionDetailPage() {
               </div>
               {isJobTranscribing ? null : activeTab === "transcript" ? (
                 editMode ? (
-                  <>
+                  <div data-tour="record-edit-bar" className="flex items-center gap-1">
                     <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-9 rounded-full lg:size-7" disabled={!canUndo} onClick={undo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button></TooltipTrigger><TooltipContent>Undo</TooltipContent></Tooltip>
                     <Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-9 rounded-full lg:size-7" disabled={!canRedo} onClick={redo}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button></TooltipTrigger><TooltipContent>Redo</TooltipContent></Tooltip>
                     {differsFromOriginal && (
@@ -4438,7 +4478,7 @@ export function TranscriptionDetailPage() {
                     )}
                     <Button variant="ghost" size="sm" className="h-9 rounded-full px-3 text-[13px] text-muted-foreground lg:h-7 lg:px-2.5 lg:text-xs" onClick={handleCancel}>Cancel</Button>
                     <Button size="sm" className="h-9 rounded-full px-4 text-[13px] lg:h-7 lg:px-3 lg:text-xs" onClick={handleSave}>Save</Button>
-                  </>
+                  </div>
                 ) : (
                   <>
                   <TranscriptViewChecks />

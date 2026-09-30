@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { OnboardingCard } from "./onboarding/onboarding-widget";
 import { Cancel01Icon, Clock01Icon, PlayIcon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -34,6 +35,7 @@ export function AcademyPage() {
   const watched = useMemo(() => new Set([...ob.done, ...ob.seen]), [ob.done, ob.seen]);
   const total = ob.guides.length;
   const next = ob.guides.find((g) => !ob.done.has(g.id));
+  const showSteps = !ob.hidden && !ob.allDone;
 
   const open = (g: Guide) => { setOpenId(g.id); ob.markSeen(g.id); };
   const startTour = (g: Guide) => { setOpenId(null); ob.startGuide(g.id); };
@@ -55,6 +57,15 @@ export function AcademyPage() {
           </div>
         </Tabs>
 
+        {/* review 61: the First steps card from Home stands beside the lessons (on the
+            right when there is room, above them when there is not) */}
+        <div className={cn(showSteps && "@[1100px]:grid @[1100px]:grid-cols-[minmax(0,1fr)_320px] @[1100px]:gap-8")}>
+        {showSteps && (
+          <aside data-academy-first-steps="" className="mt-7 hidden @[1100px]:order-2 @[1100px]:block">
+            <div className="@[1100px]:sticky @[1100px]:top-4"><OnboardingCard inAcademy /></div>
+          </aside>
+        )}
+        <div className="@container min-w-0 @[1100px]:order-1">
         {ACADEMY_SECTIONS.filter((sec) => tab === "all" || tab === sec.id).map((sec) => {
           const inSec = ob.guides.filter((g) => g.category === sec.id);
           const doneIn = inSec.filter((g) => watched.has(g.id)).length;
@@ -72,6 +83,8 @@ export function AcademyPage() {
             </section>
           );
         })}
+        </div>
+        </div>
       </div>
 
       <LessonPanel guide={openGuide} done={openGuide ? ob.done.has(openGuide.id) : false} onClose={() => setOpenId(null)} onStart={() => openGuide && startTour(openGuide)} />
