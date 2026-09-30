@@ -270,7 +270,7 @@ export function SceneCover({ id, src, size = "sm", className }: { id: string; sr
   const place = PLACE[pose.at];
   return (
     <div className={cn("@container relative overflow-hidden bg-[#0A1630]", className)}>
-      <img src={src} alt="" aria-hidden loading="lazy" className="absolute inset-0 h-full w-full select-none object-cover transition-transform duration-[1600ms] ease-out group-hover:scale-[1.05]" style={{ objectPosition: "50% 40%" }} />
+      <img src={src} alt="" aria-hidden decoding="async" className="absolute inset-0 h-full w-full select-none object-cover transition-transform duration-[1600ms] ease-out group-hover:scale-[1.05]" style={{ objectPosition: "50% 40%" }} />
       <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/2" style={{ background: "linear-gradient(180deg, rgba(4,10,26,0) 0%, rgba(4,10,26,0.42) 100%)" }} />
       {W && (
         <div aria-hidden data-pose={pose.at} className={cn("absolute", place.box, size === "md" && "p-[20px]")}>
