@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   AiMagicIcon, Calendar03Icon, CheckmarkSquare02Icon, Copy01Icon, Download04Icon, FileAudioIcon,
@@ -307,6 +307,24 @@ const PLACE: Record<Pose["at"], { box: string; origin: string }> = {
   r: { box: "inset-0 flex items-center justify-end p-[14px]", origin: "origin-right" },
 };
 
+/* Review 62: a card never waits on a heavy photo. Small covers load a 640px
+   thumbnail (about 40 KB instead of 130); until a photo arrives the card shows
+   the navy plate with a slow shimmer and its piece of interface, then the
+   photo fades in. On a slow connection it reads as loading, never as broken. */
+export const thumbOf = (src: string) => src.replace(/\/([^/]+)$/, "/thumb/$1");
+
+function CoverPhoto({ src }: { src: string }) {
+  const ref = useRef<HTMLImageElement>(null);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => { setLoaded(!!ref.current?.complete && (ref.current?.naturalWidth ?? 0) > 0); }, [src]);
+  return (
+    <>
+      {!loaded && <span aria-hidden className="absolute inset-0 animate-pulse bg-[radial-gradient(120%_80%_at_70%_30%,rgba(143,194,255,0.14),transparent_60%)]" />}
+      <img ref={ref} src={src} alt="" aria-hidden decoding="async" onLoad={() => setLoaded(true)} className={cn("absolute inset-0 h-full w-full select-none object-cover transition-[opacity,transform] duration-[600ms,1600ms] ease-out group-hover:scale-[1.05]", loaded ? "opacity-100" : "opacity-0")} style={{ objectPosition: "50% 40%" }} />
+    </>
+  );
+}
+
 /* The cover: the photograph, the site's whisper of a wash, the lesson's piece of interface. */
 export function SceneCover({ id, widget, src, size = "sm", className }: { id: string; widget?: string; src: string; size?: "sm" | "md"; className?: string }) {
   const W = WIDGETS[widget ?? id];
@@ -314,7 +332,7 @@ export function SceneCover({ id, widget, src, size = "sm", className }: { id: st
   const place = PLACE[pose.at];
   return (
     <div className={cn("@container relative overflow-hidden bg-[#0A1630]", className)}>
-      <img src={src} alt="" aria-hidden decoding="async" className="absolute inset-0 h-full w-full select-none object-cover transition-transform duration-[1600ms] ease-out group-hover:scale-[1.05]" style={{ objectPosition: "50% 40%" }} />
+      <CoverPhoto src={size === "sm" ? thumbOf(src) : src} />
       <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/2" style={{ background: "linear-gradient(180deg, rgba(4,10,26,0) 0%, rgba(4,10,26,0.42) 100%)" }} />
       {W && (
         <div aria-hidden data-pose={pose.at} className={cn("absolute", place.box, size === "md" && "p-[20px]")}>
