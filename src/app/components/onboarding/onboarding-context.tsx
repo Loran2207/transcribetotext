@@ -23,8 +23,8 @@ import { GUIDES, INTRO_STEP, SETUP, SETUP_ACTION_IDS, SETUP_REQUIRED, setupCompl
 const KEY = "ttt_onboarding_v1";
 const EVENT = "ttt-onboarding";
 
-type Stored = { done: string[]; seen: string[]; actions: string[]; hidden: boolean; rewardClaimed: boolean; expanded: boolean; introSeen: boolean };
-const EMPTY: Stored = { done: [], seen: [], actions: [], hidden: false, rewardClaimed: false, expanded: true, introSeen: false };
+type Stored = { done: string[]; seen: string[]; actions: string[]; hidden: boolean; rewardClaimed: boolean; expanded: boolean; introSeen: boolean; helper: boolean; nav: boolean };
+const EMPTY: Stored = { done: [], seen: [], actions: [], hidden: false, rewardClaimed: false, expanded: true, introSeen: false, helper: true, nav: true };
 
 function load(): Stored {
   if (typeof window === "undefined") return EMPTY;
@@ -68,6 +68,11 @@ type Ctx = {
   rewardClaimed: boolean;
   expanded: boolean;
   setExpanded: (v: boolean) => void;
+  /* variant b display preferences: the helper on every page, the row in the sidebar */
+  showHelper: boolean;
+  setShowHelper: (v: boolean) => void;
+  showNav: boolean;
+  setShowNav: (v: boolean) => void;
   hide: () => void;
   reset: () => void;
   markDone: (id: string) => void;
@@ -184,6 +189,10 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       rewardClaimed: stored.rewardClaimed,
       expanded: stored.expanded,
       setExpanded: (v) => setStored((s) => ({ ...s, expanded: v })),
+      showHelper: stored.helper !== false,
+      setShowHelper: (v) => setStored((s) => ({ ...s, helper: v })),
+      showNav: stored.nav !== false,
+      setShowNav: (v) => setStored((s) => ({ ...s, nav: v })),
       hide: () => setStored((s) => ({ ...s, hidden: true })),
       reset: () => { setTour(null); setCelebration(null); setStored({ ...EMPTY }); },
       markDone,

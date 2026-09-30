@@ -8,6 +8,7 @@ import { usePlan } from "./use-plan";
 import { UpgradeBanner } from "./upgrade-banner";
 import { PromoCard } from "./right-panel";
 import { OnboardingSlide } from "./onboarding/onboarding-widget";
+import { ONBOARDING_VARIANT } from "./onboarding/variant";
 import { useOnboarding } from "./onboarding/onboarding-context";
 import { ANALYTICS_FILES, ANALYTICS_HOURS, ANALYTICS_SOURCES } from "./analytics-card";
 import { meetings, MeetingItem, TODAY_STR } from "./todays-events";
@@ -31,7 +32,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   const todays = meetings.filter((m) => m.day === TODAY_STR);
   const nextMeeting = todays[0];
   const ob = useOnboarding();
-  const guideSlide = !ob.hidden && !ob.allDone;
+  const guideSlide = !ob.hidden && !ob.allDone && ONBOARDING_VARIANT !== "b";
   /* the guide rides first while it is unfinished; free has no analytics card */
   const infoSlides = [...(guideSlide ? ["guide"] : []), ...(plan === "free" ? ["events"] : ["analytics", "events"])];
   const onPromoScroll = () => { const el = promoRef.current; if (!el) return; const i = Math.round(el.scrollLeft / el.clientWidth); if (i !== promoActive) setPromoActive(i); };

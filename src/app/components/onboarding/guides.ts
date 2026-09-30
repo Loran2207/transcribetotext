@@ -11,7 +11,7 @@
      and that lesson counts as done only when an upload really starts;
    - as little text as possible. */
 
-export type TourTarget = { page: "dashboard" | "records" | "calendar" | "templates" | "shared" | "academy" | "settings" } | { path: string };
+export type TourTarget = { page: "dashboard" | "records" | "calendar" | "templates" | "shared" | "academy" | "settings" | "first-steps" } | { path: string };
 
 export type TourStep = {
   anchor: string;
@@ -277,17 +277,19 @@ export const GUIDES: Guide[] = RAW_GUIDES.map((g) => ({ ...g, ...GUIDE_META[g.id
    every way in is its own step, so the list reads "try this, try that". Every
    required step works on the Free plan, so the gift can always be earned
    (sharing is paid, so it is not here). The photo is optional. */
-export type SetupItem = { id: string; title: string; why: string; how: string; group: "try" | "yours"; run: "modal" | "calendar" | "tour" | "profile"; modal?: "upload" | "record" | "meeting" | "link"; cta: string; parts?: { id: string }[]; optional?: boolean };
+export type SetupItem = { id: string; title: string; why: string; how: string; group: "try" | "yours"; run: "modal" | "calendar" | "tour" | "profile"; modal?: "upload" | "record" | "meeting" | "link"; cta: string; parts?: { id: string }[]; optional?: boolean;
+  /* the First steps page (variant b): its photograph, its piece of interface, the label of its one action */
+  cover: string; widget: string; action: string };
 export const SETUP: SetupItem[] = [
-  { id: "way-file", title: "Upload a file", why: "Audio or video from your computer.", how: "first-record", group: "try", run: "modal", modal: "upload", cta: "Upload" },
-  { id: "way-voice", title: "Try Instant speech", why: "Talk, and watch it become text.", how: "first-record", group: "try", run: "modal", modal: "record", cta: "Try" },
-  { id: "way-meeting", title: "Send the recorder to a call", why: "Paste a Zoom, Meet or Teams link.", how: "first-record", group: "try", run: "modal", modal: "meeting", cta: "Try" },
-  { id: "way-link", title: "Transcribe a link", why: "YouTube, Drive, Dropbox and more.", how: "first-record", group: "try", run: "modal", modal: "link", cta: "Paste" },
-  { id: "calendar", title: "Connect your calendar", why: "The recorder joins your meetings by itself.", how: "meetings", group: "yours", run: "calendar", cta: "Connect" },
-  { id: "template", title: "Apply a template", why: "Notes in the shape you need, every time.", how: "summary", group: "yours", run: "tour", cta: "Show me" },
-  { id: "speakers", title: "Name a speaker", why: "So the notes say who said what.", how: "speakers", group: "yours", run: "tour", cta: "Show me" },
-  { id: "folders", title: "Create a folder", why: "One per client or project.", how: "folders", group: "yours", run: "tour", cta: "Show me" },
-  { id: "photo", title: "Add your photo", why: "So people know who shared the notes.", how: "", group: "yours", run: "profile", cta: "Add", optional: true },
+  { id: "way-file", title: "Upload a file", why: "Audio or video from your computer.", how: "first-record", group: "try", run: "modal", modal: "upload", cta: "Upload", cover: "/images/academy3/first-record.jpg", widget: "first-record", action: "Upload a file" },
+  { id: "way-voice", title: "Try Instant speech", why: "Talk, and watch it become text.", how: "first-record", group: "try", run: "modal", modal: "record", cta: "Try", cover: "/images/first-steps/way-voice.jpg", widget: "way-voice", action: "Start Instant speech" },
+  { id: "way-meeting", title: "Send the recorder to a call", why: "Paste a Zoom, Meet or Teams link.", how: "first-record", group: "try", run: "modal", modal: "meeting", cta: "Try", cover: "/images/academy3/meetings.jpg", widget: "way-meeting", action: "Paste a call link" },
+  { id: "way-link", title: "Transcribe a link", why: "YouTube, Drive, Dropbox and more.", how: "first-record", group: "try", run: "modal", modal: "link", cta: "Paste", cover: "/images/first-steps/way-link.jpg", widget: "way-link", action: "Paste a link" },
+  { id: "calendar", title: "Connect your calendar", why: "The recorder joins your meetings by itself.", how: "meetings", group: "yours", run: "calendar", cta: "Connect", cover: "/images/academy3/meeting-settings.jpg", widget: "meetings", action: "Connect a calendar" },
+  { id: "template", title: "Apply a template", why: "Notes in the shape you need, every time.", how: "summary", group: "yours", run: "tour", cta: "Show me", cover: "/images/academy3/summary.jpg", widget: "summary", action: "Show me where" },
+  { id: "speakers", title: "Name a speaker", why: "So the notes say who said what.", how: "speakers", group: "yours", run: "tour", cta: "Show me", cover: "/images/academy3/speakers.jpg", widget: "speakers", action: "Show me where" },
+  { id: "folders", title: "Create a folder", why: "One per client or project.", how: "folders", group: "yours", run: "tour", cta: "Show me", cover: "/images/academy3/folders.jpg", widget: "folders", action: "Show me where" },
+  { id: "photo", title: "Add your photo", why: "So people know who shared the notes.", how: "", group: "yours", run: "profile", cta: "Add", optional: true, cover: "/images/first-steps/photo.jpg", widget: "photo", action: "Add a photo" },
 ];
 export const SETUP_GROUPS: { id: SetupItem["group"]; title: string }[] = [
   { id: "try", title: "Try every way in" },

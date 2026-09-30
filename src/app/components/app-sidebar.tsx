@@ -389,7 +389,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
         <SidebarAppPlaque />
         <SidebarSeparator />
         <SidebarMenu>
-          <FirstStepsLauncher />
+          <FirstStepsLauncher active={activePage === "first-steps"} onOpen={() => { onNavigate("first-steps"); setOpenMobile(false); }} />
           <SidebarMenuItem>
             <SidebarMenuButton
               data-tour="nav-academy"

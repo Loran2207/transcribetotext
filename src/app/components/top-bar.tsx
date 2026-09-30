@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { ONBOARDING_VARIANT } from "./onboarding/variant";
+import { Rocket01Icon } from "@hugeicons/core-free-icons";
 import { Search, Help, Settings, Globe, LogOut, Zap, ChevronDown } from "@hugeicons/core-free-icons";
 import { toast } from "sonner";
 import { Icon } from "./ui/icon";
@@ -68,6 +70,12 @@ export function ProfileDropdown({ onNavigate }: { onNavigate: (page: string) => 
             <Icon icon={Settings} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
             <span className="font-normal text-[13px] text-foreground">{t("profile.settings")}</span>
           </Button>
+          {ONBOARDING_VARIANT === "b" && (
+            <Button variant="ghost" data-profile-first-steps="" onClick={() => { setOpen(false); onNavigate("first-steps"); }} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] rounded-none justify-start">
+              <Icon icon={Rocket01Icon} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
+              <span className="font-normal text-[13px] text-foreground">First steps</span>
+            </Button>
+          )}
           <div className="relative">
             <Button variant="ghost" onClick={() => setLangOpen(!langOpen)} className="flex items-center gap-[10px] w-full px-[14px] h-[36px] rounded-none justify-start">
               <Icon icon={Globe} className="size-[16px] shrink-0 text-muted-foreground" strokeWidth={1.5} />

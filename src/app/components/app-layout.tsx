@@ -1,4 +1,7 @@
 import { useState, useRef, useEffect } from "react";
+import { FirstStepsPage } from "./first-steps/first-steps-page";
+import { FirstStepsHelper } from "./first-steps/first-steps-helper";
+import { ONBOARDING_VARIANT } from "./onboarding/variant";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { Puzzle } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -96,7 +99,8 @@ export function AppLayout() {
                 {!isSettings && activePage === "calendar" && <CalendarPage />}
                 {!isSettings && activePage === "templates" && <TemplatesPage />}
                 {!isSettings && activePage === "academy" && <AcademyPage />}
-                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && activePage !== "academy" && activePage !== "notetaker" && (
+                {!isSettings && activePage === "first-steps" && <FirstStepsPage />}
+                {!isSettings && activePage !== "dashboard" && activePage !== "records" && activePage !== "shared" && activePage !== "calendar" && activePage !== "templates" && activePage !== "academy" && activePage !== "first-steps" && activePage !== "notetaker" && (
                   <PagePlaceholder activePage={activePage} />
                 )}
               </>
@@ -107,6 +111,7 @@ export function AppLayout() {
         </SidebarInset>
       </SidebarProvider>
        <DesktopNotice />
+       {ONBOARDING_VARIANT === "b" && <FirstStepsHelper onFirstStepsPage={activePage === "first-steps" || isSettings} busyBottom={isSubRoute} />}
        <DemoSwitcher />
        <OnboardingTour />
        <RewardDialog />

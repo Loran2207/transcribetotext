@@ -8,7 +8,8 @@ import { useIsPhone } from "./ui/use-mobile";
 import { ScrollFade } from "./scroll-fade";
 import { SceneCover } from "./academy-scene";
 import { LessonPanel } from "./academy-page";
-import { ACADEMY_SECTIONS, GUIDE_PERSON, NO_ANCHOR, type Guide } from "./onboarding/guides";
+import { ACADEMY_SECTIONS, GUIDE_PERSON, NO_ANCHOR, SETUP_REQUIRED, isSetupDone, type Guide } from "./onboarding/guides";
+import { ProgressRing } from "./first-steps/first-steps-page";
 import { useOnboarding } from "./onboarding/onboarding-context";
 
 /* Variant b of the Academy (branch academy-b, review 59): the same lessons,
@@ -31,6 +32,9 @@ export function AcademyCourse() {
   const sel = ob.guides.find((g) => g.id === selId) ?? ob.guides[0];
   const sheet = ob.guides.find((g) => g.id === sheetId) ?? null;
   const total = ob.guides.length;
+  const stepsHas = (id: string) => ob.actions.has(id);
+  const stepsDone = SETUP_REQUIRED.filter((x) => isSetupDone(x, stepsHas)).length;
+  const stepsTotal = SETUP_REQUIRED.length;
 
   const pick = (g: Guide) => { ob.markSeen(g.id); if (phone) setSheetId(g.id); else setSelId(g.id); };
   const startTour = (g: Guide) => { setSheetId(null); ob.startGuide(g.id); };
@@ -38,20 +42,37 @@ export function AcademyCourse() {
   return (
     <div ref={scrollRef} data-tour="academy-page" className="flex-1 overflow-auto min-w-0">
       <ScrollFade scrollRef={scrollRef} />
-      <div className="px-4 pt-[16px] pb-[40px] lg:px-[32px] lg:pt-[28px]">
-        <header data-tour="academy-banner" className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-          <div>
-            <h1 className="text-[20px] font-bold leading-[26px] tracking-[-0.3px] text-foreground lg:text-[28px] lg:leading-[34px] lg:tracking-[-0.56px]">Academy</h1>
-            <p className="mt-[4px] text-[13.5px] leading-[19px] text-muted-foreground">Short guides, one per feature. Read one, or let {GUIDE_PERSON.name} show you on the real screens.</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <Progress watched={watched.size} total={total} />
-            {next && (
-              <Button data-tour="academy-continue" onClick={() => startTour(next)} className="h-9 max-w-full gap-[8px] px-[16px] text-[13px] font-semibold">
-                <Icon icon={PlayIcon} size={12} strokeWidth={2.6} />
-                <span className="min-w-0 max-w-[220px] truncate">{watched.size === 0 ? "Start" : "Continue"}: {next.title}</span>
-              </Button>
-            )}
+      <div className="px-4 pt-[16px] pb-[104px] lg:px-[32px] lg:pt-[28px]">
+        <header data-tour="academy-banner" className="@container relative overflow-hidden rounded-[18px] bg-[#0A1630]" style={{ boxShadow: "0 8px 24px rgba(10,22,48,0.18), 0 1px 3px rgba(0,0,0,0.08)" }}>
+          <img src="/images/academy3/banner.jpg" alt="" aria-hidden className="absolute inset-0 h-full w-full select-none object-cover object-[92%_45%] @[640px]:object-[60%_40%]" />
+          <span aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(90deg, rgba(10,22,48,0.9) 0%, rgba(10,22,48,0.6) 50%, rgba(10,22,48,0.15) 100%)" }} />
+          <div className="relative flex flex-col gap-5 px-[22px] py-[22px] @[720px]:flex-row @[720px]:items-center @[720px]:justify-between lg:px-[28px]">
+            <div className="flex items-center gap-[18px]">
+              <div className="relative shrink-0">
+                <ProgressRing done={watched.size} total={total} size={72} stroke={6} light />
+                <span className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                  <span className="text-[19px] font-bold leading-none tabular-nums">{watched.size}</span>
+                  <span className="mt-[2px] text-[10px] font-semibold text-white/60">of {total}</span>
+                </span>
+              </div>
+              <div>
+                <h1 className="text-[22px] font-bold leading-[28px] tracking-[-0.4px] text-white lg:text-[26px] lg:leading-[32px]">Academy</h1>
+                <p className="mt-[3px] max-w-[420px] text-[13.5px] leading-[19px] text-white/75">Short guides, one per feature. Read one, or let {GUIDE_PERSON.name} show you on the real screens.</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-[10px]">
+              {!ob.allDone && (
+                <button type="button" data-academy-first-steps="" onClick={() => ob.navigate({ page: "first-steps" })} className="flex h-9 items-center gap-[7px] rounded-full bg-white/10 px-[14px] text-[13px] font-semibold text-white ring-1 ring-inset ring-white/20 transition-colors hover:bg-white/15">
+                  <ProgressRing done={stepsDone} total={stepsTotal} size={18} stroke={3} light />First steps<span className="tabular-nums text-white/60">{stepsDone}/{stepsTotal}</span>
+                </button>
+              )}
+              {next && (
+                <button type="button" data-tour="academy-continue" onClick={() => startTour(next)} className="flex h-9 max-w-full items-center gap-[8px] rounded-full bg-white pl-[14px] pr-[16px] text-[13px] font-semibold text-[#0A1630] transition-colors hover:bg-[#EEF2F7]">
+                  <Icon icon={PlayIcon} size={12} strokeWidth={2.6} />
+                  <span className="min-w-0 max-w-[220px] truncate">{watched.size === 0 ? "Start" : "Continue"}: {next.title}</span>
+                </button>
+              )}
+            </div>
           </div>
         </header>
 
@@ -135,11 +156,11 @@ function LessonBody({ guide, done, onStart }: { guide: Guide; done: boolean; onS
         <p className="flex items-center gap-[6px] text-[12.5px] font-medium text-muted-foreground"><Icon icon={Clock01Icon} size={12} strokeWidth={2.2} />{guide.seconds}s{done && <span className="text-primary">· done</span>}</p>
         <h3 className="mt-[4px] text-[22px] font-bold leading-[28px] tracking-[-0.4px] text-foreground">{guide.title}</h3>
         <p className="mt-[6px] text-[14px] leading-[20px] text-foreground/80">{guide.summary}</p>
-        <div className="mt-5 flex items-center gap-[12px] rounded-[12px] bg-muted/60 px-[12px] py-[10px]">
+        <Button data-academy-panel-start="" onClick={onStart} className="mt-4 h-10 gap-[8px] px-[20px] text-[13.5px] font-semibold"><Icon icon={PlayIcon} size={12} strokeWidth={2.6} />{done ? "Take the tour again" : "Start tour"}</Button>
+        <div className="mt-4 flex items-center gap-[12px] rounded-[12px] bg-muted/60 px-[12px] py-[10px]">
           <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[32px] shrink-0 rounded-full bg-primary/10 object-cover object-top" />
           <p className="min-w-0 flex-1 text-[13px] leading-[18px] text-foreground/80"><span className="font-semibold text-foreground">{GUIDE_PERSON.name}</span>: "I'll show you on the real screens."</p>
         </div>
-        <Button data-academy-panel-start="" onClick={onStart} className="mt-4 h-10 gap-[8px] px-[20px] text-[13.5px] font-semibold"><Icon icon={PlayIcon} size={12} strokeWidth={2.6} />{done ? "Take the tour again" : "Start tour"}</Button>
       </div>
       <ol className="flex flex-col">
         {steps.map((s, i) => (

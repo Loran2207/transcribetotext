@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   AiMagicIcon, Calendar03Icon, CheckmarkSquare02Icon, Copy01Icon, Download04Icon, FileAudioIcon,
-  Comment01Icon, Delete02Icon, Folder01Icon, Link01Icon, Mail01Icon, PencilEdit01Icon, PlayIcon, Search01Icon,
+  Comment01Icon, Delete02Icon, Mic01Icon, Folder01Icon, Link01Icon, Mail01Icon, PencilEdit01Icon, PlayIcon, Search01Icon,
   Settings02Icon, SlidersHorizontalIcon, SquareIcon, StarIcon, Tick02Icon, TranslateIcon, Undo02Icon,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
@@ -214,6 +214,46 @@ Object.assign(WIDGETS, {
   ),
 });
 
+/* Review 60: the pieces for the First steps page (variant b). */
+Object.assign(WIDGETS, {
+  "way-voice": () => (
+    <div className={cn(GLASS, "p-[9px]")}>
+      <Head icon={Mic01Icon} right={<span className="flex items-center gap-[4px] text-[9.5px] font-semibold tabular-nums text-white/70"><span className="size-[5px] rounded-full bg-destructive" />0:12</span>}>Instant speech</Head>
+      <div className="mt-[7px] flex h-[18px] items-center gap-[2px]">
+        {[5, 9, 6, 13, 8, 15, 6, 11, 14, 7, 16, 9, 12, 5, 14, 8, 10, 6, 15, 9, 12, 7].map((h, i) => <span key={i} className={cn("w-[2.5px] rounded-full", i < 15 ? "bg-white/85" : "bg-white/30")} style={{ height: h }} />)}
+      </div>
+      <p className="mt-[6px] truncate text-[10px] font-semibold text-white/90">Quick plan for the week: the Acme <span className="text-white/45">proposal</span></p>
+    </div>
+  ),
+  "way-meeting": () => (
+    <div className={cn(GLASS, "p-[9px]")}>
+      <Head icon={Link01Icon}>Record a call</Head>
+      <div className="mt-[6px] flex items-center gap-[6px] rounded-[7px] bg-white px-[8px] py-[5px]">
+        <span className="min-w-0 flex-1 truncate text-[10px] font-semibold text-[#0A1630]">meet.google.com/xpa-rtqk-mvn</span>
+        <span className="rounded-full bg-[#0A1630] px-[7px] py-[1px] text-[9px] font-bold text-white">Join</span>
+      </div>
+      <p className="mt-[6px] text-[9.5px] font-semibold text-white/70">The recorder joins in a few seconds</p>
+    </div>
+  ),
+  "way-link": () => (
+    <div className={cn(GLASS, "p-[9px]")}>
+      <Head icon={Link01Icon} right={<span className={cn(ROW, "px-[6px] py-[1px] text-[9px] font-semibold text-white")}>YouTube</span>}>Transcribe a link</Head>
+      <div className="mt-[6px] rounded-[7px] bg-white px-[8px] py-[5px] text-[10px] font-semibold text-[#0A1630]">youtube.com/watch?v=growth-talk</div>
+      <span className="mt-[7px] block h-[4px] overflow-hidden rounded-full bg-white/20"><span className="block h-full w-[64%] rounded-full bg-[#8FC2FF]" /></span>
+    </div>
+  ),
+  "photo": () => (
+    <div className={cn(GLASS, "flex items-center gap-[10px] p-[10px]")}>
+      <span className="flex size-[36px] shrink-0 items-center justify-center rounded-full bg-[#8FC2FF] text-[13px] font-bold text-[#0A1630] ring-2 ring-white/60">AL</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[10.5px] font-semibold text-white">Alex Lee</span>
+        <span className="block truncate text-[9.5px] font-semibold text-white/60">Shared the notes · now</span>
+      </span>
+      <span className="rounded-full bg-white px-[8px] py-[2px] text-[9.5px] font-bold text-[#0A1630]">Upload</span>
+    </div>
+  ),
+});
+
 /* Review 59: the pieces of interface are not all laid the same way. Each
    lesson has its own pose: where the piece sits in the frame, a tilt in
    perspective or a slight turn, sometimes a second card behind it. Same
@@ -234,6 +274,10 @@ const POSES: Record<string, Pose> = {
   "meeting-settings": { at: "l", t: "perspective(800px) rotateY(16deg)" },
   "plan": { at: "b" },
   "highlights": { at: "bl", t: "rotate(-2deg)", ghost: true },
+  "way-voice": { at: "b", t: "perspective(900px) rotateX(10deg)" },
+  "way-meeting": { at: "bl", t: "rotate(-2deg)" },
+  "way-link": { at: "r", t: "perspective(800px) rotateY(-14deg)", ghost: true },
+  "photo": { at: "c" },
 };
 const PLACE: Record<Pose["at"], { box: string; origin: string }> = {
   bl: { box: "inset-0 flex items-end justify-start p-[12px]", origin: "origin-bottom-left" },
@@ -245,9 +289,9 @@ const PLACE: Record<Pose["at"], { box: string; origin: string }> = {
 };
 
 /* The cover: the photograph, the site's whisper of a wash, the lesson's piece of interface. */
-export function SceneCover({ id, src, size = "sm", className }: { id: string; src: string; size?: "sm" | "md"; className?: string }) {
-  const W = WIDGETS[id];
-  const pose = POSES[id] ?? { at: "bl" };
+export function SceneCover({ id, widget, src, size = "sm", className }: { id: string; widget?: string; src: string; size?: "sm" | "md"; className?: string }) {
+  const W = WIDGETS[widget ?? id];
+  const pose = POSES[widget ?? id] ?? { at: "bl" };
   const place = PLACE[pose.at];
   return (
     <div className={cn("@container relative overflow-hidden bg-[#0A1630]", className)}>

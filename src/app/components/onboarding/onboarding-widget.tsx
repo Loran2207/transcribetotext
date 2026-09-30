@@ -6,10 +6,7 @@ import { cn } from "../ui/utils";
 import { useOnboarding } from "./onboarding-context";
 import { SETUP_GROUPS, SETUP_REQUIRED, isSetupDone, type SetupItem } from "./guides";
 import { ONBOARDING_VARIANT } from "./variant";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
-import { useState } from "react";
-import { useIsPhone } from "../ui/use-mobile";
 import { useTranscriptionModals } from "../transcription-modals";
 
 /* "First steps": a fixed card at the top of the Home right panel (web) and a
@@ -229,10 +226,9 @@ export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCl
   );
 }
 
-/* Variant b (branch academy-b, review 59): First steps lives in the sidebar,
-   right above the Academy, as one row with a progress ring. The list opens in
-   a popover beside the sidebar, the same list and gift as the Home card of
-   variant a; picking a step closes it and starts that step. */
+/* Variant b (branch academy-b, review 59-60): First steps lives in the sidebar,
+   right above the Academy, as one row with a progress ring that opens the
+   First steps page. It can be switched off from that page (Customize). */
 function Ring({ done, total }: { done: number; total: number }) {
   const r = 8, c = 2 * Math.PI * r;
   return (
@@ -243,37 +239,22 @@ function Ring({ done, total }: { done: number; total: number }) {
   );
 }
 
-export function FirstStepsLauncher() {
+export function FirstStepsLauncher({ active, onOpen }: { active: boolean; onOpen: () => void }) {
   const ob = useOnboarding();
-  const phone = useIsPhone();
-  const [open, setOpen] = useState(false);
-  if (ONBOARDING_VARIANT !== "b" || ob.hidden || ob.allDone) return null;
+  if (ONBOARDING_VARIANT !== "b" || ob.hidden || ob.allDone || !ob.showNav) return null;
   const has = (id: string) => ob.actions.has(id);
   const done = SETUP_REQUIRED.filter((x) => isSetupDone(x, has)).length;
   const total = SETUP_REQUIRED.length;
   return (
     <SidebarMenuItem>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <div className="w-full">
-          <SidebarMenuButton data-tour="nav-first-steps" data-onboarding-launcher="" className={open ? "bg-sidebar-accent" : undefined}>
-            <Ring done={done} total={total} />
-            <span className="flex min-w-0 flex-1 items-center gap-[6px]">
-              <span className="truncate">First steps</span>
-              <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain group-data-[collapsible=icon]:hidden" />
-            </span>
-            <span className="ml-auto text-[12px] font-medium tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">{done} of {total}</span>
-          </SidebarMenuButton>
-          </div>
-        </PopoverTrigger>
-        <PopoverContent side={phone ? "top" : "right"} align={phone ? "start" : "end"} sideOffset={phone ? 8 : 12} collisionPadding={12} data-onboarding-card="" className="z-[60] max-h-[calc(100vh-24px)] w-[min(340px,calc(100vw-24px))] overflow-y-auto rounded-[14px] p-0" onClick={(e) => { if ((e.target as HTMLElement).closest("button[data-onboarding-setup]")) setOpen(false); }}>
-          <div className="px-[18px] pt-[14px] pb-[6px]">
-            <p className="text-[15px] font-bold leading-[20px] tracking-[-0.2px] text-foreground">First steps</p>
-            <p className="text-[12px] font-medium leading-[16px] text-muted-foreground">Try each once<span className="text-border"> · </span><span className="tabular-nums">{done} of {total} done</span></p>
-          </div>
-          <SetupList compact={false} />
-        </PopoverContent>
-      </Popover>
+      <SidebarMenuButton data-tour="nav-first-steps" data-onboarding-launcher="" isActive={active} onClick={onOpen} tooltip="First steps">
+        <Ring done={done} total={total} />
+        <span className="flex min-w-0 flex-1 items-center gap-[6px]">
+          <span className="truncate">First steps</span>
+          <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain group-data-[collapsible=icon]:hidden" />
+        </span>
+        <span className="ml-auto text-[12px] font-medium tabular-nums text-muted-foreground group-data-[collapsible=icon]:hidden">{done} of {total}</span>
+      </SidebarMenuButton>
     </SidebarMenuItem>
   );
 }
