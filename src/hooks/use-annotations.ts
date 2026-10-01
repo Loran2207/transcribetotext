@@ -2,14 +2,21 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   YOU,
+  DEFAULT_LABEL_ID,
   demoStartsEmpty,
   loadAnnotations,
+  loadLabels,
+  loadLastLabel,
+  saveLabels,
+  saveLastLabel,
   overlaps,
   saveAnnotations,
   seedAnnotations,
   type Anchor,
   type Annotations,
   type Highlight,
+  type Label,
+  type LabelColor,
   type Reply,
   type Thread,
 } from "@/lib/annotations";
@@ -50,16 +57,20 @@ export function useAnnotations(record: string, blocks: BlockText[]) {
 
   /* Marking words you already marked grows the one mark instead of stacking a
      second on top. Somebody else's mark stays theirs. */
-  const addHighlight = useCallback((a: Anchor) => {
+  const addHighlight = useCallback((a: Anchor, labelId: string = DEFAULT_LABEL_ID) => {
     const id = `h-${Date.now()}`;
     set((d) => {
       const mine = d.highlights.filter((h) => h.segmentId === a.segmentId && h.by.you && overlaps(h, a));
       const start = Math.min(a.start, ...mine.map((h) => h.start));
       const end = Math.max(a.end, ...mine.map((h) => h.end));
       const rest = d.highlights.filter((h) => !mine.includes(h));
-      return { ...d, highlights: [...rest, { id, segmentId: a.segmentId, start, end, by: YOU, at: Date.now() }] };
+      return { ...d, highlights: [...rest, { id, segmentId: a.segmentId, start, end, by: YOU, at: Date.now(), labelId }] };
     });
     return id;
+  }, [set]);
+
+  const setLabel = useCallback((highlightId: string, labelId: string) => {
+    set((d) => ({ ...d, highlights: d.highlights.map((h) => (h.id === highlightId ? { ...h, labelId } : h)) }));
   }, [set]);
 
   const removeHighlight = useCallback((id: string) => {
@@ -138,6 +149,7 @@ export function useAnnotations(record: string, blocks: BlockText[]) {
     addHighlight,
     removeHighlight,
     restoreHighlight,
+    setLabel,
     addThread,
     reply,
     editThread,
@@ -152,3 +164,34 @@ export function useAnnotations(record: string, blocks: BlockText[]) {
 }
 
 export type AnnotationsApi = ReturnType<typeof useAnnotations>;
+
+/* The person's labels (the same set on every record) and the one the
+   Highlight button applies: the last one they picked. */
+export function useLabels() {
+  const [labels, setLabels] = useState<Label[]>(loadLabels);
+  const [lastId, setLastId] = useState<string>(loadLastLabel);
+  useEffect(() => { saveLabels(labels); }, [labels]);
+
+  const byId = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
+  const labelOf = useCallback((id?: string) => byId.get(id ?? "") ?? labels[0], [byId, labels]);
+  const current = byId.get(lastId) ?? labels[0];
+
+  const pick = useCallback((id: string) => { setLastId(id); saveLastLabel(id); }, []);
+  const add = useCallback((name: string, color: LabelColor) => {
+    const id = `l-${Date.now()}`;
+    setLabels((list) => [...list, { id, name, color }]);
+    return id;
+  }, []);
+  const update = useCallback((id: string, patch: Partial<Omit<Label, "id">>) => {
+    setLabels((list) => list.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  }, []);
+  /* A removed label never leaves a highlight without one: those fall back to the first label. */
+  const remove = useCallback((id: string) => {
+    setLabels((list) => (list.length > 1 ? list.filter((l) => l.id !== id) : list));
+    setLastId((cur) => (cur === id ? DEFAULT_LABEL_ID : cur));
+  }, []);
+
+  return { labels, labelOf, current, pick, add, update, remove };
+}
+
+export type LabelsApi = ReturnType<typeof useLabels>;

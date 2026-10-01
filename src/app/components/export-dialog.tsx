@@ -41,6 +41,7 @@ interface FileSettings {
   includeSummary: boolean;
   includeAudio: boolean;
   includeTranslation: boolean;
+  includeNotes: boolean;
   translationLanguage: string;
   options: ExportContentOptions;
 }
@@ -51,6 +52,7 @@ const DEFAULT_SETTINGS: FileSettings = {
   includeSummary: false,
   includeAudio: false,
   includeTranslation: false,
+  includeNotes: false,
   translationLanguage: "es",
   options: DEFAULT_EXPORT_OPTIONS,
 };
@@ -282,11 +284,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   const zipFileName = `${safeName(exportName || `transcripts-${items.length}`)}.zip`;
 
   const plans: ExportFilePlan[] = useMemo(
-    () => items.map((r) => ({ record: r, format: shared.format, includeTranscript: shared.includeTranscript, includeSummary: shared.includeSummary, includeAudio: shared.includeAudio, includeTranslation: shared.includeTranslation, translationLanguage: shared.translationLanguage, options: shared.options })),
+    () => items.map((r) => ({ record: r, format: shared.format, includeTranscript: shared.includeTranscript, includeSummary: shared.includeSummary, includeAudio: shared.includeAudio, includeTranslation: shared.includeTranslation, includeNotes: shared.includeNotes, translationLanguage: shared.translationLanguage, options: shared.options })),
     [items, shared]
   );
-  const nothingSelected = items.length === 0 || (!shared.includeTranscript && !shared.includeSummary && !shared.includeAudio && !shared.includeTranslation);
-  const fileCount = nothingSelected ? 0 : items.length * ((shared.includeTranscript ? 1 : 0) + (shared.includeSummary ? 1 : 0) + (shared.includeAudio ? 1 : 0) + (shared.includeTranslation ? 1 : 0));
+  const nothingSelected = items.length === 0 || (!shared.includeTranscript && !shared.includeSummary && !shared.includeAudio && !shared.includeTranslation && !shared.includeNotes);
+  const fileCount = nothingSelected ? 0 : items.length * ((shared.includeTranscript ? 1 : 0) + (shared.includeSummary ? 1 : 0) + (shared.includeAudio ? 1 : 0) + (shared.includeTranslation ? 1 : 0) + (shared.includeNotes ? 1 : 0));
 
   const footerSummary = useMemo(() => {
     if (nothingSelected) return "Nothing selected";
@@ -296,12 +298,14 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
       if (shared.includeTranscript) return `${base}.${FORMAT_META[shared.format].extension}`;
       if (shared.includeSummary) return `${base}-summary.txt`;
       if (shared.includeTranslation) return `${base}-${shared.translationLanguage}.txt`;
+      if (shared.includeNotes) return `${base}-highlights-and-comments.txt`;
       return `${base}.mp3`;
     }
     const mix: string[] = [];
     if (shared.includeTranscript) mix.push(`${items.length}× ${shared.format.toUpperCase()}`);
     if (shared.includeSummary) mix.push(`${items.length}× summary`);
     if (shared.includeTranslation) mix.push(`${items.length}× ${shared.translationLanguage} translation`);
+    if (shared.includeNotes) mix.push(`${items.length}× highlights and comments`);
     if (shared.includeAudio) mix.push(`${items.length}× mp3`);
     return `${mix.join(" · ")}  →  ${zipEnabled ? zipFileName : "separate files"}`;
   }, [items, shared, fileCount, nothingSelected, zipFileName, zipEnabled]);
@@ -397,6 +401,10 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
 
       <SectionRow title="Summary" enabled={shared.includeSummary} onToggle={(v) => patchShared({ includeSummary: v })}>
         <p className={shared.includeSummary ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>Exports the AI summary as a separate .txt file.</p>
+      </SectionRow>
+
+      <SectionRow title="Highlights and comments" enabled={shared.includeNotes} onToggle={(v) => patchShared({ includeNotes: v })}>
+        <p className={shared.includeNotes ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>Every highlight with its label and time, and every comment thread, as a separate .txt file.</p>
       </SectionRow>
 
       <SectionRow title="Translation" enabled={shared.includeTranslation} onToggle={(v) => patchShared({ includeTranslation: v })}>

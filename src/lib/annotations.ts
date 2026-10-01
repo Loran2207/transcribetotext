@@ -13,7 +13,25 @@ export type Person = { name: string; color: string; initial: string; you?: boole
 
 export type Anchor = { segmentId: number; start: number; end: number };
 
-export type Highlight = Anchor & { id: string; by: Person; at: number };
+/* A highlight says what kind of line it is: a key point, a to-do, a decision,
+   a question. The label is its colour in the text, its dot on the player and
+   its filter in the list. People can rename, recolour and add their own. */
+export type LabelColor = "amber" | "sky" | "emerald" | "violet" | "rose" | "slate";
+
+export type Label = { id: string; name: string; color: LabelColor };
+
+export const LABEL_COLORS: LabelColor[] = ["amber", "sky", "emerald", "violet", "rose", "slate"];
+
+export const DEFAULT_LABELS: Label[] = [
+  { id: "key", name: "Key point", color: "amber" },
+  { id: "todo", name: "To-do", color: "sky" },
+  { id: "decision", name: "Decision", color: "emerald" },
+  { id: "question", name: "Question", color: "violet" },
+];
+
+export const DEFAULT_LABEL_ID = "key";
+
+export type Highlight = Anchor & { id: string; by: Person; at: number; labelId?: string };
 
 export type Reply = { id: string; by: Person; text: string; at: number; edited?: boolean };
 
@@ -36,6 +54,9 @@ const ALEX: Person = { name: "Alex Johnson", color: "#3b82f6", initial: "A" };
 const MARIA: Person = { name: "Maria Garcia", color: "#8b5cf6", initial: "M" };
 const JAMES: Person = { name: "James Chen", color: "#10b981", initial: "J" };
 
+/* The people on this record, for @ in a comment (demo: the team on the call). */
+export const TEAM: Person[] = [ALEX, MARIA, JAMES];
+
 type SeedText = { id: number; text: string; timestamp: string };
 
 const MIN = 60_000;
@@ -54,9 +75,9 @@ export function seedAnnotations(segments: SeedText[], now = Date.now()): Annotat
   };
   const highlights: Highlight[] = [];
   const threads: Thread[] = [];
-  const h = (id: string, segmentId: number, words: string, by: Person, ago: number) => {
+  const h = (id: string, segmentId: number, words: string, by: Person, ago: number, labelId = DEFAULT_LABEL_ID) => {
     const a = find(segmentId, words);
-    if (a) highlights.push({ id, segmentId: a.segmentId, start: a.start, end: a.end, by, at: now - ago });
+    if (a) highlights.push({ id, segmentId: a.segmentId, start: a.start, end: a.end, by, at: now - ago, labelId });
   };
   const t = (thread: Omit<Thread, keyof Anchor | "quote" | "timestamp">, segmentId: number, words: string) => {
     const a = find(segmentId, words);
@@ -64,8 +85,12 @@ export function seedAnnotations(segments: SeedText[], now = Date.now()): Annotat
   };
 
   h("h1", 2, "the design team finished the new onboarding flow mockups yesterday", MARIA, 3 * HOUR);
+  h("h4", 3, "We'll need to review them by Thursday at the latest", JAMES, 2 * HOUR, "decision");
+  h("h5", 4, "Maria, can you coordinate that with the design leads?", YOU, 70 * MIN, "todo");
   h("h2", 6, "we're about 80% through the current milestone", YOU, 50 * MIN);
   h("h3", 9, "about 40% of users are finding the current notification settings confusing", MARIA, 45 * MIN);
+  h("h6", 10, "I'll create a separate agenda item for the next planning meeting", ALEX, 40 * MIN, "todo");
+  h("h7", 7, "Any questions or concerns before we move on to Q2 planning?", YOU, 30 * MIN, "question");
 
   t({
     id: "t1", by: ALEX, at: now - 2 * HOUR,
@@ -75,7 +100,7 @@ export function seedAnnotations(segments: SeedText[], now = Date.now()): Annotat
   t({
     id: "t2", by: MARIA, at: now - 45 * MIN,
     text: "This matches what we saw in the support tickets last month. It needs attention before Q2.",
-    replies: [],
+    replies: [{ id: "t2r1", by: ALEX, text: "@Maria Garcia can you pull the ticket numbers before Thursday?", at: now - 20 * MIN }],
   }, 9, "about 40% of users are finding the current notification settings confusing");
   t({
     id: "t3", by: JAMES, at: now - 26 * HOUR,
@@ -142,7 +167,34 @@ export function timeAgo(at: number, now = Date.now()) {
   return `${Math.floor(d / (24 * HOUR))}d ago`;
 }
 
-const KEY = "ttt_annotations_v1:";
+/* Labels belong to the person, not the record: the same set on every note. */
+const LABELS_KEY = "ttt_labels_v1";
+const LAST_LABEL_KEY = "ttt_last_label";
+
+export function loadLabels(): Label[] {
+  try {
+    const raw = window.localStorage.getItem(LABELS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Label[]) : null;
+    if (Array.isArray(parsed) && parsed.length) return parsed;
+  } catch {
+    /* fall through to the defaults */
+  }
+  return DEFAULT_LABELS;
+}
+
+export function saveLabels(labels: Label[]) {
+  try { window.localStorage.setItem(LABELS_KEY, JSON.stringify(labels)); } catch { /* this visit only */ }
+}
+
+export function loadLastLabel(): string {
+  try { return window.localStorage.getItem(LAST_LABEL_KEY) || DEFAULT_LABEL_ID; } catch { return DEFAULT_LABEL_ID; }
+}
+
+export function saveLastLabel(id: string) {
+  try { window.localStorage.setItem(LAST_LABEL_KEY, id); } catch { /* this visit only */ }
+}
+
+const KEY = "ttt_annotations_v2:";
 
 export function loadAnnotations(record: string): Annotations | null {
   try {

@@ -551,6 +551,14 @@ export function transformForExport(record: ExportableRecord, opts: ExportContent
   return { ...record, segments };
 }
 
+/* Highlights and comments of a record, as the record page last wrote them
+   (prototype: the page keeps the text in this browser; a backend would serve it). */
+export function buildNotesTxt(record: ExportableRecord): string {
+  let notes = "";
+  try { notes = window.localStorage.getItem(`ttt_notes_txt:${record.id}`) ?? ""; } catch { notes = ""; }
+  return [record.title, record.metadata?.date ?? "", "", notes.trim() || "No highlights or comments yet."].join("\n");
+}
+
 /** Plain-text summary file for a record. */
 export function buildSummaryTxt(record: ExportableRecord): string {
   const lines = [record.title, record.date ?? "", "", "Summary", "-------", record.summary ?? "No summary available."];
@@ -681,6 +689,8 @@ export interface ExportFilePlan {
   includeSummary: boolean;
   includeAudio?: boolean;
   includeTranslation?: boolean;
+  /** Highlights (with labels) and comment threads as a separate .txt */
+  includeNotes?: boolean;
   /** Target language code for the translated transcript (e.g. "es") */
   translationLanguage?: string;
   options: ExportContentOptions;
@@ -703,6 +713,7 @@ async function buildPlanEntries(plan: ExportFilePlan): Promise<ZipEntry[]> {
     }
   }
   if (plan.includeSummary) out.push({ name: `${base}-summary.txt`, data: enc.encode(buildSummaryTxt(rec)) });
+  if (plan.includeNotes) out.push({ name: `${base}-highlights-and-comments.txt`, data: enc.encode(buildNotesTxt(rec)) });
   if (plan.includeTranslation) {
     // Prototype: mock records carry no real translation - export the transcript under the target-language name
     const lang = plan.translationLanguage ?? "es";
@@ -728,7 +739,7 @@ export async function runExportPlan(
   zipName?: string,
   opts?: { zip?: boolean }
 ): Promise<ExportManifest> {
-  const active = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio || p.includeTranslation);
+  const active = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio || p.includeTranslation || p.includeNotes);
   if (!active.length) throw new Error("Nothing selected to export");
   const entries: ZipEntry[] = [];
   for (const plan of active) entries.push(...await buildPlanEntries(plan));

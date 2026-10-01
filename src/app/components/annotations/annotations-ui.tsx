@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
@@ -13,12 +13,12 @@ import {
   HighlighterIcon,
   MoreHorizontal,
   PencilEdit02Icon,
-  Share08Icon,
+  PlayIcon,
+  StopIcon,
 } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/app/components/ui/button";
 import { Icon } from "@/app/components/ui/icon";
-import { Textarea } from "@/app/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/ui/tooltip";
 import { Popover, PopoverAnchor, PopoverContent } from "@/app/components/ui/popover";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/app/components/ui/drawer";
@@ -30,23 +30,26 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/app/components/ui/utils";
 import { ToastCard } from "@/app/components/app-toast";
-import type { AnnotationsApi } from "@/hooks/use-annotations";
+import type { AnnotationsApi, LabelsApi } from "@/hooks/use-annotations";
+import { HighlightSplit, LabelChip, LabelDot, LabelPicker, WASH, WASH_ON } from "./labels-ui";
 import {
+  TEAM,
   coversBlock,
   cutRuns,
   overlaps,
   timeAgo,
   type Anchor,
   type Highlight,
+  type LabelColor,
   type Person,
   type Run,
   type Thread,
 } from "@/lib/annotations";
 
-/* One yellow for every highlight, a block or a few words, in the text and in
-   the list. Comments are a different mark (an underline), so the two can sit
-   on the same words and still read apart. */
-export const HIGHLIGHT_WASH = "rounded-[3px] bg-amber-200/70 box-decoration-clone";
+/* A highlight is washed in its label's colour, a block or a few words, in the
+   text and in the list. Comments are a different mark (an underline), so the
+   two can sit on the same words and still read apart. */
+export const HIGHLIGHT_SHAPE = "rounded-[3px] box-decoration-clone";
 
 export type Focus = { kind: "thread" | "highlight"; id: string };
 
@@ -63,15 +66,23 @@ export type NotesView = {
   openThread: (threadId: string) => void;
   commentOn: (anchor: Anchor, highlightId?: string) => void;
   seek: (timestamp: string) => void;
+  labels: LabelsApi;
+  /* touch: label pickers open as sheets */
+  sheet: boolean;
+  manageLabels: () => void;
+  /* the highlights playing back to back, if any */
+  reel: { ids: string[]; index: number } | null;
+  playAll: (ids: string[]) => void;
+  stopReel: () => void;
 };
 
 const canRemove = (v: NotesView, by: Person) => Boolean(by.you) || v.owner;
 
-export function toastUndo(title: string, onUndo: () => void) {
+export function toastUndo(title: string, onUndo: () => void, glyph: unknown = Delete02Icon) {
   toast.custom(
     (id) => (
       <ToastCard
-        glyph={Delete02Icon}
+        glyph={glyph}
         title={title}
         action={{ label: "Undo", onClick: () => { toast.dismiss(id); onUndo(); } }}
       />
@@ -144,6 +155,7 @@ export function AnnotatedText({
   focus,
   pending,
   onMark,
+  colorOf,
 }: {
   text: string;
   highlights: Highlight[];
@@ -151,6 +163,7 @@ export function AnnotatedText({
   focus: Focus | null;
   pending?: { start: number; end: number };
   onMark?: (run: Run, rect: DOMRect) => void;
+  colorOf: (highlightId: string) => LabelColor;
 }) {
   const shown = threads.filter((t) => !t.resolved && (!coversBlock(t, text.length) || focus?.id === t.id));
   const ranges = pending ? [...shown, { id: "__pending", start: pending.start, end: pending.end }] : shown;
@@ -164,6 +177,8 @@ export function AnnotatedText({
         if (!hl && th.length === 0 && !isPending) return <span key={i}>{r.text}</span>;
         const thFocused = focus?.kind === "thread" && th.includes(focus.id);
         const hlFocused = focus?.kind === "highlight" && r.highlights.includes(focus.id);
+        /* where two people's marks overlap, the later one's colour shows */
+        const color = hl ? colorOf(r.highlights[r.highlights.length - 1]) : "amber";
         return (
           <span
             key={i}
@@ -177,8 +192,8 @@ export function AnnotatedText({
               onMark({ ...r, threads: th }, e.currentTarget.getBoundingClientRect());
             }}
             className={cn(
-              hl && HIGHLIGHT_WASH,
-              hlFocused && "bg-amber-300",
+              hl && cn(HIGHLIGHT_SHAPE, WASH[color]),
+              hlFocused && WASH_ON[color],
               th.length > 0 && "underline decoration-primary/50 decoration-[1.5px] underline-offset-[4px]",
               thFocused && "rounded-[3px] bg-primary/15 decoration-primary",
               isPending && "rounded-[3px] bg-primary/20",
@@ -201,10 +216,11 @@ export function BlockActions({
   openCount,
   revealed,
   quiet,
-  canShare,
+  labels,
+  sheet,
+  onManageLabels,
   onHighlight,
   onComment,
-  onShare,
   onCopy,
   onOpenComments,
 }: {
@@ -213,10 +229,11 @@ export function BlockActions({
   revealed: boolean;
   /* a bar on a highlight or a comment field is open on this block: one floating thing at a time */
   quiet: boolean;
-  canShare: boolean;
-  onHighlight: () => void;
+  labels: LabelsApi;
+  sheet: boolean;
+  onManageLabels: () => void;
+  onHighlight: (labelId: string, picked: boolean) => void;
   onComment: () => void;
-  onShare: () => void;
   onCopy: () => void;
   onOpenComments: () => void;
 }) {
@@ -235,30 +252,12 @@ export function BlockActions({
             : "pointer-events-none translate-y-1 opacity-0 group-hover/seg:pointer-events-auto group-hover/seg:translate-y-0 group-hover/seg:opacity-100 group-focus-within/seg:pointer-events-auto group-focus-within/seg:translate-y-0 group-focus-within/seg:opacity-100",
         )}
       >
-        <Tip label={highlighted ? "Remove highlight" : "Highlight"}>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-pressed={highlighted}
-            aria-label={highlighted ? "Remove highlight" : "Highlight block"}
-            className={cn(btn, highlighted && "bg-amber-100 text-amber-700 hover:bg-amber-100 hover:text-amber-800")}
-            onClick={onHighlight}
-          >
-            <Icon icon={HighlighterIcon} className={icon} strokeWidth={1.8} />
-          </Button>
-        </Tip>
+        <HighlightSplit labels={labels} sheet={sheet} variant="icon" pressed={highlighted} onHighlight={onHighlight} onManage={onManageLabels} />
         <Tip label="Comment">
           <Button variant="ghost" size="icon" aria-label="Comment on block" className={btn} onClick={onComment}>
             <Icon icon={CommentAdd01Icon} className={icon} strokeWidth={1.8} />
           </Button>
         </Tip>
-        {canShare && (
-          <Tip label="Share">
-            <Button variant="ghost" size="icon" aria-label="Share segment" className={btn} onClick={onShare}>
-              <Icon icon={Share08Icon} className={icon} strokeWidth={1.8} />
-            </Button>
-          </Tip>
-        )}
         <Tip label="Copy text">
           <Button variant="ghost" size="icon" aria-label="Copy text" className={btn} onClick={onCopy}>
             <Icon icon={Copy01Icon} className={icon} strokeWidth={1.8} />
@@ -289,16 +288,22 @@ export function MarkBar({
   rect,
   below,
   actions,
+  lead,
   onClose,
 }: {
   rect: { left: number; top: number; width: number; bottom: number };
   below?: boolean;
   actions: BarAction[];
+  lead?: ReactNode;
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const away = (e: Event) => { if (!ref.current?.contains(e.target as Node)) onClose(); };
+    const away = (e: Event) => {
+      const t = e.target as Element | null;
+      if (ref.current?.contains(t as Node) || t?.closest?.("[data-label-menu], [data-label-sheet], [data-manage-labels]")) return;
+      onClose();
+    };
     const id = window.setTimeout(() => {
       document.addEventListener("pointerdown", away, true);
       window.addEventListener("scroll", onClose, true);
@@ -317,6 +322,8 @@ export function MarkBar({
       className="fixed z-50 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
       style={{ left: x, top: below ? rect.bottom + 8 : rect.top - 44 }}
     >
+      {lead}
+      {lead && <span className="mx-0.5 h-4 w-px bg-border" />}
       {actions.map((a) => (
         <Button
           key={a.key}
@@ -338,6 +345,75 @@ export function MarkBar({
 // Writing
 // ════════════════════════════════════════════════════════════
 
+/* @ in a comment opens the people on the record; the pick goes in as @Full Name. */
+function useMentions(text: string, setText: (t: string) => void) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const [query, setQuery] = useState<string | null>(null);
+  const [active, setActive] = useState(0);
+  const q = (query ?? "").toLowerCase();
+  const options = query === null ? [] : TEAM.filter((p) => p.name.toLowerCase().split(" ").some((w) => w.startsWith(q)));
+  const sync = (value: string, caret: number) => {
+    const m = /(^|\s)@([A-Za-z]*)$/.exec(value.slice(0, caret));
+    setQuery(m ? m[2] : null);
+    setActive(0);
+  };
+  const pick = (p: Person) => {
+    const el = ref.current;
+    const caret = el?.selectionStart ?? text.length;
+    const before = text.slice(0, caret).replace(/@([A-Za-z]*)$/, `@${p.name} `);
+    setText(before + text.slice(caret));
+    setQuery(null);
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(before.length, before.length); });
+  };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!options.length) return false;
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive((a) => (a + 1) % options.length); return true; }
+    if (e.key === "ArrowUp") { e.preventDefault(); setActive((a) => (a - 1 + options.length) % options.length); return true; }
+    if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); pick(options[Math.min(active, options.length - 1)]); return true; }
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setQuery(null); return true; }
+    return false;
+  };
+  const list = options.length ? (
+    <div data-mention-list="" className="absolute bottom-full left-0 z-30 mb-1.5 w-60 rounded-xl border border-border bg-popover p-1 shadow-md">
+      {options.map((p, i) => (
+        <button
+          key={p.name}
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); pick(p); }}
+          className={cn("flex h-9 w-full items-center gap-2.5 rounded-lg px-2 text-left text-[13px] text-foreground", i === active ? "bg-muted" : "hover:bg-muted/60")}
+        >
+          <PersonDot person={p} size={22} />
+          {p.name}
+        </button>
+      ))}
+    </div>
+  ) : null;
+  const mentioned = TEAM.filter((p) => text.includes(`@${p.name}`));
+  return { ref, sync, onKeyDown, list, mentioned };
+}
+
+/* says what a mention does: the person hears about it */
+function MentionNote({ people }: { people: Person[] }) {
+  if (!people.length) return null;
+  const names = people.map((p) => p.name);
+  const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return <p className="mt-1.5 text-[12px] text-muted-foreground">{who} will get an email.</p>;
+}
+
+const MENTION = new RegExp(`@(${TEAM.map((p) => p.name).join("|")})`, "g");
+function withMentions(text: string): ReactNode {
+  const out: ReactNode[] = [];
+  let last = 0;
+  for (const m of text.matchAll(MENTION)) {
+    const at = m.index ?? 0;
+    if (at > last) out.push(text.slice(last, at));
+    out.push(<span key={at} className="font-medium text-primary">@{m[1]}</span>);
+    last = at + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
+}
+
 function CommentForm({
   initial = "",
   submitLabel,
@@ -352,20 +428,27 @@ function CommentForm({
   onCancel: () => void;
 }) {
   const [text, setText] = useState(initial);
+  const m = useMentions(text, setText);
   const send = () => { const v = text.trim(); if (v) onSubmit(v); };
   return (
     <div>
-      <Textarea
-        autoFocus
-        value={text}
-        placeholder={placeholder}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-          if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onCancel(); }
-        }}
-        className="min-h-[72px] text-[16px] leading-[22px] lg:text-[13px] lg:leading-[19px]"
-      />
+      <div className="relative">
+        {m.list}
+        <textarea
+          ref={m.ref}
+          autoFocus
+          value={text}
+          placeholder={placeholder}
+          onChange={(e) => { setText(e.target.value); m.sync(e.target.value, e.target.selectionStart); }}
+          onKeyDown={(e) => {
+            if (m.onKeyDown(e)) return;
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+            if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onCancel(); }
+          }}
+          className="flex min-h-[72px] w-full resize-none rounded-[12px] border border-input bg-transparent px-3 py-2 text-[16px] leading-[22px] outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:text-[13px] lg:leading-[19px]"
+        />
+      </div>
+      <MentionNote people={m.mentioned} />
       <div className="mt-2 flex justify-end gap-1.5">
         <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[13px] text-muted-foreground" onClick={onCancel}>Cancel</Button>
         <Button size="sm" className="h-8 rounded-full px-3.5 text-[13px]" disabled={!text.trim()} onClick={send}>{submitLabel}</Button>
@@ -430,7 +513,8 @@ export function CommentComposer({
 
 function ReplyField({ onSend }: { onSend: (text: string) => void }) {
   const [text, setText] = useState("");
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const m = useMentions(text, setText);
+  const ref = m.ref;
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -439,15 +523,18 @@ function ReplyField({ onSend }: { onSend: (text: string) => void }) {
   }, [text]);
   const send = () => { const v = text.trim(); if (!v) return; onSend(v); setText(""); };
   return (
-    <div className="mt-3 flex items-end gap-1.5 rounded-[18px] border border-border bg-background py-1 pl-3 pr-1 transition-colors focus-within:border-primary/50">
+    <div className="mt-3">
+    <div className="relative flex items-end gap-1.5 rounded-[18px] border border-border bg-background py-1 pl-3 pr-1 transition-colors focus-within:border-primary/50">
+      {m.list}
       <textarea
         ref={ref}
         rows={1}
         value={text}
         aria-label="Reply"
         placeholder="Reply"
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => { setText(e.target.value); m.sync(e.target.value, e.target.selectionStart); }}
         onKeyDown={(e) => {
+          if (m.onKeyDown(e)) return;
           if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
           if (e.key === "Escape") (e.target as HTMLTextAreaElement).blur();
         }}
@@ -458,6 +545,8 @@ function ReplyField({ onSend }: { onSend: (text: string) => void }) {
           <Icon icon={ArrowUp02Icon} className="size-[14px]" strokeWidth={2.2} />
         </Button>
       )}
+    </div>
+    <MentionNote people={m.mentioned} />
     </div>
   );
 }
@@ -527,7 +616,7 @@ function Entry({
             <CommentForm initial={text} submitLabel="Save" placeholder="Edit comment" onSubmit={(v) => { onEdit(v); setEditing(false); }} onCancel={() => setEditing(false)} />
           </div>
         ) : (
-          <p className="mt-0.5 whitespace-pre-wrap break-words text-[13px] leading-[19px] text-foreground/90">{text}</p>
+          <p className="mt-0.5 whitespace-pre-wrap break-words text-[13px] leading-[19px] text-foreground/90">{withMentions(text)}</p>
         )}
       </div>
     </div>
@@ -592,7 +681,7 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
         at={t.at}
         edited={t.edited}
         text={t.text}
-        onResolve={t.resolved ? undefined : () => v.api.resolve(t.id)}
+        onResolve={t.resolved ? undefined : () => { v.api.resolve(t.id); toastUndo("Comment resolved", () => v.api.reopen(t.id), CheckmarkCircle02Icon); }}
         onEdit={t.by.you ? (text) => v.api.editThread(t.id, text) : undefined}
         onDelete={canRemove(v, t.by) ? () => deleteThreadWithUndo(v.api, t.id) : undefined}
       />
@@ -649,12 +738,14 @@ export function CommentsList({ v }: { v: NotesView }) {
   );
 }
 
-function HighlightItem({ h, v }: { h: Highlight; v: NotesView }) {
+function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing: boolean }) {
   const text = v.textOf(h.segmentId).slice(h.start, h.end);
   const speaker = v.speakerOf(h.segmentId);
   const timestamp = v.timestampOf(h.segmentId);
   const focused = v.focus?.kind === "highlight" && v.focus.id === h.id;
   const linked = v.api.threads.filter((t) => !t.resolved && t.segmentId === h.segmentId && overlaps(t, h));
+  const label = v.labels.labelOf(h.labelId);
+  const editable = canRemove(v, h.by);
   const tool = "size-7 rounded-full text-muted-foreground hover:text-foreground";
   return (
     <div
@@ -663,11 +754,12 @@ function HighlightItem({ h, v }: { h: Highlight; v: NotesView }) {
       tabIndex={0}
       onClick={(e) => { if (!(e.target as HTMLElement).closest("button")) v.goTo(h, { kind: "highlight", id: h.id }); }}
       onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) v.goTo(h, { kind: "highlight", id: h.id }); }}
-      className={cn("group/hl cursor-pointer rounded-xl px-3 py-2 transition-colors hover:bg-muted/50", focused && "bg-amber-50 hover:bg-amber-50")}
+      className={cn("group/hl cursor-pointer rounded-xl px-3 py-2 transition-colors hover:bg-muted/50", (focused || playing) && "bg-muted/60 hover:bg-muted/60")}
     >
       <div className="flex h-7 items-center gap-1.5 text-[12px] text-muted-foreground">
         <TimeChip timestamp={timestamp} onSeek={v.seek} />
         {speaker && <><span aria-hidden>·</span><span className="truncate">{speaker}</span></>}
+        {playing && <span className="shrink-0 font-medium text-primary">Playing</span>}
         <span className="ml-auto flex shrink-0 items-center transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/hl:opacity-100 [@media(hover:hover)]:group-focus-within/hl:opacity-100">
           <Tip label="Comment">
             <Button variant="ghost" size="icon" aria-label="Comment on highlight" className={tool} onClick={() => v.commentOn(h, h.id)}>
@@ -679,7 +771,7 @@ function HighlightItem({ h, v }: { h: Highlight; v: NotesView }) {
               <Icon icon={Copy01Icon} className="size-[15px]" strokeWidth={1.8} />
             </Button>
           </Tip>
-          {canRemove(v, h.by) && (
+          {editable && (
             <Tip label="Remove highlight">
               <Button variant="ghost" size="icon" aria-label="Remove highlight" className={tool} onClick={() => removeHighlightWithUndo(v.api, h.id)}>
                 <Icon icon={Delete02Icon} className="size-[15px]" strokeWidth={1.8} />
@@ -689,52 +781,107 @@ function HighlightItem({ h, v }: { h: Highlight; v: NotesView }) {
         </span>
       </div>
       <p className="text-[13px] leading-[20px] text-foreground/90">
-        <span className={cn(HIGHLIGHT_WASH, "px-0.5")}>{text}</span>
+        <span className={cn(HIGHLIGHT_SHAPE, WASH[label.color], "px-0.5")}>{text}</span>
       </p>
-      {(!h.by.you || linked.length > 0) && (
-        <div className="mt-1.5 flex items-center gap-3 text-[12px] text-muted-foreground">
-          {!h.by.you && (
-            <span className="inline-flex min-w-0 items-center gap-1.5">
-              <PersonDot person={h.by} size={16} />
-              <span className="truncate">Highlighted by {h.by.name.split(" ")[0]}</span>
-            </span>
-          )}
-          {linked.length > 0 && (
-            <button type="button" className="inline-flex shrink-0 items-center gap-1 font-medium text-primary hover:underline" onClick={() => v.openThread(linked[0].id)}>
-              <Icon icon={Comment01Icon} className="size-[13px]" strokeWidth={2} />
-              {linked.length === 1 ? "1 comment" : `${linked.length} comments`}
-            </button>
-          )}
-        </div>
-      )}
+      <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+        {editable ? (
+          <LabelPicker
+            labels={v.labels}
+            currentId={label.id}
+            sheet={v.sheet}
+            title="Label"
+            onPick={(id) => v.api.setLabel(h.id, id)}
+            onManage={v.manageLabels}
+            trigger={
+              <button type="button" aria-label={`Label: ${label.name}. Change`} className="rounded-full transition-opacity hover:opacity-80">
+                <LabelChip label={label}>
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><path d="M6 9l6 6 6-6" /></svg>
+                </LabelChip>
+              </button>
+            }
+          />
+        ) : (
+          <LabelChip label={label} />
+        )}
+        {!h.by.you && (
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <PersonDot person={h.by} size={16} />
+            <span className="truncate">by {h.by.name.split(" ")[0]}</span>
+          </span>
+        )}
+        {linked.length > 0 && (
+          <button type="button" className="inline-flex shrink-0 items-center gap-1 font-medium text-primary hover:underline" onClick={() => v.openThread(linked[0].id)}>
+            <Icon icon={Comment01Icon} className="size-[13px]" strokeWidth={2} />
+            {linked.length === 1 ? "1 comment" : `${linked.length} comments`}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
 
+/* The highlights, in the order they were said. Filter by label, play them
+   back to back, copy them as a list. */
 export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
   useRevealFocused(v.focus?.kind === "highlight" ? v.focus : null, "data-highlight-item");
-  const list = v.api.highlights;
-  if (list.length === 0) {
-    return <Empty icon={HighlighterIcon} title="No highlights yet" line="Select words in the transcript, then press Highlight." />;
+  const [filter, setFilter] = useState<string>("all");
+  const all = v.api.highlights;
+  const used = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const h of all) { const id = v.labels.labelOf(h.labelId).id; counts.set(id, (counts.get(id) ?? 0) + 1); }
+    return v.labels.labels.filter((l) => counts.has(l.id)).map((l) => ({ label: l, count: counts.get(l.id) ?? 0 }));
+  }, [all, v.labels]);
+  const active = filter !== "all" && used.some((u) => u.label.id === filter) ? filter : "all";
+  const list = active === "all" ? all : all.filter((h) => v.labels.labelOf(h.labelId).id === active);
+  const playingId = v.reel ? v.reel.ids[v.reel.index] : null;
+  if (all.length === 0) {
+    return <Empty icon={HighlighterIcon} title="No highlights yet" line="Select words in the transcript, or press Highlight in the player while it plays." />;
   }
   const copyAll = () => {
     const body = list
       .map((h) => {
         const who = v.speakerOf(h.segmentId);
-        return `${v.timestampOf(h.segmentId)}${who ? ` ${who}` : ""}\n"${v.textOf(h.segmentId).slice(h.start, h.end)}"`;
+        return `${v.timestampOf(h.segmentId)}${who ? ` ${who}` : ""} · ${v.labels.labelOf(h.labelId).name}\n"${v.textOf(h.segmentId).slice(h.start, h.end)}"`;
       })
       .join("\n\n");
     void navigator.clipboard?.writeText(`Highlights: ${title}\n\n${body}`);
     toast(list.length === 1 ? "Highlight copied" : `${list.length} highlights copied`);
   };
+  const chip = (on: boolean) => cn(
+    "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition-colors",
+    on ? "border-foreground/80 bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground",
+  );
   return (
-    <div className="flex flex-col px-2 pb-3 pt-1.5">
-      <div className="flex justify-end px-1 pb-0.5">
+    <div className="flex flex-col px-2 pb-3 pt-2">
+      <div className="flex items-center justify-between gap-2 px-1">
+        {v.reel ? (
+          <Button size="sm" className="h-7 gap-1.5 rounded-full px-3 text-xs" onClick={v.stopReel}>
+            <Icon icon={StopIcon} className="size-[13px]" strokeWidth={2} />Stop
+            <span className="tabular-nums opacity-80">{v.reel.index + 1} of {v.reel.ids.length}</span>
+          </Button>
+        ) : (
+          <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs font-medium text-primary hover:text-primary" onClick={() => v.playAll(list.map((h) => h.id))}>
+            <Icon icon={PlayIcon} className="size-[13px]" strokeWidth={2} />Play all
+          </Button>
+        )}
         <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground" onClick={copyAll}>
           <Icon icon={Copy01Icon} className="size-[14px]" strokeWidth={1.8} />Copy all
         </Button>
       </div>
-      {list.map((h) => <HighlightItem key={h.id} h={h} v={v} />)}
+      {used.length > 1 && (
+        <div data-label-filter="" className="mt-2 flex flex-wrap gap-1.5 px-1 pb-1">
+          <button type="button" className={chip(active === "all")} onClick={() => setFilter("all")}>All<span className="tabular-nums opacity-70">{all.length}</span></button>
+          {used.map(({ label, count }) => (
+            <button key={label.id} type="button" className={chip(active === label.id)} onClick={() => setFilter(label.id)}>
+              <LabelDot label={label} className="size-2" />
+              {label.name}<span className="tabular-nums opacity-70">{count}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="mt-1">
+        {list.map((h) => <HighlightItem key={h.id} h={h} v={v} playing={playingId === h.id} />)}
+      </div>
     </div>
   );
 }
