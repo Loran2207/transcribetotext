@@ -213,6 +213,24 @@ function splitWords(text: string): string[] {
    capture drops them. Nothing changes the font weight, for the same reason
    padding is avoided. */
 const ACTIVE_SENTENCE = "bg-transparent text-primary";
+
+/* where the sentence and the word being said sit in the block, as character ranges */
+function playbackRange(text: string, sentence: number, word: number | null | undefined) {
+  const parts = splitSentences(text);
+  const idx = Math.min(sentence, parts.length - 1);
+  let start = 0;
+  for (let i = 0; i < idx; i++) start += parts[i].length;
+  const end = start + (parts[idx]?.length ?? 0);
+  if (word == null) return { start, end };
+  let at = start;
+  let seen = -1;
+  for (const token of splitWords(parts[idx] ?? "")) {
+    if (token !== " ") seen += 1;
+    if (seen === word && token !== " ") return { start, end, word: { start: at, end: at + token.length } };
+    at += token.length;
+  }
+  return { start, end };
+}
 const ACTIVE_WORD = "rounded-[3px] bg-primary-wash py-[2px] text-primary";
 
 function secondsToTimestamp(total: number) {
@@ -574,7 +592,10 @@ function SelectionHighlightPill({
   const [left, setLeft] = useState(position.x);
   useLayoutEffect(() => {
     const w = barRef.current?.offsetWidth ?? 0;
-    setLeft(Math.max(8, Math.min(position.x, window.innerWidth - w - 8)));
+    const column = document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect();
+    const lo = (column?.left ?? 0) + 8;
+    const hi = (column?.right ?? window.innerWidth) - w - 8;
+    setLeft(Math.max(lo, Math.min(position.x, hi)));
   }, [position.x]);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
   const action = "h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground";
@@ -703,6 +724,8 @@ type SegmentNotes = {
   focus: Focus | null;
   /* a whole-block highlight you may take off (yours, or any on your own record) */
   blockHighlighted: boolean;
+  blockColor?: LabelColor;
+  raised?: boolean;
   /* the words a comment is being written about stay washed while the field has focus */
   pending?: { start: number; end: number };
   /* touch: the block's bar shows after a tap, there is no hover */
@@ -713,7 +736,7 @@ type SegmentNotes = {
   onHighlightBlock: (labelId: string, picked: boolean) => void;
   labels: LabelsApi;
   sheet: boolean;
-  onManageLabels: () => void;
+  onManageLabels?: () => void;
   colorOf: (highlightId: string) => LabelColor;
   onCommentBlock: (rect: DOMRect) => void;
   onOpenComments: () => void;
@@ -803,6 +826,8 @@ function TranscriptSegment({
           labels={notes.labels}
           sheet={notes.sheet}
           onManageLabels={notes.onManageLabels}
+          pressedColor={notes.blockColor}
+          raised={notes.raised}
           onComment={() => { const r = textRef.current?.getBoundingClientRect(); if (r) notes.onCommentBlock(r); }}
           onCopy={notes.onCopy}
           onOpenComments={notes.onOpenComments}
@@ -869,7 +894,9 @@ function TranscriptSegment({
                   : "text-foreground/85"
             }`}
           >
-            {isPlaybackActive && activeSentence !== null && activeSentence !== undefined ? (
+            {notes && !selectionMark ? (
+              <AnnotatedText text={segmentText} highlights={notes.highlights} threads={notes.threads} focus={notes.focus} pending={notes.pending} onMark={notes.onMark} colorOf={notes.colorOf} playback={isPlaybackActive && activeSentence != null ? playbackRange(segmentText, activeSentence, activeWord) : undefined} />
+            ) : isPlaybackActive && activeSentence !== null && activeSentence !== undefined ? (
               splitSentences(segmentText).map((part, i) => {
                 // Already said: dimmed, so the eye lands on the live line.
                 if (i < activeSentence) {
@@ -915,8 +942,6 @@ function TranscriptSegment({
                 <span data-selection-mark="" className="rounded-[2px] bg-primary/20">{segmentText.slice(selectionMark.start, selectionMark.end)}</span>
                 {segmentText.slice(selectionMark.end)}
               </>
-            ) : notes ? (
-              <AnnotatedText text={segmentText} highlights={notes.highlights} threads={notes.threads} focus={notes.focus} pending={notes.pending} onMark={notes.onMark} colorOf={notes.colorOf} />
             ) : (
               segmentText
             )}
@@ -1326,7 +1351,7 @@ function RightPanel({
 }) {
   const openCount = notes.api.threads.filter((t) => !t.resolved).length;
   return (
-    <div className="relative hidden shrink-0 flex-col border-l border-border bg-background lg:flex" style={{ width }}>
+    <div className="relative hidden shrink-0 flex-col border-l border-border bg-background xl:flex" style={{ width }}>
       <button
         type="button"
         aria-label="Resize right panel"
@@ -2592,6 +2617,17 @@ export function TranscriptionDetailPage() {
   const [langSheetOpen, setLangSheetOpen] = useState(false);
   const [belowLg, setBelowLg] = useState(false);
   const [belowMd, setBelowMd] = useState(false);
+  /* Below 1280 a desk with the sidebar open has no room for the right panel:
+     Comments, Highlights and Outline become tabs beside Transcript. */
+  const [noPanel, setNoPanel] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 1279px)");
+    const sync = () => setNoPanel(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(max-width: 1023px)");
@@ -2997,17 +3033,23 @@ export function TranscriptionDetailPage() {
      the phone tabs read the same store. On a record shared with you, you can
      still highlight and comment; you take off only your own notes. */
   const isOwner = !sharedOwner;
-  const recordKey = String(selectedRecord?.id ?? id ?? "demo");
+  const recordId = String(selectedRecord?.id ?? id ?? "demo");
+  /* the shared copy of a record keeps its own notes in the demo, seeded as the owner's */
+  const recordKey = sharedOwner ? `${recordId}:shared` : recordId;
+  const seedOwner = useMemo(() => (sharedOwner ? { name: sharedOwner.name, color: sharedOwner.ink, initial: sharedOwner.name.charAt(0) } : undefined), [sharedOwner]);
   const noteBlocks = useMemo(
     () => displaySegments.map((seg) => ({ id: seg.id, text: texts[seg.id] ?? seg.text, timestamp: seg.timestamp })),
     [displaySegments, texts],
   );
-  const notesApi = useAnnotations(recordKey, noteBlocks);
+  const notesApi = useAnnotations(recordKey, noteBlocks, seedOwner);
   const labelsApi = useLabels();
   const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
   /* Play all: the highlights back to back, one after another */
   const [reel, setReel] = useState<{ ids: string[]; index: number } | null>(null);
   const [onlyHighlights, setOnlyHighlights] = useState(false);
+  useEffect(() => {
+    if (!noPanel && (activeTab === "comments" || activeTab === "highlights" || activeTab === "outline")) setActiveTab("transcript");
+  }, [noPanel, activeTab]);
   useEffect(() => { if (onlyHighlights && notesApi.highlights.length === 0) setOnlyHighlights(false); }, [onlyHighlights, notesApi.highlights.length]);
   const shortcutRef = useRef<(e: KeyboardEvent) => void>(() => {});
   useEffect(() => {
@@ -3684,6 +3726,13 @@ export function TranscriptionDetailPage() {
   const blockTimestamp = (segmentId: number) => displaySegments.find((sg) => sg.id === segmentId)?.timestamp ?? "0:00";
   const blockSpeaker = (segmentId: number) => (isSingleSpeaker ? undefined : displaySegments.find((sg) => sg.id === segmentId)?.speaker.name);
 
+  /* labels belong to the workspace: only the record's owner manages them */
+  const manageLabels = isOwner ? () => setManageLabelsOpen(true) : undefined;
+  const timeOf = (a: Anchor) => { const r = rangeSeconds(a); return r ? clock(r.start) : blockTimestamp(a.segmentId); };
+  const continuationOf = (seg: Segment) => {
+    const i = displaySegments.findIndex((sg) => sg.id === seg.id);
+    return i > 0 && displaySegments[i - 1]?.speaker.id === seg.speaker.id;
+  };
   const colorOf = (highlightId: string): LabelColor => labelsApi.labelOf(notesApi.highlights.find((h) => h.id === highlightId)?.labelId).color;
   const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
   /* where words sit in time: the block's span shared out by characters, the same
@@ -3756,12 +3805,12 @@ export function TranscriptionDetailPage() {
   const playerLeading = reel ? (
     <Button size="sm" variant="outline" aria-label="Stop playing highlights" title="Stop playing highlights" className="h-8 gap-1.5 rounded-full border-border px-3 text-xs font-medium" onClick={stopReel}>
       <Icon icon={StopIcon} className="size-[13px]" strokeWidth={2} />
-      <span className="max-sm:hidden">Highlights</span>
-      <span className="tabular-nums text-muted-foreground">{reel.index + 1}/{reel.ids.length}</span>
+      <span className="max-sm:hidden">Stop ·</span>
+      <span className="tabular-nums text-muted-foreground">{reel.index + 1} of {reel.ids.length}</span>
     </Button>
   ) : (
     <span className="flex items-center gap-1.5">
-      <HighlightSplit labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" onHighlight={(id) => highlightNow(id)} onManage={() => setManageLabelsOpen(true)} />
+      <HighlightSplit labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" onHighlight={(id) => highlightNow(id)} onManage={manageLabels} />
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="outline" size="icon" aria-label="Comment on this moment" className="size-8 rounded-full border-border text-muted-foreground hover:text-foreground max-md:hidden" onClick={commentNow}>
@@ -3800,7 +3849,7 @@ export function TranscriptionDetailPage() {
       else removeHighlightWithUndo(notesApi, mine.id);
       return;
     }
-    notesApi.addHighlight({ segmentId: segId, start: 0, end: len }, labelId);
+    notesApi.addHighlight({ segmentId: segId, start: 0, end: len }, labelId, false);
   }
   function startComment(anchor: Anchor, rect: { left: number; top: number; width: number; height: number }) {
     const a = { segmentId: anchor.segmentId, start: anchor.start, end: anchor.end };
@@ -3815,24 +3864,26 @@ export function TranscriptionDetailPage() {
     const threadId = notesApi.addThread({ ...composer.anchor, quote: composer.quote, timestamp: composer.timestamp }, body);
     setComposer(null);
     setNoteFocus({ kind: "thread", id: threadId });
-    if (!belowLg) setPanelTab("comments");
+    if (!noPanel) setPanelTab("comments");
   }
   /* From a list: bring the words into view and open the field under them. On
      a phone the field is a sheet with the quote, so nothing has to move. */
   function commentOnRange(anchor: Anchor, highlightId?: string) {
     if (belowLg) { startComment(anchor, { left: 0, top: 0, width: 0, height: 0 }); return; }
-    segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const switching = noPanel && activeTab !== "transcript";
+    if (switching) setActiveTab("transcript");
+    window.setTimeout(() => segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: "center" }), switching ? 80 : 0);
     window.setTimeout(() => {
       const block = segmentRefs.current[anchor.segmentId];
       const mark = highlightId ? block?.querySelector<HTMLElement>(`[data-hl~="${highlightId}"]`) : null;
       const r = (mark ?? block?.querySelector<HTMLElement>("[data-transcript-line]"))?.getBoundingClientRect();
       startComment(anchor, r ? { left: r.left, top: r.top, width: r.width, height: r.height } : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 });
-    }, 380);
+    }, switching ? 520 : 380);
   }
   function goToNote(anchor: Anchor, f: Focus) {
-    if (belowLg) setActiveTab("transcript");
+    if (noPanel) setActiveTab("transcript");
     setNoteFocus(f);
-    window.setTimeout(() => segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: "center" }), belowLg ? 80 : 0);
+    window.setTimeout(() => segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: "center" }), noPanel ? 80 : 0);
     if (f.kind === "highlight") window.setTimeout(() => setNoteFocus((cur) => (cur?.id === f.id ? null : cur)), 1800);
   }
   function openThread(threadId: string) {
@@ -3840,18 +3891,18 @@ export function TranscriptionDetailPage() {
     if (!t) return;
     setNoteFocus({ kind: "thread", id: threadId });
     if (belowLg) setThreadSheet({ segmentId: t.segmentId });
+    else if (noPanel) setActiveTab("comments");
     else setPanelTab("comments");
   }
   function openBlockComments(segId: number) {
     setRevealedBlock(null);
     if (belowLg) { setThreadSheet({ segmentId: segId }); return; }
     const first = notesApi.threads.find((t) => t.segmentId === segId && !t.resolved);
-    if (first) { setNoteFocus({ kind: "thread", id: first.id }); setPanelTab("comments"); }
+    if (first) { setNoteFocus({ kind: "thread", id: first.id }); if (noPanel) setActiveTab("comments"); else setPanelTab("comments"); }
   }
   function handleMark(segId: number, run: Run, rect: DOMRect) {
     setRevealedBlock(null);
-    if (run.threads.length > 0) { openThread(run.threads[0]); return; }
-    if (run.highlights.length === 0) return;
+    if (run.highlights.length === 0) { if (run.threads.length > 0) openThread(run.threads[0]); return; }
     const roof = document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect().top ?? 0;
     setMarkBar({ segmentId: segId, run, rect: { left: rect.left, top: rect.top, width: rect.width, bottom: rect.bottom }, below: coarsePointer || rect.top - 48 < roof });
   }
@@ -3868,7 +3919,7 @@ export function TranscriptionDetailPage() {
         sheet={coarsePointer}
         title="Label"
         onPick={(id) => { notesApi.setLabel(h.id, id); closeMarkBar(); }}
-        onManage={() => { closeMarkBar(); setManageLabelsOpen(true); }}
+        onManage={manageLabels ? () => { closeMarkBar(); setManageLabelsOpen(true); } : undefined}
         trigger={
           <button type="button" aria-label={`Label: ${label.name}. Change`} className="ml-0.5 rounded-full transition-opacity hover:opacity-80">
             <LabelChip label={label}>
@@ -3885,8 +3936,11 @@ export function TranscriptionDetailPage() {
     if (!h) return [];
     const text = blockText(h.segmentId).slice(h.start, h.end);
     const r = markBar.rect;
+    const thread = markBar.run.threads[0];
     const actions: BarAction[] = [
-      { key: "comment", label: "Comment", icon: CommentAdd01Icon, onClick: () => startComment(h, { left: r.left, top: r.top, width: r.width, height: r.bottom - r.top }) },
+      thread
+        ? { key: "open", label: "Open comment", icon: Comment01Icon, onClick: () => openThread(thread) }
+        : { key: "comment", label: "Comment", icon: CommentAdd01Icon, onClick: () => startComment(h, { left: r.left, top: r.top, width: r.width, height: r.bottom - r.top }) },
       { key: "copy", label: "Copy", icon: Copy01Icon, onClick: () => { void navigator.clipboard?.writeText(text); toast("Text copied"); } },
     ];
     if (h.by.you || isOwner) actions.push({ key: "remove", label: "Remove", icon: Delete02Icon, danger: true, onClick: () => removeHighlightWithUndo(notesApi, h.id) });
@@ -3904,20 +3958,23 @@ export function TranscriptionDetailPage() {
   const notesFor = (seg: Segment): SegmentNotes => {
     const len = blockText(seg.id).length;
     const highlights = notesApi.highlights.filter((h) => h.segmentId === seg.id);
+    const whole = highlights.find((h) => coversBlock(h, len) && (h.by.you || isOwner));
     return {
       highlights,
       threads: notesApi.threads.filter((t) => t.segmentId === seg.id),
       focus: noteFocus,
       pending: composer && composer.anchor.segmentId === seg.id ? composer.anchor : undefined,
-      blockHighlighted: highlights.some((h) => coversBlock(h, len) && (h.by.you || isOwner)),
+      blockHighlighted: Boolean(whole),
+      blockColor: whole ? labelsApi.labelOf(whole.labelId).color : undefined,
+      raised: continuationOf(seg),
       revealed: revealedBlock === seg.id,
-      quiet: markBar?.segmentId === seg.id || composer?.anchor.segmentId === seg.id,
+      quiet: markBar?.segmentId === seg.id || composer?.anchor.segmentId === seg.id || selectionPill?.segmentId === seg.id,
       onMark: (run, rect) => handleMark(seg.id, run, rect),
       onTapText: () => tapBlock(seg.id),
       onHighlightBlock: (labelId, picked) => { setRevealedBlock(null); toggleBlockHighlight(seg.id, labelId, picked); },
       labels: labelsApi,
       sheet: coarsePointer,
-      onManageLabels: () => setManageLabelsOpen(true),
+      onManageLabels: manageLabels,
       colorOf,
       onCommentBlock: (rect) => startComment({ segmentId: seg.id, start: 0, end: len }, { left: rect.left, top: rect.top, width: rect.width, height: rect.height }),
       onOpenComments: () => openBlockComments(seg.id),
@@ -3931,24 +3988,25 @@ export function TranscriptionDetailPage() {
       lines.push("Highlights", "----------");
       for (const h of notesApi.highlights) {
         const who = blockSpeaker(h.segmentId);
-        lines.push(`[${blockTimestamp(h.segmentId)}]${who ? ` ${who}` : ""} · ${labelsApi.labelOf(h.labelId).name}`, `"${blockText(h.segmentId).slice(h.start, h.end)}"`, "");
+        lines.push(`[${timeOf(h)}]${who ? ` ${who}` : ""} · ${labelsApi.labelOf(h.labelId).name}`, `"${blockText(h.segmentId).slice(h.start, h.end)}"`, "");
       }
     }
     if (notesApi.threads.length) {
       lines.push("Comments", "--------");
       for (const t of notesApi.threads) {
-        lines.push(`[${t.timestamp}] "${t.quote}"${t.resolved ? " (resolved)" : ""}`, `  ${t.by.name}: ${t.text}`);
+        lines.push(`[${timeOf(t)}] "${t.quote}"${t.resolved ? " (resolved)" : ""}`, `  ${t.by.name}: ${t.text}`);
         for (const r of t.replies) lines.push(`  ${r.by.name}: ${r.text}`);
         lines.push("");
       }
     }
-    try { window.localStorage.setItem(`ttt_notes_txt:${recordKey}`, lines.join("\n")); } catch { /* this visit only */ }
-  }, [notesApi.highlights, notesApi.threads, labelsApi.labels, recordKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    try { window.localStorage.setItem(`ttt_notes_txt:${recordId}`, lines.join("\n")); } catch { /* this visit only */ }
+  }, [notesApi.highlights, notesApi.threads, labelsApi.labels, recordId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const notesView: NotesView = {
+    timeOf,
     labels: labelsApi,
     sheet: coarsePointer,
-    manageLabels: () => setManageLabelsOpen(true),
+    manageLabels,
     reel,
     playAll,
     stopReel,
@@ -4497,14 +4555,14 @@ export function TranscriptionDetailPage() {
         <UpgradeGateModal open={limitedModalOpen} onOpenChange={setLimitedModalOpen} variant="done" />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
-          <div className="flex items-end justify-between gap-4 border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
+          <div className="flex items-end justify-between gap-4 border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto max-md:[mask-image:linear-gradient(to_right,black_calc(100%_-_32px),transparent)]">
             <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
               {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
-              {!isJobTranscribing && <TabsTrigger value="comments" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Comments<TabCount n={notesApi.threads.filter((t) => !t.resolved).length} /></TabsTrigger>}
-              {!isJobTranscribing && <TabsTrigger value="highlights" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Highlights<TabCount n={notesApi.highlights.length} /></TabsTrigger>}
-              <TabsTrigger value="outline" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Outline</TabsTrigger>
+              {!isJobTranscribing && <TabsTrigger value="comments" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Comments<TabCount n={notesApi.threads.filter((t) => !t.resolved).length} /></TabsTrigger>}
+              {!isJobTranscribing && <TabsTrigger value="highlights" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Highlights<TabCount n={notesApi.highlights.length} /></TabsTrigger>}
+              <TabsTrigger value="outline" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Outline</TabsTrigger>
               {activeTranslationMeta && !isJobTranscribing ? (
                 <>
                   <TabsTrigger value="transcript-translated" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">
@@ -4560,7 +4618,7 @@ export function TranscriptionDetailPage() {
                   </>
                 ) : (
                   <>
-                  <span className="contents max-lg:hidden"><TranscriptViewChecks />{onlyHighlightsCheck}</span>
+                  <span className="contents max-xl:hidden"><TranscriptViewChecks />{onlyHighlightsCheck}</span>
                   {sharedOwner ? null : (
                   <Button variant="ghost" size="sm" aria-label="Edit transcript" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
                     <PencilIcon className="size-3.5" />
@@ -4593,7 +4651,7 @@ export function TranscriptionDetailPage() {
             </div>
           </div>
           {activeTab === "transcript" && !editMode && !isJobTranscribing && (
-            <div className="flex items-center gap-4 px-4 pb-2 lg:hidden">
+            <div className="flex items-center gap-4 px-4 pb-2 lg:px-8 xl:hidden">
               <TranscriptViewChecks />
               {onlyHighlightsCheck}
             </div>
@@ -4617,7 +4675,7 @@ export function TranscriptionDetailPage() {
             </div>
           ) : null}
 
-                    <TabsContent value="outline" className="lg:hidden flex-1 overflow-auto flex flex-col items-center justify-center px-6 py-16 text-center">
+                    <TabsContent value="outline" className="xl:hidden flex-1 overflow-auto flex flex-col items-center justify-center px-6 py-16 text-center">
             <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="text-primary"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
             </div>
@@ -4625,10 +4683,10 @@ export function TranscriptionDetailPage() {
             <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
             <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-muted-foreground">Auto-generated chapters and a jump-to-section outline are on the way.</p>
           </TabsContent>
-          <TabsContent value="comments" className="lg:hidden flex flex-1 flex-col overflow-auto">
+          <TabsContent value="comments" className="xl:hidden flex flex-1 flex-col overflow-auto">
             <CommentsList v={notesView} />
           </TabsContent>
-          <TabsContent value="highlights" className="lg:hidden flex flex-1 flex-col overflow-auto">
+          <TabsContent value="highlights" className="xl:hidden flex flex-1 flex-col overflow-auto">
             <HighlightsList v={notesView} title={title} />
           </TabsContent>
           {desktopShell && (
@@ -4663,7 +4721,7 @@ export function TranscriptionDetailPage() {
                     nextTimestamp={shownSegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={Boolean(prevSeg) && !seg.preview && !prevSeg?.preview && prevSeg?.speaker.id === seg.speaker.id}
-                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.managed, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, onAddSpeaker: speakersPanelActions.onAdd, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
+                    speakerControl={isSingleSpeaker || !isOwner ? undefined : { speakers: resolved.managed, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, onAddSpeaker: speakersPanelActions.onAdd, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
                     selectionMark={selectionMenuOpen && !splitPreview && selectionPill && selectionPill.segmentId === seg.id ? { start: selectionPill.start, end: selectionPill.end } : undefined}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
@@ -4981,7 +5039,7 @@ export function TranscriptionDetailPage() {
 
       {/* Right panel */}
       {isJobTranscribing ? (
-        <div className="relative hidden shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center lg:flex" style={{ width: rightPanelWidth }}>
+        <div className="relative hidden shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center xl:flex" style={{ width: rightPanelWidth }}>
           <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/5">
             <Icon icon={Comment01Icon} className="size-5 text-primary/70" strokeWidth={1.7} />
           </span>
@@ -5009,7 +5067,7 @@ export function TranscriptionDetailPage() {
           onComment={handleSelectionComment}
           labels={labelsApi}
           sheet={coarsePointer}
-          onManageLabels={() => setManageLabelsOpen(true)}
+          onManageLabels={manageLabels}
           speaker={isSingleSpeaker || !isOwner ? undefined : (() => {
             const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId); if (!seg) return undefined;
             /* the note appears only when part of the block stays where it is (Kirill 23.09) */
@@ -5025,7 +5083,7 @@ export function TranscriptionDetailPage() {
         <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={() => setComposer(null)} />
       )}
       {markBar && <MarkBar rect={markBar.rect} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
-      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} counts={labelCounts} />
+      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} counts={labelCounts} onRemoved={(label, index) => toastUndo(`${label.name} removed`, () => labelsApi.restore(label, index))} />
       {threadSheet && sheetThreads.length > 0 && <ThreadSheet threads={sheetThreads} v={notesView} onClose={() => setThreadSheet(null)} />}
     </div>
   );

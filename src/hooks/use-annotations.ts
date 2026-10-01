@@ -16,6 +16,7 @@ import {
   type Annotations,
   type Highlight,
   type Label,
+  type Person,
   type LabelColor,
   type Reply,
   type Thread,
@@ -25,18 +26,20 @@ type BlockText = { id: number; text: string; timestamp: string };
 
 const EMPTY: Annotations = { highlights: [], threads: [] };
 
-function initial(record: string, blocks: BlockText[]): Annotations {
-  return loadAnnotations(record) ?? (demoStartsEmpty() ? EMPTY : seedAnnotations(blocks));
+function initial(record: string, blocks: BlockText[], owner?: Person): Annotations {
+  return loadAnnotations(record) ?? (demoStartsEmpty() ? EMPTY : seedAnnotations(blocks, Date.now(), owner));
 }
 
-/* One record's highlights and comment threads, kept in this browser. */
-export function useAnnotations(record: string, blocks: BlockText[]) {
-  const [store, setStore] = useState(() => ({ record, data: initial(record, blocks) }));
-  const data = store.record === record ? store.data : initial(record, blocks);
+/* One record's highlights and comment threads, kept in this browser.
+   owner: on a record shared with you, the notes the demo marks as the
+   owner's are theirs, not yours. */
+export function useAnnotations(record: string, blocks: BlockText[], owner?: Person) {
+  const [store, setStore] = useState(() => ({ record, data: initial(record, blocks, owner) }));
+  const data = store.record === record ? store.data : initial(record, blocks, owner);
 
   useEffect(() => {
-    if (store.record !== record) setStore({ record, data: initial(record, blocks) });
-  }, [record, store.record, blocks]);
+    if (store.record !== record) setStore({ record, data: initial(record, blocks, owner) });
+  }, [record, store.record, blocks, owner]);
 
   useEffect(() => {
     if (store.record === record) saveAnnotations(record, store.data);
@@ -57,14 +60,16 @@ export function useAnnotations(record: string, blocks: BlockText[]) {
 
   /* Marking words you already marked grows the one mark instead of stacking a
      second on top. Somebody else's mark stays theirs. */
-  const addHighlight = useCallback((a: Anchor, labelId: string = DEFAULT_LABEL_ID) => {
+  /* merge: false for a whole-block highlight, which sits over the marks inside
+     it and must give them back when it is taken off */
+  const addHighlight = useCallback((a: Anchor, labelId: string = DEFAULT_LABEL_ID, merge = true) => {
     const id = `h-${Date.now()}`;
     set((d) => {
-      const mine = d.highlights.filter((h) => h.segmentId === a.segmentId && h.by.you && overlaps(h, a));
+      const mine = merge ? d.highlights.filter((h) => h.segmentId === a.segmentId && h.by.you && !h.block && overlaps(h, a)) : [];
       const start = Math.min(a.start, ...mine.map((h) => h.start));
       const end = Math.max(a.end, ...mine.map((h) => h.end));
       const rest = d.highlights.filter((h) => !mine.includes(h));
-      return { ...d, highlights: [...rest, { id, segmentId: a.segmentId, start, end, by: YOU, at: Date.now(), labelId }] };
+      return { ...d, highlights: [...rest, { id, segmentId: a.segmentId, start, end, by: YOU, at: Date.now(), labelId, ...(merge ? {} : { block: true }) }] };
     });
     return id;
   }, [set]);
@@ -191,7 +196,16 @@ export function useLabels() {
     setLastId((cur) => (cur === id ? DEFAULT_LABEL_ID : cur));
   }, []);
 
-  return { labels, labelOf, current, pick, add, update, remove };
+  const restore = useCallback((label: Label, index: number) => {
+    setLabels((list) => {
+      if (list.some((l) => l.id === label.id)) return list;
+      const next = [...list];
+      next.splice(Math.min(index, next.length), 0, label);
+      return next;
+    });
+  }, []);
+
+  return { labels, labelOf, current, pick, add, update, remove, restore };
 }
 
 export type LabelsApi = ReturnType<typeof useLabels>;

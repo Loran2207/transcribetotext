@@ -31,7 +31,8 @@ export const DEFAULT_LABELS: Label[] = [
 
 export const DEFAULT_LABEL_ID = "key";
 
-export type Highlight = Anchor & { id: string; by: Person; at: number; labelId?: string };
+/* block: a whole-block highlight from the block bar; marks inside it stay their own */
+export type Highlight = Anchor & { id: string; by: Person; at: number; labelId?: string; block?: boolean };
 
 export type Reply = { id: string; by: Person; text: string; at: number; edited?: boolean };
 
@@ -65,7 +66,7 @@ const HOUR = 60 * MIN;
 /* The demo record arrives with a conversation already under way: two open
    threads, one that was settled, and a few marked lines from different people.
    Each seed names its words; a record without those words starts empty. */
-export function seedAnnotations(segments: SeedText[], now = Date.now()): Annotations {
+export function seedAnnotations(segments: SeedText[], now = Date.now(), owner: Person = YOU): Annotations {
   const find = (segmentId: number, words: string) => {
     const seg = segments.find((s) => s.id === segmentId);
     if (!seg) return null;
@@ -86,11 +87,11 @@ export function seedAnnotations(segments: SeedText[], now = Date.now()): Annotat
 
   h("h1", 2, "the design team finished the new onboarding flow mockups yesterday", MARIA, 3 * HOUR);
   h("h4", 3, "We'll need to review them by Thursday at the latest", JAMES, 2 * HOUR, "decision");
-  h("h5", 4, "Maria, can you coordinate that with the design leads?", YOU, 70 * MIN, "todo");
-  h("h2", 6, "we're about 80% through the current milestone", YOU, 50 * MIN);
+  h("h5", 4, "Maria, can you coordinate that with the design leads?", owner, 70 * MIN, "todo");
+  h("h2", 6, "we're about 80% through the current milestone", owner, 50 * MIN);
   h("h3", 9, "about 40% of users are finding the current notification settings confusing", MARIA, 45 * MIN);
   h("h6", 10, "I'll create a separate agenda item for the next planning meeting", ALEX, 40 * MIN, "todo");
-  h("h7", 7, "Any questions or concerns before we move on to Q2 planning?", YOU, 30 * MIN, "question");
+  h("h7", 7, "Any questions or concerns before we move on to Q2 planning?", owner, 30 * MIN, "question");
 
   t({
     id: "t1", by: ALEX, at: now - 2 * HOUR,

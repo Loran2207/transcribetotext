@@ -62,15 +62,25 @@ const CHIP: Record<LabelColor, string> = {
   slate: "bg-slate-100 text-slate-800",
 };
 
+/* the pressed Highlight button takes the colour of the label it holds */
+export const PRESSED: Record<LabelColor, string> = {
+  amber: "bg-amber-100 text-amber-800 hover:bg-amber-100 hover:text-amber-900",
+  sky: "bg-sky-100 text-sky-800 hover:bg-sky-100 hover:text-sky-900",
+  emerald: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900",
+  violet: "bg-violet-100 text-violet-800 hover:bg-violet-100 hover:text-violet-900",
+  rose: "bg-rose-100 text-rose-800 hover:bg-rose-100 hover:text-rose-900",
+  slate: "bg-slate-100 text-slate-800 hover:bg-slate-100 hover:text-slate-900",
+};
+
 export function LabelDot({ label, className }: { label: Label; className?: string }) {
   return <span aria-hidden className={cn("inline-block size-2.5 shrink-0 rounded-full", DOT[label.color], className)} />;
 }
 
 export function LabelChip({ label, className, children }: { label: Label; className?: string; children?: ReactNode }) {
   return (
-    <span className={cn("inline-flex h-6 items-center gap-1.5 rounded-full px-2 text-[12px] font-medium", CHIP[label.color], className)}>
+    <span className={cn("inline-flex h-6 max-w-[180px] items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-[12px] font-medium", CHIP[label.color], className)}>
       <LabelDot label={label} className="size-2" />
-      {label.name}
+      <span className="min-w-0 truncate">{label.name}</span>
       {children}
     </span>
   );
@@ -94,7 +104,7 @@ export function LabelPicker({
   sheet: boolean;
   trigger: ReactElement;
   onPick: (id: string) => void;
-  onManage: () => void;
+  onManage?: () => void;
   align?: "start" | "end" | "center";
   side?: "top" | "bottom";
   title?: string;
@@ -105,7 +115,7 @@ export function LabelPicker({
       <>
         <span onClick={() => setOpen(true)} className="contents">{trigger}</span>
         <Drawer open={open} onOpenChange={setOpen}>
-          <DrawerContent data-label-sheet="" className="[&>div:first-child]:hidden">
+          <DrawerContent data-label-sheet="" aria-describedby={undefined} className="[&>div:first-child]:hidden">
             <DrawerHeader className="pb-1 text-left">
               <DrawerTitle className="text-[17px] font-semibold">{title}</DrawerTitle>
             </DrawerHeader>
@@ -117,16 +127,18 @@ export function LabelPicker({
                   onClick={() => { setOpen(false); onPick(l.id); }}
                   className="flex h-12 items-center gap-3 rounded-xl px-3 text-left text-[15px] text-foreground active:bg-muted"
                 >
-                  <LabelDot label={l} className="size-3" />
-                  <span className="flex-1">{l.name}</span>
+                  <span className="flex size-4 shrink-0 items-center justify-center"><LabelDot label={l} className="size-3" /></span>
+                  <span className="min-w-0 flex-1 truncate">{l.name}</span>
                   {l.id === currentId && <Icon icon={Tick02Icon} className="size-[18px] text-primary" strokeWidth={2} />}
                 </button>
               ))}
-              <div className="mx-3 my-1 h-px bg-border" />
-              <button type="button" onClick={() => { setOpen(false); onManage(); }} className="flex h-12 items-center gap-3 rounded-xl px-3 text-left text-[15px] text-muted-foreground active:bg-muted">
-                <Icon icon={Settings02Icon} className="size-[16px]" strokeWidth={1.8} />
-                Manage labels
-              </button>
+              {onManage && <div className="mx-3 my-1 h-px bg-border" />}
+              {onManage && (
+                <button type="button" onClick={() => { setOpen(false); onManage(); }} className="flex h-12 items-center gap-3 rounded-xl px-3 text-left text-[15px] text-muted-foreground active:bg-muted">
+                  <span className="flex size-4 shrink-0 items-center justify-center"><Icon icon={Settings02Icon} className="size-[16px]" strokeWidth={1.8} /></span>
+                  Manage labels
+                </button>
+              )}
             </div>
           </DrawerContent>
         </Drawer>
@@ -139,16 +151,18 @@ export function LabelPicker({
       <DropdownMenuContent data-label-menu="" align={align} side={side} className="w-48" onMouseDown={(e) => e.preventDefault()}>
         {labels.labels.map((l) => (
           <DropdownMenuItem key={l.id} onSelect={() => onPick(l.id)} className="gap-2.5">
-            <LabelDot label={l} />
-            <span className="flex-1">{l.name}</span>
+            <span className="flex size-4 shrink-0 items-center justify-center"><LabelDot label={l} /></span>
+            <span className="min-w-0 flex-1 truncate">{l.name}</span>
             {l.id === currentId && <Icon icon={Tick02Icon} className="size-4 text-primary" strokeWidth={2} />}
           </DropdownMenuItem>
         ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={onManage} className="gap-2.5 text-muted-foreground">
-          <Icon icon={Settings02Icon} className="size-4" strokeWidth={1.8} />
-          Manage labels
-        </DropdownMenuItem>
+        {onManage && <DropdownMenuSeparator />}
+        {onManage && (
+          <DropdownMenuItem onSelect={onManage} className="gap-2.5 text-muted-foreground">
+            <span className="flex size-4 shrink-0 items-center justify-center"><Icon icon={Settings02Icon} className="size-4" strokeWidth={1.8} /></span>
+            Manage labels
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -164,28 +178,30 @@ export function HighlightSplit({
   onManage,
   variant,
   pressed = false,
+  pressedColor = "amber",
   shortcut,
 }: {
   labels: LabelsApi;
   sheet: boolean;
   onHighlight: (labelId: string, picked: boolean) => void;
-  onManage: () => void;
+  onManage?: () => void;
   variant: "bar" | "icon" | "player";
   pressed?: boolean;
+  pressedColor?: LabelColor;
   shortcut?: string;
 }) {
   const label = labels.current;
   const main = cn(
     "rounded-full text-muted-foreground hover:text-foreground",
     variant === "bar" && "h-7 gap-1.5 rounded-r-none pl-2.5 pr-1.5 text-xs",
-    variant === "icon" && "size-7 rounded-r-none",
+    variant === "icon" && "size-7 rounded-r-none [@media(pointer:coarse)]:size-9",
     variant === "player" && "h-8 gap-1.5 rounded-r-none border border-r-0 border-border pl-2.5 pr-2 text-xs font-medium text-foreground max-sm:pl-2 max-sm:pr-1.5",
-    pressed && "bg-amber-100 text-amber-800 hover:bg-amber-100 hover:text-amber-900",
+    pressed && PRESSED[pressedColor],
   );
   const arrow = cn(
     "rounded-full rounded-l-none text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70",
     variant === "bar" && "h-7 w-5 px-0",
-    variant === "icon" && "h-7 w-4 px-0",
+    variant === "icon" && "h-7 w-4 px-0 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-6",
     variant === "player" && "h-8 w-6 border border-l-0 border-border px-0",
   );
   const icon = (
@@ -233,8 +249,16 @@ export function HighlightSplit({
 
 /* Rename, recolour, add and remove labels. Every highlight keeps working:
    one whose label is removed takes the first label. */
-export function ManageLabelsDialog({ labels, open, onOpenChange, counts }: { labels: LabelsApi; open: boolean; onOpenChange: (o: boolean) => void; counts: Record<string, number> }) {
+export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemoved }: { labels: LabelsApi; open: boolean; onOpenChange: (o: boolean) => void; counts: Record<string, number>; onRemoved?: (label: Label, index: number, fallback: Label) => void }) {
   const [draft, setDraft] = useState("");
+  const [asking, setAsking] = useState<string | null>(null);
+  const removeNow = (l: Label) => {
+    const index = labels.labels.findIndex((x) => x.id === l.id);
+    const fallback = labels.labels.find((x) => x.id !== l.id) ?? labels.labels[0];
+    labels.remove(l.id);
+    setAsking(null);
+    onRemoved?.(l, index, fallback);
+  };
   const addLabel = () => {
     const name = draft.trim();
     if (!name) return;
@@ -245,12 +269,20 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts }: { lab
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-manage-labels="" className="gap-0 p-0 sm:max-w-[420px]" aria-describedby={undefined}>
+      <DialogContent data-manage-labels="" className="gap-0 p-0 sm:max-w-[440px]" aria-describedby={undefined}>
         <DialogHeader className="px-5 pb-2 pt-5 text-left">
           <DialogTitle className="text-[17px]">Labels</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col px-3 pb-2">
-          {labels.labels.map((l) => (
+          {labels.labels.map((l) => asking === l.id ? (
+            <div key={l.id} className="flex min-h-11 flex-wrap items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
+              <span className="min-w-0 flex-1 text-[13px] text-foreground">
+                Remove <span className="font-semibold">{l.name}</span>? {counts[l.id] ? `${counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`} will show as ${(labels.labels.find((x) => x.id !== l.id) ?? l).name}.` : ""}
+              </span>
+              <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={() => setAsking(null)}>Cancel</Button>
+              <Button variant="destructive" size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={() => removeNow(l)}>Remove</Button>
+            </div>
+          ) : (
             <div key={l.id} className="flex h-11 items-center gap-2 rounded-xl px-2 hover:bg-muted/40">
               <Popover>
                 <PopoverTrigger asChild>
@@ -268,14 +300,15 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts }: { lab
               </Popover>
               <input
                 value={l.name}
+                maxLength={24}
                 aria-label="Label name"
                 onChange={(e) => labels.update(l.id, { name: e.target.value })}
                 onBlur={(e) => { if (!e.target.value.trim()) labels.update(l.id, { name: "Untitled" }); }}
-                className="h-8 min-w-0 flex-1 rounded-md bg-transparent px-1.5 text-[14px] text-foreground outline-none focus:bg-muted/50 max-lg:text-[16px]"
+                className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 text-[14px] text-foreground outline-none transition-colors hover:border-border focus:border-ring max-lg:text-[16px]"
               />
-              <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{counts[l.id] ? counts[l.id] : ""}</span>
+              <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{counts[l.id] ? (counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`) : ""}</span>
               {labels.labels.length > 1 && (
-                <Button variant="ghost" size="icon" aria-label={`Remove ${l.name}`} className="size-8 rounded-full text-muted-foreground hover:text-foreground" onClick={() => labels.remove(l.id)}>
+                <Button variant="ghost" size="icon" aria-label={`Remove ${l.name}`} className="size-8 rounded-full text-muted-foreground hover:text-foreground" onClick={() => (counts[l.id] ? setAsking(l.id) : removeNow(l))}>
                   <Icon icon={Cancel01Icon} className="size-[14px]" strokeWidth={2} />
                 </Button>
               )}
@@ -286,6 +319,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts }: { lab
             <Input
               value={draft}
               placeholder="Add a label"
+              maxLength={24}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLabel(); } }}
               className="h-8 flex-1 border-none bg-transparent px-1.5 text-[14px] shadow-none focus-visible:ring-0 max-lg:text-[16px]"
@@ -317,12 +351,11 @@ export function PlayerMarkers({ markers, onSeek }: { markers: PlayerMarker[]; on
               type="button"
               aria-label={m.title}
               onClick={() => onSeek(m.seconds)}
-              className={cn(
-                "pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2 rounded-full ring-[1.5px] ring-background transition-transform hover:scale-150",
-                m.kind === "highlight" ? cn("h-2.5 w-[3px]", m.label ? DOT[m.label.color] : "bg-amber-400") : "size-[7px] bg-primary",
-              )}
+              className="group/mark pointer-events-auto absolute flex h-5 w-3 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
               style={{ left: `${Math.max(0.5, Math.min(99.5, m.at))}%` }}
-            />
+            >
+              <span className={cn("rounded-full ring-[1.5px] ring-background transition-transform group-hover/mark:scale-150", m.kind === "highlight" ? cn("h-2.5 w-[3px]", m.label ? DOT[m.label.color] : "bg-amber-400") : "size-[7px] bg-primary")} />
+            </button>
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-[260px]">{m.title}</TooltipContent>
         </Tooltip>

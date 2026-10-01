@@ -29,7 +29,6 @@ import {
   DropdownMenuTrigger,
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/app/components/ui/utils";
-import { ToastCard } from "@/app/components/app-toast";
 import type { AnnotationsApi, LabelsApi } from "@/hooks/use-annotations";
 import { HighlightSplit, LabelChip, LabelDot, LabelPicker, WASH, WASH_ON } from "./labels-ui";
 import {
@@ -66,10 +65,13 @@ export type NotesView = {
   openThread: (threadId: string) => void;
   commentOn: (anchor: Anchor, highlightId?: string) => void;
   seek: (timestamp: string) => void;
+  /* when the words are said (the player's own estimate), as 1:17 */
+  timeOf: (anchor: Anchor) => string;
   labels: LabelsApi;
   /* touch: label pickers open as sheets */
   sheet: boolean;
-  manageLabels: () => void;
+  /* only on your own record: labels belong to the workspace */
+  manageLabels?: () => void;
   /* the highlights playing back to back, if any */
   reel: { ids: string[]; index: number } | null;
   playAll: (ids: string[]) => void;
@@ -78,17 +80,13 @@ export type NotesView = {
 
 const canRemove = (v: NotesView, by: Person) => Boolean(by.you) || v.owner;
 
+/* The house toast (one card, Undo as its pill), the same as the speaker undo toasts. */
 export function toastUndo(title: string, onUndo: () => void, glyph: unknown = Delete02Icon) {
-  toast.custom(
-    (id) => (
-      <ToastCard
-        glyph={glyph}
-        title={title}
-        action={{ label: "Undo", onClick: () => { toast.dismiss(id); onUndo(); } }}
-      />
-    ),
-    { duration: 5000 },
-  );
+  toast(title, {
+    icon: <Icon icon={glyph} size={16} className="text-primary" />,
+    cancel: { label: "Undo", onClick: onUndo },
+    duration: 5000,
+  });
 }
 
 export function removeHighlightWithUndo(api: AnnotationsApi, id: string) {
@@ -156,6 +154,7 @@ export function AnnotatedText({
   pending,
   onMark,
   colorOf,
+  playback,
 }: {
   text: string;
   highlights: Highlight[];
@@ -164,17 +163,28 @@ export function AnnotatedText({
   pending?: { start: number; end: number };
   onMark?: (run: Run, rect: DOMRect) => void;
   colorOf: (highlightId: string) => LabelColor;
+  /* the block being played: what was said dims, the sentence and the word being
+     said are marked, on top of the notes rather than instead of them */
+  playback?: { start: number; end: number; word?: { start: number; end: number } };
 }) {
   const shown = threads.filter((t) => !t.resolved && (!coversBlock(t, text.length) || focus?.id === t.id));
-  const ranges = pending ? [...shown, { id: "__pending", start: pending.start, end: pending.end }] : shown;
+  const ranges: { id: string; start: number; end: number }[] = pending ? [...shown, { id: "__pending", start: pending.start, end: pending.end }] : [...shown];
+  if (playback) {
+    ranges.push({ id: "__said", start: playback.start, end: playback.end });
+    if (playback.word) ranges.push({ id: "__word", start: playback.word.start, end: playback.word.end });
+  }
   const runs = cutRuns(text, highlights, ranges);
   return (
     <>
       {runs.map((r, i) => {
-        const th = r.threads.filter((id) => id !== "__pending");
-        const isPending = r.threads.length !== th.length;
+        const th = r.threads.filter((id) => !id.startsWith("__"));
+        const isPending = r.threads.includes("__pending");
         const hl = r.highlights.length > 0;
-        if (!hl && th.length === 0 && !isPending) return <span key={i}>{r.text}</span>;
+        const inSentence = r.threads.includes("__said");
+        const inWord = r.threads.includes("__word");
+        const said = playback ? r.end <= playback.start : false;
+        const sound = cn(said && "text-foreground/45", inSentence && "text-primary", inWord && (hl ? "font-medium" : "rounded-[3px] bg-primary-wash py-[2px]"));
+        if (!hl && th.length === 0 && !isPending) return <span key={i} className={sound || undefined}>{r.text}</span>;
         const thFocused = focus?.kind === "thread" && th.includes(focus.id);
         const hlFocused = focus?.kind === "highlight" && r.highlights.includes(focus.id);
         /* where two people's marks overlap, the later one's colour shows */
@@ -195,9 +205,11 @@ export function AnnotatedText({
               hl && cn(HIGHLIGHT_SHAPE, WASH[color]),
               hlFocused && WASH_ON[color],
               th.length > 0 && "underline decoration-primary/50 decoration-[1.5px] underline-offset-[4px]",
-              thFocused && "rounded-[3px] bg-primary/15 decoration-primary",
+              /* the thread being read: its words lit, but a highlight keeps its colour */
+              thFocused && (hl ? "decoration-primary decoration-2 ring-1 ring-primary/40" : "rounded-[3px] bg-primary/15 decoration-primary"),
               isPending && "rounded-[3px] bg-primary/20",
               (hl || th.length > 0) && !isPending && "cursor-pointer transition-colors",
+              sound,
             )}
           >
             {r.text}
@@ -213,6 +225,8 @@ export function AnnotatedText({
    visible without hovering. */
 export function BlockActions({
   highlighted,
+  pressedColor,
+  raised = false,
   openCount,
   revealed,
   quiet,
@@ -225,34 +239,48 @@ export function BlockActions({
   onOpenComments,
 }: {
   highlighted: boolean;
+  pressedColor?: LabelColor;
+  /* a block with no top padding (a continuation): the bar sits over the gap above it */
+  raised?: boolean;
   openCount: number;
   revealed: boolean;
   /* a bar on a highlight or a comment field is open on this block: one floating thing at a time */
   quiet: boolean;
   labels: LabelsApi;
   sheet: boolean;
-  onManageLabels: () => void;
+  onManageLabels?: () => void;
   onHighlight: (labelId: string, picked: boolean) => void;
   onComment: () => void;
   onCopy: () => void;
   onOpenComments: () => void;
 }) {
-  const btn = "size-7 rounded-full text-muted-foreground hover:text-foreground";
+  const btn = "size-7 rounded-full text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-9";
   const icon = "size-[15px]";
+  const shown = revealed
+    ? "pointer-events-auto translate-y-0 opacity-100"
+    : quiet
+    ? "pointer-events-none translate-y-1 opacity-0"
+    : "pointer-events-none translate-y-1 opacity-0 group-hover/seg:pointer-events-auto group-hover/seg:translate-y-0 group-hover/seg:opacity-100 group-focus-within/seg:pointer-events-auto group-focus-within/seg:translate-y-0 group-focus-within/seg:opacity-100";
+  const count = (inBar: boolean) => (
+    <button
+      type="button"
+      data-comment-chip={inBar ? undefined : ""}
+      data-comment-count={inBar ? "" : undefined}
+      aria-label={openCount === 1 ? "1 comment" : `${openCount} comments`}
+      onClick={onOpenComments}
+      className="pointer-events-auto inline-flex h-7 items-center gap-1 rounded-full bg-primary/10 px-2 text-[12px] font-semibold tabular-nums text-primary transition-colors hover:bg-primary/15 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:px-2.5"
+    >
+      <Icon icon={Comment01Icon} className="size-[13px]" strokeWidth={2} />
+      {openCount}
+    </button>
+  );
   return (
-    <div className="pointer-events-none absolute right-2 top-3 z-20 flex items-center gap-1.5">
+    <div className={cn("pointer-events-none absolute right-2 z-20 flex items-center gap-1.5", raised ? "-top-4" : "top-1")}>
       <div
         data-block-actions=""
-        className={cn(
-          "flex items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1.5 shadow-sm backdrop-blur-[2px] transition-all duration-150",
-          revealed
-            ? "pointer-events-auto translate-y-0 opacity-100"
-            : quiet
-            ? "pointer-events-none translate-y-1 opacity-0"
-            : "pointer-events-none translate-y-1 opacity-0 group-hover/seg:pointer-events-auto group-hover/seg:translate-y-0 group-hover/seg:opacity-100 group-focus-within/seg:pointer-events-auto group-focus-within/seg:translate-y-0 group-focus-within/seg:opacity-100",
-        )}
+        className={cn("flex items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-[2px] transition-all duration-150", shown)}
       >
-        <HighlightSplit labels={labels} sheet={sheet} variant="icon" pressed={highlighted} onHighlight={onHighlight} onManage={onManageLabels} />
+        <HighlightSplit labels={labels} sheet={sheet} variant="icon" pressed={highlighted} pressedColor={pressedColor} onHighlight={onHighlight} onManage={onManageLabels} />
         <Tip label="Comment">
           <Button variant="ghost" size="icon" aria-label="Comment on block" className={btn} onClick={onComment}>
             <Icon icon={CommentAdd01Icon} className={icon} strokeWidth={1.8} />
@@ -263,18 +291,11 @@ export function BlockActions({
             <Icon icon={Copy01Icon} className={icon} strokeWidth={1.8} />
           </Button>
         </Tip>
+        {openCount > 0 && <span className="ml-0.5">{count(true)}</span>}
       </div>
+      {/* at rest the count stands alone at the edge; while the bar shows it is inside the bar */}
       {openCount > 0 && (
-        <button
-          type="button"
-          data-comment-chip=""
-          aria-label={openCount === 1 ? "1 comment" : `${openCount} comments`}
-          onClick={onOpenComments}
-          className="pointer-events-auto inline-flex h-7 items-center gap-1 rounded-full bg-primary/10 px-2 text-[12px] font-semibold tabular-nums text-primary transition-colors hover:bg-primary/15"
-        >
-          <Icon icon={Comment01Icon} className="size-[13px]" strokeWidth={2} />
-          {openCount}
-        </button>
+        <span className={cn("absolute right-0 top-1/2 -translate-y-1/2 transition-opacity", revealed ? "pointer-events-none opacity-0" : "group-hover/seg:pointer-events-none group-hover/seg:opacity-0 group-focus-within/seg:pointer-events-none group-focus-within/seg:opacity-0")}>{count(false)}</span>
       )}
     </div>
   );
@@ -298,6 +319,16 @@ export function MarkBar({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [left, setLeft] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const w = ref.current?.offsetWidth ?? 0;
+    setLeft(Math.max(8, Math.min(window.innerWidth - w - 8, rect.left + rect.width / 2 - w / 2)));
+  }, [rect.left, rect.width]);
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onClose]);
   useEffect(() => {
     const away = (e: Event) => {
       const t = e.target as Element | null;
@@ -314,13 +345,12 @@ export function MarkBar({
       window.removeEventListener("scroll", onClose, true);
     };
   }, [onClose]);
-  const x = Math.max(12, Math.min(window.innerWidth - 12, rect.left + rect.width / 2));
   return createPortal(
     <div
       ref={ref}
       data-mark-bar=""
-      className="fixed z-50 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
-      style={{ left: x, top: below ? rect.bottom + 8 : rect.top - 44 }}
+      className="fixed z-50 flex max-w-[calc(100vw-16px)] items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
+      style={{ left: left ?? rect.left, top: below ? rect.bottom + 8 : rect.top - 44, visibility: left === null ? "hidden" : undefined }}
     >
       {lead}
       {lead && <span className="mx-0.5 h-4 w-px bg-border" />}
@@ -346,7 +376,7 @@ export function MarkBar({
 // ════════════════════════════════════════════════════════════
 
 /* @ in a comment opens the people on the record; the pick goes in as @Full Name. */
-function useMentions(text: string, setText: (t: string) => void) {
+function useMentions(text: string, setText: (t: string) => void, place: "up" | "down" = "up") {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [query, setQuery] = useState<string | null>(null);
   const [active, setActive] = useState(0);
@@ -374,7 +404,7 @@ function useMentions(text: string, setText: (t: string) => void) {
     return false;
   };
   const list = options.length ? (
-    <div data-mention-list="" className="absolute bottom-full left-0 z-30 mb-1.5 w-60 rounded-xl border border-border bg-popover p-1 shadow-md">
+    <div data-mention-list="" className={cn("absolute left-0 z-30 w-60 rounded-xl border border-border bg-popover p-1 shadow-md", place === "up" ? "bottom-full mb-1.5" : "top-full mt-1.5")}>
       {options.map((p, i) => (
         <button
           key={p.name}
@@ -428,7 +458,7 @@ function CommentForm({
   onCancel: () => void;
 }) {
   const [text, setText] = useState(initial);
-  const m = useMentions(text, setText);
+  const m = useMentions(text, setText, "down");
   const send = () => { const v = text.trim(); if (v) onSubmit(v); };
   return (
     <div>
@@ -485,7 +515,7 @@ export function CommentComposer({
   if (sheet) {
     return (
       <Drawer open onOpenChange={(o) => { if (!o) onCancel(); }}>
-        <DrawerContent data-comment-composer="" className="[&>div:first-child]:hidden">
+        <DrawerContent data-comment-composer="" aria-describedby={undefined} className="[&>div:first-child]:hidden">
           <DrawerHeader className="pb-2 text-left">
             <DrawerTitle className="text-[17px] font-semibold">Comment</DrawerTitle>
           </DrawerHeader>
@@ -573,6 +603,13 @@ function Entry({
   onDelete?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [menu, setMenu] = useState(false);
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(false);
+    window.addEventListener("scroll", close, true);
+    return () => window.removeEventListener("scroll", close, true);
+  }, [menu]);
   return (
     <div className="mt-3 flex gap-2.5">
       <PersonDot person={person} size={24} />
@@ -583,21 +620,21 @@ function Entry({
           <span className="ml-auto flex shrink-0 items-center">
             {onResolve && (
               <Tip label="Resolve">
-                <Button variant="ghost" size="icon" aria-label="Resolve" className="size-7 rounded-full text-muted-foreground hover:text-foreground" onClick={onResolve}>
+                <Button variant="ghost" size="icon" aria-label="Resolve" className="size-7 rounded-full text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-9" onClick={onResolve}>
                   <Icon icon={CheckmarkCircle02Icon} className="size-[16px]" strokeWidth={1.8} />
                 </Button>
               </Tip>
             )}
             {(onEdit || onDelete) && (
-              <DropdownMenu>
+              <DropdownMenu open={menu} onOpenChange={setMenu}>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" aria-label="More" className="size-7 rounded-full text-muted-foreground hover:text-foreground">
+                  <Button variant="ghost" size="icon" aria-label="More" className="size-7 rounded-full text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-9">
                     <Icon icon={MoreHorizontal} className="size-[16px]" strokeWidth={2} />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36">
+                <DropdownMenuContent align="end" className="w-36" onCloseAutoFocus={(e) => { if (editing) e.preventDefault(); }}>
                   {onEdit && (
-                    <DropdownMenuItem onSelect={() => setEditing(true)}>
+                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setMenu(false); setEditing(true); }}>
                       <Icon icon={PencilEdit02Icon} className="size-4" strokeWidth={1.8} />Edit
                     </DropdownMenuItem>
                   )}
@@ -673,8 +710,8 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
       )}
       <QuoteLine text={t.quote} />
       <div className="mt-1.5 flex items-center gap-1.5 pl-[10px] text-[12px] text-muted-foreground">
-        <TimeChip timestamp={t.timestamp} onSeek={v.seek} />
-        {speaker && <><span aria-hidden>·</span><span className="truncate">{speaker}</span></>}
+        <TimeChip timestamp={v.timeOf(t)} onSeek={v.seek} />
+        {speaker && <span className="truncate">{speaker}</span>}
       </div>
       <Entry
         person={t.by}
@@ -741,12 +778,12 @@ export function CommentsList({ v }: { v: NotesView }) {
 function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing: boolean }) {
   const text = v.textOf(h.segmentId).slice(h.start, h.end);
   const speaker = v.speakerOf(h.segmentId);
-  const timestamp = v.timestampOf(h.segmentId);
+  const timestamp = v.timeOf(h);
   const focused = v.focus?.kind === "highlight" && v.focus.id === h.id;
   const linked = v.api.threads.filter((t) => !t.resolved && t.segmentId === h.segmentId && overlaps(t, h));
   const label = v.labels.labelOf(h.labelId);
   const editable = canRemove(v, h.by);
-  const tool = "size-7 rounded-full text-muted-foreground hover:text-foreground";
+  const tool = "size-7 rounded-full text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-9";
   return (
     <div
       data-highlight-item={h.id}
@@ -758,7 +795,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
     >
       <div className="flex h-7 items-center gap-1.5 text-[12px] text-muted-foreground">
         <TimeChip timestamp={timestamp} onSeek={v.seek} />
-        {speaker && <><span aria-hidden>·</span><span className="truncate">{speaker}</span></>}
+        {speaker && <span className="truncate">{speaker}</span>}
         {playing && <span className="shrink-0 font-medium text-primary">Playing</span>}
         <span className="ml-auto flex shrink-0 items-center transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/hl:opacity-100 [@media(hover:hover)]:group-focus-within/hl:opacity-100">
           <Tip label="Comment">
@@ -841,14 +878,14 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
     const body = list
       .map((h) => {
         const who = v.speakerOf(h.segmentId);
-        return `${v.timestampOf(h.segmentId)}${who ? ` ${who}` : ""} · ${v.labels.labelOf(h.labelId).name}\n"${v.textOf(h.segmentId).slice(h.start, h.end)}"`;
+        return `${v.timeOf(h)}${who ? ` ${who}` : ""} · ${v.labels.labelOf(h.labelId).name}\n"${v.textOf(h.segmentId).slice(h.start, h.end)}"`;
       })
       .join("\n\n");
     void navigator.clipboard?.writeText(`Highlights: ${title}\n\n${body}`);
     toast(list.length === 1 ? "Highlight copied" : `${list.length} highlights copied`);
   };
   const chip = (on: boolean) => cn(
-    "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition-colors",
+    "inline-flex h-7 max-w-[200px] shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition-colors [@media(pointer:coarse)]:h-9",
     on ? "border-foreground/80 bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground",
   );
   return (
@@ -857,7 +894,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
         {v.reel ? (
           <Button size="sm" className="h-7 gap-1.5 rounded-full px-3 text-xs" onClick={v.stopReel}>
             <Icon icon={StopIcon} className="size-[13px]" strokeWidth={2} />Stop
-            <span className="tabular-nums opacity-80">{v.reel.index + 1} of {v.reel.ids.length}</span>
+            <span className="tabular-nums opacity-80">· {v.reel.index + 1} of {v.reel.ids.length}</span>
           </Button>
         ) : (
           <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs font-medium text-primary hover:text-primary" onClick={() => v.playAll(list.map((h) => h.id))}>
@@ -874,7 +911,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
           {used.map(({ label, count }) => (
             <button key={label.id} type="button" className={chip(active === label.id)} onClick={() => setFilter(label.id)}>
               <LabelDot label={label} className="size-2" />
-              {label.name}<span className="tabular-nums opacity-70">{count}</span>
+              <span className="min-w-0 truncate">{label.name}</span><span className="tabular-nums opacity-70">{count}</span>
             </button>
           ))}
         </div>
@@ -891,7 +928,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
 export function ThreadSheet({ threads, v, onClose }: { threads: Thread[]; v: NotesView; onClose: () => void }) {
   return (
     <Drawer open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DrawerContent data-thread-sheet="" className="max-h-[88vh] [&>div:first-child]:hidden">
+      <DrawerContent data-thread-sheet="" aria-describedby={undefined} className="max-h-[88vh] [&>div:first-child]:hidden">
         <DrawerHeader className="flex-row items-center justify-between pb-1 text-left">
           <DrawerTitle className="text-[17px] font-semibold">Comments</DrawerTitle>
           <Button variant="ghost" size="icon" aria-label="Close" className="size-9 rounded-full text-muted-foreground" onClick={onClose}>
