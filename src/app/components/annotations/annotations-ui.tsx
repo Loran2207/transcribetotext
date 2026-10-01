@@ -375,8 +375,10 @@ export function MarkBar({
 // Writing
 // ════════════════════════════════════════════════════════════
 
-/* @ in a comment opens the people on the record; the pick goes in as @Full Name. */
-function useMentions(text: string, setText: (t: string) => void, place: "up" | "down" = "up") {
+/* @ in a comment opens the people on the record; the pick goes in as @Full Name.
+   In a bottom sheet the list sits in the flow under the field: floating, it
+   either fell off the screen or covered the quote. */
+function useMentions(text: string, setText: (t: string) => void, place: "up" | "down" | "inline" = "up") {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [query, setQuery] = useState<string | null>(null);
   const [active, setActive] = useState(0);
@@ -404,7 +406,7 @@ function useMentions(text: string, setText: (t: string) => void, place: "up" | "
     return false;
   };
   const list = options.length ? (
-    <div data-mention-list="" className={cn("absolute left-0 z-30 w-60 rounded-xl border border-border bg-popover p-1 shadow-md", place === "up" ? "bottom-full mb-1.5" : "top-full mt-1.5")}>
+    <div data-mention-list="" className={cn("rounded-xl border border-border bg-popover p-1", place === "inline" ? "mt-2" : "absolute left-0 z-30 w-60 shadow-md", place === "up" && "bottom-full mb-1.5", place === "down" && "top-full mt-1.5")}>
       {options.map((p, i) => (
         <button
           key={p.name}
@@ -450,20 +452,22 @@ function CommentForm({
   placeholder,
   onSubmit,
   onCancel,
+  mentions = "down",
 }: {
   initial?: string;
   submitLabel: string;
   placeholder: string;
   onSubmit: (text: string) => void;
   onCancel: () => void;
+  mentions?: "up" | "down" | "inline";
 }) {
   const [text, setText] = useState(initial);
-  const m = useMentions(text, setText, "down");
+  const m = useMentions(text, setText, mentions);
   const send = () => { const v = text.trim(); if (v) onSubmit(v); };
   return (
     <div>
       <div className="relative">
-        {m.list}
+        {mentions !== "inline" && m.list}
         <textarea
           ref={m.ref}
           autoFocus
@@ -478,6 +482,7 @@ function CommentForm({
           className="flex min-h-[72px] w-full resize-none rounded-[12px] border border-input bg-transparent px-3 py-2 text-[16px] leading-[22px] outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:text-[13px] lg:leading-[19px]"
         />
       </div>
+      {mentions === "inline" && m.list}
       <MentionNote people={m.mentioned} />
       <div className="mt-2 flex justify-end gap-1.5">
         <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[13px] text-muted-foreground" onClick={onCancel}>Cancel</Button>
@@ -522,7 +527,7 @@ export function CommentComposer({
           <div className="px-4 pb-5">
             <QuoteLine text={quote} clamp={3} />
             <div className="mt-3">
-              <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} />
+              <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} mentions="inline" />
             </div>
           </div>
         </DrawerContent>
