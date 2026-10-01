@@ -33,9 +33,11 @@ function paintSelection(el, text) {
           let html = "", open = false;
           L.words.forEach((wd, i) => {
             const on = wd.a >= s0 && wd.b <= s1;
-            if (on && !open) { html += '<span style="background:rgba(37,99,235,0.2);border-radius:2px">'; open = true; }
+            /* the space at either edge of the selection stays outside the wash */
             if (!on && open) { html += "</span>"; open = false; }
-            html += esc(wd.w) + (i < L.words.length - 1 ? "&nbsp;" : "");
+            if (i > 0) html += " ";
+            if (on && !open) { html += '<span style="background:rgba(37,99,235,0.2);border-radius:2px">'; open = true; }
+            html += esc(wd.w);
           });
           if (open) html += "</span>";
           return `<div>${html}</div>`;
@@ -216,7 +218,7 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   else if (op === "scrollx") { const [sel, px] = arg.split("|"); await p.$eval(sel, (el, x) => { el.scrollLeft = x; }, +px); }
   await p.waitForTimeout(350);
 }
-await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important}" });
+await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important} [data-vaul-drawer]{transform:none!important;animation:none!important} [data-vaul-drawer]::after{content:none!important;display:none!important}" });
 if (!(process.env.STEPS || "").includes("drag=")) await p.mouse.move(2, 2);
 /* enter=<sel> (a late step): React's onMouseEnter fired after the pointer has left, so a
    state that lives in JS (a hover preview) is held for the frame the way force= holds :hover */
