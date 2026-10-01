@@ -223,13 +223,13 @@ export function BlockActions({
   const btn = "size-7 rounded-full text-muted-foreground hover:text-foreground";
   const icon = "size-[15px]";
   return (
-    <div className="absolute right-2 top-3 z-20 flex items-center gap-1.5">
+    <div className="pointer-events-none absolute right-2 top-3 z-20 flex items-center gap-1.5">
       <div
         data-block-actions=""
         className={cn(
           "flex items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1.5 shadow-sm backdrop-blur-[2px] transition-all duration-150",
           revealed
-            ? "translate-y-0 opacity-100"
+            ? "pointer-events-auto translate-y-0 opacity-100"
             : quiet
             ? "pointer-events-none translate-y-1 opacity-0"
             : "pointer-events-none translate-y-1 opacity-0 group-hover/seg:pointer-events-auto group-hover/seg:translate-y-0 group-hover/seg:opacity-100 group-focus-within/seg:pointer-events-auto group-focus-within/seg:translate-y-0 group-focus-within/seg:opacity-100",
@@ -271,7 +271,7 @@ export function BlockActions({
           data-comment-chip=""
           aria-label={openCount === 1 ? "1 comment" : `${openCount} comments`}
           onClick={onOpenComments}
-          className="inline-flex h-7 items-center gap-1 rounded-full bg-primary/10 px-2 text-[12px] font-semibold tabular-nums text-primary transition-colors hover:bg-primary/15"
+          className="pointer-events-auto inline-flex h-7 items-center gap-1 rounded-full bg-primary/10 px-2 text-[12px] font-semibold tabular-nums text-primary transition-colors hover:bg-primary/15"
         >
           <Icon icon={Comment01Icon} className="size-[13px]" strokeWidth={2} />
           {openCount}

@@ -4299,7 +4299,7 @@ export function TranscriptionDetailPage() {
         <UpgradeGateModal open={limitedModalOpen} onOpenChange={setLimitedModalOpen} variant="done" />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
-          <div className="flex items-end justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
+          <div className="flex items-end justify-between gap-4 border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
             <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
               {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
@@ -4362,11 +4362,11 @@ export function TranscriptionDetailPage() {
                   </>
                 ) : (
                   <>
-                  <TranscriptViewChecks />
+                  <span className="contents max-lg:hidden"><TranscriptViewChecks /></span>
                   {sharedOwner ? null : (
-                  <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
+                  <Button variant="ghost" size="sm" aria-label="Edit transcript" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
                     <PencilIcon className="size-3.5" />
-                    Edit transcript
+                    <span className="max-lg:hidden">Edit transcript</span>
                   </Button>
                   )}
                   </>
@@ -4395,7 +4395,7 @@ export function TranscriptionDetailPage() {
             </div>
           </div>
           {activeTab === "transcript" && !editMode && !isJobTranscribing && (
-            <div className="flex items-center gap-4 px-4 pb-2 md:hidden">
+            <div className="flex items-center gap-4 px-4 pb-2 lg:hidden">
               <TranscriptViewChecks />
             </div>
           )}

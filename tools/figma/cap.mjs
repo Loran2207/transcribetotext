@@ -35,7 +35,7 @@ function paintSelection(el, text) {
             const on = wd.a >= s0 && wd.b <= s1;
             if (on && !open) { html += '<span style="background:rgba(37,99,235,0.2);border-radius:2px">'; open = true; }
             if (!on && open) { html += "</span>"; open = false; }
-            html += esc(wd.w) + (i < L.words.length - 1 ? " " : "");
+            html += esc(wd.w) + (i < L.words.length - 1 ? "&nbsp;" : "");
           });
           if (open) html += "</span>";
           return `<div>${html}</div>`;
@@ -146,6 +146,53 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
     await p.evaluate(([sid, text, paintSrc]) => { const el = document.querySelector(`[data-segment-id='${sid}'] p`); if (el) new Function("return " + paintSrc)()(el, text); }, [sid, text, paintSelection.toString()]);
     await p.waitForTimeout(200);
   }
+  /* lines=<sel>: every matching paragraph is redrawn one block per browser line, and each
+     run of marked words (a highlight wash, a comment underline) becomes a span inside its
+     line with its computed look inlined. The converter turns a span that wraps across
+     lines into one box over the whole paragraph; per line it keeps the wash on the words.
+     The copy replaces a hidden original, so React keeps its own nodes. */
+  else if (op === "lines") {
+    await p.evaluate((sel) => {
+      const KEEP = ["background-color", "border-radius", "text-decoration-line", "text-decoration-color", "text-decoration-thickness", "text-underline-offset", "color", "font-weight", "padding-left", "padding-right"];
+      const esc = (t) => t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+      for (const el of document.querySelectorAll(sel)) {
+        if (!el.offsetParent || !el.querySelector("span") || el.querySelector("[data-selection-pill], :scope > div")) continue;
+        const tokens = [];
+        const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; let gap = false;
+        while ((n = tw.nextNode())) {
+          const owner = n.parentElement === el ? null : n.parentElement;
+          const re = /(\s+)|(\S+)/g; let m;
+          while ((m = re.exec(n.textContent))) {
+            if (m[1]) { gap = true; continue; }
+            const r = document.createRange(); r.setStart(n, m.index); r.setEnd(n, m.index + m[2].length);
+            tokens.push({ t: m[2], owner, gap: gap && tokens.length > 0, top: Math.round(r.getBoundingClientRect().top) });
+            gap = false;
+          }
+        }
+        const lines = []; for (const tk of tokens) { const L = lines[lines.length - 1]; if (L && Math.abs(L.top - tk.top) < 4) L.tokens.push(tk); else lines.push({ top: tk.top, tokens: [tk] }); }
+        const styleOf = (o) => { const cs = getComputedStyle(o); return KEEP.map((k) => `${k}:${cs.getPropertyValue(k)}`).join(";"); };
+        const html = lines.map((L) => {
+          let out = "", cur = null;
+          L.tokens.forEach((tk, i) => {
+            /* a no-break space: Figma drops a plain one at the end of a text layer */
+            const space = i > 0 && tk.gap ? "&nbsp;" : "";
+            if (tk.owner !== cur) {
+              if (cur) out += "</span>";
+              out += space;
+              if (tk.owner) out += `<span style="${styleOf(tk.owner)}">`;
+              cur = tk.owner;
+              out += esc(tk.t);
+            } else out += space + esc(tk.t);
+          });
+          if (cur) out += "</span>";
+          return `<div>${out}</div>`;
+        }).join("");
+        const copy = el.cloneNode(false); copy.innerHTML = html; copy.removeAttribute("data-transcript-line");
+        el.style.display = "none"; el.after(copy);
+      }
+    }, arg);
+    await p.waitForTimeout(200);
+  }
   /* anchor=<sel>: a fixed layer (a toast) re-homed into the page flow at its viewport spot,
      so the converter keeps it where the eye sees it */
   else if (op === "anchor") {
@@ -158,6 +205,9 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
     }, arg);
     await p.waitForTimeout(200);
   }
+  /* press=<sel>: a pointerdown on the element and nothing else (the phone selection bar
+     must not take its own redraw for the selection going away) */
+  else if (op === "press") await p.$eval(arg, (el) => el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
   /* nav=<path>: walk to another route inside the app, the router way */
   /* reload: the page again at the same URL, so flags stored a moment ago are read at mount */
   else if (op === "reload") { await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(1200); }
