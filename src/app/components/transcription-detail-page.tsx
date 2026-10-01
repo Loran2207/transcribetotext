@@ -2382,7 +2382,7 @@ function PageHeader({
           </DropdownMenu>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 whitespace-nowrap text-xs text-muted-foreground [&>*]:shrink-0">
+      <div className="flex flex-wrap items-center gap-3 whitespace-nowrap text-xs text-muted-foreground [&>*]:shrink-0">
         {/* Whose record this is survives on a phone: it is the first thing a
             reader needs and it used to be the first thing hidden. It takes its
             own line at every width, so the facts below never wrap mid-word. */}
