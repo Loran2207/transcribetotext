@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo, typ
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon, Comment01Icon, CommentAdd01Icon, HighlighterIcon, Copy01Icon, Delete02Icon, StopIcon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon, Comment01Icon, CommentAdd01Icon, HighlighterIcon, Copy01Icon, Delete02Icon, StopIcon, ArrowUp02Icon, ArrowDown02Icon } from "@hugeicons/core-free-icons";
 import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
@@ -3048,7 +3048,7 @@ export function TranscriptionDetailPage() {
     [displaySegments, texts],
   );
   const notesApi = useAnnotations(recordKey, noteBlocks, seedOwner);
-  const labelsApi = useLabels();
+  const labelsApi = useLabels(recordId);
   const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
   /* Play all: the highlights back to back, one after another */
   const [reel, setReel] = useState<{ ids: string[]; index: number } | null>(null);
@@ -3744,6 +3744,27 @@ export function TranscriptionDetailPage() {
   };
   const colorOf = (highlightId: string): LabelColor => labelsApi.labelOf(notesApi.highlights.find((h) => h.id === highlightId)?.labelId).color;
   const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+  /* Scrolled away from the words being played: a pill at the bottom of the
+     transcript brings them back. It shows only while they are off the screen. */
+  const [playbackAway, setPlaybackAway] = useState<"up" | "down" | null>(null);
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>("[data-transcript-scroll]");
+    const el = activePlaybackSegmentId !== null ? segmentRefs.current[activePlaybackSegmentId] : null;
+    if (!root || !el || activeTab !== "transcript" || editMode) { setPlaybackAway(null); return; }
+    const check = () => {
+      const box = root.getBoundingClientRect(), words = el.getBoundingClientRect();
+      const top = Math.max(box.top, 0), bottom = Math.min(box.bottom, window.innerHeight);
+      setPlaybackAway(words.bottom < top + 24 ? "up" : words.top > bottom - 24 ? "down" : null);
+    };
+    check();
+    document.addEventListener("scroll", check, { capture: true, passive: true });
+    window.addEventListener("resize", check);
+    return () => { document.removeEventListener("scroll", check, { capture: true }); window.removeEventListener("resize", check); };
+  }, [activePlaybackSegmentId, activeTab, editMode, onlyHighlights]);
+  function backToPlayback() {
+    const el = activePlaybackSegmentId !== null ? segmentRefs.current[activePlaybackSegmentId] : null;
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
   /* where words sit in time: the block's span shared out by characters, the same
      estimate the playback highlighting uses */
   function rangeSeconds(a: Anchor) {
@@ -3841,11 +3862,19 @@ export function TranscriptionDetailPage() {
     else if (k === "c") { e.preventDefault(); if (selectionPill) handleSelectionComment(); else commentNow(); }
   };
   const labelCounts = notesApi.highlights.reduce<Record<string, number>>((acc, h) => { const id = labelsApi.labelOf(h.labelId).id; acc[id] = (acc[id] ?? 0) + 1; return acc; }, {});
+  /* Highlights only filters the words, it does not change how they look: a
+     pill like the list's own filters, first in the row, before the view checks */
   const onlyHighlightsCheck = notesApi.highlights.length > 0 ? (
-    <label className="flex h-7 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
-      <FigmaCheckbox checked={onlyHighlights} onChange={() => setOnlyHighlights((v) => !v)} />
-      <span>Highlights only</span>
-    </label>
+    <button
+      type="button"
+      data-only-highlights=""
+      aria-pressed={onlyHighlights}
+      onClick={() => setOnlyHighlights((v) => !v)}
+      className={"inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition-colors [@media(pointer:coarse)]:h-9 " + (onlyHighlights ? "border-foreground/80 bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground")}
+    >
+      <Icon icon={HighlighterIcon} className="size-[13px]" strokeWidth={1.8} />
+      Highlights only
+    </button>
   ) : null;
 
   /* The block bar's Highlight: the label you pick marks the whole block, or
@@ -4624,7 +4653,7 @@ export function TranscriptionDetailPage() {
                   </>
                 ) : (
                   <>
-                  <span className="contents max-xl:hidden"><TranscriptViewChecks />{onlyHighlightsCheck}</span>
+                  <span className="contents max-xl:hidden">{onlyHighlightsCheck}<TranscriptViewChecks /></span>
                   {sharedOwner ? null : (
                   <Button variant="ghost" size="sm" aria-label="Edit transcript" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
                     <PencilIcon className="size-3.5" />
@@ -4658,8 +4687,8 @@ export function TranscriptionDetailPage() {
           </div>
           {activeTab === "transcript" && !editMode && !isJobTranscribing && (
             <div className="flex items-center gap-4 px-4 pb-2 lg:px-8 xl:hidden">
-              <TranscriptViewChecks />
               {onlyHighlightsCheck}
+              <TranscriptViewChecks />
             </div>
           )}
           {speakerDialogDemo && activeTab === "transcript" && !editMode && !isJobTranscribing && unnamedVoices.length > 0 && (
@@ -4794,6 +4823,16 @@ export function TranscriptionDetailPage() {
                     </div>
                   </div>
                 ) : null}
+              </div>
+            )}
+            {playbackAway && (
+              <div className="pointer-events-none sticky bottom-0 z-30 h-0">
+                <div className="absolute inset-x-0 bottom-3 flex justify-center">
+                  <Button variant="pill-outline" data-back-to-playback="" className="pointer-events-auto h-8 gap-1.5 bg-background px-3.5 text-xs font-medium shadow-md animate-in fade-in slide-in-from-bottom-1 duration-150 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:px-4 [@media(pointer:coarse)]:text-[13px]" onClick={backToPlayback}>
+                    <Icon icon={playbackAway === "up" ? ArrowUp02Icon : ArrowDown02Icon} className="size-[14px] text-primary" strokeWidth={2} />
+                    <span>Back to <span className="tabular-nums">{clock(effectiveCurrentSeconds)}</span></span>
+                  </Button>
+                </div>
               </div>
             )}
           </TabsContent>

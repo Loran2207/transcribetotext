@@ -18,7 +18,8 @@ export type Anchor = { segmentId: number; start: number; end: number };
    its filter in the list. People can rename, recolour and add their own. */
 export type LabelColor = "amber" | "sky" | "emerald" | "violet" | "rose" | "slate";
 
-export type Label = { id: string; name: string; color: LabelColor };
+/* record: a label made for one recording only; without it the label is in every recording */
+export type Label = { id: string; name: string; color: LabelColor; record?: string };
 
 export const LABEL_COLORS: LabelColor[] = ["amber", "sky", "emerald", "violet", "rose", "slate"];
 
@@ -168,7 +169,8 @@ export function timeAgo(at: number, now = Date.now()) {
   return `${Math.floor(d / (24 * HOUR))}d ago`;
 }
 
-/* Labels belong to the person, not the record: the same set on every note. */
+/* Labels belong to the person, not the record: one set in every recording,
+   plus the ones made for a single recording. */
 const LABELS_KEY = "ttt_labels_v1";
 const LAST_LABEL_KEY = "ttt_last_label";
 

@@ -4,14 +4,15 @@ import {
   Add01Icon,
   ArrowDown01Icon,
   Bookmark02Icon,
-  Cancel01Icon,
   Delete02Icon,
   HighlighterIcon,
+  MoreHorizontalIcon,
   Settings02Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/app/components/ui/button";
+import { Checkbox } from "@/app/components/ui/checkbox";
 import { Icon } from "@/app/components/ui/icon";
 import { Input } from "@/app/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/ui/tooltip";
@@ -280,10 +281,13 @@ export function HighlightButton({
   );
 }
 
-/* Rename, recolour, add and remove labels. Every highlight keeps working:
-   one whose label is removed takes the first label. */
+/* Rename, recolour, add and remove labels. Labels are in every recording
+   unless made for this one only; a new label is in every recording until
+   its box is cleared. Every highlight keeps working: one whose label is
+   removed takes the first label. */
 export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemoved }: { labels: LabelsApi; open: boolean; onOpenChange: (o: boolean) => void; counts: Record<string, number>; onRemoved?: (label: Label, index: number, fallback: Label) => void }) {
   const [draft, setDraft] = useState("");
+  const [everywhere, setEverywhere] = useState(true);
   const [asking, setAsking] = useState<string | null>(null);
   const removeNow = (l: Label) => {
     const index = labels.labels.findIndex((x) => x.id === l.id);
@@ -297,9 +301,60 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemov
     if (!name) return;
     const used = new Set(labels.labels.map((l) => l.color));
     const color = LABEL_COLORS.find((c) => !used.has(c)) ?? "slate";
-    labels.add(name, color);
+    labels.add(name, color, !everywhere);
     setDraft("");
+    setEverywhere(true);
   };
+  const shared = labels.labels.filter((l) => !l.record);
+  const here = labels.labels.filter((l) => l.record);
+  const group = (name: string) => <p className="px-2 pb-1 pt-2 text-[12px] font-medium text-muted-foreground">{name}</p>;
+  const row = (l: Label) => asking === l.id ? (
+    <div key={l.id} className="flex min-h-11 flex-wrap items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
+      <span className="min-w-0 flex-1 text-[13px] text-foreground">
+        Remove <span className="font-semibold">{l.name}</span>? {counts[l.id] ? `${counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`} will show as ${(labels.labels.find((x) => x.id !== l.id) ?? l).name}.` : ""}
+      </span>
+      <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={() => setAsking(null)}>Cancel</Button>
+      <Button variant="destructive" size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={() => removeNow(l)}>Remove</Button>
+    </div>
+  ) : (
+    <div key={l.id} className="flex h-11 items-center gap-2 rounded-xl px-2 hover:bg-muted/40">
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button" aria-label={`Colour of ${l.name}`} className="flex size-8 items-center justify-center rounded-full hover:bg-muted">
+            <LabelIcon label={l} />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="flex w-auto gap-1.5 p-2">
+          {LABEL_COLORS.map((c) => (
+            <button key={c} type="button" aria-label={c} onClick={() => labels.update(l.id, { color: c })} className={cn("flex size-7 items-center justify-center rounded-full", l.color === c && "ring-2 ring-primary/40")}>
+              <span className={cn("size-4 rounded-full", DOT[c])} />
+            </button>
+          ))}
+        </PopoverContent>
+      </Popover>
+      <input
+        value={l.name}
+        maxLength={24}
+        aria-label="Label name"
+        onChange={(e) => labels.update(l.id, { name: e.target.value })}
+        onBlur={(e) => { if (!e.target.value.trim()) labels.update(l.id, { name: "Untitled" }); }}
+        className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 text-[14px] text-foreground outline-none transition-colors hover:border-border focus:border-ring max-lg:text-[16px]"
+      />
+      <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{counts[l.id] ? (counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`) : ""}</span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" aria-label={`More for ${l.name}`} className="size-8 rounded-full text-muted-foreground hover:text-foreground">
+            <Icon icon={MoreHorizontalIcon} className="size-[16px]" strokeWidth={2} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem onSelect={() => labels.setOnlyHere(l.id, !l.record)}>{l.record ? "Use in all recordings" : "Keep in this recording only"}</DropdownMenuItem>
+          {labels.labels.length > 1 && <DropdownMenuSeparator />}
+          {labels.labels.length > 1 && <DropdownMenuItem variant="destructive" onSelect={() => (counts[l.id] ? setAsking(l.id) : removeNow(l))}>Remove</DropdownMenuItem>}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-manage-labels="" className="gap-0 p-0 sm:max-w-[440px]" aria-describedby={undefined}>
@@ -307,46 +362,10 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemov
           <DialogTitle className="text-[17px]">Labels</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col px-3 pb-2">
-          {labels.labels.map((l) => asking === l.id ? (
-            <div key={l.id} className="flex min-h-11 flex-wrap items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
-              <span className="min-w-0 flex-1 text-[13px] text-foreground">
-                Remove <span className="font-semibold">{l.name}</span>? {counts[l.id] ? `${counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`} will show as ${(labels.labels.find((x) => x.id !== l.id) ?? l).name}.` : ""}
-              </span>
-              <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={() => setAsking(null)}>Cancel</Button>
-              <Button variant="destructive" size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={() => removeNow(l)}>Remove</Button>
-            </div>
-          ) : (
-            <div key={l.id} className="flex h-11 items-center gap-2 rounded-xl px-2 hover:bg-muted/40">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button type="button" aria-label={`Colour of ${l.name}`} className="flex size-8 items-center justify-center rounded-full hover:bg-muted">
-                    <LabelIcon label={l} />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="start" className="flex w-auto gap-1.5 p-2">
-                  {LABEL_COLORS.map((c) => (
-                    <button key={c} type="button" aria-label={c} onClick={() => labels.update(l.id, { color: c })} className={cn("flex size-7 items-center justify-center rounded-full", l.color === c && "ring-2 ring-primary/40")}>
-                      <span className={cn("size-4 rounded-full", DOT[c])} />
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
-              <input
-                value={l.name}
-                maxLength={24}
-                aria-label="Label name"
-                onChange={(e) => labels.update(l.id, { name: e.target.value })}
-                onBlur={(e) => { if (!e.target.value.trim()) labels.update(l.id, { name: "Untitled" }); }}
-                className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 text-[14px] text-foreground outline-none transition-colors hover:border-border focus:border-ring max-lg:text-[16px]"
-              />
-              <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{counts[l.id] ? (counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`) : ""}</span>
-              {labels.labels.length > 1 && (
-                <Button variant="ghost" size="icon" aria-label={`Remove ${l.name}`} className="size-8 rounded-full text-muted-foreground hover:text-foreground" onClick={() => (counts[l.id] ? setAsking(l.id) : removeNow(l))}>
-                  <Icon icon={Cancel01Icon} className="size-[14px]" strokeWidth={2} />
-                </Button>
-              )}
-            </div>
-          ))}
+          {group("In all recordings")}
+          {shared.map(row)}
+          {here.length > 0 && group("Only in this recording")}
+          {here.map(row)}
           <div className="mt-1 flex h-11 items-center gap-2 px-2">
             <span className="flex size-8 items-center justify-center text-muted-foreground"><Icon icon={Add01Icon} className="size-[15px]" strokeWidth={2} /></span>
             <Input
@@ -359,6 +378,12 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemov
             />
             {draft.trim() && <Button size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={addLabel}>Add</Button>}
           </div>
+          {draft.trim() && (
+            <label data-label-everywhere="" className="flex h-9 cursor-pointer items-center gap-2.5 px-4 text-[13px] text-foreground select-none">
+              <Checkbox checked={everywhere} onCheckedChange={(v) => setEverywhere(v === true)} />
+              Use in all recordings
+            </label>
+          )}
         </div>
         <div className="flex justify-end border-t border-border px-5 py-3">
           <Button size="sm" className="h-8 rounded-full px-4 text-[13px]" onClick={() => onOpenChange(false)}>Done</Button>

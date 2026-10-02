@@ -172,40 +172,54 @@ export type AnnotationsApi = ReturnType<typeof useAnnotations>;
 
 /* The person's labels (the same set on every record) and the one the
    Highlight button applies: the last one they picked. */
-export function useLabels() {
-  const [labels, setLabels] = useState<Label[]>(loadLabels);
+/* The labels of one recording: every label made for all recordings, and the
+   ones made for this recording only. */
+export function useLabels(record: string) {
+  const [all, setAll] = useState<Label[]>(loadLabels);
   const [lastId, setLastId] = useState<string>(loadLastLabel);
-  useEffect(() => { saveLabels(labels); }, [labels]);
+  useEffect(() => { saveLabels(all); }, [all]);
 
+  const labels = useMemo(() => all.filter((l) => !l.record || l.record === record), [all, record]);
   const byId = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
   const labelOf = useCallback((id?: string) => byId.get(id ?? "") ?? labels[0], [byId, labels]);
   const current = byId.get(lastId) ?? labels[0];
 
   const pick = useCallback((id: string) => { setLastId(id); saveLastLabel(id); }, []);
-  const add = useCallback((name: string, color: LabelColor) => {
+  const add = useCallback((name: string, color: LabelColor, onlyHere = false) => {
     const id = `l-${Date.now()}`;
-    setLabels((list) => [...list, { id, name, color }]);
+    setAll((list) => [...list, onlyHere ? { id, name, color, record } : { id, name, color }]);
     return id;
+  }, [record]);
+  const update = useCallback((id: string, patch: Partial<Omit<Label, "id" | "record">>) => {
+    setAll((list) => list.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   }, []);
-  const update = useCallback((id: string, patch: Partial<Omit<Label, "id">>) => {
-    setLabels((list) => list.map((l) => (l.id === id ? { ...l, ...patch } : l)));
-  }, []);
+  /* move a label between every recording and this one only */
+  const setOnlyHere = useCallback((id: string, onlyHere: boolean) => {
+    setAll((list) => list.map((l) => {
+      if (l.id !== id) return l;
+      const { record: _was, ...rest } = l;
+      return onlyHere ? { ...rest, record } : rest;
+    }));
+  }, [record]);
   /* A removed label never leaves a highlight without one: those fall back to the first label. */
   const remove = useCallback((id: string) => {
-    setLabels((list) => (list.length > 1 ? list.filter((l) => l.id !== id) : list));
+    setAll((list) => (list.filter((l) => !l.record || l.record === record).length > 1 ? list.filter((l) => l.id !== id) : list));
     setLastId((cur) => (cur === id ? DEFAULT_LABEL_ID : cur));
-  }, []);
+  }, [record]);
 
+  /* back where it stood in this recording's list */
   const restore = useCallback((label: Label, index: number) => {
-    setLabels((list) => {
+    setAll((list) => {
       if (list.some((l) => l.id === label.id)) return list;
+      const after = list.filter((l) => !l.record || l.record === record)[index];
+      const at = after ? list.indexOf(after) : list.length;
       const next = [...list];
-      next.splice(Math.min(index, next.length), 0, label);
+      next.splice(at, 0, label);
       return next;
     });
-  }, []);
+  }, [record]);
 
-  return { labels, labelOf, current, pick, add, update, remove, restore };
+  return { labels, labelOf, current, pick, add, update, setOnlyHere, remove, restore };
 }
 
 export type LabelsApi = ReturnType<typeof useLabels>;
