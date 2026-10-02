@@ -28,7 +28,7 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/app/components/ui/utils";
 import type { LabelsApi } from "@/hooks/use-annotations";
-import { LABEL_COLORS, type Label, type LabelColor } from "@/lib/annotations";
+import { DEFAULT_LABELS, LABEL_COLORS, type Label, type LabelColor } from "@/lib/annotations";
 
 /* A label's colour in each place it shows: the wash on the words, the mark on
    the player, the label's icon, the chip in the list. Written out in full so
@@ -40,6 +40,12 @@ export const WASH: Record<LabelColor, string> = {
   violet: "bg-violet-200/70",
   rose: "bg-rose-200/70",
   slate: "bg-slate-200/90",
+  orange: "bg-orange-200/70",
+  lime: "bg-lime-200/80",
+  cyan: "bg-cyan-200/70",
+  fuchsia: "bg-fuchsia-200/70",
+  indigo: "bg-indigo-200/70",
+  teal: "bg-teal-200/70",
 };
 export const WASH_ON: Record<LabelColor, string> = {
   amber: "bg-amber-300",
@@ -48,6 +54,12 @@ export const WASH_ON: Record<LabelColor, string> = {
   violet: "bg-violet-300",
   rose: "bg-rose-300",
   slate: "bg-slate-300",
+  orange: "bg-orange-300",
+  lime: "bg-lime-300",
+  cyan: "bg-cyan-300",
+  fuchsia: "bg-fuchsia-300",
+  indigo: "bg-indigo-300",
+  teal: "bg-teal-300",
 };
 export const DOT: Record<LabelColor, string> = {
   amber: "bg-amber-400",
@@ -56,6 +68,12 @@ export const DOT: Record<LabelColor, string> = {
   violet: "bg-violet-500",
   rose: "bg-rose-500",
   slate: "bg-slate-400",
+  orange: "bg-orange-500",
+  lime: "bg-lime-500",
+  cyan: "bg-cyan-500",
+  fuchsia: "bg-fuchsia-500",
+  indigo: "bg-indigo-500",
+  teal: "bg-teal-500",
 };
 /* the label's icon: one bookmark, in the label's colour (as Notta marks its types) */
 const INK: Record<LabelColor, string> = {
@@ -65,6 +83,12 @@ const INK: Record<LabelColor, string> = {
   violet: "text-violet-500",
   rose: "text-rose-500",
   slate: "text-slate-500",
+  orange: "text-orange-500",
+  lime: "text-lime-600",
+  cyan: "text-cyan-500",
+  fuchsia: "text-fuchsia-500",
+  indigo: "text-indigo-500",
+  teal: "text-teal-500",
 };
 const CHIP: Record<LabelColor, string> = {
   amber: "bg-amber-100 text-amber-900",
@@ -73,6 +97,12 @@ const CHIP: Record<LabelColor, string> = {
   violet: "bg-violet-100 text-violet-900",
   rose: "bg-rose-100 text-rose-900",
   slate: "bg-slate-100 text-slate-800",
+  orange: "bg-orange-100 text-orange-900",
+  lime: "bg-lime-100 text-lime-900",
+  cyan: "bg-cyan-100 text-cyan-900",
+  fuchsia: "bg-fuchsia-100 text-fuchsia-900",
+  indigo: "bg-indigo-100 text-indigo-900",
+  teal: "bg-teal-100 text-teal-900",
 };
 
 /* the pressed Highlight button takes the colour of the label it holds */
@@ -83,6 +113,12 @@ export const PRESSED: Record<LabelColor, string> = {
   violet: "bg-violet-100 text-violet-800 hover:bg-violet-100 hover:text-violet-900",
   rose: "bg-rose-100 text-rose-800 hover:bg-rose-100 hover:text-rose-900",
   slate: "bg-slate-100 text-slate-800 hover:bg-slate-100 hover:text-slate-900",
+  orange: "bg-orange-100 text-orange-800 hover:bg-orange-100 hover:text-orange-900",
+  lime: "bg-lime-100 text-lime-800 hover:bg-lime-100 hover:text-lime-900",
+  cyan: "bg-cyan-100 text-cyan-800 hover:bg-cyan-100 hover:text-cyan-900",
+  fuchsia: "bg-fuchsia-100 text-fuchsia-800 hover:bg-fuchsia-100 hover:text-fuchsia-900",
+  indigo: "bg-indigo-100 text-indigo-800 hover:bg-indigo-100 hover:text-indigo-900",
+  teal: "bg-teal-100 text-teal-800 hover:bg-teal-100 hover:text-teal-900",
 };
 
 export function LabelIcon({ label, className }: { label: Label; className?: string }) {
@@ -144,6 +180,7 @@ export function LabelPicker({
               <DrawerTitle className="text-[17px] font-semibold">{title}</DrawerTitle>
             </DrawerHeader>
             <div className="flex flex-col px-2 pb-5">
+              <div className="max-h-[52dvh] overflow-y-auto overscroll-contain">
               {labels.labels.map((l) => (
                 <button
                   key={l.id}
@@ -156,6 +193,7 @@ export function LabelPicker({
                   {l.id === currentId && <Icon icon={Tick02Icon} className="size-[18px] text-primary" strokeWidth={2} />}
                 </button>
               ))}
+              </div>
               {(onRemove || onManage) && <div className="mx-3 my-1 h-px bg-border" />}
               {onRemove && (
                 <button type="button" onClick={() => { setOpen(false); onRemove(); }} className="flex h-12 items-center gap-3 rounded-xl px-3 text-left text-[15px] text-destructive active:bg-muted">
@@ -188,6 +226,7 @@ export function LabelPicker({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       {button}
       <DropdownMenuContent data-label-menu="" align={align} side={side} className="w-52" onMouseDown={(e) => e.preventDefault()}>
+        <div className="max-h-[min(320px,45vh)] overflow-y-auto overscroll-contain">
         {labels.labels.map((l) => (
           <DropdownMenuItem key={l.id} onSelect={() => onPick(l.id)} className="gap-2.5">
             <LabelIcon label={l} />
@@ -195,6 +234,7 @@ export function LabelPicker({
             {l.id === currentId && <Icon icon={Tick02Icon} className="size-4 text-primary" strokeWidth={2} />}
           </DropdownMenuItem>
         ))}
+        </div>
         {(onRemove || onManage) && <DropdownMenuSeparator />}
         {onRemove && (
           <DropdownMenuItem variant="destructive" onSelect={onRemove} className="gap-2.5">
@@ -285,20 +325,36 @@ export function HighlightButton({
    unless made for this one only; a new label is in every recording until
    its box is cleared. Every highlight keeps working: one whose label is
    removed takes the first label. */
-export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemoved }: { labels: LabelsApi; open: boolean; onOpenChange: (o: boolean) => void; counts: Record<string, number>; onRemoved?: (label: Label, index: number, fallback: Label) => void }) {
+export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhere = {} }: { labels: LabelsApi; open: boolean; onOpenChange: (o: boolean) => void; counts: Record<string, number>; elsewhere?: Record<string, number> }) {
   const [draft, setDraft] = useState("");
   const [everywhere, setEverywhere] = useState(true);
   const [asking, setAsking] = useState<string | null>(null);
+  /* Undo lives in the dialog: a toast behind its overlay cannot be pressed */
+  const [removed, setRemoved] = useState<{ label: Label; index: number } | null>(null);
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const taken = (name: string, except?: string) => labels.labels.some((x) => x.id !== except && x.name.trim().toLowerCase() === name.trim().toLowerCase());
+  const used = (l: Label) => (counts[l.id] ?? 0) + (l.record ? 0 : elsewhere[l.id] ?? 0);
+  /* the four built-in labels are in every recording; so is one used in another recording */
+  const builtIn = (l: Label) => DEFAULT_LABELS.some((d) => d.id === l.id);
+  const canKeepHere = (l: Label) => !l.record && !builtIn(l) && !elsewhere[l.id];
+  const asks = (l: Label) => used(l) > 0 || (!l.record && builtIn(l));
+  const consequence = (l: Label) => {
+    const fallback = (labels.labels.find((x) => x.id !== l.id) ?? l).name;
+    if (!l.record && builtIn(l)) return `Its highlights in every recording will show as ${fallback}.`;
+    const n = used(l);
+    if (!n) return "";
+    return `${n === 1 ? "1 highlight" : `${n} highlights`}${!l.record && elsewhere[l.id] ? " across your recordings" : ""} will show as ${fallback}.`;
+  };
+  const close = (o: boolean) => { if (!o) { setRemoved(null); setAsking(null); } onOpenChange(o); };
   const removeNow = (l: Label) => {
     const index = labels.labels.findIndex((x) => x.id === l.id);
-    const fallback = labels.labels.find((x) => x.id !== l.id) ?? labels.labels[0];
     labels.remove(l.id);
     setAsking(null);
-    onRemoved?.(l, index, fallback);
+    setRemoved({ label: l, index });
   };
   const addLabel = () => {
     const name = draft.trim();
-    if (!name) return;
+    if (!name || taken(name)) return;
     const used = new Set(labels.labels.map((l) => l.color));
     const color = LABEL_COLORS.find((c) => !used.has(c)) ?? "slate";
     labels.add(name, color, !everywhere);
@@ -311,7 +367,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemov
   const row = (l: Label) => asking === l.id ? (
     <div key={l.id} className="flex min-h-11 flex-wrap items-center gap-2 rounded-xl bg-muted/50 px-3 py-2">
       <span className="min-w-0 flex-1 text-[13px] text-foreground">
-        Remove <span className="font-semibold">{l.name}</span>? {counts[l.id] ? `${counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`} will show as ${(labels.labels.find((x) => x.id !== l.id) ?? l).name}.` : ""}
+        Remove <span className="font-semibold">{l.name}</span>? {consequence(l)}
       </span>
       <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={() => setAsking(null)}>Cancel</Button>
       <Button variant="destructive" size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={() => removeNow(l)}>Remove</Button>
@@ -324,7 +380,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemov
             <LabelIcon label={l} />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="flex w-auto gap-1.5 p-2">
+        <PopoverContent align="start" className="grid w-auto grid-cols-6 gap-1.5 p-2">
           {LABEL_COLORS.map((c) => (
             <button key={c} type="button" aria-label={c} onClick={() => labels.update(l.id, { color: c })} className={cn("flex size-7 items-center justify-center rounded-full", l.color === c && "ring-2 ring-primary/40")}>
               <span className={cn("size-4 rounded-full", DOT[c])} />
@@ -336,8 +392,15 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemov
         value={l.name}
         maxLength={24}
         aria-label="Label name"
+        onFocus={() => setRenaming({ id: l.id, name: l.name })}
         onChange={(e) => labels.update(l.id, { name: e.target.value })}
-        onBlur={(e) => { if (!e.target.value.trim()) labels.update(l.id, { name: "Untitled" }); }}
+        onBlur={(e) => {
+          const v = e.target.value.trim();
+          /* a name already in the list goes back to what it was */
+          if (v && taken(v, l.id)) labels.update(l.id, { name: renaming?.id === l.id ? renaming.name : "Untitled" });
+          else if (!v) labels.update(l.id, { name: "Untitled" });
+          setRenaming(null);
+        }}
         className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 text-[14px] text-foreground outline-none transition-colors hover:border-border focus:border-ring max-lg:text-[16px]"
       />
       <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{counts[l.id] ? (counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`) : ""}</span>
@@ -348,20 +411,27 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemov
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem onSelect={() => labels.setOnlyHere(l.id, !l.record)}>{l.record ? "Use in all recordings" : "Keep in this recording only"}</DropdownMenuItem>
-          {labels.labels.length > 1 && <DropdownMenuSeparator />}
-          {labels.labels.length > 1 && <DropdownMenuItem variant="destructive" onSelect={() => (counts[l.id] ? setAsking(l.id) : removeNow(l))}>Remove</DropdownMenuItem>}
+          {l.record && <DropdownMenuItem onSelect={() => labels.setOnlyHere(l.id, false)}>Use in all recordings</DropdownMenuItem>}
+          {canKeepHere(l) && <DropdownMenuItem onSelect={() => labels.setOnlyHere(l.id, true)}>Keep in this recording only</DropdownMenuItem>}
+          {labels.labels.length > 1 && (l.record || canKeepHere(l)) && <DropdownMenuSeparator />}
+          {labels.labels.length > 1 && <DropdownMenuItem variant="destructive" onSelect={() => (asks(l) ? setAsking(l.id) : removeNow(l))}>Remove</DropdownMenuItem>}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-manage-labels="" className="gap-0 p-0 sm:max-w-[440px]" aria-describedby={undefined}>
-        <DialogHeader className="px-5 pb-2 pt-5 text-left">
+    <Dialog open={open} onOpenChange={close}>
+      <DialogContent data-manage-labels="" className="flex max-h-[min(88dvh,720px)] flex-col gap-0 p-0 sm:max-w-[440px]" aria-describedby={undefined}>
+        <DialogHeader className="shrink-0 px-5 pb-2 pt-5 text-left">
           <DialogTitle className="text-[17px]">Labels</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col px-3 pb-2">
+        {removed && (
+          <div data-label-removed="" className="mx-3 mb-1 flex h-10 shrink-0 items-center gap-2 rounded-xl bg-muted/60 px-3 text-[13px] text-foreground">
+            <span className="min-w-0 flex-1 truncate"><span className="font-semibold">{removed.label.name}</span> removed</span>
+            <Button variant="ghost" size="sm" className="h-7 rounded-full px-3 text-[13px] font-medium text-primary hover:text-primary" onClick={() => { labels.restore(removed.label, removed.index); setRemoved(null); }}>Undo</Button>
+          </div>
+        )}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-2">
           {group("In all recordings")}
           {shared.map(row)}
           {here.length > 0 && group("Only in this recording")}
@@ -376,7 +446,9 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemov
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLabel(); } }}
               className="h-8 flex-1 border-none bg-transparent px-1.5 text-[14px] shadow-none focus-visible:ring-0 max-lg:text-[16px]"
             />
-            {draft.trim() && <Button size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={addLabel}>Add</Button>}
+            {draft.trim() && (taken(draft)
+              ? <span className="shrink-0 pr-1 text-[12px] text-muted-foreground">Already a label</span>
+              : <Button size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={addLabel}>Add</Button>)}
           </div>
           {draft.trim() && (
             <label data-label-everywhere="" className="flex h-9 cursor-pointer items-center gap-2.5 px-4 text-[13px] text-foreground select-none">
@@ -385,8 +457,8 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemov
             </label>
           )}
         </div>
-        <div className="flex justify-end border-t border-border px-5 py-3">
-          <Button size="sm" className="h-8 rounded-full px-4 text-[13px]" onClick={() => onOpenChange(false)}>Done</Button>
+        <div className="flex shrink-0 justify-end border-t border-border px-5 py-3">
+          <Button size="sm" className="h-8 rounded-full px-4 text-[13px]" onClick={() => close(false)}>Done</Button>
         </div>
       </DialogContent>
     </Dialog>

@@ -7,7 +7,7 @@ import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotations";
-import { coversBlock, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
+import { coversBlock, mergesWith, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
 import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
 import { HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
 import { Button } from "./ui/button";
@@ -1460,6 +1460,7 @@ function MediaPlayer({
           </Button>
           <Button
             onClick={onPlayPause}
+            aria-label={isPlaying ? "Pause" : undefined}
             className={`rounded-full gap-1.5 transition-all ${isPlaying ? "h-9 w-9 px-0" : "h-9 px-4"} bg-primary text-primary-foreground hover:bg-primary/90`}
           >
             {isPlaying
@@ -3050,6 +3051,20 @@ export function TranscriptionDetailPage() {
   const notesApi = useAnnotations(recordKey, noteBlocks, seedOwner);
   const labelsApi = useLabels(recordId);
   const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
+  /* how many highlights each label carries in the other recordings you have notes in */
+  const labelsElsewhere = useMemo(() => {
+    const out: Record<string, number> = {};
+    if (!manageLabelsOpen) return out;
+    try {
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const k = window.localStorage.key(i);
+        if (!k?.startsWith("ttt_annotations_v2:") || k.slice(19).split(":")[0] === recordId) continue;
+        const d = JSON.parse(window.localStorage.getItem(k) ?? "null") as { highlights?: Highlight[] } | null;
+        for (const h of d?.highlights ?? []) { const lid = h.labelId ?? "key"; out[lid] = (out[lid] ?? 0) + 1; }
+      }
+    } catch { /* nothing stored */ }
+    return out;
+  }, [manageLabelsOpen, recordId]);
   /* Play all: the highlights back to back, one after another */
   const [reel, setReel] = useState<{ ids: string[]; index: number } | null>(null);
   /* which Highlight list is open from the keyboard (H): over the selected words, or on the player */
@@ -3746,24 +3761,31 @@ export function TranscriptionDetailPage() {
   const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
   /* Scrolled away from the words being played: a pill at the bottom of the
      transcript brings them back. It shows only while they are off the screen. */
-  const [playbackAway, setPlaybackAway] = useState<"up" | "down" | null>(null);
+  const [playbackAway, setPlaybackAway] = useState<"up" | "down" | "hidden" | null>(null);
   useEffect(() => {
-    const root = document.querySelector<HTMLElement>("[data-transcript-scroll]");
-    const el = activePlaybackSegmentId !== null ? segmentRefs.current[activePlaybackSegmentId] : null;
-    if (!root || !el || activeTab !== "transcript" || editMode) { setPlaybackAway(null); return; }
     const check = () => {
+      if (activePlaybackSegmentId === null || activeTab !== "transcript" || editMode || reel) { setPlaybackAway(null); return; }
+      const root = document.querySelector<HTMLElement>("[data-transcript-scroll]");
+      const el = segmentRefs.current[activePlaybackSegmentId];
+      if (!root) { setPlaybackAway(null); return; }
+      if (!el || !el.isConnected) { setPlaybackAway(onlyHighlights ? "hidden" : null); return; }
       const box = root.getBoundingClientRect(), words = el.getBoundingClientRect();
       const top = Math.max(box.top, 0), bottom = Math.min(box.bottom, window.innerHeight);
       setPlaybackAway(words.bottom < top + 24 ? "up" : words.top > bottom - 24 ? "down" : null);
     };
-    check();
+    const frame = requestAnimationFrame(check);
     document.addEventListener("scroll", check, { capture: true, passive: true });
     window.addEventListener("resize", check);
-    return () => { document.removeEventListener("scroll", check, { capture: true }); window.removeEventListener("resize", check); };
-  }, [activePlaybackSegmentId, activeTab, editMode, onlyHighlights]);
+    return () => { cancelAnimationFrame(frame); document.removeEventListener("scroll", check, { capture: true }); window.removeEventListener("resize", check); };
+  }, [activePlaybackSegmentId, activeTab, editMode, onlyHighlights, reel]);
   function backToPlayback() {
-    const el = activePlaybackSegmentId !== null ? segmentRefs.current[activePlaybackSegmentId] : null;
-    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const go = () => {
+      const el = activePlaybackSegmentId !== null ? segmentRefs.current[activePlaybackSegmentId] : null;
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+    /* the words being played are in a block Highlights only hides: show every block again */
+    if (playbackAway === "hidden") { setOnlyHighlights(false); window.setTimeout(go, 60); return; }
+    go();
   }
   /* where words sit in time: the block's span shared out by characters, the same
      estimate the playback highlighting uses */
@@ -3790,11 +3812,12 @@ export function TranscriptionDetailPage() {
   function highlightNow(labelId: string) {
     const a = currentSentence();
     if (!a) return;
+    const taken = notesApi.highlights.filter((h) => mergesWith(h, a, labelId));
     const id = notesApi.addHighlight(a, labelId);
     setNoteFocus({ kind: "highlight", id });
     window.setTimeout(() => setNoteFocus((cur) => (cur?.id === id ? null : cur)), 1800);
     if (!isPlayerPlaying) segmentRefs.current[a.segmentId]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    toastUndo(`${labelsApi.labelOf(labelId).name} at ${clock(effectiveCurrentSeconds)}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+    toastUndo(`${labelsApi.labelOf(labelId).name} at ${clock(effectiveCurrentSeconds)}`, () => { notesApi.removeHighlight(id); taken.forEach((h) => notesApi.restoreHighlight(h)); }, HighlighterIcon);
   }
   function commentNow() {
     const a = currentSentence();
@@ -3901,13 +3924,25 @@ export function TranscriptionDetailPage() {
     if (belowLg) { startComment(anchor, { left: 0, top: 0, width: 0, height: 0 }); return; }
     const switching = noPanel && activeTab !== "transcript";
     if (switching) setActiveTab("transcript");
-    window.setTimeout(() => segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: "center" }), switching ? 80 : 0);
-    window.setTimeout(() => {
+    const target = () => {
       const block = segmentRefs.current[anchor.segmentId];
       const mark = highlightId ? block?.querySelector<HTMLElement>(`[data-hl~="${highlightId}"]`) : null;
-      const r = (mark ?? block?.querySelector<HTMLElement>("[data-transcript-line]"))?.getBoundingClientRect();
-      startComment(anchor, r ? { left: r.left, top: r.top, width: r.width, height: r.height } : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 });
-    }, switching ? 520 : 380);
+      return mark ?? block?.querySelector<HTMLElement>("[data-transcript-line]") ?? null;
+    };
+    window.setTimeout(() => {
+      segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      /* wait for the smooth scroll to settle: the field is placed where the words end up */
+      let last = Number.NaN, still = 0, frames = 0;
+      const settle = () => {
+        const top = target()?.getBoundingClientRect().top ?? 0;
+        still = Math.abs(top - last) < 0.5 ? still + 1 : 0;
+        last = top;
+        if (still < 4 && frames++ < 90) { requestAnimationFrame(settle); return; }
+        const r = target()?.getBoundingClientRect();
+        startComment(anchor, r ? { left: r.left, top: r.top, width: r.width, height: r.height } : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 });
+      };
+      requestAnimationFrame(settle);
+    }, switching ? 80 : 0);
   }
   function goToNote(anchor: Anchor, f: Focus) {
     if (noPanel) setActiveTab("transcript");
@@ -3937,7 +3972,7 @@ export function TranscriptionDetailPage() {
   }
   function markBarLead() {
     if (!markBar) return undefined;
-    const h = notesApi.highlights.find((x) => markBar.run.highlights.includes(x.id));
+    const h = notesApi.highlights.find((x) => x.id === markBar.run.highlights[markBar.run.highlights.length - 1]);
     if (!h) return undefined;
     const label = labelsApi.labelOf(h.labelId);
     if (!(h.by.you || isOwner)) return <span className="pl-1.5"><LabelChip label={label} /></span>;
@@ -3963,7 +3998,7 @@ export function TranscriptionDetailPage() {
   }
   function markBarActions(): BarAction[] {
     if (!markBar) return [];
-    const h = notesApi.highlights.find((x) => markBar.run.highlights.includes(x.id));
+    const h = notesApi.highlights.find((x) => x.id === markBar.run.highlights[markBar.run.highlights.length - 1]);
     if (!h) return [];
     const text = blockText(h.segmentId).slice(h.start, h.end);
     const r = markBar.rect;
@@ -5127,7 +5162,7 @@ export function TranscriptionDetailPage() {
         <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={() => setComposer(null)} />
       )}
       {markBar && <MarkBar rect={markBar.rect} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
-      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} counts={labelCounts} onRemoved={(label, index) => toastUndo(`${label.name} removed`, () => labelsApi.restore(label, index))} />
+      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} counts={labelCounts} elsewhere={labelsElsewhere} />
       {threadSheet && sheetThreads.length > 0 && <ThreadSheet threads={sheetThreads} v={notesView} onClose={() => setThreadSheet(null)} />}
     </div>
   );

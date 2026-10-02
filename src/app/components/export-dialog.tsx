@@ -168,6 +168,21 @@ function OptionCheck({ id, label, checked, onChange }: { id: string; label: stri
   );
 }
 
+/* With the transcript off, the preview shows the highlights and comments file */
+function NotesPreview({ record }: { record: ExportableRecord }) {
+  let text = "";
+  try { text = window.localStorage.getItem(`ttt_notes_txt:${record.id}`) ?? ""; } catch { text = ""; }
+  return (
+    <div className="flex flex-col">
+      <div className="mb-[16px] pb-[14px] border-b border-border/70">
+        <p className="font-semibold text-[14px] text-foreground leading-[20px] max-lg:hidden">{record.title}</p>
+        <p className="mt-[3px] text-[11.5px] text-muted-foreground">Highlights and comments</p>
+      </div>
+      <pre className="whitespace-pre-wrap break-words font-sans text-[12.5px] leading-[19px] text-foreground/80">{text.trim() || "No highlights or comments yet."}</pre>
+    </div>
+  );
+}
+
 /* Transcript preview (center pane) - live: reflects the current export options */
 function TranscriptPreview({ record, options }: { record: ExportableRecord; options: ExportContentOptions }) {
   const view = transformForExport(record, options);
@@ -612,7 +627,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               )}
               {/* Center pane - live preview of the selected file */}
               <div className={"flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px] max-lg:px-[16px] max-lg:py-[14px] " + (mobilePane === "transcript" ? "" : "max-lg:hidden")}>
-                {activeRecord && <TranscriptPreview record={activeRecord} options={shared.options} />}
+                {activeRecord && (!shared.includeTranscript && shared.includeNotes ? <NotesPreview record={activeRecord} /> : <TranscriptPreview record={activeRecord} options={shared.options} />)}
               </div>
               <div className={mobilePane === "transcript" ? "max-lg:hidden contents" : "contents"}>{settingsPanel}</div>
             </div>

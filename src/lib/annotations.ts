@@ -16,12 +16,12 @@ export type Anchor = { segmentId: number; start: number; end: number };
 /* A highlight says what kind of line it is: a key point, a to-do, a decision,
    a question. The label is its colour in the text, its dot on the player and
    its filter in the list. People can rename, recolour and add their own. */
-export type LabelColor = "amber" | "sky" | "emerald" | "violet" | "rose" | "slate";
+export type LabelColor = "amber" | "sky" | "emerald" | "violet" | "rose" | "slate" | "orange" | "lime" | "cyan" | "fuchsia" | "indigo" | "teal";
 
 /* record: a label made for one recording only; without it the label is in every recording */
 export type Label = { id: string; name: string; color: LabelColor; record?: string };
 
-export const LABEL_COLORS: LabelColor[] = ["amber", "sky", "emerald", "violet", "rose", "slate"];
+export const LABEL_COLORS: LabelColor[] = ["amber", "sky", "emerald", "violet", "rose", "orange", "lime", "cyan", "fuchsia", "indigo", "teal", "slate"];
 
 export const DEFAULT_LABELS: Label[] = [
   { id: "key", name: "Key point", color: "amber" },
@@ -153,11 +153,18 @@ export function cutRuns(text: string, highlights: Ranged[], threads: Ranged[]): 
       text: text.slice(start, end),
       start,
       end,
-      highlights: highlights.filter((h) => overlaps(h, span)).map((h) => h.id),
+      /* the narrowest mark last: it is the one drawn on top and the one a click opens */
+      highlights: highlights.filter((h) => overlaps(h, span)).sort((x, y) => (y.end - y.start) - (x.end - x.start)).map((h) => h.id),
       threads: threads.filter((t) => overlaps(t, span)).map((t) => t.id),
     });
   }
   return runs;
+}
+
+/* A new highlight takes in your own highlights it touches only when they
+   carry the same label; a different label sits beside it, nothing is lost. */
+export function mergesWith(h: Highlight, a: Anchor, labelId: string) {
+  return h.segmentId === a.segmentId && h.by.you && !h.block && (h.labelId ?? DEFAULT_LABEL_ID) === labelId && overlaps(h, a);
 }
 
 export function timeAgo(at: number, now = Date.now()) {

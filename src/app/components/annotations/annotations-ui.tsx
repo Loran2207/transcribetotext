@@ -268,6 +268,7 @@ export function BlockActions({
       type="button"
       data-comment-chip={inBar ? undefined : ""}
       data-comment-count={inBar ? "" : undefined}
+      tabIndex={inBar ? undefined : -1}
       aria-label={openCount === 1 ? "1 comment" : `${openCount} comments`}
       onClick={onOpenComments}
       className="pointer-events-auto inline-flex h-7 items-center gap-1 rounded-full bg-primary/10 px-2 text-[12px] font-semibold tabular-nums text-primary transition-colors hover:bg-primary/15 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:px-2.5"
@@ -378,8 +379,8 @@ export function MarkBar({
 // ════════════════════════════════════════════════════════════
 
 /* @ in a comment opens the people on the record; the pick goes in as @Full Name.
-   In a bottom sheet the list sits in the flow under the field: floating, it
-   either fell off the screen or covered the quote. */
+   The list sits in the flow under the field: floating, it fell off the
+   screen near the bottom or covered the words above. */
 function useMentions(text: string, setText: (t: string) => void, place: "up" | "down" | "inline" = "up") {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [query, setQuery] = useState<string | null>(null);
@@ -454,17 +455,21 @@ function CommentForm({
   placeholder,
   onSubmit,
   onCancel,
-  mentions = "down",
+  onDirty,
+  mentions = "inline",
 }: {
   initial?: string;
   submitLabel: string;
   placeholder: string;
   onSubmit: (text: string) => void;
   onCancel: () => void;
+  /* the field has words in it: a press outside does not throw them away */
+  onDirty?: (dirty: boolean) => void;
   mentions?: "up" | "down" | "inline";
 }) {
   const [text, setText] = useState(initial);
   const m = useMentions(text, setText, mentions);
+  useEffect(() => { onDirty?.(text.trim() !== initial.trim()); }, [text, initial, onDirty]);
   const send = () => { const v = text.trim(); if (v) onSubmit(v); };
   return (
     <div>
@@ -519,9 +524,11 @@ export function CommentComposer({
   onSubmit: (text: string) => void;
   onCancel: () => void;
 }) {
+  const dirty = useRef(false);
+  const setDirty = useRef((d: boolean) => { dirty.current = d; }).current;
   if (sheet) {
     return (
-      <Drawer open onOpenChange={(o) => { if (!o) onCancel(); }}>
+      <Drawer open onOpenChange={(o) => { if (!o && !dirty.current) onCancel(); }}>
         <DrawerContent data-comment-composer="" aria-describedby={undefined} className="[&>div:first-child]:hidden">
           <DrawerHeader className="pb-2 text-left">
             <DrawerTitle className="text-[17px] font-semibold">Comment</DrawerTitle>
@@ -529,7 +536,7 @@ export function CommentComposer({
           <div className="px-4 pb-5">
             <QuoteLine text={quote} clamp={3} />
             <div className="mt-3">
-              <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} mentions="inline" />
+              <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} onDirty={setDirty} />
             </div>
           </div>
         </DrawerContent>
@@ -537,12 +544,13 @@ export function CommentComposer({
     );
   }
   return (
-    <Popover open onOpenChange={(o) => { if (!o) onCancel(); }}>
+    <Popover open onOpenChange={(o) => { if (!o && !dirty.current) onCancel(); }}>
       <PopoverAnchor asChild>
         <span aria-hidden className="pointer-events-none fixed" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }} />
       </PopoverAnchor>
-      <PopoverContent data-comment-composer="" side="bottom" align="start" sideOffset={8} className="w-[320px] p-3">
-        <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} />
+      {/* the player sits under the transcript: near it the field opens above the words */}
+      <PopoverContent data-comment-composer="" side="bottom" align="start" sideOffset={8} collisionPadding={{ top: 8, left: 8, right: 8, bottom: 128 }} className="w-[320px] p-3">
+        <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} onDirty={setDirty} />
       </PopoverContent>
     </Popover>
   );
@@ -550,7 +558,7 @@ export function CommentComposer({
 
 function ReplyField({ onSend }: { onSend: (text: string) => void }) {
   const [text, setText] = useState("");
-  const m = useMentions(text, setText);
+  const m = useMentions(text, setText, "inline");
   const ref = m.ref;
   useLayoutEffect(() => {
     const el = ref.current;
@@ -562,7 +570,6 @@ function ReplyField({ onSend }: { onSend: (text: string) => void }) {
   return (
     <div className="mt-3">
     <div className="relative flex items-end gap-1.5 rounded-[18px] border border-border bg-background py-1 pl-3 pr-1 transition-colors focus-within:border-primary/50">
-      {m.list}
       <textarea
         ref={ref}
         rows={1}
@@ -583,6 +590,7 @@ function ReplyField({ onSend }: { onSend: (text: string) => void }) {
         </Button>
       )}
     </div>
+    {m.list}
     <MentionNote people={m.mentioned} />
     </div>
   );

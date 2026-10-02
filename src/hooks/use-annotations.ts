@@ -9,7 +9,7 @@ import {
   loadLastLabel,
   saveLabels,
   saveLastLabel,
-  overlaps,
+  mergesWith,
   saveAnnotations,
   seedAnnotations,
   type Anchor,
@@ -65,7 +65,7 @@ export function useAnnotations(record: string, blocks: BlockText[], owner?: Pers
   const addHighlight = useCallback((a: Anchor, labelId: string = DEFAULT_LABEL_ID, merge = true) => {
     const id = `h-${Date.now()}`;
     set((d) => {
-      const mine = merge ? d.highlights.filter((h) => h.segmentId === a.segmentId && h.by.you && !h.block && overlaps(h, a)) : [];
+      const mine = merge ? d.highlights.filter((h) => mergesWith(h, a, labelId)) : [];
       const start = Math.min(a.start, ...mine.map((h) => h.start));
       const end = Math.max(a.end, ...mine.map((h) => h.end));
       const rest = d.highlights.filter((h) => !mine.includes(h));
