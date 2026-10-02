@@ -3843,8 +3843,9 @@ export function TranscriptionDetailPage() {
       <HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" open={highlightMenu === "player"} onOpenChange={(o) => setHighlightMenu(o ? "player" : null)} onHighlight={(id) => highlightNow(id)} onManage={manageLabels} />
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="outline" size="icon" aria-label="Comment on this moment" className="size-8 rounded-full border-border text-muted-foreground hover:text-foreground max-md:hidden" onClick={commentNow}>
+          <Button variant="ghost" size="sm" aria-label="Comment on this moment" className="h-8 gap-1.5 rounded-full border border-border pl-2.5 pr-3 text-xs font-medium text-foreground max-md:hidden" onClick={commentNow}>
             <Icon icon={CommentAdd01Icon} className="size-[14px]" strokeWidth={1.8} />
+            Comment
           </Button>
         </TooltipTrigger>
         <TooltipContent side="top">Comment on this moment  (C)</TooltipContent>
@@ -3862,19 +3863,13 @@ export function TranscriptionDetailPage() {
     else if (k === "c") { e.preventDefault(); if (selectionPill) handleSelectionComment(); else commentNow(); }
   };
   const labelCounts = notesApi.highlights.reduce<Record<string, number>>((acc, h) => { const id = labelsApi.labelOf(h.labelId).id; acc[id] = (acc[id] ?? 0) + 1; return acc; }, {});
-  /* Highlights only filters the words, it does not change how they look: a
-     pill like the list's own filters, first in the row, before the view checks */
+  /* Highlights only: a check like Speakers and Timestamps, first in the row,
+     because it filters the words rather than changing how they look */
   const onlyHighlightsCheck = notesApi.highlights.length > 0 ? (
-    <button
-      type="button"
-      data-only-highlights=""
-      aria-pressed={onlyHighlights}
-      onClick={() => setOnlyHighlights((v) => !v)}
-      className={"inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition-colors [@media(pointer:coarse)]:h-9 " + (onlyHighlights ? "border-foreground/80 bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground")}
-    >
-      <Icon icon={HighlighterIcon} className="size-[13px]" strokeWidth={1.8} />
-      Highlights only
-    </button>
+    <label data-only-highlights="" data-on={onlyHighlights ? "true" : "false"} className="flex h-7 shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
+      <FigmaCheckbox checked={onlyHighlights} onChange={() => setOnlyHighlights((v) => !v)} />
+      <span>Highlights only</span>
+    </label>
   ) : null;
 
   /* The block bar's Highlight: the label you pick marks the whole block, or
