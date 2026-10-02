@@ -35,8 +35,8 @@ export default function App() {
                 duration={stickyToasts ? Infinity : undefined}
                 visibleToasts={3}
                 gap={10}
-                offset={{ top: "72px", right: "20px" }}
-                mobileOffset={{ top: "68px", right: "12px", left: "12px" }}
+                offset={{ top: "72px", right: "20px", bottom: "140px" }}
+                mobileOffset={{ top: "68px", right: "12px", left: "12px", bottom: "164px" }}
                 icons={{
                   success: <Icon icon={CheckmarkCircle02Icon} size={16} className="text-primary" />,
                   info: <Icon icon={InformationCircleIcon} size={16} className="text-primary" />,

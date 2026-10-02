@@ -598,8 +598,8 @@ function SelectionHighlightPill({
   useLayoutEffect(() => {
     const w = barRef.current?.offsetWidth ?? 0;
     const column = document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect();
-    const lo = (column?.left ?? 0) + 8;
-    const hi = (column?.right ?? window.innerWidth) - w - 8;
+    const lo = (column?.left ?? 0) + 12;
+    const hi = (column?.right ?? window.innerWidth) - w - 12;
     setLeft(Math.max(lo, Math.min(position.x, hi)));
   }, [position.x]);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
@@ -608,7 +608,7 @@ function SelectionHighlightPill({
     <div
       ref={barRef}
       data-selection-pill=""
-      className="fixed z-50 flex items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
+      className="fixed z-50 flex items-center gap-0.5 rounded-full border border-border/70 bg-background p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
       style={{ left, top: below ? position.bottom + 10 : position.y - 40 }}
       onMouseDown={(e) => { if (!open) e.preventDefault(); }}
       onPointerDown={onPress}
@@ -807,7 +807,7 @@ function TranscriptSegment({
           : "bg-border/80";
 
   const blockHighlighted = Boolean(notes?.blockHighlighted);
-  const openThreads = notes ? notes.threads.filter((t) => !t.resolved).length : 0;
+  const openThreads = notes ? notes.threads.filter((t) => !t.resolved).reduce((sum, t) => sum + 1 + t.replies.length, 0) : 0;
 
   return (
     <div
@@ -3817,7 +3817,8 @@ export function TranscriptionDetailPage() {
     setNoteFocus({ kind: "highlight", id });
     window.setTimeout(() => setNoteFocus((cur) => (cur?.id === id ? null : cur)), 1800);
     if (!isPlayerPlaying) segmentRefs.current[a.segmentId]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    toastUndo(`${labelsApi.labelOf(labelId).name} at ${clock(effectiveCurrentSeconds)}`, () => { notesApi.removeHighlight(id); taken.forEach((h) => notesApi.restoreHighlight(h)); }, HighlighterIcon);
+    const said = rangeSeconds(a);
+    toastUndo(`${labelsApi.labelOf(labelId).name} at ${clock(said ? said.start : effectiveCurrentSeconds)}`, () => { notesApi.removeHighlight(id); taken.forEach((h) => notesApi.restoreHighlight(h)); }, HighlighterIcon);
   }
   function commentNow() {
     const a = currentSentence();
@@ -3982,6 +3983,7 @@ export function TranscriptionDetailPage() {
         currentId={label.id}
         sheet={coarsePointer}
         title="Label"
+        side={markBar.below ? "bottom" : "top"}
         onPick={(id) => { notesApi.setLabel(h.id, id); closeMarkBar(); }}
         /* on touch the sheet covers the bar and its Remove, so the sheet carries it */
         onRemove={coarsePointer ? () => { closeMarkBar(); removeHighlightWithUndo(notesApi, h.id); } : undefined}
@@ -4029,7 +4031,7 @@ export function TranscriptionDetailPage() {
       highlights,
       threads: notesApi.threads.filter((t) => t.segmentId === seg.id),
       focus: noteFocus,
-      pending: composer && composer.anchor.segmentId === seg.id ? composer.anchor : undefined,
+      pending: composer && composer.anchor.segmentId === seg.id ? composer.anchor : highlightMenu === "pill" && selectionPill?.segmentId === seg.id ? snapRange(blockText(seg.id), selectionPill.start, selectionPill.end) : undefined,
       blockHighlighted: Boolean(whole),
       blockLabel: whole ? labelsApi.labelOf(whole.labelId) : undefined,
       raised: continuationOf(seg),
@@ -4773,7 +4775,7 @@ export function TranscriptionDetailPage() {
             {isJobTranscribing ? (
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (
-              <div className="animate-in fade-in duration-300 px-4 pb-4 lg:px-8">
+              <div className="animate-in fade-in duration-300 px-4 pb-16 lg:px-8">
                 <div className="relative">
                 {(onlyHighlights ? limitedFreeSegments.filter((sg) => notesApi.highlights.some((h) => h.segmentId === sg.id)) : limitedFreeSegments).map((seg, vi, visible) => {
                   const index = shownSegments.indexOf(seg);

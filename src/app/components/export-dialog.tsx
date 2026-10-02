@@ -304,6 +304,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   );
   const nothingSelected = items.length === 0 || (!shared.includeTranscript && !shared.includeSummary && !shared.includeAudio && !shared.includeTranslation && !shared.includeNotes);
   const fileCount = nothingSelected ? 0 : items.length * ((shared.includeTranscript ? 1 : 0) + (shared.includeSummary ? 1 : 0) + (shared.includeAudio ? 1 : 0) + (shared.includeTranslation ? 1 : 0) + (shared.includeNotes ? 1 : 0));
+  /* an archive is about the files that come out, not the recordings that go in */
+  const canZip = fileCount > 1;
 
   const footerSummary = useMemo(() => {
     if (nothingSelected) return "Nothing selected";
@@ -322,7 +324,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     if (shared.includeTranslation) mix.push(`${items.length}× ${shared.translationLanguage} translation`);
     if (shared.includeNotes) mix.push(`${items.length}× highlights and comments`);
     if (shared.includeAudio) mix.push(`${items.length}× mp3`);
-    return `${mix.join(" · ")}  →  ${zipEnabled ? zipFileName : "separate files"}`;
+    return `${mix.join(" · ")}  →  ${zipEnabled ? zipFileName : `${fileCount} files`}`;
   }, [items, shared, fileCount, nothingSelected, zipFileName, zipEnabled]);
 
   async function handleExport() {
@@ -333,7 +335,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         await new Promise((r) => setTimeout(r, Math.min(350, 900 / items.length)));
         setProgress(i + 1);
       }
-      const m = await runExportPlan(plans, zipFileName, { zip: multi && zipEnabled });
+      const m = await runExportPlan(plans, zipFileName, { zip: canZip && zipEnabled });
       // Single-file export: no confirmation screen - download and close.
       if (m.files.length === 1) { toastExported(m.downloadName, "Downloaded to your device"); onClose(); return; }
       setManifest(m);
@@ -350,19 +352,19 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           makes the server pull every file out of storage first. */}
       <div className="border-b border-border py-[16px]">
         <div className="flex items-center justify-between gap-[12px]">
-          <span className={multi ? "font-semibold text-[14.5px] text-foreground" : "font-semibold text-[14.5px] text-muted-foreground"}>
+          <span className={canZip ? "font-semibold text-[14.5px] text-foreground" : "font-semibold text-[14.5px] text-muted-foreground"}>
             Download as ZIP archive
           </span>
-          <Switch checked={multi && zipEnabled} onCheckedChange={setZipEnabled} disabled={!multi} />
+          <Switch checked={canZip && zipEnabled} onCheckedChange={setZipEnabled} disabled={!canZip} />
         </div>
         <p className="mt-[8px] text-[11.5px] leading-[16px] text-muted-foreground">
-          {!multi
+          {!canZip
             ? "A single file downloads on its own. An archive is only worth it for several files."
             : zipEnabled
-              ? `All ${items.length} files are packed into one archive.`
-              : `Each of the ${items.length} files downloads on its own.`}
+              ? `All ${fileCount} files are packed into one archive.`
+              : `Each of the ${fileCount} files downloads on its own.`}
         </p>
-        {multi && zipEnabled && (
+        {canZip && zipEnabled && (
           <div className="relative mt-[12px]">
             <Input
               value={exportName}

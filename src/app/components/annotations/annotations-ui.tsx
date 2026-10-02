@@ -90,6 +90,8 @@ export function toastUndo(title: string, onUndo: () => void, glyph: unknown = De
     icon: <Icon icon={glyph} size={16} className="text-primary" />,
     cancel: { label: "Undo", onClick: onUndo },
     duration: 5000,
+    /* above the player, clear of the panel tabs whose counts just changed */
+    position: "bottom-center",
   });
 }
 
@@ -284,7 +286,7 @@ export function BlockActions({
     <div className={cn("pointer-events-none absolute right-2 z-20 flex items-center gap-1.5", raised ? "-top-4" : "top-1")}>
       <div
         data-block-actions=""
-        className={cn("flex items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-[2px] transition-all duration-150", shown)}
+        className={cn("flex items-center gap-0.5 rounded-full border border-border/70 bg-background p-1 shadow-sm backdrop-blur-[2px] transition-all duration-150", shown)}
       >
         <HighlightButton labels={labels} sheet={sheet} variant="icon" current={current} onHighlight={onHighlight} onRemove={onRemoveHighlight} onManage={onManageLabels} />
         <Tip label="Comment">
@@ -355,7 +357,7 @@ export function MarkBar({
     <div
       ref={ref}
       data-mark-bar=""
-      className="fixed z-50 flex max-w-[calc(100vw-16px)] items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
+      className="fixed z-50 flex max-w-[calc(100vw-16px)] items-center gap-0.5 rounded-full border border-border/70 bg-background p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
       style={{ left: left ?? rect.left, top: below ? rect.bottom + 8 : rect.top - 44, visibility: left === null ? "hidden" : undefined }}
     >
       {lead}
@@ -605,7 +607,7 @@ function ReplyField({ onSend }: { onSend: (text: string) => void }) {
         className="min-h-[28px] flex-1 resize-none bg-transparent py-1 text-[16px] leading-[20px] text-foreground outline-none placeholder:text-muted-foreground lg:text-[13px]"
       />
       {text.trim() && (
-        <Button size="icon" className="size-7 shrink-0 rounded-full" aria-label="Send reply" onClick={send}>
+        <Button size="icon" className="size-7 shrink-0 rounded-full [@media(pointer:coarse)]:size-9" aria-label="Send reply" onClick={send}>
           <Icon icon={ArrowUp02Icon} className="size-[14px]" strokeWidth={2.2} />
         </Button>
       )}
@@ -644,6 +646,8 @@ function Entry({
 }) {
   const [editing, setEditing] = useState(false);
   const [menu, setMenu] = useState(false);
+  const editBox = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (editing) window.setTimeout(() => editBox.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 80); }, [editing]);
   useEffect(() => {
     if (!menu) return;
     const close = () => setMenu(false);
@@ -700,7 +704,7 @@ function Entry({
           </span>
         </div>
         {editing && onEdit ? (
-          <div className="mt-1.5">
+          <div ref={editBox} className="mt-1.5 scroll-mb-48">
             <CommentForm initial={text} submitLabel="Save" placeholder="Edit comment" onSubmit={(v) => { onEdit(v); setEditing(false); }} onCancel={() => setEditing(false)} />
           </div>
         ) : (
@@ -744,13 +748,13 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
         v.goTo(t, { kind: "thread", id: t.id });
       }}
       className={cn(
-        "rounded-xl border bg-card p-3 transition-[border-color,box-shadow] duration-200",
-        !inSheet && "cursor-pointer",
-        focused ? "border-primary/45 shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_12%,transparent)]" : "border-border/70",
+        "rounded-xl transition-[border-color,box-shadow] duration-200",
+        inSheet ? "py-1" : "cursor-pointer border bg-card p-3",
+        !inSheet && (focused ? "border-primary/45 shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_12%,transparent)]" : "border-border/70"),
       )}
     >
       {t.resolved && (
-        <div className="-mx-3 -mt-3 mb-3 flex items-center gap-2 rounded-t-xl border-b border-border/60 bg-muted/40 py-1.5 pl-3 pr-1.5 text-[12px] text-muted-foreground">
+        <div className={cn("mb-3 flex items-center gap-2 border-b border-border/60 bg-muted/40 py-1.5 pr-1.5 text-[12px] text-muted-foreground", inSheet ? "rounded-lg pl-2" : "-mx-3 -mt-3 rounded-t-xl pl-3")}>
           <Icon icon={CheckmarkCircle02Icon} className="size-[14px]" strokeWidth={1.8} />
           <span className="min-w-0 flex-1 truncate">Resolved by {resolvedBy}</span>
           <Button variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium text-primary hover:text-primary" onClick={() => v.api.reopen(t.id)}>Reopen</Button>
@@ -850,7 +854,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
       <div className="flex h-7 items-center gap-1.5 text-[12px] text-muted-foreground">
         <TimeChip timestamp={timestamp} onSeek={v.seek} />
         {speaker && <span className="truncate">{speaker}</span>}
-        {playing && <span className="shrink-0 font-medium text-primary">Playing</span>}
+        {playing && <span className="shrink-0 font-medium text-primary">· Playing</span>}
         <span className="ml-auto flex shrink-0 items-center transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/hl:opacity-100 [@media(hover:hover)]:group-focus-within/hl:opacity-100">
           <Tip label="Comment">
             <Button variant="ghost" size="icon" aria-label="Comment on highlight" className={tool} onClick={() => v.commentOn(h, h.id)}>
@@ -900,12 +904,15 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
             <span className="truncate">by {h.by.name.split(" ")[0]}</span>
           </span>
         )}
-        {linked.length > 0 && (
-          <button type="button" className="inline-flex shrink-0 items-center gap-1 font-medium text-primary hover:underline" onClick={() => v.openThread(linked[0].id)}>
-            <Icon icon={Comment01Icon} className="size-[13px]" strokeWidth={2} />
-            {linked.length === 1 ? "1 comment" : `${linked.length} comments`}
-          </button>
-        )}
+        {linked.length > 0 && (() => {
+          const n = linked.reduce((sum, t) => sum + 1 + t.replies.length, 0);
+          return (
+            <button type="button" className="inline-flex shrink-0 items-center gap-1 font-medium text-primary hover:underline" onClick={() => v.openThread(linked[0].id)}>
+              <Icon icon={Comment01Icon} className="size-[13px]" strokeWidth={2} />
+              {n === 1 ? "1 comment" : `${n} comments`}
+            </button>
+          );
+        })()}
       </div>
     </div>
   );
@@ -926,7 +933,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
   const list = active === "all" ? all : all.filter((h) => v.labels.labelOf(h.labelId).id === active);
   const playingId = v.reel ? v.reel.ids[v.reel.index] : null;
   if (all.length === 0) {
-    return <Empty icon={HighlighterIcon} title="No highlights yet" line="Select words in the transcript, or press Highlight in the player while it plays." />;
+    return <Empty icon={HighlighterIcon} title="No highlights yet" line="Select words in the transcript, or use the highlighter in the player." />;
   }
   const copyAll = () => {
     const body = list
@@ -946,21 +953,21 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
     <div className="flex flex-col px-2 pb-3 pt-2">
       <div className="flex items-center justify-between gap-2 px-1">
         {v.reel ? (
-          <Button size="sm" className="h-7 gap-1.5 rounded-full px-3 text-xs" onClick={v.stopReel}>
+          <Button variant="outline" size="sm" className="h-7 gap-1.5 rounded-full border-border px-2.5 text-xs font-medium" onClick={v.stopReel}>
             <Icon icon={StopIcon} className="size-[13px]" strokeWidth={2} />Stop
-            <span className="tabular-nums opacity-80">· {v.reel.index + 1} of {v.reel.ids.length}</span>
+            <span className="tabular-nums text-muted-foreground">· {v.reel.index + 1} of {v.reel.ids.length}</span>
           </Button>
         ) : (
-          <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs font-medium text-primary hover:text-primary" onClick={() => v.playAll(list.map((h) => h.id))}>
-            <Icon icon={PlayIcon} className="size-[13px]" strokeWidth={2} />Play all
+          <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2 text-xs font-medium text-primary hover:text-primary" onClick={() => v.playAll(list.map((h) => h.id))}>
+            <Icon icon={PlayIcon} className="size-[13px]" strokeWidth={2} />{active === "all" ? "Play all" : `Play ${list.length}`}
           </Button>
         )}
-        <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground" onClick={copyAll}>
-          <Icon icon={Copy01Icon} className="size-[14px]" strokeWidth={1.8} />Copy all
+        <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:text-foreground" onClick={copyAll}>
+          <Icon icon={Copy01Icon} className="size-[14px]" strokeWidth={1.8} />{active === "all" ? "Copy all" : `Copy ${list.length}`}
         </Button>
       </div>
       {used.length > 1 && (
-        <div data-label-filter="" className="mt-2 flex flex-wrap gap-1.5 px-1 pb-1">
+        <div data-label-filter="" className="mt-2 flex flex-wrap gap-1.5 px-3 pb-1">
           <button type="button" className={chip(active === "all")} onClick={() => setFilter("all")}>All<span className="tabular-nums opacity-70">{all.length}</span></button>
           {used.map(({ label, count }) => (
             <button key={label.id} type="button" className={chip(active === label.id)} onClick={() => setFilter(label.id)}>

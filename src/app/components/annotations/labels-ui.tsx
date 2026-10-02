@@ -1,4 +1,4 @@
-import { useState, type ReactElement, type ReactNode } from "react";
+import { useRef, useState, type ReactElement, type ReactNode } from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
   Add01Icon,
@@ -10,6 +10,8 @@ import {
   Globe02Icon,
   HighlighterIcon,
   MoreHorizontalIcon,
+  PaintBoardIcon,
+  PencilEdit02Icon,
   Settings02Icon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
@@ -184,14 +186,14 @@ export function LabelPicker({
             <DrawerHeader className="pb-1 text-left">
               <DrawerTitle className="text-[17px] font-semibold">{title}</DrawerTitle>
             </DrawerHeader>
-            <div className="flex flex-col px-2 pb-5">
-              <div className="max-h-[52dvh] overflow-y-auto overscroll-contain">
+            <div className="flex flex-col px-1 pb-5">
+              <div className="flex max-h-[52dvh] flex-col overflow-y-auto overscroll-contain">
               {labels.labels.map((l) => (
                 <button
                   key={l.id}
                   type="button"
                   onClick={() => { setOpen(false); onPick(l.id); }}
-                  className="flex h-12 items-center gap-3 rounded-xl px-3 text-left text-[15px] text-foreground active:bg-muted"
+                  className="flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] text-foreground active:bg-muted"
                 >
                   <LabelIcon label={l} className="size-[18px]" />
                   <span className="min-w-0 flex-1 truncate">{l.name}</span>
@@ -201,13 +203,13 @@ export function LabelPicker({
               </div>
               {(onRemove || onManage) && <div className="mx-3 my-1 h-px bg-border" />}
               {onRemove && (
-                <button type="button" onClick={() => { setOpen(false); onRemove(); }} className="flex h-12 items-center gap-3 rounded-xl px-3 text-left text-[15px] text-destructive active:bg-muted">
+                <button type="button" onClick={() => { setOpen(false); onRemove(); }} className="flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] text-destructive active:bg-muted">
                   <Icon icon={Delete02Icon} className="size-[18px]" strokeWidth={1.8} />
                   Remove highlight
                 </button>
               )}
               {onManage && (
-                <button type="button" onClick={() => { setOpen(false); onManage(); }} className="flex h-12 items-center gap-3 rounded-xl px-3 text-left text-[15px] text-muted-foreground active:bg-muted">
+                <button type="button" onClick={() => { setOpen(false); onManage(); }} className="flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] text-muted-foreground active:bg-muted">
                   <Icon icon={Settings02Icon} className="size-[18px]" strokeWidth={1.8} />
                   Manage labels
                 </button>
@@ -309,6 +311,7 @@ export function HighlightButton({
         tip={sheet ? undefined : tip}
         title={current ? "Label" : "Highlight as"}
         side={side ?? (variant === "player" ? "top" : "bottom")}
+        align={variant === "icon" ? "end" : "start"}
         open={open}
         onOpenChange={onOpenChange}
         onPick={onHighlight}
@@ -341,6 +344,9 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const phone = useIsPhone();
   const [actionsFor, setActionsFor] = useState<Label | null>(null);
+  const [colourFor, setColourFor] = useState<string | null>(null);
+  const names = useRef<Record<string, HTMLInputElement | null>>({});
+  const rename = (id: string) => window.setTimeout(() => { const el = names.current[id]; el?.focus(); el?.select(); }, 60);
   const taken = (name: string, except?: string) => labels.labels.some((x) => x.id !== except && x.name.trim().toLowerCase() === name.trim().toLowerCase());
   const used = (l: Label) => (counts[l.id] ?? 0) + (l.record ? 0 : elsewhere[l.id] ?? 0);
   /* the four built-in labels are in every recording; so is one used in another recording */
@@ -383,9 +389,9 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
     </div>
   ) : (
     <div key={l.id} className="flex h-11 items-center gap-2 rounded-xl px-2 hover:bg-muted/40">
-      <Popover>
+      <Popover open={colourFor === l.id} onOpenChange={(o) => setColourFor(o ? l.id : null)}>
         <PopoverTrigger asChild>
-          <button type="button" aria-label={`Colour of ${l.name}`} className="flex size-8 items-center justify-center rounded-full hover:bg-muted">
+          <button type="button" aria-label={`Colour of ${l.name}`} className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted">
             <LabelIcon label={l} />
           </button>
         </PopoverTrigger>
@@ -398,6 +404,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
         </PopoverContent>
       </Popover>
       <input
+        ref={(el) => { names.current[l.id] = el; }}
         value={l.name}
         maxLength={24}
         aria-label="Label name"
@@ -420,14 +427,17 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
       ) : (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label={`More for ${l.name}`} className="size-8 rounded-full text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="icon" aria-label={`More for ${l.name}`} className="size-8 rounded-full text-muted-foreground hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground">
             <Icon icon={MoreHorizontalIcon} className="size-[16px]" strokeWidth={2} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem className="gap-2.5" onSelect={() => rename(l.id)}><Icon icon={PencilEdit02Icon} className="size-4" strokeWidth={1.8} />Rename</DropdownMenuItem>
+          <DropdownMenuItem className="gap-2.5" onSelect={() => window.setTimeout(() => setColourFor(l.id), 60)}><Icon icon={PaintBoardIcon} className="size-4" strokeWidth={1.8} />Change colour</DropdownMenuItem>
+          <DropdownMenuSeparator />
           {l.record && <DropdownMenuItem onSelect={() => labels.setOnlyHere(l.id, false)}>Use in all recordings</DropdownMenuItem>}
           {canKeepHere(l) && <DropdownMenuItem onSelect={() => labels.setOnlyHere(l.id, true)}>Keep in this recording only</DropdownMenuItem>}
-          {labels.labels.length > 1 && (l.record || canKeepHere(l)) && <DropdownMenuSeparator />}
+          {(l.record || canKeepHere(l)) && labels.labels.length > 1 && <DropdownMenuSeparator />}
           {labels.labels.length > 1 && <DropdownMenuItem variant="destructive" onSelect={() => (asks(l) ? setAsking(l.id) : removeNow(l))}>Remove</DropdownMenuItem>}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -445,27 +455,27 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
     </>
   );
   const body = (
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-2">
+        <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain pb-2", phone ? "px-2" : "px-3")}>
           {group("In all recordings")}
           {shared.map(row)}
           {here.length > 0 && group("Only in this recording")}
           {here.map(row)}
           <div className="mt-1 flex h-11 items-center gap-2 px-2">
-            <span className="flex size-8 items-center justify-center text-muted-foreground"><Icon icon={Add01Icon} className="size-[15px]" strokeWidth={2} /></span>
+            <span className="flex size-8 shrink-0 items-center justify-center text-muted-foreground"><Icon icon={Add01Icon} className="size-[15px]" strokeWidth={2} /></span>
             <Input
               value={draft}
               placeholder="Add a label"
               maxLength={24}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLabel(); } }}
-              className="h-8 flex-1 border-none bg-transparent px-1.5 text-[14px] shadow-none focus-visible:ring-0 max-lg:text-[16px]"
+              className="h-9 flex-1 rounded-lg border-input bg-background px-2.5 text-[14px] shadow-none max-lg:text-[16px]"
             />
             {draft.trim() && (taken(draft)
               ? <span className="shrink-0 pr-1 text-[12px] text-muted-foreground">Already a label</span>
-              : <Button size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={addLabel}>Add</Button>)}
+              : <Button variant="pill-outline" size="sm" className="h-8 px-3 text-[13px]" onClick={addLabel}>Add</Button>)}
           </div>
           {draft.trim() && (
-            <label data-label-everywhere="" className="flex h-9 cursor-pointer items-center gap-2.5 px-4 text-[13px] text-foreground select-none">
+            <label data-label-everywhere="" className="flex h-9 cursor-pointer items-center gap-2.5 px-2 text-[13px] text-foreground select-none">
               <Checkbox checked={everywhere} onCheckedChange={(v) => setEverywhere(v === true)} />
               Use in all recordings
             </label>
@@ -475,6 +485,8 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
   const done = <Button size="sm" className="h-8 rounded-full px-4 text-[13px]" onClick={() => close(false)}>Done</Button>;
   const actions = actionsFor && (
     <ActionSheet open onOpenChange={(o) => { if (!o) setActionsFor(null); }} mark={<LabelIcon label={actionsFor} className="size-[18px]" />} title={actionsFor.name} kind={actionsFor.record ? "Only in this recording" : "In all recordings"}>
+      <ActionSheetItem icon={PencilEdit02Icon} label="Rename" onClick={() => { const id = actionsFor.id; setActionsFor(null); rename(id); }} />
+      <ActionSheetItem icon={PaintBoardIcon} label="Change colour" onClick={() => { const id = actionsFor.id; setActionsFor(null); window.setTimeout(() => setColourFor(id), 320); }} />
       {actionsFor.record && <ActionSheetItem icon={Globe02Icon} label="Use in all recordings" onClick={() => { labels.setOnlyHere(actionsFor.id, false); setActionsFor(null); }} />}
       {canKeepHere(actionsFor) && <ActionSheetItem icon={FileAudioIcon} label="Keep in this recording only" onClick={() => { labels.setOnlyHere(actionsFor.id, true); setActionsFor(null); }} />}
       {labels.labels.length > 1 && <ActionSheetItem icon={Delete02Icon} label="Remove" destructive onClick={() => { const l = actionsFor; setActionsFor(null); if (asks(l)) setAsking(l.id); else removeNow(l); }} />}
@@ -536,7 +548,7 @@ export function PlayerMarkers({ markers, onSeek }: { markers: PlayerMarker[]; on
               <span className={cn("rounded-full ring-[1.5px] ring-background transition-transform group-hover/mark:scale-150", m.kind === "highlight" ? cn("h-2.5 w-[3px]", m.label ? DOT[m.label.color] : "bg-amber-400") : "size-[7px] bg-primary")} />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="max-w-[260px]">{m.title}</TooltipContent>
+          <TooltipContent side="top" collisionPadding={16} className="max-w-[260px]">{m.title}</TooltipContent>
         </Tooltip>
       ))}
     </div>
