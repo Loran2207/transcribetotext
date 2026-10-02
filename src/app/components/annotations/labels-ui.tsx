@@ -4,7 +4,10 @@ import {
   Add01Icon,
   ArrowDown01Icon,
   Bookmark02Icon,
+  Cancel01Icon,
   Delete02Icon,
+  FileAudioIcon,
+  Globe02Icon,
   HighlighterIcon,
   MoreHorizontalIcon,
   Settings02Icon,
@@ -13,6 +16,8 @@ import {
 
 import { Button } from "@/app/components/ui/button";
 import { Checkbox } from "@/app/components/ui/checkbox";
+import { useIsPhone } from "@/app/components/ui/use-mobile";
+import { ActionSheet, ActionSheetItem } from "@/app/components/action-sheet";
 import { Icon } from "@/app/components/ui/icon";
 import { Input } from "@/app/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/ui/tooltip";
@@ -324,7 +329,9 @@ export function HighlightButton({
 /* Rename, recolour, add and remove labels. Labels are in every recording
    unless made for this one only; a new label is in every recording until
    its box is cleared. Every highlight keeps working: one whose label is
-   removed takes the first label. */
+   removed takes the first label. A form like the product's others: a centred
+   card on a tablet and up, a sheet from the bottom on a phone, where a
+   label's own actions open the product's action sheet. */
 export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhere = {} }: { labels: LabelsApi; open: boolean; onOpenChange: (o: boolean) => void; counts: Record<string, number>; elsewhere?: Record<string, number> }) {
   const [draft, setDraft] = useState("");
   const [everywhere, setEverywhere] = useState(true);
@@ -332,6 +339,8 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
   /* Undo lives in the dialog: a toast behind its overlay cannot be pressed */
   const [removed, setRemoved] = useState<{ label: Label; index: number } | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const phone = useIsPhone();
+  const [actionsFor, setActionsFor] = useState<Label | null>(null);
   const taken = (name: string, except?: string) => labels.labels.some((x) => x.id !== except && x.name.trim().toLowerCase() === name.trim().toLowerCase());
   const used = (l: Label) => (counts[l.id] ?? 0) + (l.record ? 0 : elsewhere[l.id] ?? 0);
   /* the four built-in labels are in every recording; so is one used in another recording */
@@ -404,6 +413,11 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
         className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 text-[14px] text-foreground outline-none transition-colors hover:border-border focus:border-ring max-lg:text-[16px]"
       />
       <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{counts[l.id] ? (counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`) : ""}</span>
+      {phone ? (
+        <Button variant="ghost" size="icon" aria-label={`More for ${l.name}`} className="size-9 rounded-full text-muted-foreground hover:text-foreground" onClick={() => setActionsFor(l)}>
+          <Icon icon={MoreHorizontalIcon} className="size-[16px]" strokeWidth={2} />
+        </Button>
+      ) : (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" aria-label={`More for ${l.name}`} className="size-8 rounded-full text-muted-foreground hover:text-foreground">
@@ -417,20 +431,20 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
           {labels.labels.length > 1 && <DropdownMenuItem variant="destructive" onSelect={() => (asks(l) ? setAsking(l.id) : removeNow(l))}>Remove</DropdownMenuItem>}
         </DropdownMenuContent>
       </DropdownMenu>
+      )}
     </div>
   );
-  return (
-    <Dialog open={open} onOpenChange={close}>
-      <DialogContent data-manage-labels="" className="flex max-h-[min(88dvh,720px)] flex-col gap-0 p-0 sm:max-w-[440px]" aria-describedby={undefined}>
-        <DialogHeader className="shrink-0 px-5 pb-2 pt-5 text-left">
-          <DialogTitle className="text-[17px]">Labels</DialogTitle>
-        </DialogHeader>
+  const removedRow = (
+    <>
         {removed && (
           <div data-label-removed="" className="mx-3 mb-1 flex h-10 shrink-0 items-center gap-2 rounded-xl bg-muted/60 px-3 text-[13px] text-foreground">
             <span className="min-w-0 flex-1 truncate"><span className="font-semibold">{removed.label.name}</span> removed</span>
             <Button variant="ghost" size="sm" className="h-7 rounded-full px-3 text-[13px] font-medium text-primary hover:text-primary" onClick={() => { labels.restore(removed.label, removed.index); setRemoved(null); }}>Undo</Button>
           </div>
         )}
+    </>
+  );
+  const body = (
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-2">
           {group("In all recordings")}
           {shared.map(row)}
@@ -457,8 +471,43 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
             </label>
           )}
         </div>
+  );
+  const done = <Button size="sm" className="h-8 rounded-full px-4 text-[13px]" onClick={() => close(false)}>Done</Button>;
+  const actions = actionsFor && (
+    <ActionSheet open onOpenChange={(o) => { if (!o) setActionsFor(null); }} mark={<LabelIcon label={actionsFor} className="size-[18px]" />} title={actionsFor.name} kind={actionsFor.record ? "Only in this recording" : "In all recordings"}>
+      {actionsFor.record && <ActionSheetItem icon={Globe02Icon} label="Use in all recordings" onClick={() => { labels.setOnlyHere(actionsFor.id, false); setActionsFor(null); }} />}
+      {canKeepHere(actionsFor) && <ActionSheetItem icon={FileAudioIcon} label="Keep in this recording only" onClick={() => { labels.setOnlyHere(actionsFor.id, true); setActionsFor(null); }} />}
+      {labels.labels.length > 1 && <ActionSheetItem icon={Delete02Icon} label="Remove" destructive onClick={() => { const l = actionsFor; setActionsFor(null); if (asks(l)) setAsking(l.id); else removeNow(l); }} />}
+    </ActionSheet>
+  );
+  if (phone) {
+    return (
+      <>
+        <Drawer open={open} onOpenChange={close}>
+          <DrawerContent data-manage-labels="" aria-describedby={undefined} className="max-h-[92vh] [&>div:first-child]:hidden">
+            <DrawerHeader className="flex-row items-center justify-between pb-1 text-left">
+              <DrawerTitle className="text-[17px]">Labels</DrawerTitle>
+              <button type="button" onClick={() => close(false)} aria-label="Close" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={16} /></button>
+            </DrawerHeader>
+            {removedRow}
+            {body}
+            <div className="flex shrink-0 items-center justify-end gap-[8px] border-t border-border px-4 pt-[14px] pb-[calc(12px+env(safe-area-inset-bottom))]">{done}</div>
+          </DrawerContent>
+        </Drawer>
+        {actions}
+      </>
+    );
+  }
+  return (
+    <Dialog open={open} onOpenChange={close}>
+      <DialogContent data-manage-labels="" className="flex max-h-[min(88dvh,720px)] flex-col gap-0 p-0 sm:max-w-[440px]" aria-describedby={undefined}>
+        <DialogHeader className="shrink-0 px-5 pb-2 pt-5 text-left">
+          <DialogTitle className="text-[17px]">Labels</DialogTitle>
+        </DialogHeader>
+        {removedRow}
+        {body}
         <div className="flex shrink-0 justify-end border-t border-border px-5 py-3">
-          <Button size="sm" className="h-8 rounded-full px-4 text-[13px]" onClick={() => close(false)}>Done</Button>
+          {done}
         </div>
       </DialogContent>
     </Dialog>

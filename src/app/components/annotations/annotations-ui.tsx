@@ -22,6 +22,9 @@ import { Icon } from "@/app/components/ui/icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/ui/tooltip";
 import { Popover, PopoverAnchor, PopoverContent } from "@/app/components/ui/popover";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/app/components/ui/drawer";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
+import { useIsPhone } from "@/app/components/ui/use-mobile";
+import { ActionSheet, ActionSheetItem } from "@/app/components/action-sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -508,9 +511,10 @@ function QuoteLine({ text, clamp = 2 }: { text: string; clamp?: 2 | 3 }) {
   );
 }
 
-/* A new comment is written right where the words are: a small card under them
-   on a desk, a sheet from the bottom on a phone, with the words quoted on top
-   because the keyboard hides the transcript. */
+/* A new comment is written right where the words are on a desk: a small card
+   under them. On touch it is a form like the product's others: a centred card
+   on a tablet, a sheet from the bottom on a phone, with the words quoted on
+   top because the keyboard hides the transcript. */
 export function CommentComposer({
   sheet,
   rect,
@@ -526,6 +530,22 @@ export function CommentComposer({
 }) {
   const dirty = useRef(false);
   const setDirty = useRef((d: boolean) => { dirty.current = d; }).current;
+  const phone = useIsPhone();
+  if (sheet && !phone) {
+    return (
+      <Dialog open onOpenChange={(o) => { if (!o && !dirty.current) onCancel(); }}>
+        <DialogContent data-comment-composer="" aria-describedby={undefined} className="gap-0 p-5 sm:max-w-[480px]">
+          <DialogHeader className="pb-2 text-left">
+            <DialogTitle className="text-[17px] font-semibold">Comment</DialogTitle>
+          </DialogHeader>
+          <QuoteLine text={quote} clamp={3} />
+          <div className="mt-3">
+            <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} onDirty={setDirty} />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
   if (sheet) {
     return (
       <Drawer open onOpenChange={(o) => { if (!o && !dirty.current) onCancel(); }}>
@@ -608,6 +628,8 @@ function Entry({
   onResolve,
   onEdit,
   onDelete,
+  sheet = false,
+  reply = false,
 }: {
   person: Person;
   at: number;
@@ -616,6 +638,9 @@ function Entry({
   onResolve?: () => void;
   onEdit?: (text: string) => void;
   onDelete?: () => void;
+  /* touch: More opens the product's action sheet, not a small menu */
+  sheet?: boolean;
+  reply?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -640,7 +665,18 @@ function Entry({
                 </Button>
               </Tip>
             )}
-            {(onEdit || onDelete) && (
+            {(onEdit || onDelete) && sheet && (
+              <>
+                <Button variant="ghost" size="icon" aria-label="More" className="size-7 rounded-full text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-9" onClick={() => setMenu(true)}>
+                  <Icon icon={MoreHorizontal} className="size-[16px]" strokeWidth={2} />
+                </Button>
+                <ActionSheet open={menu} onOpenChange={setMenu} mark={<PersonDot person={person} size={24} />} title={person.you ? (reply ? "Your reply" : "Your comment") : `${person.name.split(" ")[0]}'s ${reply ? "reply" : "comment"}`} kind={text.length > 60 ? text.slice(0, 60) + "..." : text}>
+                  {onEdit && <ActionSheetItem icon={PencilEdit02Icon} label="Edit" onClick={() => { setMenu(false); setEditing(true); }} />}
+                  {onDelete && <ActionSheetItem icon={Delete02Icon} label="Delete" destructive onClick={() => { setMenu(false); onDelete(); }} />}
+                </ActionSheet>
+              </>
+            )}
+            {(onEdit || onDelete) && !sheet && (
               <DropdownMenu open={menu} onOpenChange={setMenu}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" aria-label="More" className="size-7 rounded-full text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-9">
@@ -736,6 +772,7 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
         onResolve={t.resolved ? undefined : () => { v.api.resolve(t.id); toastUndo("Comment resolved", () => v.api.reopen(t.id), CheckmarkCircle02Icon); }}
         onEdit={t.by.you ? (text) => v.api.editThread(t.id, text) : undefined}
         onDelete={canRemove(v, t.by) ? () => deleteThreadWithUndo(v.api, t.id) : undefined}
+        sheet={v.sheet}
       />
       {t.replies.map((r) => (
         <Entry
@@ -746,6 +783,8 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
           text={r.text}
           onEdit={r.by.you ? (text) => v.api.editReply(t.id, r.id, text) : undefined}
           onDelete={canRemove(v, r.by) ? () => deleteReplyWithUndo(v.api, t.id, r.id) : undefined}
+          sheet={v.sheet}
+          reply
         />
       ))}
       {!t.resolved && <ReplyField onSend={(text) => v.api.reply(t.id, text)} />}
