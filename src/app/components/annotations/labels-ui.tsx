@@ -1,8 +1,11 @@
 import { useState, type ReactElement, type ReactNode } from "react";
+import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
   Add01Icon,
   ArrowDown01Icon,
+  Bookmark02Icon,
   Cancel01Icon,
+  Delete02Icon,
   HighlighterIcon,
   Settings02Icon,
   Tick02Icon,
@@ -26,9 +29,9 @@ import { cn } from "@/app/components/ui/utils";
 import type { LabelsApi } from "@/hooks/use-annotations";
 import { LABEL_COLORS, type Label, type LabelColor } from "@/lib/annotations";
 
-/* A label's colour in each place it shows: the wash on the words, the dot on
-   buttons and on the player, the chip in the list. Written out in full so the
-   stylesheet keeps every one of them. */
+/* A label's colour in each place it shows: the wash on the words, the mark on
+   the player, the label's icon, the chip in the list. Written out in full so
+   the stylesheet keeps every one of them. */
 export const WASH: Record<LabelColor, string> = {
   amber: "bg-amber-200/70",
   sky: "bg-sky-200/70",
@@ -53,6 +56,15 @@ export const DOT: Record<LabelColor, string> = {
   rose: "bg-rose-500",
   slate: "bg-slate-400",
 };
+/* the label's icon: one bookmark, in the label's colour (as Notta marks its types) */
+const INK: Record<LabelColor, string> = {
+  amber: "text-amber-500",
+  sky: "text-sky-500",
+  emerald: "text-emerald-500",
+  violet: "text-violet-500",
+  rose: "text-rose-500",
+  slate: "text-slate-500",
+};
 const CHIP: Record<LabelColor, string> = {
   amber: "bg-amber-100 text-amber-900",
   sky: "bg-sky-100 text-sky-900",
@@ -72,14 +84,14 @@ export const PRESSED: Record<LabelColor, string> = {
   slate: "bg-slate-100 text-slate-800 hover:bg-slate-100 hover:text-slate-900",
 };
 
-export function LabelDot({ label, className }: { label: Label; className?: string }) {
-  return <span aria-hidden className={cn("inline-block size-2.5 shrink-0 rounded-full", DOT[label.color], className)} />;
+export function LabelIcon({ label, className }: { label: Label; className?: string }) {
+  return <Icon icon={Bookmark02Icon} aria-hidden className={cn("size-4 shrink-0", INK[label.color], className)} strokeWidth={2} />;
 }
 
 export function LabelChip({ label, className, children }: { label: Label; className?: string; children?: ReactNode }) {
   return (
-    <span className={cn("inline-flex h-6 max-w-[180px] items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-[12px] font-medium", CHIP[label.color], className)}>
-      <LabelDot label={label} className="size-2" />
+    <span className={cn("inline-flex h-6 max-w-[180px] items-center gap-1 whitespace-nowrap rounded-full pl-1.5 pr-2 text-[12px] font-medium", CHIP[label.color], className)}>
+      <LabelIcon label={label} className="size-3.5" />
       <span className="min-w-0 truncate">{label.name}</span>
       {children}
     </span>
@@ -87,14 +99,19 @@ export function LabelChip({ label, className, children }: { label: Label; classN
 }
 
 /* Which label a highlight gets. A plain menu at the button on a desk; a sheet
-   from the bottom on a touch screen, where a small menu is hard to hit. */
+   from the bottom on a touch screen, where a small menu is hard to hit. On a
+   highlight that exists, the same list changes its label or takes it off. */
 export function LabelPicker({
   labels,
   currentId,
   sheet,
   trigger,
+  tip,
   onPick,
+  onRemove,
   onManage,
+  open: openProp,
+  onOpenChange,
   align = "start",
   side = "bottom",
   title = "Highlight as",
@@ -103,13 +120,19 @@ export function LabelPicker({
   currentId?: string;
   sheet: boolean;
   trigger: ReactElement;
+  tip?: string;
   onPick: (id: string) => void;
+  onRemove?: () => void;
   onManage?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
   align?: "start" | "end" | "center";
   side?: "top" | "bottom";
   title?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const [own, setOwn] = useState(false);
+  const open = openProp ?? own;
+  const setOpen = (o: boolean) => { setOwn(o); onOpenChange?.(o); };
   if (sheet) {
     return (
       <>
@@ -127,15 +150,21 @@ export function LabelPicker({
                   onClick={() => { setOpen(false); onPick(l.id); }}
                   className="flex h-12 items-center gap-3 rounded-xl px-3 text-left text-[15px] text-foreground active:bg-muted"
                 >
-                  <span className="flex size-4 shrink-0 items-center justify-center"><LabelDot label={l} className="size-3" /></span>
+                  <LabelIcon label={l} className="size-[18px]" />
                   <span className="min-w-0 flex-1 truncate">{l.name}</span>
                   {l.id === currentId && <Icon icon={Tick02Icon} className="size-[18px] text-primary" strokeWidth={2} />}
                 </button>
               ))}
-              {onManage && <div className="mx-3 my-1 h-px bg-border" />}
+              {(onRemove || onManage) && <div className="mx-3 my-1 h-px bg-border" />}
+              {onRemove && (
+                <button type="button" onClick={() => { setOpen(false); onRemove(); }} className="flex h-12 items-center gap-3 rounded-xl px-3 text-left text-[15px] text-destructive active:bg-muted">
+                  <Icon icon={Delete02Icon} className="size-[18px]" strokeWidth={1.8} />
+                  Remove highlight
+                </button>
+              )}
               {onManage && (
                 <button type="button" onClick={() => { setOpen(false); onManage(); }} className="flex h-12 items-center gap-3 rounded-xl px-3 text-left text-[15px] text-muted-foreground active:bg-muted">
-                  <span className="flex size-4 shrink-0 items-center justify-center"><Icon icon={Settings02Icon} className="size-[16px]" strokeWidth={1.8} /></span>
+                  <Icon icon={Settings02Icon} className="size-[18px]" strokeWidth={1.8} />
                   Manage labels
                 </button>
               )}
@@ -145,21 +174,36 @@ export function LabelPicker({
       </>
     );
   }
+  const button = tip ? (
+    <Tooltip>
+      {/* the Radix trigger itself: it passes the tooltip's ref on to the button */}
+      <TooltipTrigger asChild><DropdownMenuPrimitive.Trigger asChild>{trigger}</DropdownMenuPrimitive.Trigger></TooltipTrigger>
+      <TooltipContent side="top">{tip}</TooltipContent>
+    </Tooltip>
+  ) : (
+    <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+  );
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent data-label-menu="" align={align} side={side} className="w-48" onMouseDown={(e) => e.preventDefault()}>
+      {button}
+      <DropdownMenuContent data-label-menu="" align={align} side={side} className="w-52" onMouseDown={(e) => e.preventDefault()}>
         {labels.labels.map((l) => (
           <DropdownMenuItem key={l.id} onSelect={() => onPick(l.id)} className="gap-2.5">
-            <span className="flex size-4 shrink-0 items-center justify-center"><LabelDot label={l} /></span>
+            <LabelIcon label={l} />
             <span className="min-w-0 flex-1 truncate">{l.name}</span>
             {l.id === currentId && <Icon icon={Tick02Icon} className="size-4 text-primary" strokeWidth={2} />}
           </DropdownMenuItem>
         ))}
-        {onManage && <DropdownMenuSeparator />}
+        {(onRemove || onManage) && <DropdownMenuSeparator />}
+        {onRemove && (
+          <DropdownMenuItem variant="destructive" onSelect={onRemove} className="gap-2.5">
+            <Icon icon={Delete02Icon} className="size-4" strokeWidth={1.8} />
+            Remove highlight
+          </DropdownMenuItem>
+        )}
         {onManage && (
           <DropdownMenuItem onSelect={onManage} className="gap-2.5 text-muted-foreground">
-            <span className="flex size-4 shrink-0 items-center justify-center"><Icon icon={Settings02Icon} className="size-4" strokeWidth={1.8} /></span>
+            <Icon icon={Settings02Icon} className="size-4" strokeWidth={1.8} />
             Manage labels
           </DropdownMenuItem>
         )}
@@ -169,77 +213,66 @@ export function LabelPicker({
 }
 
 /* The Highlight button everywhere it lives (the selection bar, the block bar,
-   the player): one press marks with the label shown on the button, the arrow
-   picks another. */
-export function HighlightSplit({
+   the player). One press opens the labels and the label you pick marks the
+   words: nothing is marked with a label you did not choose. On a block that
+   is already highlighted the same list changes the label or takes it off. */
+export function HighlightButton({
   labels,
   sheet,
   onHighlight,
   onManage,
   variant,
-  pressed = false,
-  pressedColor = "amber",
+  current,
+  onRemove,
+  open,
+  onOpenChange,
+  side,
   shortcut,
 }: {
   labels: LabelsApi;
   sheet: boolean;
-  onHighlight: (labelId: string, picked: boolean) => void;
+  onHighlight: (labelId: string) => void;
   onManage?: () => void;
   variant: "bar" | "icon" | "player";
-  pressed?: boolean;
-  pressedColor?: LabelColor;
+  /* the label of the highlight this button already holds (a highlighted block) */
+  current?: Label;
+  onRemove?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /* where the list opens: away from the words it is about */
+  side?: "top" | "bottom";
   shortcut?: string;
 }) {
-  const label = labels.current;
-  const main = cn(
-    "rounded-full text-muted-foreground hover:text-foreground",
-    variant === "bar" && "h-7 gap-1.5 rounded-r-none pl-2.5 pr-1.5 text-xs",
-    variant === "icon" && "size-7 rounded-r-none [@media(pointer:coarse)]:size-9",
-    variant === "player" && "h-8 gap-1.5 rounded-r-none border border-r-0 border-border pl-2.5 pr-2 text-xs font-medium text-foreground max-sm:pl-2 max-sm:pr-1.5",
-    pressed && PRESSED[pressedColor],
+  const cls = cn(
+    "rounded-full text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground",
+    variant === "bar" && "h-7 gap-1.5 pl-2.5 pr-2 text-xs",
+    variant === "icon" && "size-7 [@media(pointer:coarse)]:size-9",
+    variant === "player" && "h-8 gap-1.5 border border-border pl-2.5 pr-2 text-xs font-medium text-foreground max-sm:px-2",
+    current && PRESSED[current.color],
   );
-  const arrow = cn(
-    "rounded-full rounded-l-none text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70",
-    variant === "bar" && "h-7 w-5 px-0",
-    variant === "icon" && "h-7 w-4 px-0 [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:w-6",
-    variant === "player" && "h-8 w-6 border border-l-0 border-border px-0",
-  );
-  const icon = (
-    <span className="relative inline-flex">
-      <Icon icon={HighlighterIcon} className={variant === "icon" ? "size-[15px]" : "size-[14px]"} strokeWidth={1.8} />
-      <LabelDot label={label} className="absolute -bottom-0.5 -right-1 size-[7px] ring-[1.5px] ring-background" />
-    </span>
-  );
-  const tip = `Highlight as ${label.name}${shortcut ? `  (${shortcut})` : ""}`;
+  const arrow = <Icon icon={ArrowDown01Icon} className="size-3 opacity-70" strokeWidth={2.2} />;
+  const tip = variant === "icon"
+    ? current ? `Highlighted as ${current.name}` : "Highlight block"
+    : `Highlight${shortcut ? `  (${shortcut})` : ""}`;
   return (
-    <span className="inline-flex items-center" data-highlight-split={variant}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-pressed={variant === "icon" ? pressed : undefined}
-            aria-label={variant === "icon" ? (pressed ? "Remove highlight" : "Highlight block") : `Highlight as ${label.name}`}
-            className={main}
-            onClick={() => onHighlight(label.id, false)}
-          >
-            {icon}
-            {variant === "bar" && "Highlight"}
-            {variant === "player" && <span className="max-sm:hidden">Highlight</span>}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">{variant === "icon" && pressed ? "Remove highlight" : tip}</TooltipContent>
-      </Tooltip>
+    <span className="inline-flex items-center" data-highlight-button={variant}>
       <LabelPicker
         labels={labels}
-        currentId={label.id}
+        currentId={current?.id}
         sheet={sheet}
-        side={variant === "player" ? "top" : "bottom"}
-        onPick={(id) => { labels.pick(id); onHighlight(id, true); }}
+        tip={sheet ? undefined : tip}
+        title={current ? "Label" : "Highlight as"}
+        side={side ?? (variant === "player" ? "top" : "bottom")}
+        open={open}
+        onOpenChange={onOpenChange}
+        onPick={onHighlight}
+        onRemove={current ? onRemove : undefined}
         onManage={onManage}
         trigger={
-          <Button variant="ghost" size="sm" aria-label="Choose a label" className={arrow}>
-            <Icon icon={ArrowDown01Icon} className="size-3" strokeWidth={2.2} />
+          <Button variant="ghost" size="sm" aria-label={variant === "icon" ? tip : "Highlight"} aria-pressed={variant === "icon" ? Boolean(current) : undefined} className={cls}>
+            <Icon icon={HighlighterIcon} className={variant === "icon" ? "size-[15px]" : "size-[14px]"} strokeWidth={1.8} />
+            {variant === "bar" && <>Highlight{arrow}</>}
+            {variant === "player" && <><span className="max-sm:hidden">Highlight</span>{arrow}</>}
           </Button>
         }
       />
@@ -287,7 +320,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, onRemov
               <Popover>
                 <PopoverTrigger asChild>
                   <button type="button" aria-label={`Colour of ${l.name}`} className="flex size-8 items-center justify-center rounded-full hover:bg-muted">
-                    <LabelDot label={l} className="size-3.5" />
+                    <LabelIcon label={l} />
                   </button>
                 </PopoverTrigger>
                 <PopoverContent align="start" className="flex w-auto gap-1.5 p-2">

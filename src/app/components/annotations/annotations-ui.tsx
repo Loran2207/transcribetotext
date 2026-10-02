@@ -30,7 +30,7 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/app/components/ui/utils";
 import type { AnnotationsApi, LabelsApi } from "@/hooks/use-annotations";
-import { HighlightSplit, LabelChip, LabelDot, LabelPicker, WASH, WASH_ON } from "./labels-ui";
+import { HighlightButton, LabelChip, LabelIcon, LabelPicker, WASH, WASH_ON } from "./labels-ui";
 import {
   TEAM,
   coversBlock,
@@ -39,6 +39,7 @@ import {
   timeAgo,
   type Anchor,
   type Highlight,
+  type Label,
   type LabelColor,
   type Person,
   type Run,
@@ -224,8 +225,7 @@ export function AnnotatedText({
    open comments stays at the edge at rest, so a block with a discussion is
    visible without hovering. */
 export function BlockActions({
-  highlighted,
-  pressedColor,
+  current,
   raised = false,
   openCount,
   revealed,
@@ -234,12 +234,13 @@ export function BlockActions({
   sheet,
   onManageLabels,
   onHighlight,
+  onRemoveHighlight,
   onComment,
   onCopy,
   onOpenComments,
 }: {
-  highlighted: boolean;
-  pressedColor?: LabelColor;
+  /* the label of the block's own whole-block highlight, when it has one */
+  current?: Label;
   /* a block with no top padding (a continuation): the bar sits over the gap above it */
   raised?: boolean;
   openCount: number;
@@ -249,7 +250,8 @@ export function BlockActions({
   labels: LabelsApi;
   sheet: boolean;
   onManageLabels?: () => void;
-  onHighlight: (labelId: string, picked: boolean) => void;
+  onHighlight: (labelId: string) => void;
+  onRemoveHighlight: () => void;
   onComment: () => void;
   onCopy: () => void;
   onOpenComments: () => void;
@@ -280,7 +282,7 @@ export function BlockActions({
         data-block-actions=""
         className={cn("flex items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-[2px] transition-all duration-150", shown)}
       >
-        <HighlightSplit labels={labels} sheet={sheet} variant="icon" pressed={highlighted} pressedColor={pressedColor} onHighlight={onHighlight} onManage={onManageLabels} />
+        <HighlightButton labels={labels} sheet={sheet} variant="icon" current={current} onHighlight={onHighlight} onRemove={onRemoveHighlight} onManage={onManageLabels} />
         <Tip label="Comment">
           <Button variant="ghost" size="icon" aria-label="Comment on block" className={btn} onClick={onComment}>
             <Icon icon={CommentAdd01Icon} className={icon} strokeWidth={1.8} />
@@ -915,7 +917,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
           <button type="button" className={chip(active === "all")} onClick={() => setFilter("all")}>All<span className="tabular-nums opacity-70">{all.length}</span></button>
           {used.map(({ label, count }) => (
             <button key={label.id} type="button" className={chip(active === label.id)} onClick={() => setFilter(label.id)}>
-              <LabelDot label={label} className="size-2" />
+              <LabelIcon label={label} className="size-3.5" />
               <span className="min-w-0 truncate">{label.name}</span><span className="tabular-nums opacity-70">{count}</span>
             </button>
           ))}

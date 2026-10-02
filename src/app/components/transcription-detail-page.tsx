@@ -7,9 +7,9 @@ import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotations";
-import { coversBlock, snapRange, type Anchor, type Highlight, type LabelColor, type Run, type Thread } from "@/lib/annotations";
+import { coversBlock, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
 import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
-import { HighlightSplit, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
+import { HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, RemoveSpeakerDialog, SpeakersChip, PencilIcon, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
@@ -571,6 +571,8 @@ function SelectionHighlightPill({
   onPress,
   labels,
   onManageLabels,
+  menuOpen,
+  onMenuOpenChange,
   sheet = false,
   speaker,
 }: {
@@ -582,6 +584,9 @@ function SelectionHighlightPill({
   onPress?: () => void;
   labels: LabelsApi;
   onManageLabels: () => void;
+  /* H opens the list from the keyboard */
+  menuOpen?: boolean;
+  onMenuOpenChange?: (open: boolean) => void;
   /* touch: the label choice opens as a sheet */
   sheet?: boolean;
   /* when the transcript has several voices: the selected words can be handed to another one */
@@ -608,7 +613,7 @@ function SelectionHighlightPill({
       onMouseDown={(e) => { if (!open) e.preventDefault(); }}
       onPointerDown={onPress}
     >
-      <HighlightSplit labels={labels} sheet={sheet} variant="bar" shortcut="H" onHighlight={(id) => onHighlight(id)} onManage={onManageLabels} />
+      <HighlightButton labels={labels} sheet={sheet} variant="bar" side={below ? "bottom" : "top"} shortcut="H" open={menuOpen} onOpenChange={onMenuOpenChange} onHighlight={(id) => onHighlight(id)} onManage={onManageLabels} />
       <Button size="sm" variant="ghost" className={action} onClick={onComment}>
         <Icon icon={CommentAdd01Icon} className="size-[14px]" strokeWidth={1.8} />Comment
       </Button>
@@ -724,7 +729,7 @@ type SegmentNotes = {
   focus: Focus | null;
   /* a whole-block highlight you may take off (yours, or any on your own record) */
   blockHighlighted: boolean;
-  blockColor?: LabelColor;
+  blockLabel?: Label;
   raised?: boolean;
   /* the words a comment is being written about stay washed while the field has focus */
   pending?: { start: number; end: number };
@@ -733,7 +738,8 @@ type SegmentNotes = {
   quiet: boolean;
   onMark: (run: Run, rect: DOMRect) => void;
   onTapText: () => void;
-  onHighlightBlock: (labelId: string, picked: boolean) => void;
+  onHighlightBlock: (labelId: string) => void;
+  onRemoveBlockHighlight: () => void;
   labels: LabelsApi;
   sheet: boolean;
   onManageLabels?: () => void;
@@ -818,15 +824,15 @@ function TranscriptSegment({
     >
       {notes && !isEditing && !segment.preview && (
         <BlockActions
-          highlighted={blockHighlighted}
+          current={notes.blockLabel}
           openCount={openThreads}
           revealed={notes.revealed}
           quiet={notes.quiet}
           onHighlight={notes.onHighlightBlock}
+          onRemoveHighlight={notes.onRemoveBlockHighlight}
           labels={notes.labels}
           sheet={notes.sheet}
           onManageLabels={notes.onManageLabels}
-          pressedColor={notes.blockColor}
           raised={notes.raised}
           onComment={() => { const r = textRef.current?.getBoundingClientRect(); if (r) notes.onCommentBlock(r); }}
           onCopy={notes.onCopy}
@@ -3046,6 +3052,9 @@ export function TranscriptionDetailPage() {
   const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
   /* Play all: the highlights back to back, one after another */
   const [reel, setReel] = useState<{ ids: string[]; index: number } | null>(null);
+  /* which Highlight list is open from the keyboard (H): over the selected words, or on the player */
+  const [highlightMenu, setHighlightMenu] = useState<"pill" | "player" | null>(null);
+  useEffect(() => { if (!selectionPill) setHighlightMenu((m) => (m === "pill" ? null : m)); }, [selectionPill]);
   const [onlyHighlights, setOnlyHighlights] = useState(false);
   useEffect(() => {
     if (!noPanel && (activeTab === "comments" || activeTab === "highlights" || activeTab === "outline")) setActiveTab("transcript");
@@ -3810,7 +3819,7 @@ export function TranscriptionDetailPage() {
     </Button>
   ) : (
     <span className="flex items-center gap-1.5">
-      <HighlightSplit labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" onHighlight={(id) => highlightNow(id)} onManage={manageLabels} />
+      <HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" open={highlightMenu === "player"} onOpenChange={(o) => setHighlightMenu(o ? "player" : null)} onHighlight={(id) => highlightNow(id)} onManage={manageLabels} />
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="outline" size="icon" aria-label="Comment on this moment" className="size-8 rounded-full border-border text-muted-foreground hover:text-foreground max-md:hidden" onClick={commentNow}>
@@ -3821,14 +3830,14 @@ export function TranscriptionDetailPage() {
       </Tooltip>
     </span>
   );
-  /* H highlights, C comments: the selected words, or the sentence being played */
+  /* H opens the labels, C comments: for the selected words, or for the sentence being played */
   shortcutRef.current = (e: KeyboardEvent) => {
     if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
     const target = e.target as HTMLElement | null;
     if (target?.closest?.("input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]")) return;
     if (activeTab !== "transcript" || editMode || composer || isJobTranscribing) return;
     const k = e.key.toLowerCase();
-    if (k === "h") { e.preventDefault(); if (selectionPill) handleSelectionHighlight(labelsApi.current.id); else highlightNow(labelsApi.current.id); }
+    if (k === "h") { e.preventDefault(); setHighlightMenu(selectionPill ? "pill" : "player"); }
     else if (k === "c") { e.preventDefault(); if (selectionPill) handleSelectionComment(); else commentNow(); }
   };
   const labelCounts = notesApi.highlights.reduce<Record<string, number>>((acc, h) => { const id = labelsApi.labelOf(h.labelId).id; acc[id] = (acc[id] ?? 0) + 1; return acc; }, {});
@@ -3839,17 +3848,13 @@ export function TranscriptionDetailPage() {
     </label>
   ) : null;
 
-  /* The block bar's Highlight: one press marks the whole block or takes the
-     mark off; picking a label from its arrow marks it, or relabels the mark. */
-  function toggleBlockHighlight(segId: number, labelId: string, picked = false) {
+  /* The block bar's Highlight: the label you pick marks the whole block, or
+     relabels the block's own mark when it has one. */
+  function highlightBlock(segId: number, labelId: string) {
     const len = blockText(segId).length;
     const mine = notesApi.highlights.find((h) => h.segmentId === segId && coversBlock(h, len) && (h.by.you || isOwner));
-    if (mine) {
-      if (picked) notesApi.setLabel(mine.id, labelId);
-      else removeHighlightWithUndo(notesApi, mine.id);
-      return;
-    }
-    notesApi.addHighlight({ segmentId: segId, start: 0, end: len }, labelId, false);
+    if (mine) notesApi.setLabel(mine.id, labelId);
+    else notesApi.addHighlight({ segmentId: segId, start: 0, end: len }, labelId, false);
   }
   function startComment(anchor: Anchor, rect: { left: number; top: number; width: number; height: number }) {
     const a = { segmentId: anchor.segmentId, start: anchor.start, end: anchor.end };
@@ -3965,13 +3970,14 @@ export function TranscriptionDetailPage() {
       focus: noteFocus,
       pending: composer && composer.anchor.segmentId === seg.id ? composer.anchor : undefined,
       blockHighlighted: Boolean(whole),
-      blockColor: whole ? labelsApi.labelOf(whole.labelId).color : undefined,
+      blockLabel: whole ? labelsApi.labelOf(whole.labelId) : undefined,
       raised: continuationOf(seg),
       revealed: revealedBlock === seg.id,
       quiet: markBar?.segmentId === seg.id || composer?.anchor.segmentId === seg.id || selectionPill?.segmentId === seg.id,
       onMark: (run, rect) => handleMark(seg.id, run, rect),
       onTapText: () => tapBlock(seg.id),
-      onHighlightBlock: (labelId, picked) => { setRevealedBlock(null); toggleBlockHighlight(seg.id, labelId, picked); },
+      onHighlightBlock: (labelId) => { setRevealedBlock(null); highlightBlock(seg.id, labelId); },
+      onRemoveBlockHighlight: () => { setRevealedBlock(null); if (whole) removeHighlightWithUndo(notesApi, whole.id); },
       labels: labelsApi,
       sheet: coarsePointer,
       onManageLabels: manageLabels,
@@ -4111,7 +4117,7 @@ export function TranscriptionDetailPage() {
     toast.success(`Moved to ${to.name}`, { description: "The block was split at the selected words", cancel: { label: "Undo", onClick: () => { setSplits(before.splits); setExtraSpeakers(before.extraSpeakers); } } });
   }
 
-  function handleSelectionHighlight(labelId: string = labelsApi.current.id) {
+  function handleSelectionHighlight(labelId: string) {
     if (!selectionPill) return;
     const { segmentId } = selectionPill;
     const r = snapRange(blockText(segmentId), selectionPill.start, selectionPill.end);
@@ -5068,6 +5074,8 @@ export function TranscriptionDetailPage() {
           labels={labelsApi}
           sheet={coarsePointer}
           onManageLabels={manageLabels}
+          menuOpen={highlightMenu === "pill"}
+          onMenuOpenChange={(o) => setHighlightMenu(o ? "pill" : null)}
           speaker={isSingleSpeaker || !isOwner ? undefined : (() => {
             const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId); if (!seg) return undefined;
             /* the note appears only when part of the block stays where it is (Kirill 23.09) */
