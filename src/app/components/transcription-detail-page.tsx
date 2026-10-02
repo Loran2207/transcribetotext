@@ -3953,6 +3953,8 @@ export function TranscriptionDetailPage() {
         sheet={coarsePointer}
         title="Label"
         onPick={(id) => { notesApi.setLabel(h.id, id); closeMarkBar(); }}
+        /* on touch the sheet covers the bar and its Remove, so the sheet carries it */
+        onRemove={coarsePointer ? () => { closeMarkBar(); removeHighlightWithUndo(notesApi, h.id); } : undefined}
         onManage={manageLabels ? () => { closeMarkBar(); setManageLabelsOpen(true); } : undefined}
         trigger={
           <button type="button" aria-label={`Label: ${label.name}. Change`} className="ml-0.5 rounded-full transition-opacity hover:opacity-80">
