@@ -22,6 +22,7 @@ import { Icon } from "@/app/components/ui/icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/ui/tooltip";
 import { Popover, PopoverAnchor, PopoverContent } from "@/app/components/ui/popover";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/app/components/ui/drawer";
+import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { useIsPhone } from "@/app/components/ui/use-mobile";
 import { ActionSheet, ActionSheetItem } from "@/app/components/action-sheet";
@@ -167,7 +168,7 @@ export function AnnotatedText({
   threads: Thread[];
   focus: Focus | null;
   pending?: { start: number; end: number };
-  onMark?: (run: Run, rect: DOMRect) => void;
+  onMark?: (run: Run, rect: DOMRect, lines: DOMRect[]) => void;
   colorOf: (highlightId: string) => LabelColor;
   /* the block being played: what was said dims, the sentence and the word being
      said are marked, on top of the notes rather than instead of them */
@@ -205,7 +206,7 @@ export function AnnotatedText({
               const sel = window.getSelection();
               if (sel && !sel.isCollapsed) return;
               e.stopPropagation();
-              onMark({ ...r, threads: th }, e.currentTarget.getBoundingClientRect());
+              onMark({ ...r, threads: th }, e.currentTarget.getBoundingClientRect(), Array.from(e.currentTarget.getClientRects()));
             }}
             className={cn(
               hl && cn(HIGHLIGHT_SHAPE, WASH[color]),
@@ -311,16 +312,38 @@ export function BlockActions({
 
 export type BarAction = { key: string; label: string; icon: unknown; onClick: () => void; danger?: boolean };
 
+/* The first or the last line of a passage: a bar above the words starts
+   where they start on that line, not at the edge of the whole block */
+export function edgeLine(rects: DOMRect[], last: boolean): { left: number; width: number } | null {
+  const on = rects.filter((r) => r.width > 0 && r.height > 0);
+  if (on.length === 0) return null;
+  const y = last ? Math.max(...on.map((r) => r.bottom)) : Math.min(...on.map((r) => r.top));
+  const row = on.filter((r) => Math.abs((last ? r.bottom : r.top) - y) < 4);
+  const left = Math.min(...row.map((r) => r.left));
+  return { left, width: Math.max(...row.map((r) => r.right)) - left };
+}
+
+/* a floating bar opens at the first word, its first button over it, and stays inside the transcript column */
+export function clampToColumn(start: number, width: number) {
+  const column = document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect();
+  const lo = (column?.left ?? 0) + 12;
+  const hi = (column?.right ?? window.innerWidth) - width - 12;
+  return Math.max(lo, Math.min(start - 8, hi));
+}
+
 /* The bar on a highlighted passage: the same floating pill as the one over
    selected words. Closes on any press outside it and on scroll. */
 export function MarkBar({
   rect,
+  line,
   below,
   actions,
   lead,
   onClose,
 }: {
   rect: { left: number; top: number; width: number; bottom: number };
+  /* the line the bar sits beside */
+  line?: { left: number; width: number };
   below?: boolean;
   actions: BarAction[];
   lead?: ReactNode;
@@ -329,9 +352,8 @@ export function MarkBar({
   const ref = useRef<HTMLDivElement>(null);
   const [left, setLeft] = useState<number | null>(null);
   useLayoutEffect(() => {
-    const w = ref.current?.offsetWidth ?? 0;
-    setLeft(Math.max(8, Math.min(window.innerWidth - w - 8, rect.left + rect.width / 2 - w / 2)));
-  }, [rect.left, rect.width]);
+    setLeft(clampToColumn((line ?? rect).left, ref.current?.offsetWidth ?? 0));
+  }, [rect.left, rect.width, line?.left, line?.width]);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", esc);
@@ -632,6 +654,7 @@ function Entry({
   onDelete,
   sheet = false,
   reply = false,
+  quiet = false,
 }: {
   person: Person;
   at: number;
@@ -643,6 +666,8 @@ function Entry({
   /* touch: More opens the product's action sheet, not a small menu */
   sheet?: boolean;
   reply?: boolean;
+  /* the card is not the active one: its tools wait for the pointer */
+  quiet?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -661,7 +686,7 @@ function Entry({
         <div className="flex min-h-6 items-center gap-1.5">
           <span className="truncate text-[13px] font-semibold text-foreground">{person.name}</span>
           <span className="shrink-0 text-[12px] text-muted-foreground">{timeAgo(at)}{edited ? " · edited" : ""}</span>
-          <span className="ml-auto flex shrink-0 items-center">
+          <span className={cn("ml-auto flex shrink-0 items-center transition-opacity", quiet && "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/card:opacity-100 [@media(hover:hover)]:group-focus-within/card:opacity-100")}>
             {onResolve && (
               <Tip label="Resolve">
                 <Button variant="ghost" size="icon" aria-label="Resolve" className="size-7 rounded-full text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-9" onClick={onResolve}>
@@ -748,7 +773,7 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
         v.goTo(t, { kind: "thread", id: t.id });
       }}
       className={cn(
-        "rounded-xl transition-[border-color,box-shadow] duration-200",
+        "group/card rounded-xl transition-[border-color,box-shadow] duration-200",
         inSheet ? "py-1" : "cursor-pointer border bg-card p-3",
         !inSheet && (focused ? "border-primary/45 shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_12%,transparent)]" : "border-border/70"),
       )}
@@ -777,6 +802,7 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
         onEdit={t.by.you ? (text) => v.api.editThread(t.id, text) : undefined}
         onDelete={canRemove(v, t.by) ? () => deleteThreadWithUndo(v.api, t.id) : undefined}
         sheet={v.sheet}
+        quiet={!inSheet && !focused}
       />
       {t.replies.map((r) => (
         <Entry
@@ -789,9 +815,10 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
           onDelete={canRemove(v, r.by) ? () => deleteReplyWithUndo(v.api, t.id, r.id) : undefined}
           sheet={v.sheet}
           reply
+          quiet={!inSheet && !focused}
         />
       ))}
-      {!t.resolved && <ReplyField onSend={(text) => v.api.reply(t.id, text)} />}
+      {!t.resolved && <div className={inSheet || focused ? undefined : "hidden"}><ReplyField onSend={(text) => v.api.reply(t.id, text)} /></div>}
     </div>
   );
 }
@@ -842,6 +869,8 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
   const label = v.labels.labelOf(h.labelId);
   const editable = canRemove(v, h.by);
   const tool = "size-7 rounded-full text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-9";
+  const [menu, setMenu] = useState(false);
+  const copy = () => { void navigator.clipboard?.writeText(text); toast("Text copied"); };
   return (
     <div
       data-highlight-item={h.id}
@@ -855,6 +884,19 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
         <TimeChip timestamp={timestamp} onSeek={v.seek} />
         {speaker && <span className="truncate">{speaker}</span>}
         {playing && <span className="shrink-0 font-medium text-primary">· Playing</span>}
+        {/* touch: one More per highlight instead of three tools on every row */}
+        {v.sheet ? (
+          <>
+            <Button variant="ghost" size="icon" aria-label="More" className={cn(tool, "ml-auto")} onClick={() => setMenu(true)}>
+              <Icon icon={MoreHorizontal} className="size-[16px]" strokeWidth={2} />
+            </Button>
+            <ActionSheet open={menu} onOpenChange={setMenu} mark={<LabelIcon label={label} className="size-5" />} title={label.name} kind={text.length > 60 ? text.slice(0, 60) + "..." : text}>
+              <ActionSheetItem icon={CommentAdd01Icon} label="Comment" onClick={() => { setMenu(false); v.commentOn(h, h.id); }} />
+              <ActionSheetItem icon={Copy01Icon} label="Copy" onClick={() => { setMenu(false); copy(); }} />
+              {editable && <ActionSheetItem icon={Delete02Icon} label="Remove highlight" destructive onClick={() => { setMenu(false); removeHighlightWithUndo(v.api, h.id); }} />}
+            </ActionSheet>
+          </>
+        ) : (
         <span className="ml-auto flex shrink-0 items-center transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/hl:opacity-100 [@media(hover:hover)]:group-focus-within/hl:opacity-100">
           <Tip label="Comment">
             <Button variant="ghost" size="icon" aria-label="Comment on highlight" className={tool} onClick={() => v.commentOn(h, h.id)}>
@@ -862,7 +904,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
             </Button>
           </Tip>
           <Tip label="Copy">
-            <Button variant="ghost" size="icon" aria-label="Copy highlight" className={tool} onClick={() => { void navigator.clipboard?.writeText(text); toast("Text copied"); }}>
+            <Button variant="ghost" size="icon" aria-label="Copy highlight" className={tool} onClick={copy}>
               <Icon icon={Copy01Icon} className="size-[15px]" strokeWidth={1.8} />
             </Button>
           </Tip>
@@ -874,6 +916,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
             </Tip>
           )}
         </span>
+        )}
       </div>
       <p className="text-[13px] leading-[20px] text-foreground/90">
         <span className={cn(HIGHLIGHT_SHAPE, WASH[label.color], "px-0.5")}>{text}</span>
@@ -888,7 +931,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
             onPick={(id) => v.api.setLabel(h.id, id)}
             onManage={v.manageLabels}
             trigger={
-              <button type="button" aria-label={`Label: ${label.name}. Change`} className="rounded-full transition-opacity hover:opacity-80">
+              <button type="button" aria-label={`Label: ${label.name}. Change`} className="-mx-1.5 rounded-md px-1.5 transition-colors hover:bg-muted data-[state=open]:bg-muted">
                 <LabelChip label={label}>
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><path d="M6 9l6 6 6-6" /></svg>
                 </LabelChip>
@@ -898,12 +941,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
         ) : (
           <LabelChip label={label} />
         )}
-        {!h.by.you && (
-          <span className="inline-flex min-w-0 items-center gap-1.5">
-            <PersonDot person={h.by} size={16} />
-            <span className="truncate">by {h.by.name.split(" ")[0]}</span>
-          </span>
-        )}
+        {!h.by.you && <span className="min-w-0 truncate">by {h.by.name.split(" ")[0]}</span>}
         {linked.length > 0 && (() => {
           const n = linked.reduce((sum, t) => sum + 1 + t.replies.length, 0);
           return (
@@ -945,10 +983,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
     void navigator.clipboard?.writeText(`Highlights: ${title}\n\n${body}`);
     toast(list.length === 1 ? "Highlight copied" : `${list.length} highlights copied`);
   };
-  const chip = (on: boolean) => cn(
-    "inline-flex h-7 max-w-[200px] shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[12px] font-medium transition-colors [@media(pointer:coarse)]:h-9",
-    on ? "border-foreground/80 bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground",
-  );
+  const tab = "shrink-0 gap-1.5 pt-1 text-[13px] [@media(pointer:coarse)]:pb-3";
   return (
     <div className="flex flex-col px-2 pb-3 pt-2">
       <div className="flex items-center justify-between gap-2 px-1">
@@ -967,15 +1002,16 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
         </Button>
       </div>
       {used.length > 1 && (
-        <div data-label-filter="" className="mt-2 flex flex-wrap gap-1.5 px-3 pb-1">
-          <button type="button" className={chip(active === "all")} onClick={() => setFilter("all")}>All<span className="tabular-nums opacity-70">{all.length}</span></button>
-          {used.map(({ label, count }) => (
-            <button key={label.id} type="button" className={chip(active === label.id)} onClick={() => setFilter(label.id)}>
-              <LabelIcon label={label} className="size-3.5" />
-              <span className="min-w-0 truncate">{label.name}</span><span className="tabular-nums opacity-70">{count}</span>
-            </button>
-          ))}
-        </div>
+        <Tabs value={active} onValueChange={setFilter} className="mt-2 gap-0">
+          <TabsList variant="line" data-label-filter="" className="w-full justify-start gap-4 overflow-x-auto pl-3 pr-8 [mask-image:linear-gradient(to_right,black_calc(100%_-_32px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsTrigger variant="line" value="all" className={tab}>All<span className="tabular-nums opacity-50">{all.length}</span></TabsTrigger>
+            {used.map(({ label, count }) => (
+              <TabsTrigger key={label.id} variant="line" value={label.id} className={tab}>
+                <span className="max-w-[140px] truncate">{label.name}</span><span className="tabular-nums opacity-50">{count}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       )}
       <div className="mt-1">
         {list.map((h) => <HighlightItem key={h.id} h={h} v={v} playing={playingId === h.id} />)}

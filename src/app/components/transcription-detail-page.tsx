@@ -8,7 +8,7 @@ import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/n
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotations";
 import { coversBlock, mergesWith, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
-import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
+import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, clampToColumn, edgeLine, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
 import { HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -596,11 +596,7 @@ function SelectionHighlightPill({
   const barRef = useRef<HTMLDivElement>(null);
   const [left, setLeft] = useState(position.x);
   useLayoutEffect(() => {
-    const w = barRef.current?.offsetWidth ?? 0;
-    const column = document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect();
-    const lo = (column?.left ?? 0) + 12;
-    const hi = (column?.right ?? window.innerWidth) - w - 12;
-    setLeft(Math.max(lo, Math.min(position.x, hi)));
+    setLeft(clampToColumn(position.x, barRef.current?.offsetWidth ?? 0));
   }, [position.x]);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
   const action = "h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground";
@@ -736,7 +732,7 @@ type SegmentNotes = {
   /* touch: the block's bar shows after a tap, there is no hover */
   revealed: boolean;
   quiet: boolean;
-  onMark: (run: Run, rect: DOMRect) => void;
+  onMark: (run: Run, rect: DOMRect, lines: DOMRect[]) => void;
   onTapText: () => void;
   onHighlightBlock: (labelId: string) => void;
   onRemoveBlockHighlight: () => void;
@@ -1355,7 +1351,7 @@ function RightPanel({
   width: number;
   onResizeStart: () => void;
 }) {
-  const openCount = notes.api.threads.filter((t) => !t.resolved).length;
+  const openCount = notes.api.threads.filter((t) => !t.resolved).reduce((sum, t) => sum + 1 + t.replies.length, 0);
   return (
     <div className="relative hidden shrink-0 flex-col border-l border-border bg-background xl:flex" style={{ width }}>
       <button
@@ -2702,7 +2698,7 @@ export function TranscriptionDetailPage() {
   // Segment-level state
 
   // Text selection highlight pill
-  const [selectionPill, setSelectionPill] = useState<{ x: number; y: number; bottom: number; flip: boolean; rect: { left: number; top: number; width: number; height: number }; segmentId: number; start: number; end: number } | null>(null);
+  const [selectionPill, setSelectionPill] = useState<{ x: number; xBelow: number; y: number; bottom: number; flip: boolean; rect: { left: number; top: number; width: number; height: number }; segmentId: number; start: number; end: number } | null>(null);
   const pillPressRef = useRef(0);
   const [splitPreview, setSplitPreview] = useState<{ segmentId: number; start: number; end: number; speaker: Speaker } | null>(null);
   const [selectionMenuOpen, setSelectionMenuOpen] = useState(false);
@@ -3084,7 +3080,7 @@ export function TranscriptionDetailPage() {
   const [panelTab, setPanelTab] = useState<PanelTab>(readPanelTab);
   const [noteFocus, setNoteFocus] = useState<Focus | null>(null);
   const [composer, setComposer] = useState<{ anchor: Anchor; quote: string; timestamp: string; rect: { left: number; top: number; width: number; height: number } } | null>(null);
-  const [markBar, setMarkBar] = useState<{ segmentId: number; run: Run; rect: { left: number; top: number; width: number; bottom: number }; below: boolean } | null>(null);
+  const [markBar, setMarkBar] = useState<{ segmentId: number; run: Run; rect: { left: number; top: number; width: number; bottom: number }; line: { left: number; width: number } | null; below: boolean } | null>(null);
   const [threadSheet, setThreadSheet] = useState<{ segmentId: number } | null>(null);
   const [revealedBlock, setRevealedBlock] = useState<number | null>(null);
   const coarsePointer = useCoarsePointer();
@@ -3965,18 +3961,19 @@ export function TranscriptionDetailPage() {
     const first = notesApi.threads.find((t) => t.segmentId === segId && !t.resolved);
     if (first) { setNoteFocus({ kind: "thread", id: first.id }); if (noPanel) setActiveTab("comments"); else setPanelTab("comments"); }
   }
-  function handleMark(segId: number, run: Run, rect: DOMRect) {
+  function handleMark(segId: number, run: Run, rect: DOMRect, lines: DOMRect[]) {
     setRevealedBlock(null);
     if (run.highlights.length === 0) { if (run.threads.length > 0) openThread(run.threads[0]); return; }
     const roof = document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect().top ?? 0;
-    setMarkBar({ segmentId: segId, run, rect: { left: rect.left, top: rect.top, width: rect.width, bottom: rect.bottom }, below: coarsePointer || rect.top - 48 < roof });
+    const below = coarsePointer || rect.top - 48 < roof;
+    setMarkBar({ segmentId: segId, run, rect: { left: rect.left, top: rect.top, width: rect.width, bottom: rect.bottom }, line: edgeLine(lines, below), below });
   }
   function markBarLead() {
     if (!markBar) return undefined;
     const h = notesApi.highlights.find((x) => x.id === markBar.run.highlights[markBar.run.highlights.length - 1]);
     if (!h) return undefined;
     const label = labelsApi.labelOf(h.labelId);
-    if (!(h.by.you || isOwner)) return <span className="pl-1.5"><LabelChip label={label} /></span>;
+    if (!(h.by.you || isOwner)) return <span className="pl-2.5 pr-1"><LabelChip label={label} /></span>;
     return (
       <LabelPicker
         labels={labelsApi}
@@ -3989,7 +3986,7 @@ export function TranscriptionDetailPage() {
         onRemove={coarsePointer ? () => { closeMarkBar(); removeHighlightWithUndo(notesApi, h.id); } : undefined}
         onManage={manageLabels ? () => { closeMarkBar(); setManageLabelsOpen(true); } : undefined}
         trigger={
-          <button type="button" aria-label={`Label: ${label.name}. Change`} className="ml-0.5 rounded-full transition-opacity hover:opacity-80">
+          <button type="button" aria-label={`Label: ${label.name}. Change`} className="ml-0.5 rounded-full px-2 transition-colors hover:bg-muted data-[state=open]:bg-muted">
             <LabelChip label={label}>
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><path d="M6 9l6 6 6-6" /></svg>
             </LabelChip>
@@ -4037,7 +4034,7 @@ export function TranscriptionDetailPage() {
       raised: continuationOf(seg),
       revealed: revealedBlock === seg.id,
       quiet: markBar?.segmentId === seg.id || composer?.anchor.segmentId === seg.id || selectionPill?.segmentId === seg.id,
-      onMark: (run, rect) => handleMark(seg.id, run, rect),
+      onMark: (run, rect, lines) => handleMark(seg.id, run, rect, lines),
       onTapText: () => tapBlock(seg.id),
       onHighlightBlock: (labelId) => { setRevealedBlock(null); highlightBlock(seg.id, labelId); },
       onRemoveBlockHighlight: () => { setRevealedBlock(null); if (whole) removeHighlightWithUndo(notesApi, whole.id); },
@@ -4108,8 +4105,11 @@ export function TranscriptionDetailPage() {
       before.setEnd(range.startContainer, range.startOffset);
       const start = before.toString().length;
       const rect = range.getBoundingClientRect();
+      const lines = Array.from(range.getClientRects());
+      const first = edgeLine(lines, false) ?? rect, last = edgeLine(lines, true) ?? rect;
       return {
-        x: rect.left + rect.width / 2 - 30,
+        x: first.left,
+        xBelow: last.left,
         y: rect.top,
         bottom: rect.bottom,
         /* too close to the tab row: the bar goes under the words instead */
@@ -4629,7 +4629,7 @@ export function TranscriptionDetailPage() {
               {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
-              {!isJobTranscribing && <TabsTrigger value="comments" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Comments<TabCount n={notesApi.threads.filter((t) => !t.resolved).length} /></TabsTrigger>}
+              {!isJobTranscribing && <TabsTrigger value="comments" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Comments<TabCount n={notesApi.threads.filter((t) => !t.resolved).reduce((sum, t) => sum + 1 + t.replies.length, 0)} /></TabsTrigger>}
               {!isJobTranscribing && <TabsTrigger value="highlights" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Highlights<TabCount n={notesApi.highlights.length} /></TabsTrigger>}
               <TabsTrigger value="outline" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Outline</TabsTrigger>
               {activeTranslationMeta && !isJobTranscribing ? (
@@ -5139,7 +5139,7 @@ export function TranscriptionDetailPage() {
       {/* Text selection highlight pill */}
       {selectionPill && !editMode && !composer && (
         <SelectionHighlightPill
-          position={{ x: selectionPill.x, y: selectionPill.y, bottom: selectionPill.bottom }}
+          position={{ x: coarsePointer || selectionPill.flip ? selectionPill.xBelow : selectionPill.x, y: selectionPill.y, bottom: selectionPill.bottom }}
           below={coarsePointer || selectionPill.flip}
           onPress={() => { pillPressRef.current = Date.now(); }}
           onHighlight={handleSelectionHighlight}
@@ -5163,7 +5163,7 @@ export function TranscriptionDetailPage() {
       {composer && (
         <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={() => setComposer(null)} />
       )}
-      {markBar && <MarkBar rect={markBar.rect} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
+      {markBar && <MarkBar rect={markBar.rect} line={markBar.line ?? undefined} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
       <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} counts={labelCounts} elsewhere={labelsElsewhere} />
       {threadSheet && sheetThreads.length > 0 && <ThreadSheet threads={sheetThreads} v={notesView} onClose={() => setThreadSheet(null)} />}
     </div>

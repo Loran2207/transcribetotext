@@ -38,8 +38,9 @@ import type { LabelsApi } from "@/hooks/use-annotations";
 import { DEFAULT_LABELS, LABEL_COLORS, type Label, type LabelColor } from "@/lib/annotations";
 
 /* A label's colour in each place it shows: the wash on the words, the mark on
-   the player, the label's icon, the chip in the list. Written out in full so
-   the stylesheet keeps every one of them. */
+   the player and the label's icon. Nothing else is filled with it: the words
+   already carry the colour, a second fill would only repeat it. Written out
+   in full so the stylesheet keeps every one of them. */
 export const WASH: Record<LabelColor, string> = {
   amber: "bg-amber-200/70",
   sky: "bg-sky-200/70",
@@ -97,44 +98,14 @@ const INK: Record<LabelColor, string> = {
   indigo: "text-indigo-500",
   teal: "text-teal-500",
 };
-const CHIP: Record<LabelColor, string> = {
-  amber: "bg-amber-100 text-amber-900",
-  sky: "bg-sky-100 text-sky-900",
-  emerald: "bg-emerald-100 text-emerald-900",
-  violet: "bg-violet-100 text-violet-900",
-  rose: "bg-rose-100 text-rose-900",
-  slate: "bg-slate-100 text-slate-800",
-  orange: "bg-orange-100 text-orange-900",
-  lime: "bg-lime-100 text-lime-900",
-  cyan: "bg-cyan-100 text-cyan-900",
-  fuchsia: "bg-fuchsia-100 text-fuchsia-900",
-  indigo: "bg-indigo-100 text-indigo-900",
-  teal: "bg-teal-100 text-teal-900",
-};
-
-/* the pressed Highlight button takes the colour of the label it holds */
-export const PRESSED: Record<LabelColor, string> = {
-  amber: "bg-amber-100 text-amber-800 hover:bg-amber-100 hover:text-amber-900",
-  sky: "bg-sky-100 text-sky-800 hover:bg-sky-100 hover:text-sky-900",
-  emerald: "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 hover:text-emerald-900",
-  violet: "bg-violet-100 text-violet-800 hover:bg-violet-100 hover:text-violet-900",
-  rose: "bg-rose-100 text-rose-800 hover:bg-rose-100 hover:text-rose-900",
-  slate: "bg-slate-100 text-slate-800 hover:bg-slate-100 hover:text-slate-900",
-  orange: "bg-orange-100 text-orange-800 hover:bg-orange-100 hover:text-orange-900",
-  lime: "bg-lime-100 text-lime-800 hover:bg-lime-100 hover:text-lime-900",
-  cyan: "bg-cyan-100 text-cyan-800 hover:bg-cyan-100 hover:text-cyan-900",
-  fuchsia: "bg-fuchsia-100 text-fuchsia-800 hover:bg-fuchsia-100 hover:text-fuchsia-900",
-  indigo: "bg-indigo-100 text-indigo-800 hover:bg-indigo-100 hover:text-indigo-900",
-  teal: "bg-teal-100 text-teal-800 hover:bg-teal-100 hover:text-teal-900",
-};
-
 export function LabelIcon({ label, className }: { label: Label; className?: string }) {
   return <Icon icon={Bookmark02Icon} aria-hidden className={cn("size-4 shrink-0", INK[label.color], className)} strokeWidth={2} />;
 }
 
+/* A label beside a highlight: its icon in colour, its name in plain text */
 export function LabelChip({ label, className, children }: { label: Label; className?: string; children?: ReactNode }) {
   return (
-    <span className={cn("inline-flex h-6 max-w-[180px] items-center gap-1 whitespace-nowrap rounded-full pl-1.5 pr-2 text-[12px] font-medium", CHIP[label.color], className)}>
+    <span className={cn("inline-flex h-6 max-w-[180px] items-center gap-1 whitespace-nowrap text-[12px] font-medium text-foreground", className)}>
       <LabelIcon label={label} className="size-3.5" />
       <span className="min-w-0 truncate">{label.name}</span>
       {children}
@@ -296,7 +267,7 @@ export function HighlightButton({
     variant === "bar" && "h-7 gap-1.5 pl-2.5 pr-2 text-xs",
     variant === "icon" && "size-7 [@media(pointer:coarse)]:size-9",
     variant === "player" && "h-8 gap-1.5 border border-border pl-2.5 pr-2 text-xs font-medium text-foreground max-sm:px-2",
-    current && PRESSED[current.color],
+    current && "bg-muted text-foreground hover:bg-muted",
   );
   const arrow = <Icon icon={ArrowDown01Icon} className="size-3 opacity-70" strokeWidth={2.2} />;
   const tip = variant === "icon"
@@ -319,7 +290,7 @@ export function HighlightButton({
         onManage={onManage}
         trigger={
           <Button variant="ghost" size="sm" aria-label={variant === "icon" ? tip : "Highlight"} aria-pressed={variant === "icon" ? Boolean(current) : undefined} className={cls}>
-            <Icon icon={HighlighterIcon} className={variant === "icon" ? "size-[15px]" : "size-[14px]"} strokeWidth={1.8} />
+            <Icon icon={HighlighterIcon} className={cn(variant === "icon" ? "size-[15px]" : "size-[14px]", current && INK[current.color])} strokeWidth={1.8} />
             {variant === "bar" && <>Highlight{arrow}</>}
             {variant === "player" && <><span className="max-sm:hidden">Highlight</span>{arrow}</>}
           </Button>
