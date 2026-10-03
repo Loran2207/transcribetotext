@@ -981,8 +981,8 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
     toast(list.length === 1 ? "Highlight copied" : `${list.length} highlights copied`);
   };
   const chip = (on: boolean) => cn(
-    "inline-flex h-7 max-w-full items-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-colors [@media(pointer:coarse)]:h-9",
-    on ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground hover:text-foreground",
+    "inline-flex h-7 max-w-full items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors [@media(pointer:coarse)]:h-9",
+    on ? "border-primary/40 bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:border-muted-foreground/40",
   );
   return (
     <div className="flex flex-col px-2 pb-3 pt-2">
@@ -1004,11 +1004,11 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
       {used.length > 1 && (
         <div data-label-filter="" role="group" aria-label="Filter by label" className="mt-2 flex flex-wrap gap-1.5 px-3">
           <button type="button" aria-pressed={active === "all"} className={chip(active === "all")} onClick={() => setFilter("all")}>
-            All<span className="tabular-nums opacity-60">{all.length}</span>
+            All<span className={cn("tabular-nums", active === "all" ? "opacity-60" : "text-muted-foreground")}>{all.length}</span>
           </button>
           {used.map(({ label, count }) => (
             <button key={label.id} type="button" aria-pressed={active === label.id} className={chip(active === label.id)} onClick={() => setFilter(label.id)}>
-              <span className="min-w-0 truncate">{label.name}</span><span className="tabular-nums opacity-60">{count}</span>
+              <span className="min-w-0 truncate">{label.name}</span><span className={cn("tabular-nums", active === label.id ? "opacity-60" : "text-muted-foreground")}>{count}</span>
             </button>
           ))}
         </div>
