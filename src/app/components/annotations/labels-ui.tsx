@@ -1,7 +1,6 @@
 import { useRef, useState, type ReactElement, type ReactNode } from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
-  Add01Icon,
   ArrowDown01Icon,
   Bookmark02Icon,
   Cancel01Icon,
@@ -25,7 +24,6 @@ import { Input } from "@/app/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/app/components/ui/drawer";
-import { Popover, PopoverContent, PopoverTrigger } from "@/app/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -180,8 +178,8 @@ export function LabelPicker({
                 </button>
               )}
               {onManage && (
-                <button type="button" onClick={() => { setOpen(false); onManage(); }} className="flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] text-muted-foreground active:bg-muted">
-                  <Icon icon={Settings02Icon} className="size-[18px]" strokeWidth={1.8} />
+                <button type="button" onClick={() => { setOpen(false); onManage(); }} className="flex h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-[15px] text-foreground active:bg-muted">
+                  <Icon icon={Settings02Icon} className="size-[18px] text-muted-foreground" strokeWidth={1.8} />
                   Manage labels
                 </button>
               )}
@@ -221,8 +219,8 @@ export function LabelPicker({
           </DropdownMenuItem>
         )}
         {onManage && (
-          <DropdownMenuItem onSelect={onManage} className="gap-2.5 text-muted-foreground">
-            <Icon icon={Settings02Icon} className="size-4" strokeWidth={1.8} />
+          <DropdownMenuItem onSelect={onManage} className="gap-2.5">
+            <Icon icon={Settings02Icon} className="size-4 text-muted-foreground" strokeWidth={1.8} />
             Manage labels
           </DropdownMenuItem>
         )}
@@ -264,7 +262,7 @@ export function HighlightButton({
 }) {
   const cls = cn(
     "rounded-full text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground",
-    variant === "bar" && "h-7 gap-1.5 pl-2.5 pr-2 text-xs",
+    variant === "bar" && "h-7 gap-1.5 pl-2.5 pr-2 text-xs text-foreground",
     variant === "icon" && "size-7 [@media(pointer:coarse)]:size-9",
     variant === "player" && "h-8 gap-1.5 border border-border pl-2.5 pr-2 text-xs font-medium text-foreground max-sm:px-2",
     current && "bg-muted text-foreground hover:bg-muted",
@@ -306,7 +304,7 @@ export function HighlightButton({
    removed takes the first label. A form like the product's others: a centred
    card on a tablet and up, a sheet from the bottom on a phone, where a
    label's own actions open the product's action sheet. */
-export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhere = {} }: { labels: LabelsApi; open: boolean; onOpenChange: (o: boolean) => void; counts: Record<string, number>; elsewhere?: Record<string, number> }) {
+export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhere = {}, touch = false }: { labels: LabelsApi; open: boolean; onOpenChange: (o: boolean) => void; counts: Record<string, number>; elsewhere?: Record<string, number>; touch?: boolean }) {
   const [draft, setDraft] = useState("");
   const [everywhere, setEverywhere] = useState(true);
   const [asking, setAsking] = useState<string | null>(null);
@@ -359,21 +357,11 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
       <Button variant="destructive" size="sm" className="h-8 rounded-full px-3 text-[13px]" onClick={() => removeNow(l)}>Remove</Button>
     </div>
   ) : (
-    <div key={l.id} className="flex h-11 items-center gap-2 rounded-xl px-2 hover:bg-muted/40">
-      <Popover open={colourFor === l.id} onOpenChange={(o) => setColourFor(o ? l.id : null)}>
-        <PopoverTrigger asChild>
-          <button type="button" aria-label={`Colour of ${l.name}`} className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted">
-            <LabelIcon label={l} />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="grid w-auto grid-cols-6 gap-1.5 p-2">
-          {LABEL_COLORS.map((c) => (
-            <button key={c} type="button" aria-label={c} onClick={() => labels.update(l.id, { color: c })} className={cn("flex size-7 items-center justify-center rounded-full", l.color === c && "ring-2 ring-primary/40")}>
-              <span className={cn("size-4 rounded-full", DOT[c])} />
-            </button>
-          ))}
-        </PopoverContent>
-      </Popover>
+    <div key={l.id}>
+    <div className="flex h-11 items-center gap-2 rounded-xl pr-2 hover:bg-muted/40">
+      <button type="button" aria-label={`Colour of ${l.name}`} aria-expanded={colourFor === l.id} onClick={() => setColourFor(colourFor === l.id ? null : l.id)} className={cn("flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted", colourFor === l.id && "bg-muted")}>
+        <LabelIcon label={l} />
+      </button>
       <input
         ref={(el) => { names.current[l.id] = el; }}
         value={l.name}
@@ -391,7 +379,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
         className="h-8 min-w-0 flex-1 rounded-md border border-transparent bg-transparent px-2 text-[14px] text-foreground outline-none transition-colors hover:border-border focus:border-ring max-lg:text-[16px]"
       />
       <span className="shrink-0 text-[12px] tabular-nums text-muted-foreground">{counts[l.id] ? (counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`) : ""}</span>
-      {phone ? (
+      {phone || touch ? (
         <Button variant="ghost" size="icon" aria-label={`More for ${l.name}`} className="size-9 rounded-full text-muted-foreground hover:text-foreground" onClick={() => setActionsFor(l)}>
           <Icon icon={MoreHorizontalIcon} className="size-[16px]" strokeWidth={2} />
         </Button>
@@ -405,14 +393,23 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuItem className="gap-2.5" onSelect={() => rename(l.id)}><Icon icon={PencilEdit02Icon} className="size-4" strokeWidth={1.8} />Rename</DropdownMenuItem>
           <DropdownMenuItem className="gap-2.5" onSelect={() => window.setTimeout(() => setColourFor(l.id), 60)}><Icon icon={PaintBoardIcon} className="size-4" strokeWidth={1.8} />Change colour</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          {l.record && <DropdownMenuItem onSelect={() => labels.setOnlyHere(l.id, false)}>Use in all recordings</DropdownMenuItem>}
-          {canKeepHere(l) && <DropdownMenuItem onSelect={() => labels.setOnlyHere(l.id, true)}>Keep in this recording only</DropdownMenuItem>}
-          {(l.record || canKeepHere(l)) && labels.labels.length > 1 && <DropdownMenuSeparator />}
-          {labels.labels.length > 1 && <DropdownMenuItem variant="destructive" onSelect={() => (asks(l) ? setAsking(l.id) : removeNow(l))}>Remove</DropdownMenuItem>}
+          {l.record && <DropdownMenuItem className="gap-2.5" onSelect={() => labels.setOnlyHere(l.id, false)}><Icon icon={Globe02Icon} className="size-4" strokeWidth={1.8} />Use in all recordings</DropdownMenuItem>}
+          {canKeepHere(l) && <DropdownMenuItem className="gap-2.5" onSelect={() => labels.setOnlyHere(l.id, true)}><Icon icon={FileAudioIcon} className="size-4" strokeWidth={1.8} />Keep in this recording only</DropdownMenuItem>}
+          {labels.labels.length > 1 && <DropdownMenuSeparator />}
+          {labels.labels.length > 1 && <DropdownMenuItem variant="destructive" className="gap-2.5" onSelect={() => (asks(l) ? setAsking(l.id) : removeNow(l))}><Icon icon={Delete02Icon} className="size-4" strokeWidth={1.8} />Remove</DropdownMenuItem>}
         </DropdownMenuContent>
       </DropdownMenu>
       )}
+    </div>
+    {colourFor === l.id && (
+      <div data-label-colours="" role="group" aria-label={`Colour of ${l.name}`} className="grid w-fit grid-cols-6 gap-1 pb-2">
+        {LABEL_COLORS.map((c) => (
+          <button key={c} type="button" aria-label={c} aria-pressed={l.color === c} onClick={() => { labels.update(l.id, { color: c }); setColourFor(null); }} className={cn("flex size-8 items-center justify-center rounded-full hover:bg-muted [@media(pointer:coarse)]:size-9", l.color === c && "ring-2 ring-inset ring-primary/40")}>
+            <span className={cn("size-4 rounded-full", DOT[c])} />
+          </button>
+        ))}
+      </div>
+    )}
     </div>
   );
   const removedRow = (
@@ -432,7 +429,6 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
           {here.length > 0 && group("Only in this recording")}
           {here.map(row)}
           <div className="mt-1 flex h-11 items-center gap-2 px-2">
-            <span className="flex size-8 shrink-0 items-center justify-center text-muted-foreground"><Icon icon={Add01Icon} className="size-[15px]" strokeWidth={2} /></span>
             <Input
               value={draft}
               placeholder="Add a label"
@@ -443,7 +439,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
             />
             {draft.trim() && (taken(draft)
               ? <span className="shrink-0 pr-1 text-[12px] text-muted-foreground">Already a label</span>
-              : <Button variant="pill-outline" size="sm" className="h-8 px-3 text-[13px]" onClick={addLabel}>Add</Button>)}
+              : <Button variant="pill-outline" size="sm" className="h-8 px-3 text-[13px] [@media(pointer:coarse)]:h-9" onClick={addLabel}>Add</Button>)}
           </div>
           {draft.trim() && (
             <label data-label-everywhere="" className="flex h-9 cursor-pointer items-center gap-2.5 px-2 text-[13px] text-foreground select-none">
@@ -453,7 +449,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
           )}
         </div>
   );
-  const done = <Button size="sm" className="h-8 rounded-full px-4 text-[13px]" onClick={() => close(false)}>Done</Button>;
+  const done = <Button size="sm" className="h-8 rounded-full px-4 text-[13px] [@media(pointer:coarse)]:h-9" onClick={() => close(false)}>Done</Button>;
   const actions = actionsFor && (
     <ActionSheet open onOpenChange={(o) => { if (!o) setActionsFor(null); }} mark={<LabelIcon label={actionsFor} className="size-[18px]" />} title={actionsFor.name} kind={actionsFor.record ? "Only in this recording" : "In all recordings"}>
       <ActionSheetItem icon={PencilEdit02Icon} label="Rename" onClick={() => { const id = actionsFor.id; setActionsFor(null); rename(id); }} />
@@ -493,6 +489,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
           {done}
         </div>
       </DialogContent>
+      {actions}
     </Dialog>
   );
 }
@@ -519,7 +516,7 @@ export function PlayerMarkers({ markers, onSeek }: { markers: PlayerMarker[]; on
               <span className={cn("rounded-full ring-[1.5px] ring-background transition-transform group-hover/mark:scale-150", m.kind === "highlight" ? cn("h-2.5 w-[3px]", m.label ? DOT[m.label.color] : "bg-amber-400") : "size-[7px] bg-primary")} />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="top" collisionPadding={16} className="max-w-[260px]">{m.title}</TooltipContent>
+          <TooltipContent side="top" align={m.at < 15 ? "start" : m.at > 85 ? "end" : "center"} alignOffset={-6} collisionPadding={16} className="max-w-[260px]">{m.title}</TooltipContent>
         </Tooltip>
       ))}
     </div>

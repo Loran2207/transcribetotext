@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
@@ -89,6 +89,8 @@ export function toastUndo(title: string, onUndo: () => void, glyph: unknown = De
   toast(title, {
     icon: <Icon icon={glyph} size={16} className="text-primary" />,
     cancel: { label: "Undo", onClick: onUndo },
+    /* a finger needs 36px */
+    classNames: { cancelButton: "[@media(pointer:coarse)]:!h-9 [@media(pointer:coarse)]:!px-3" },
     duration: 5000,
     /* above the player, clear of the panel tabs whose counts just changed */
     position: "bottom-center",
@@ -212,7 +214,8 @@ export function AnnotatedText({
               hlFocused && WASH_ON[color],
               th.length > 0 && "underline decoration-primary/50 decoration-[1.5px] underline-offset-[4px]",
               /* the thread being read: its words lit, but a highlight keeps its colour */
-              thFocused && (hl ? "decoration-primary decoration-2 ring-1 ring-primary/40" : "rounded-[3px] bg-primary/15 decoration-primary"),
+              /* the thread being read: a firmer underline, no fill that could pass for a highlight */
+              thFocused && "decoration-primary decoration-2",
               isPending && "rounded-[3px] bg-primary/20",
               (hl || th.length > 0) && !isPending && "cursor-pointer transition-colors",
               sound,
@@ -327,6 +330,7 @@ export function clampToColumn(start: number, width: number) {
   const column = document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect();
   const lo = (column?.left ?? 0) + 12;
   const hi = (column?.right ?? window.innerWidth) - width - 12;
+  if (hi < lo) return Math.max(8, (window.innerWidth - width) / 2);
   return Math.max(lo, Math.min(start - 8, hi));
 }
 
@@ -388,7 +392,7 @@ export function MarkBar({
           key={a.key}
           size="sm"
           variant="ghost"
-          className={cn("h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground", a.danger && "hover:text-destructive")}
+          className={cn("h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground", a.danger && "hover:text-destructive")}
           onClick={() => { a.onClick(); onClose(); }}
         >
           <Icon icon={a.icon} className="size-[14px]" strokeWidth={1.8} />
@@ -435,7 +439,7 @@ function useMentions(text: string, setText: (t: string) => void, place: "up" | "
     return false;
   };
   const list = options.length ? (
-    <div data-mention-list="" className={cn("rounded-xl border border-border bg-popover p-1", place === "inline" ? "mt-2" : "absolute left-0 z-30 w-60 shadow-md", place === "up" && "bottom-full mb-1.5", place === "down" && "top-full mt-1.5")}>
+    <div data-mention-list="" className={cn(place === "inline" ? "-mx-2 mt-1.5" : "absolute left-0 z-30 w-60 rounded-xl border border-border bg-popover p-1 shadow-md", place === "up" && "bottom-full mb-1.5", place === "down" && "top-full mt-1.5")}>
       {options.map((p, i) => (
         <button
           key={p.name}
@@ -497,6 +501,7 @@ function CommentForm({
   const m = useMentions(text, setText, mentions);
   useEffect(() => { onDirty?.(text.trim() !== initial.trim()); }, [text, initial, onDirty]);
   const send = () => { const v = text.trim(); if (v) onSubmit(v); };
+  const fresh = m.mentioned.filter((p) => !initial.includes(`@${p.name}`));
   return (
     <div>
       <div className="relative">
@@ -516,10 +521,10 @@ function CommentForm({
         />
       </div>
       {mentions === "inline" && m.list}
-      <MentionNote people={m.mentioned} />
+      <MentionNote people={fresh} />
       <div className="mt-2 flex justify-end gap-1.5">
-        <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[13px] text-muted-foreground" onClick={onCancel}>Cancel</Button>
-        <Button size="sm" className="h-8 rounded-full px-3.5 text-[13px]" disabled={!text.trim()} onClick={send}>{submitLabel}</Button>
+        <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[13px] text-muted-foreground [@media(pointer:coarse)]:h-9" onClick={onCancel}>Cancel</Button>
+        <Button size="sm" className="h-8 rounded-full px-3.5 text-[13px] [@media(pointer:coarse)]:h-9" disabled={!text.trim()} onClick={send}>{submitLabel}</Button>
       </div>
     </div>
   );
@@ -654,6 +659,8 @@ function Entry({
   sheet = false,
   reply = false,
   quiet = false,
+  locked = false,
+  onEditing,
 }: {
   person: Person;
   at: number;
@@ -665,10 +672,14 @@ function Entry({
   /* touch: More opens the product's action sheet, not a small menu */
   sheet?: boolean;
   reply?: boolean;
-  /* the card is not the active one: its tools wait for the pointer */
+  /* the thread is not the chosen one: its tools wait for it to be chosen (or the pointer) */
   quiet?: boolean;
+  /* a comment in this thread is being edited: no tools beside the others */
+  locked?: boolean;
+  onEditing?: (editing: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  useEffect(() => { onEditing?.(editing); }, [editing, onEditing]);
   const [menu, setMenu] = useState(false);
   const editBox = useRef<HTMLDivElement>(null);
   useEffect(() => { if (editing) window.setTimeout(() => editBox.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 80); }, [editing]);
@@ -685,7 +696,7 @@ function Entry({
         <div className="flex min-h-6 items-center gap-1.5">
           <span className="truncate text-[13px] font-semibold text-foreground">{person.name}</span>
           <span className="shrink-0 text-[12px] text-muted-foreground">{timeAgo(at)}{edited ? " · edited" : ""}</span>
-          <span className={cn("ml-auto flex shrink-0 items-center transition-opacity", quiet && "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/card:opacity-100 [@media(hover:hover)]:group-focus-within/card:opacity-100")}>
+          <span className={cn("ml-auto flex shrink-0 items-center transition-opacity", (editing || locked) && "hidden", quiet && "pointer-events-none opacity-0 group-focus-within/card:pointer-events-auto group-focus-within/card:opacity-100 [@media(hover:hover)]:group-hover/card:pointer-events-auto [@media(hover:hover)]:group-hover/card:opacity-100")}>
             {onResolve && (
               <Tip label="Resolve">
                 <Button variant="ghost" size="icon" aria-label="Resolve" className="size-7 rounded-full text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:size-9" onClick={onResolve}>
@@ -742,6 +753,9 @@ function Entry({
 export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView; inSheet?: boolean }) {
   const focused = !inSheet && v.focus?.kind === "thread" && v.focus.id === t.id;
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState<Record<string, boolean>>({});
+  const onEditing = useCallback((key: string) => (on: boolean) => setEditing((cur) => (cur[key] === on ? cur : { ...cur, [key]: on })), []);
+  const anyEditing = Object.values(editing).some(Boolean);
   const speaker = v.speakerOf(t.segmentId);
   const resolvedBy = t.resolved ? (t.resolved.by.you ? "you" : t.resolved.by.name) : "";
 
@@ -772,13 +786,13 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
         v.goTo(t, { kind: "thread", id: t.id });
       }}
       className={cn(
-        "group/card rounded-xl transition-[border-color,box-shadow] duration-200",
-        inSheet ? "py-1" : "cursor-pointer border bg-card p-3",
-        !inSheet && (focused ? "border-primary/45 shadow-[0_0_0_3px_color-mix(in_oklab,var(--primary)_12%,transparent)]" : "border-border/70"),
+        "group/card rounded-xl transition-colors",
+        inSheet ? "py-1" : "cursor-pointer px-3 py-2.5",
+        !inSheet && (focused ? "bg-muted/60" : "hover:bg-muted/50"),
       )}
     >
       {t.resolved && (
-        <div className={cn("mb-3 flex items-center gap-2 border-b border-border/60 bg-muted/40 py-1.5 pr-1.5 text-[12px] text-muted-foreground", inSheet ? "rounded-lg pl-2" : "-mx-3 -mt-3 rounded-t-xl pl-3")}>
+        <div className="-mr-1.5 -mt-1 mb-2 flex items-center gap-2 text-[12px] text-muted-foreground">
           <Icon icon={CheckmarkCircle02Icon} className="size-[14px]" strokeWidth={1.8} />
           <span className="min-w-0 flex-1 truncate">Resolved by {resolvedBy}</span>
           <Button variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium text-primary hover:text-primary" onClick={() => v.api.reopen(t.id)}>Reopen</Button>
@@ -802,6 +816,8 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
         onDelete={canRemove(v, t.by) ? () => deleteThreadWithUndo(v.api, t.id) : undefined}
         sheet={v.sheet}
         quiet={!inSheet && !focused}
+        locked={anyEditing}
+        onEditing={onEditing(t.id)}
       />
       {t.replies.map((r) => (
         <Entry
@@ -815,9 +831,11 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
           sheet={v.sheet}
           reply
           quiet={!inSheet && !focused}
+          locked={anyEditing}
+          onEditing={onEditing(r.id)}
         />
       ))}
-      {!t.resolved && <div className={inSheet || focused ? undefined : "hidden"}><ReplyField onSend={(text) => v.api.reply(t.id, text)} /></div>}
+      {!t.resolved && <div className={(inSheet || focused) && !anyEditing ? undefined : "hidden"}><ReplyField onSend={(text) => v.api.reply(t.id, text)} /></div>}
     </div>
   );
 }
@@ -850,10 +868,10 @@ function useRevealFocused(focus: Focus | null, attr: string) {
 export function CommentsList({ v }: { v: NotesView }) {
   useRevealFocused(v.focus?.kind === "thread" ? v.focus : null, "data-thread-card");
   if (v.api.threads.length === 0) {
-    return <Empty icon={Comment01Icon} title="No comments yet" line="Select words in the transcript, then press Comment." />;
+    return <Empty icon={Comment01Icon} title="No comments yet" line="Select words in the transcript, then choose Comment." />;
   }
   return (
-    <div className="flex flex-col gap-2 p-3">
+    <div className="flex flex-col gap-2 px-2 py-2">
       {v.api.threads.map((t) => <ThreadCard key={t.id} t={t} v={v} />)}
     </div>
   );
@@ -968,7 +986,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
   const list = active === "all" ? all : all.filter((h) => v.labels.labelOf(h.labelId).id === active);
   const playingId = v.reel ? v.reel.ids[v.reel.index] : null;
   if (all.length === 0) {
-    return <Empty icon={HighlighterIcon} title="No highlights yet" line="Select words in the transcript, or use the highlighter in the player." />;
+    return <Empty icon={HighlighterIcon} title="No highlights yet" line="Select words in the transcript, or use Highlight in the player." />;
   }
   const copyAll = () => {
     const body = list
@@ -993,12 +1011,12 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
             <span className="tabular-nums text-muted-foreground">· {v.reel.index + 1} of {v.reel.ids.length}</span>
           </Button>
         ) : (
-          <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2 text-xs font-medium text-primary hover:text-primary" onClick={() => v.playAll(list.map((h) => h.id))}>
-            <Icon icon={PlayIcon} className="size-[13px]" strokeWidth={2} />{active === "all" ? "Play all" : `Play ${list.length}`}
+          <Button variant="ghost" size="sm" data-list-play="" className="h-7 gap-1.5 rounded-full px-2 text-xs font-medium text-primary hover:text-primary" onClick={() => v.playAll(list.map((h) => h.id))}>
+            <Icon icon={PlayIcon} className="size-[13px]" strokeWidth={2} />{active === "all" ? "Play all" : "Play"}
           </Button>
         )}
-        <Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:text-foreground" onClick={copyAll}>
-          <Icon icon={Copy01Icon} className="size-[14px]" strokeWidth={1.8} />{active === "all" ? "Copy all" : `Copy ${list.length}`}
+        <Button variant="ghost" size="sm" data-list-copy="" className="h-7 gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:text-foreground" onClick={copyAll}>
+          <Icon icon={Copy01Icon} className="size-[14px]" strokeWidth={1.8} />{active === "all" ? "Copy all" : "Copy"}
         </Button>
       </div>
       {used.length > 1 && (

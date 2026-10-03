@@ -599,7 +599,7 @@ function SelectionHighlightPill({
     setLeft(clampToColumn(position.x, barRef.current?.offsetWidth ?? 0));
   }, [position.x]);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
-  const action = "h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground";
+  const action = "h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground data-[state=open]:bg-muted/70";
   return (
     <div
       ref={barRef}
@@ -1437,7 +1437,7 @@ function MediaPlayer({
   return (
     <div className="shrink-0 border-t border-border bg-background px-4 py-3 lg:px-6">
       <div className="relative mb-3">
-        <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="[&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
+        <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="[&_[data-slot=slider-thumb]]:relative [&_[data-slot=slider-thumb]]:z-10 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
         {markers && onSeekSeconds && <PlayerMarkers markers={markers} onSeek={onSeekSeconds} />}
       </div>
       {/* Three columns, and Play is the middle one; Resume recording sits in the right column, past it. The speed control used to be
@@ -3944,7 +3944,10 @@ export function TranscriptionDetailPage() {
   function goToNote(anchor: Anchor, f: Focus) {
     if (noPanel) setActiveTab("transcript");
     setNoteFocus(f);
-    window.setTimeout(() => segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: "center" }), noPanel ? 80 : 0);
+    /* touch: a comment picked in the list opens over its words with its tools, as a tap on the words does */
+    const sheet = f.kind === "thread" && belowLg;
+    if (sheet) setThreadSheet({ segmentId: anchor.segmentId });
+    window.setTimeout(() => segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: sheet ? "start" : "center" }), noPanel ? 80 : 0);
     if (f.kind === "highlight") window.setTimeout(() => setNoteFocus((cur) => (cur?.id === f.id ? null : cur)), 1800);
   }
   function openThread(threadId: string) {
@@ -5164,7 +5167,7 @@ export function TranscriptionDetailPage() {
         <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={() => setComposer(null)} />
       )}
       {markBar && <MarkBar rect={markBar.rect} line={markBar.line ?? undefined} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
-      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} counts={labelCounts} elsewhere={labelsElsewhere} />
+      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} counts={labelCounts} elsewhere={labelsElsewhere} touch={coarsePointer} />
       {threadSheet && sheetThreads.length > 0 && <ThreadSheet threads={sheetThreads} v={notesView} onClose={() => setThreadSheet(null)} />}
     </div>
   );

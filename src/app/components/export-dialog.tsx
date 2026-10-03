@@ -322,7 +322,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     if (shared.includeTranscript) mix.push(`${items.length}× ${shared.format.toUpperCase()}`);
     if (shared.includeSummary) mix.push(`${items.length}× summary`);
     if (shared.includeTranslation) mix.push(`${items.length}× ${shared.translationLanguage} translation`);
-    if (shared.includeNotes) mix.push(`${items.length}× highlights and comments`);
+    if (shared.includeNotes) mix.push(`${items.length}× highlights`);
     if (shared.includeAudio) mix.push(`${items.length}× mp3`);
     return `${mix.join(" · ")}  →  ${zipEnabled ? zipFileName : `${fileCount} files`}`;
   }, [items, shared, fileCount, nothingSelected, zipFileName, zipEnabled]);
@@ -361,8 +361,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           {!canZip
             ? "A single file downloads on its own. An archive is only worth it for several files."
             : zipEnabled
-              ? `All ${fileCount} files are packed into one archive.`
-              : `Each of the ${fileCount} files downloads on its own.`}
+              ? "Everything comes as one archive."
+              : "Each file downloads on its own."}
         </p>
         {canZip && zipEnabled && (
           <div className="relative mt-[12px]">
