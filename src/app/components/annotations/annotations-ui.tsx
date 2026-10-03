@@ -22,7 +22,6 @@ import { Icon } from "@/app/components/ui/icon";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/ui/tooltip";
 import { Popover, PopoverAnchor, PopoverContent } from "@/app/components/ui/popover";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/app/components/ui/drawer";
-import { Tabs, TabsList, TabsTrigger } from "@/app/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/app/components/ui/dialog";
 import { useIsPhone } from "@/app/components/ui/use-mobile";
 import { ActionSheet, ActionSheetItem } from "@/app/components/action-sheet";
@@ -918,9 +917,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
         </span>
         )}
       </div>
-      <p className="text-[13px] leading-[20px] text-foreground/90">
-        <span className={cn(HIGHLIGHT_SHAPE, WASH[label.color], "px-0.5")}>{text}</span>
-      </p>
+      <p className="text-[13px] leading-[20px] text-foreground">{text}</p>
       <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
         {editable ? (
           <LabelPicker
@@ -983,7 +980,10 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
     void navigator.clipboard?.writeText(`Highlights: ${title}\n\n${body}`);
     toast(list.length === 1 ? "Highlight copied" : `${list.length} highlights copied`);
   };
-  const tab = "shrink-0 gap-1.5 pt-1 text-[13px] [@media(pointer:coarse)]:pb-3";
+  const chip = (on: boolean) => cn(
+    "inline-flex h-7 max-w-full items-center gap-1.5 rounded-full px-3 text-[12px] font-medium transition-colors [@media(pointer:coarse)]:h-9",
+    on ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground hover:text-foreground",
+  );
   return (
     <div className="flex flex-col px-2 pb-3 pt-2">
       <div className="flex items-center justify-between gap-2 px-1">
@@ -1002,16 +1002,16 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
         </Button>
       </div>
       {used.length > 1 && (
-        <Tabs value={active} onValueChange={setFilter} className="mt-2 gap-0">
-          <TabsList variant="line" data-label-filter="" className="w-full justify-start gap-4 overflow-x-auto pl-3 pr-8 [mask-image:linear-gradient(to_right,black_calc(100%_-_32px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <TabsTrigger variant="line" value="all" className={tab}>All<span className="tabular-nums opacity-50">{all.length}</span></TabsTrigger>
-            {used.map(({ label, count }) => (
-              <TabsTrigger key={label.id} variant="line" value={label.id} className={tab}>
-                <span className="max-w-[140px] truncate">{label.name}</span><span className="tabular-nums opacity-50">{count}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+        <div data-label-filter="" role="group" aria-label="Filter by label" className="mt-2 flex flex-wrap gap-1.5 px-3">
+          <button type="button" aria-pressed={active === "all"} className={chip(active === "all")} onClick={() => setFilter("all")}>
+            All<span className="tabular-nums opacity-60">{all.length}</span>
+          </button>
+          {used.map(({ label, count }) => (
+            <button key={label.id} type="button" aria-pressed={active === label.id} className={chip(active === label.id)} onClick={() => setFilter(label.id)}>
+              <span className="min-w-0 truncate">{label.name}</span><span className="tabular-nums opacity-60">{count}</span>
+            </button>
+          ))}
+        </div>
       )}
       <div className="mt-1">
         {list.map((h) => <HighlightItem key={h.id} h={h} v={v} playing={playingId === h.id} />)}
