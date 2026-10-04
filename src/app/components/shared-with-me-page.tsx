@@ -308,7 +308,7 @@ export function SharedWithMePage() {
                       item={i}
                       isSelected={selected.has(i.record.id)}
                       onToggle={() => setSelected((s) => toggle(s, i.record.id))}
-                      onOpen={() => navigate(`/transcriptions/${i.record.id}`)}
+                      onOpen={() => navigate(`/transcriptions/${i.record.id}`, { state: { sharedBy: i.owner.email } })}
                     />
                   ))
                 )}
@@ -619,7 +619,7 @@ function SharedFolderView({ folder, onBack }: { folder: SharedFolderItem; onBack
                     item={i}
                     isSelected={selected.has(i.record.id)}
                     onToggle={() => setSelected((s) => toggle(s, i.record.id))}
-                    onOpen={() => navigate(`/transcriptions/${i.record.id}`)}
+                    onOpen={() => navigate(`/transcriptions/${i.record.id}`, { state: { sharedBy: i.owner.email } })}
                   />
                 ))}
               </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/app/components/ui/dialog";
 import { Sheet, SheetContent } from "@/app/components/ui/sheet";
 import { Button } from "@/app/components/ui/button";
@@ -149,11 +149,12 @@ function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
 function SectionRow({ title, enabled, onToggle, disabled, children }: {
   title: string; enabled: boolean; onToggle: (v: boolean) => void; disabled?: boolean; children?: React.ReactNode;
 }) {
+  const id = useId();
   return (
     <div className="border-b border-border last:border-b-0 py-[16px]">
       <div className="flex items-center justify-between">
-        <span className={disabled ? "font-semibold text-[14.5px] text-muted-foreground" : "font-semibold text-[14.5px] text-foreground"}>{title}</span>
-        <Switch checked={enabled} onCheckedChange={onToggle} disabled={disabled} />
+        <label htmlFor={id} className={disabled ? "font-semibold text-[14.5px] text-muted-foreground" : "cursor-pointer font-semibold text-[14.5px] text-foreground"}>{title}</label>
+        <Switch id={id} checked={enabled} onCheckedChange={onToggle} disabled={disabled} />
       </div>
       {children}
     </div>
@@ -214,8 +215,10 @@ function TranscriptPreview({ record, options }: { record: ExportableRecord; opti
   );
 }
 
-export function ExportDialog({ open, onClose, records, availableRecords }: {
+export function ExportDialog({ open, onClose, records, availableRecords, format }: {
   open: boolean; onClose: () => void; records: ExportableRecord[]; availableRecords?: ExportableRecord[];
+  /* the format chosen on the way in (the record's Export menu); a Pro format stays Plain text on the free plan */
+  format?: ExportFormat;
 }) {
   const plan = usePlan();
 
@@ -256,7 +259,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     setZipEnabled(zipOn);
     setItems(records);
     setActiveId(records[0]?.id ?? "");
-    setShared(full ? { ...DEFAULT_SETTINGS, includeSummary: true, includeAudio: true, includeTranslation: true } : DEFAULT_SETTINGS);
+    const start = format && !(FORMAT_CHOICES.find((c) => c.format === format)?.pro && plan === "free") ? format : DEFAULT_SETTINGS.format;
+    setShared(full ? { ...DEFAULT_SETTINGS, format: start, includeSummary: true, includeAudio: true, includeTranslation: true } : { ...DEFAULT_SETTINGS, format: start });
     setExportName(records.length > 1 ? `transcripts-${records.length}` : "");
     setNameTouched(false);
     setAddOpen(false); setMoreOpen(full); setProgress(0); setManifest(null);

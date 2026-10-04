@@ -2139,7 +2139,7 @@ interface PageHeaderProps {
   /* the end of the meta line: the speakers chip */
   trailing?: React.ReactNode;
   onCreateFolderAndMove: () => void;
-  onExport: () => void;
+  onExport: (format?: ExportFormat) => void;
   onRematchSpeakers: () => void;
   onRegenerateSummary: () => void;
   onSyncTextToAudio: () => void;
@@ -2427,8 +2427,10 @@ function PageHeader({
 /* Export as a pill with its formats behind a chevron (the product's own
    header, Artem 10.09: "more active" than a grey icon). Each format opens the
    export sheet with that format in mind. */
-const EXPORT_FORMATS = ["PDF", "Word (DOCX)", "Plain text (TXT)", "Subtitles (SRT)"];
-export function ExportPill({ onExport, disabled = false }: { onExport?: () => void; disabled?: boolean }) {
+const EXPORT_FORMATS: { label: string; format: ExportFormat }[] = [
+  { label: "PDF", format: "pdf" }, { label: "Word (DOCX)", format: "docx" }, { label: "Plain text (TXT)", format: "txt" }, { label: "Subtitles (SRT)", format: "srt" },
+];
+export function ExportPill({ onExport, disabled = false }: { onExport?: (format?: ExportFormat) => void; disabled?: boolean }) {
   const pill = (
     <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px]" disabled={disabled} aria-label="Export">
       <Icon icon={Upload} className="size-[14px]" strokeWidth={1.7} />
@@ -2441,7 +2443,7 @@ export function ExportPill({ onExport, disabled = false }: { onExport?: () => vo
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{pill}</DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[190px]">
-        {EXPORT_FORMATS.map((f) => <DropdownMenuItem key={f} className="gap-2" onClick={() => onExport?.()}><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.6} />{f}</DropdownMenuItem>)}
+        {EXPORT_FORMATS.map((f) => <DropdownMenuItem key={f.format} className="gap-2" onClick={() => onExport?.(f.format)}><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.6} />{f.label}</DropdownMenuItem>)}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -3079,7 +3081,8 @@ export function TranscriptionDetailPage() {
   }, []);
   const [panelTab, setPanelTab] = useState<PanelTab>(readPanelTab);
   const [noteFocus, setNoteFocus] = useState<Focus | null>(null);
-  const [composer, setComposer] = useState<{ anchor: Anchor; quote: string; timestamp: string; rect: { left: number; top: number; width: number; height: number } } | null>(null);
+  /* returnTo: the tab the field was opened from when it had to switch to the words (no side panel) */
+  const [composer, setComposer] = useState<{ anchor: Anchor; quote: string; timestamp: string; rect: { left: number; top: number; width: number; height: number }; returnTo?: string } | null>(null);
   const [markBar, setMarkBar] = useState<{ segmentId: number; run: Run; rect: { left: number; top: number; width: number; bottom: number }; line: { left: number; width: number } | null; below: boolean } | null>(null);
   const [threadSheet, setThreadSheet] = useState<{ segmentId: number } | null>(null);
   const [revealedBlock, setRevealedBlock] = useState<number | null>(null);
@@ -3670,7 +3673,10 @@ export function TranscriptionDetailPage() {
   const [copySheetOpen, setCopySheetOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  function exportTranscript() {
+  /* the format picked in the Export menu is the one the export opens with */
+  const [exportFormat, setExportFormat] = useState<ExportFormat | undefined>(undefined);
+  function exportTranscript(format?: ExportFormat) {
+    setExportFormat(format);
     setExportDialogOpen(true);
   }
 
@@ -3912,17 +3918,23 @@ export function TranscriptionDetailPage() {
     if (mine) notesApi.setLabel(mine.id, labelId);
     else notesApi.addHighlight({ segmentId: segId, start: 0, end: len }, labelId, false);
   }
-  function startComment(anchor: Anchor, rect: { left: number; top: number; width: number; height: number }) {
+  function startComment(anchor: Anchor, rect: { left: number; top: number; width: number; height: number }, returnTo?: string) {
     const a = { segmentId: anchor.segmentId, start: anchor.start, end: anchor.end };
     setMarkBar(null);
     setSelectionPill(null);
     setRevealedBlock(null);
     window.getSelection()?.removeAllRanges();
-    setComposer({ anchor: a, quote: blockText(a.segmentId).slice(a.start, a.end), timestamp: blockTimestamp(a.segmentId), rect });
+    setComposer({ anchor: a, quote: blockText(a.segmentId).slice(a.start, a.end), timestamp: blockTimestamp(a.segmentId), rect, returnTo });
+  }
+  /* posting or cancelling brings you back to the list you started from */
+  function cancelComposer() {
+    if (composer?.returnTo) setActiveTab(composer.returnTo);
+    setComposer(null);
   }
   function submitComposer(body: string) {
     if (!composer) return;
     const threadId = notesApi.addThread({ ...composer.anchor, quote: composer.quote, timestamp: composer.timestamp }, body);
+    if (composer.returnTo) setActiveTab(composer.returnTo);
     setComposer(null);
     setNoteFocus({ kind: "thread", id: threadId });
     /* from the Highlights list you stay in it: the highlight now says "1 comment" */
@@ -3933,6 +3945,7 @@ export function TranscriptionDetailPage() {
   function commentOnRange(anchor: Anchor, highlightId?: string) {
     if (belowLg) { startComment(anchor, { left: 0, top: 0, width: 0, height: 0 }); return; }
     const switching = noPanel && activeTab !== "transcript";
+    const from = switching ? activeTab : undefined;
     if (switching) setActiveTab("transcript");
     const target = () => {
       const block = segmentRefs.current[anchor.segmentId];
@@ -3949,7 +3962,7 @@ export function TranscriptionDetailPage() {
         last = top;
         if (still < 4 && frames++ < 90) { requestAnimationFrame(settle); return; }
         const r = target()?.getBoundingClientRect();
-        startComment(anchor, r ? { left: r.left, top: r.top, width: r.width, height: r.height } : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 });
+        startComment(anchor, r ? { left: r.left, top: r.top, width: r.width, height: r.height } : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 }, from);
       };
       requestAnimationFrame(settle);
     }, switching ? 80 : 0);
@@ -4637,7 +4650,7 @@ export function TranscriptionDetailPage() {
             </Button>
           </div>
         )}
-        <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
+        <ExportDialog open={exportDialogOpen} format={exportFormat} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
 
         <ShareDialog
           open={shareDialogOpen}
@@ -5129,7 +5142,7 @@ export function TranscriptionDetailPage() {
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setCopySheetOpen(true)} aria-label="Copy">
                   <Icon icon={Copy} className="size-[18px]" strokeWidth={1.7} />
                 </Button>
-                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => exportTranscript()} aria-label="Export">
                   <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
                 </Button>
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
@@ -5187,7 +5200,7 @@ export function TranscriptionDetailPage() {
         />
       )}
       {composer && (
-        <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={() => setComposer(null)} />
+        <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={cancelComposer} />
       )}
       {markBar && <MarkBar rect={markBar.rect} line={markBar.line ?? undefined} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
       <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} counts={labelCounts} elsewhere={labelsElsewhere} touch={coarsePointer} />

@@ -17,12 +17,14 @@ import { Drawer, DrawerContent, DrawerTitle } from "@/app/components/ui/drawer";
  * box (6 on the wrapper plus 12 on the row).
  */
 export function ActionSheet({
-  open, onOpenChange, mark, title, kind, children,
+  open, onOpenChange, mark, tile = "bg-muted", title, kind, children,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** The object's own glyph, sitting in the header tile. */
   mark: ReactNode;
+  /** The tile behind the glyph: grey, or a light shade of the object's own colour. */
+  tile?: string;
   title: string;
   /** What kind of thing this is, in the product's own words. */
   kind?: string;
@@ -32,7 +34,7 @@ export function ActionSheet({
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="[&>div:first-child]:hidden">
         <div className="flex items-center gap-[10px] px-[18px] pt-[18px] pb-[10px]">
-          <span className="shrink-0 flex items-center justify-center size-[36px] rounded-[10px] bg-muted">
+          <span className={`shrink-0 flex items-center justify-center size-[36px] rounded-[10px] ${tile}`}>
             {mark}
           </span>
           <div className="min-w-0 flex-1">

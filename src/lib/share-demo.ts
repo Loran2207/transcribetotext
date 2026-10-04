@@ -247,6 +247,9 @@ export function readSharedScene(): SharedScene {
 /* The record page has two states: your own record, and one that arrived from
  * somebody else. This says which, and who it came from. */
 export function readSharedRecordOwner(): SharedOwner | null {
+  /* opened from Shared with me: the record is the one that person shared */
+  const by = typeof window !== "undefined" ? (window.history.state as { usr?: { sharedBy?: string } } | null)?.usr?.sharedBy : undefined;
+  if (by) return Object.values(SHARED_OWNERS).find((o) => o.email === by) ?? SHARED_OWNERS.emma;
   let key = "";
   try {
     key = localStorage.getItem("ttt_demo_shared_record") ?? "";

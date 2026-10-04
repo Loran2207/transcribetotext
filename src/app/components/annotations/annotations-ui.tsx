@@ -33,7 +33,7 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/app/components/ui/utils";
 import type { AnnotationsApi, LabelsApi } from "@/hooks/use-annotations";
-import { HighlightButton, LabelChip, LabelIcon, LabelPicker, WASH, WASH_ON } from "./labels-ui";
+import { HighlightButton, LabelChip, LabelIcon, LabelPicker, WASH, WASH_ON, labelTile } from "./labels-ui";
 import {
   TEAM,
   coversBlock,
@@ -409,7 +409,7 @@ export function MarkBar({
 /* @ in a comment opens the people on the record; the pick goes in as @Full Name.
    The list sits in the flow under the field: floating, it fell off the
    screen near the bottom or covered the words above. */
-function useMentions(text: string, setText: (t: string) => void, place: "up" | "down" | "inline" = "up") {
+function useMentions(text: string, setText: (t: string) => void, place: "up" | "down" | "inline" | "above" = "up") {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [query, setQuery] = useState<string | null>(null);
   const [active, setActive] = useState(0);
@@ -437,7 +437,7 @@ function useMentions(text: string, setText: (t: string) => void, place: "up" | "
     return false;
   };
   const list = options.length ? (
-    <div data-mention-list="" className={cn(place === "inline" ? "-mx-2 mt-1.5" : "absolute left-0 z-30 w-60 rounded-xl border border-border bg-popover p-1 shadow-md", place === "up" && "bottom-full mb-1.5", place === "down" && "top-full mt-1.5")}>
+    <div data-mention-list="" className={cn(place === "inline" ? "-mx-2 mt-1.5" : place === "above" ? "-mx-2 mb-1.5" : "absolute left-0 z-30 w-60 rounded-xl border border-border bg-popover p-1 shadow-md", place === "up" && "bottom-full mb-1.5", place === "down" && "top-full mt-1.5")}>
       {options.map((p, i) => (
         <button
           key={p.name}
@@ -456,11 +456,11 @@ function useMentions(text: string, setText: (t: string) => void, place: "up" | "
 }
 
 /* says what a mention does: the person hears about it */
-function MentionNote({ people }: { people: Person[] }) {
+function MentionNote({ people, above = false }: { people: Person[]; above?: boolean }) {
   if (!people.length) return null;
   const names = people.map((p) => p.name);
   const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
-  return <p className="mt-1.5 text-[12px] text-muted-foreground">{who} will get an email.</p>;
+  return <p className={cn("text-[12px] text-muted-foreground", above ? "mb-1.5" : "mt-1.5")}>{who} will get an email.</p>;
 }
 
 const MENTION = new RegExp(`@(${TEAM.map((p) => p.name).join("|")})`, "g");
@@ -485,6 +485,7 @@ function CommentForm({
   onCancel,
   onDirty,
   mentions = "inline",
+  grow = "down",
 }: {
   initial?: string;
   submitLabel: string;
@@ -494,14 +495,19 @@ function CommentForm({
   /* the field has words in it: a press outside does not throw them away */
   onDirty?: (dirty: boolean) => void;
   mentions?: "up" | "down" | "inline";
+  /* the field opened above the words grows upward: what appears (the @ list, the email note) goes above it, so the field stays put */
+  grow?: "down" | "up";
 }) {
   const [text, setText] = useState(initial);
-  const m = useMentions(text, setText, mentions);
+  const up = grow === "up" && mentions === "inline";
+  const m = useMentions(text, setText, up ? "above" : mentions);
   useEffect(() => { onDirty?.(text.trim() !== initial.trim()); }, [text, initial, onDirty]);
   const send = () => { const v = text.trim(); if (v) onSubmit(v); };
   const fresh = m.mentioned.filter((p) => !initial.includes(`@${p.name}`));
   return (
     <div>
+      {up && m.list}
+      {up && <MentionNote people={fresh} above />}
       <div className="relative">
         {mentions !== "inline" && m.list}
         <textarea
@@ -518,8 +524,8 @@ function CommentForm({
           className="flex min-h-[72px] w-full resize-none rounded-[12px] border border-input bg-transparent px-3 py-2 text-[16px] leading-[22px] outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 lg:text-[13px] lg:leading-[19px]"
         />
       </div>
-      {mentions === "inline" && m.list}
-      <MentionNote people={fresh} />
+      {!up && mentions === "inline" && m.list}
+      {!up && <MentionNote people={fresh} />}
       <div className="mt-2 flex justify-end gap-1.5">
         <Button variant="pill-outline" size="sm" className="h-8 px-3 text-[13px] [@media(pointer:coarse)]:h-9" onClick={onCancel}>Cancel</Button>
         <Button size="sm" className="h-8 rounded-full px-3.5 text-[13px] [@media(pointer:coarse)]:h-9" disabled={!text.trim()} onClick={send}>{submitLabel}</Button>
@@ -527,6 +533,14 @@ function CommentForm({
     </div>
   );
 }
+
+/* Escape peels one layer at a time: an open @ list takes it before the card or sheet around it */
+const fieldTakesEscape = (e: KeyboardEvent) => { if (document.querySelector("[data-mention-list]")) e.preventDefault(); };
+/* in a sheet of threads, a field being written in (an edit, a reply with words) takes Escape first */
+const threadFieldTakesEscape = (e: KeyboardEvent) => {
+  const t = document.activeElement;
+  if (document.querySelector("[data-mention-list]") || (t instanceof HTMLTextAreaElement && (t.value.trim() || t.closest("[data-edit-form]")))) e.preventDefault();
+};
 
 function QuoteLine({ text, clamp = 2 }: { text: string; clamp?: 2 | 3 }) {
   return (
@@ -562,7 +576,7 @@ export function CommentComposer({
   if (sheet && !phone) {
     return (
       <Dialog open onOpenChange={(o) => { if (!o) onCancel(); }}>
-        <DialogContent data-comment-composer="" aria-describedby={undefined} onInteractOutside={guard} className="gap-0 p-5 sm:max-w-[480px] [&>button:last-child]:hidden">
+        <DialogContent data-comment-composer="" aria-describedby={undefined} onInteractOutside={guard} onEscapeKeyDown={fieldTakesEscape} className="gap-0 p-5 sm:max-w-[480px] [&>button:last-child]:hidden">
           <DialogHeader className="flex-row items-center justify-between pb-2 text-left">
             <DialogTitle className="text-[17px] font-semibold">Comment</DialogTitle>
             <button type="button" onClick={onCancel} aria-label="Close" className="-mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [@media(pointer:coarse)]:size-9"><Icon icon={Cancel01Icon} size={16} /></button>
@@ -578,7 +592,7 @@ export function CommentComposer({
   if (sheet) {
     return (
       <Drawer open onOpenChange={(o) => { if (!o) onCancel(); }}>
-        <DrawerContent data-comment-composer="" aria-describedby={undefined} onInteractOutside={guard} className="[&>div:first-child]:hidden">
+        <DrawerContent data-comment-composer="" aria-describedby={undefined} onInteractOutside={guard} onEscapeKeyDown={fieldTakesEscape} className="[&>div:first-child]:hidden">
           <DrawerHeader className="flex-row items-center justify-between pb-2 text-left">
             <DrawerTitle className="text-[17px] font-semibold">Comment</DrawerTitle>
             <button type="button" onClick={onCancel} aria-label="Close" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={16} /></button>
@@ -593,14 +607,16 @@ export function CommentComposer({
       </Drawer>
     );
   }
+  const room = window.innerHeight - 128 - (rect.top + rect.height) - 8;
+  const side = room >= 160 + TEAM.length * 36 ? "bottom" : "top";
   return (
     <Popover open onOpenChange={(o) => { if (!o) onCancel(); }}>
       <PopoverAnchor asChild>
         <span aria-hidden className="pointer-events-none fixed" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }} />
       </PopoverAnchor>
-      {/* the player sits under the transcript: near it the field opens above the words */}
-      <PopoverContent data-comment-composer="" side="bottom" align="start" sideOffset={8} collisionPadding={{ top: 8, left: 8, right: 8, bottom: 128 }} onInteractOutside={guard} className="w-[320px] p-3">
-        <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} onDirty={setDirty} />
+      {/* the player sits under the transcript: near it the field opens above the words, so the @ list never makes it jump */}
+      <PopoverContent data-comment-composer="" side={side} align="start" sideOffset={8} collisionPadding={{ top: 8, left: 8, right: 8, bottom: 128 }} onInteractOutside={guard} onEscapeKeyDown={fieldTakesEscape} className="w-[320px] p-3">
+        <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} onDirty={setDirty} grow={side === "top" ? "up" : "down"} />
       </PopoverContent>
     </Popover>
   );
@@ -684,6 +700,11 @@ function Entry({
   useEffect(() => { onEditing?.(editing); }, [editing, onEditing]);
   const [menu, setMenu] = useState(false);
   const editBox = useRef<HTMLDivElement>(null);
+  const wantsEdit = useRef(false);
+  const focusEdit = () => {
+    const t = editBox.current?.querySelector("textarea");
+    if (t) { t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+  };
   useEffect(() => { if (editing) window.setTimeout(() => editBox.current?.scrollIntoView({ block: "nearest", behavior: "smooth" }), 80); }, [editing]);
   useEffect(() => {
     if (!menu) return;
@@ -712,7 +733,7 @@ function Entry({
                   <Icon icon={MoreHorizontal} className="size-[16px]" strokeWidth={2} />
                 </Button>
                 <ActionSheet open={menu} onOpenChange={setMenu} mark={<PersonDot person={person} size={24} />} title={person.you ? (reply ? "Your reply" : "Your comment") : `${person.name.split(" ")[0]}'s ${reply ? "reply" : "comment"}`} kind={text.length > 60 ? text.slice(0, 60) + "..." : text}>
-                  {onEdit && <ActionSheetItem icon={PencilEdit02Icon} label="Edit" onClick={() => { setMenu(false); setEditing(true); }} />}
+                  {onEdit && <ActionSheetItem icon={PencilEdit02Icon} label="Edit" onClick={() => { setMenu(false); setEditing(true); window.setTimeout(focusEdit, 360); }} />}
                   {onDelete && <ActionSheetItem icon={Delete02Icon} label="Delete" destructive onClick={() => { setMenu(false); onDelete(); }} />}
                 </ActionSheet>
               </>
@@ -724,9 +745,9 @@ function Entry({
                     <Icon icon={MoreHorizontal} className="size-[16px]" strokeWidth={2} />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36" onCloseAutoFocus={(e) => { if (editing) e.preventDefault(); }}>
+                <DropdownMenuContent align="end" className="w-36" onCloseAutoFocus={(e) => { if (wantsEdit.current) { wantsEdit.current = false; e.preventDefault(); focusEdit(); } }}>
                   {onEdit && (
-                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setMenu(false); setEditing(true); }}>
+                    <DropdownMenuItem onSelect={(e) => { e.preventDefault(); wantsEdit.current = true; setMenu(false); setEditing(true); }}>
                       <Icon icon={PencilEdit02Icon} className="size-4" strokeWidth={1.8} />Edit
                     </DropdownMenuItem>
                   )}
@@ -741,7 +762,7 @@ function Entry({
           </span>
         </div>
         {editing && onEdit ? (
-          <div ref={editBox} className="mt-1.5 scroll-mb-48">
+          <div ref={editBox} data-edit-form="" className="mt-1.5 scroll-mb-48">
             <CommentForm initial={text} submitLabel="Save" placeholder="Edit comment" onSubmit={(v) => { onEdit(v); setEditing(false); }} onCancel={() => setEditing(false)} />
           </div>
         ) : (
@@ -909,7 +930,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
             <Button variant="ghost" size="icon" aria-label="More" className={cn(tool, "ml-auto")} onClick={() => setMenu(true)}>
               <Icon icon={MoreHorizontal} className="size-[16px]" strokeWidth={2} />
             </Button>
-            <ActionSheet open={menu} onOpenChange={setMenu} mark={<LabelIcon label={label} className="size-5" />} title={label.name} kind={text.length > 60 ? text.slice(0, 60) + "..." : text}>
+            <ActionSheet open={menu} onOpenChange={setMenu} mark={<LabelIcon label={label} className="size-5" />} tile={labelTile(label)} title={label.name} kind={text.length > 60 ? text.slice(0, 60) + "..." : text}>
               <ActionSheetItem icon={CommentAdd01Icon} label="Comment" onClick={() => { setMenu(false); v.commentOn(h, h.id); }} />
               <ActionSheetItem icon={Copy01Icon} label="Copy" onClick={() => { setMenu(false); copy(); }} />
               {editable && <ActionSheetItem icon={Delete02Icon} label="Remove highlight" destructive onClick={() => { setMenu(false); removeHighlightWithUndo(v.api, h.id); }} />}
@@ -1045,7 +1066,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
 export function ThreadSheet({ threads, v, onClose }: { threads: Thread[]; v: NotesView; onClose: () => void }) {
   return (
     <Drawer open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DrawerContent data-thread-sheet="" aria-describedby={undefined} className="max-h-[88vh] [&>div:first-child]:hidden">
+      <DrawerContent data-thread-sheet="" aria-describedby={undefined} onEscapeKeyDown={threadFieldTakesEscape} className="max-h-[88vh] [&>div:first-child]:hidden">
         <DrawerHeader className="flex-row items-center justify-between pb-1 text-left">
           <DrawerTitle className="text-[17px] font-semibold">Comments</DrawerTitle>
           <Button variant="ghost" size="icon" aria-label="Close" className="size-9 rounded-full text-muted-foreground" onClick={onClose}>
