@@ -22,6 +22,7 @@ import { LANGUAGES } from "./language-context";
 import {
   runExportPlan, transformForExport, DEFAULT_EXPORT_OPTIONS, FORMAT_META,
   type ExportableRecord, type ExportFormat, type ExportContentOptions, type ExportFilePlan, type ExportManifest,
+  safeFilename,
 } from "@/lib/export-formats";
 
 /* ══════════════════════════════════════════════
@@ -311,7 +312,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     if (nothingSelected) return "Nothing selected";
     if (fileCount === 1) {
       const r = items[0];
-      const base = safeName(r.title);
+      /* the same name the file is saved under */
+      const base = safeFilename(r.title);
       if (shared.includeTranscript) return `${base}.${FORMAT_META[shared.format].extension}`;
       if (shared.includeSummary) return `${base}-summary.txt`;
       if (shared.includeTranslation) return `${base}-${shared.translationLanguage}.txt`;

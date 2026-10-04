@@ -16,12 +16,15 @@ export type Anchor = { segmentId: number; start: number; end: number };
 /* A highlight says what kind of line it is: a key point, a to-do, a decision,
    a question. The label is its colour in the text, its dot on the player and
    its filter in the list. People can rename, recolour and add their own. */
-export type LabelColor = "amber" | "sky" | "emerald" | "violet" | "rose" | "slate" | "orange" | "lime" | "cyan" | "fuchsia" | "indigo" | "teal";
+export type LabelColor = "amber" | "sky" | "emerald" | "violet" | "rose" | "slate" | "orange" | "lime" | "cyan" | "fuchsia" | "indigo" | "teal" | "red" | "yellow" | "blue" | "pink";
 
 /* record: a label made for one recording only; without it the label is in every recording */
 export type Label = { id: string; name: string; color: LabelColor; record?: string };
 
-export const LABEL_COLORS: LabelColor[] = ["amber", "sky", "emerald", "violet", "rose", "orange", "lime", "cyan", "fuchsia", "indigo", "teal", "slate"];
+/* the order a new label takes its colour in (the first one no label has yet) */
+export const LABEL_COLORS: LabelColor[] = ["amber", "sky", "emerald", "violet", "rose", "orange", "lime", "cyan", "fuchsia", "indigo", "teal", "slate", "red", "yellow", "blue", "pink"];
+/* the order the colours are offered in: round the colour wheel */
+export const LABEL_PICKER: LabelColor[] = ["red", "rose", "orange", "amber", "yellow", "lime", "emerald", "teal", "cyan", "sky", "blue", "indigo", "violet", "fuchsia", "pink", "slate"];
 
 export const DEFAULT_LABELS: Label[] = [
   { id: "key", name: "Key point", color: "amber" },

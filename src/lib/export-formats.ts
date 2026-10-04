@@ -127,7 +127,7 @@ function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-function safeFilename(s: string): string {
+export function safeFilename(s: string): string {
   return (
     s
       .toLowerCase()

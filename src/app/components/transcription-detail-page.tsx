@@ -599,7 +599,7 @@ function SelectionHighlightPill({
     setLeft(clampToColumn(position.x, barRef.current?.offsetWidth ?? 0));
   }, [position.x]);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
-  const action = "h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground data-[state=open]:bg-muted/70";
+  const action = "h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground data-[state=open]:bg-muted/70 [@media(pointer:coarse)]:h-9";
   return (
     <div
       ref={barRef}
@@ -1435,7 +1435,7 @@ function MediaPlayer({
   }
 
   return (
-    <div className="shrink-0 border-t border-border bg-background px-4 py-3 lg:px-6">
+    <div data-player-bar="" className="shrink-0 border-t border-border bg-background px-4 py-3 lg:px-6">
       <div className="relative mb-3">
         <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="[&_[data-slot=slider-thumb]]:relative [&_[data-slot=slider-thumb]]:z-10 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
         {markers && onSeekSeconds && <PlayerMarkers markers={markers} onSeek={onSeekSeconds} />}
@@ -2698,7 +2698,7 @@ export function TranscriptionDetailPage() {
   // Segment-level state
 
   // Text selection highlight pill
-  const [selectionPill, setSelectionPill] = useState<{ x: number; xBelow: number; y: number; bottom: number; flip: boolean; rect: { left: number; top: number; width: number; height: number }; segmentId: number; start: number; end: number } | null>(null);
+  const [selectionPill, setSelectionPill] = useState<{ x: number; xBelow: number; y: number; bottom: number; flip: boolean; low: boolean; rect: { left: number; top: number; width: number; height: number }; segmentId: number; start: number; end: number } | null>(null);
   const pillPressRef = useRef(0);
   const [splitPreview, setSplitPreview] = useState<{ segmentId: number; start: number; end: number; speaker: Speaker } | null>(null);
   const [selectionMenuOpen, setSelectionMenuOpen] = useState(false);
@@ -3089,6 +3089,18 @@ export function TranscriptionDetailPage() {
   useEffect(() => {
     if (threadSheet && sheetThreads.length === 0) setThreadSheet(null);
   }, [threadSheet, sheetThreads.length]);
+  /* Escape lets go of selected words and their bar, once nothing is open over them */
+  useEffect(() => {
+    if (!selectionPill) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (document.querySelector("[data-label-menu], [data-label-sheet], [data-manage-labels], [data-comment-composer], [data-slot=popover-content]")) return;
+      window.getSelection()?.removeAllRanges();
+      setSelectionPill(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectionPill]);
   useEffect(() => {
     if (!noteFocus) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setNoteFocus(null); };
@@ -3853,7 +3865,7 @@ export function TranscriptionDetailPage() {
     }),
   ].filter((m): m is NonNullable<typeof m> => m !== null);
   const playerLeading = reel ? (
-    <Button size="sm" variant="outline" aria-label="Stop playing highlights" title="Stop playing highlights" className="h-8 gap-1.5 rounded-full border-border px-3 text-xs font-medium" onClick={stopReel}>
+    <Button size="sm" variant="pill-outline" aria-label="Stop playing highlights" title="Stop playing highlights" className="h-8 gap-1.5 px-3 text-xs font-medium [@media(pointer:coarse)]:h-9" onClick={stopReel}>
       <Icon icon={StopIcon} className="size-[13px]" strokeWidth={2} />
       <span className="max-sm:hidden">Stop ·</span>
       <span className="tabular-nums text-muted-foreground">{reel.index + 1} of {reel.ids.length}</span>
@@ -3863,7 +3875,7 @@ export function TranscriptionDetailPage() {
       <HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" open={highlightMenu === "player"} onOpenChange={(o) => setHighlightMenu(o ? "player" : null)} onHighlight={(id) => highlightNow(id)} onManage={manageLabels} />
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost" size="sm" aria-label="Comment on this moment" className="h-8 gap-1.5 rounded-full border border-border pl-2.5 pr-3 text-xs font-medium text-foreground max-md:hidden" onClick={commentNow}>
+          <Button variant="pill-outline" size="sm" aria-label="Comment on this moment" className="h-8 gap-1.5 pl-2.5 pr-3 text-xs font-medium max-md:hidden [@media(pointer:coarse)]:h-9" onClick={commentNow}>
             <Icon icon={CommentAdd01Icon} className="size-[14px]" strokeWidth={1.8} />
             Comment
           </Button>
@@ -3913,7 +3925,8 @@ export function TranscriptionDetailPage() {
     const threadId = notesApi.addThread({ ...composer.anchor, quote: composer.quote, timestamp: composer.timestamp }, body);
     setComposer(null);
     setNoteFocus({ kind: "thread", id: threadId });
-    if (!noPanel) setPanelTab("comments");
+    /* from the Highlights list you stay in it: the highlight now says "1 comment" */
+    if (!noPanel && panelTab !== "highlights") setPanelTab("comments");
   }
   /* From a list: bring the words into view and open the field under them. On
      a phone the field is a sheet with the quote, so nothing has to move. */
@@ -3950,17 +3963,23 @@ export function TranscriptionDetailPage() {
     window.setTimeout(() => segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: sheet ? "start" : "center" }), noPanel ? 80 : 0);
     if (f.kind === "highlight") window.setTimeout(() => setNoteFocus((cur) => (cur?.id === f.id ? null : cur)), 1800);
   }
+  /* touch: the discussion opens from the bottom with its words above it, on the transcript */
+  function openSheetOver(segmentId: number) {
+    if (noPanel) setActiveTab("transcript");
+    setThreadSheet({ segmentId });
+    window.setTimeout(() => segmentRefs.current[segmentId]?.scrollIntoView({ behavior: "smooth", block: "start" }), noPanel ? 80 : 0);
+  }
   function openThread(threadId: string) {
     const t = notesApi.threads.find((x) => x.id === threadId);
     if (!t) return;
     setNoteFocus({ kind: "thread", id: threadId });
-    if (belowLg) setThreadSheet({ segmentId: t.segmentId });
-    else if (noPanel) setActiveTab("comments");
+    if (belowLg) { openSheetOver(t.segmentId); return; }
+    if (noPanel) setActiveTab("comments");
     else setPanelTab("comments");
   }
   function openBlockComments(segId: number) {
     setRevealedBlock(null);
-    if (belowLg) { setThreadSheet({ segmentId: segId }); return; }
+    if (belowLg) { openSheetOver(segId); return; }
     const first = notesApi.threads.find((t) => t.segmentId === segId && !t.resolved);
     if (first) { setNoteFocus({ kind: "thread", id: first.id }); if (noPanel) setActiveTab("comments"); else setPanelTab("comments"); }
   }
@@ -3968,7 +3987,9 @@ export function TranscriptionDetailPage() {
     setRevealedBlock(null);
     if (run.highlights.length === 0) { if (run.threads.length > 0) openThread(run.threads[0]); return; }
     const roof = document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect().top ?? 0;
-    const below = coarsePointer || rect.top - 48 < roof;
+    const floor = document.querySelector("[data-player-bar]")?.getBoundingClientRect().top ?? window.innerHeight;
+    const roomAbove = rect.top - 48 >= roof, roomBelow = rect.bottom + 56 <= floor;
+    const below = coarsePointer ? roomBelow || !roomAbove : !roomAbove;
     setMarkBar({ segmentId: segId, run, rect: { left: rect.left, top: rect.top, width: rect.width, bottom: rect.bottom }, line: edgeLine(lines, below), below });
   }
   function markBarLead() {
@@ -4117,6 +4138,8 @@ export function TranscriptionDetailPage() {
         bottom: rect.bottom,
         /* too close to the tab row: the bar goes under the words instead */
         flip: rect.top - 48 < (document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect().top ?? 0),
+        /* too close to the player: on touch the bar goes over the words instead */
+        low: rect.bottom + 56 > (document.querySelector("[data-player-bar]")?.getBoundingClientRect().top ?? window.innerHeight),
         rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
         segmentId: Number(container.getAttribute("data-segment-id")),
         start,
@@ -5142,14 +5165,14 @@ export function TranscriptionDetailPage() {
       {/* Text selection highlight pill */}
       {selectionPill && !editMode && !composer && (
         <SelectionHighlightPill
-          position={{ x: coarsePointer || selectionPill.flip ? selectionPill.xBelow : selectionPill.x, y: selectionPill.y, bottom: selectionPill.bottom }}
-          below={coarsePointer || selectionPill.flip}
+          position={{ x: (coarsePointer && (!selectionPill.low || selectionPill.flip)) || selectionPill.flip ? selectionPill.xBelow : selectionPill.x, y: selectionPill.y, bottom: selectionPill.bottom }}
+          below={(coarsePointer && (!selectionPill.low || selectionPill.flip)) || selectionPill.flip}
           onPress={() => { pillPressRef.current = Date.now(); }}
           onHighlight={handleSelectionHighlight}
           onComment={handleSelectionComment}
           labels={labelsApi}
           sheet={coarsePointer}
-          onManageLabels={manageLabels}
+          onManageLabels={manageLabels && (() => { window.getSelection()?.removeAllRanges(); setSelectionPill(null); manageLabels(); })}
           menuOpen={highlightMenu === "pill"}
           onMenuOpenChange={(o) => setHighlightMenu(o ? "pill" : null)}
           speaker={isSingleSpeaker || !isOwner ? undefined : (() => {

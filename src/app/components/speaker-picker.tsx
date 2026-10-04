@@ -90,21 +90,31 @@ function useSpeakerQuery(speakers: PickerSpeaker[]) {
   return { query, setQuery, trimmed, list, canAdd: trimmed.length > 0 && !exact };
 }
 
-/* Renaming in place: the name field with an explicit save (check) and cancel (x), so the
-   way out is never a guess (Kirill 24.09). Enter and Escape do the same; the buttons keep
-   the field's focus on mousedown so a click on them is not read as leaving the field. */
-function RenameField({ speaker, draft, setDraft, onCommit, onCancel, phone = false }: { speaker: PickerSpeaker; draft: string; setDraft: (v: string) => void; onCommit: () => void; onCancel: () => void; phone?: boolean }) {
+/* The product's one name field: the line, an explicit save (filled check) and cancel (x),
+   so the way out is never a guess (Kirill 24.09). Enter and Escape do the same; the buttons
+   keep the field's focus on mousedown so a click on them is not read as leaving the field.
+   Speakers and labels both use it. */
+export function NameField({ value, onChange, onCommit, onCancel, label, placeholder, saveLabel, kind, phone = false, commitOnBlur = false, blocked = false, maxLength }: { value: string; onChange: (v: string) => void; onCommit: () => void; onCancel: () => void; label: string; placeholder?: string; saveLabel: string; kind: "rename" | "add"; phone?: boolean; commitOnBlur?: boolean; blocked?: boolean; maxLength?: number }) {
   const keep = (e: React.MouseEvent) => e.preventDefault();
+  return (
+    <>
+      <Input autoFocus value={value} maxLength={maxLength} onChange={(e) => onChange(e.target.value)} onBlur={commitOnBlur ? onCommit : undefined} placeholder={placeholder} aria-label={label} onKeyDown={(e) => { if (e.key === "Enter") onCommit(); if (e.key === "Escape") onCancel(); e.stopPropagation(); }} className={cn("min-w-0 flex-1", phone ? "h-10 rounded-xl px-3 text-[14px]" : "h-8 rounded-[7px] px-2 text-[13px]")} />
+      <button type="button" {...{ [`data-${kind}-save`]: "" }} aria-label={saveLabel} onMouseDown={keep} onClick={onCommit} disabled={!value.trim() || blocked} className={cn("flex shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/90 disabled:opacity-40", phone ? "size-8" : "size-7")}>
+        <Icon icon={Tick02Icon} size={phone ? 16 : 14} />
+      </button>
+      <button type="button" {...{ [`data-${kind}-cancel`]: "" }} aria-label="Cancel" onMouseDown={keep} onClick={onCancel} className={cn("flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-muted", phone ? "size-8" : "size-7")}>
+        <Icon icon={Cancel01Icon} size={phone ? 15 : 13} />
+      </button>
+    </>
+  );
+}
+
+/* Renaming in place: the name field on the row */
+function RenameField({ speaker, draft, setDraft, onCommit, onCancel, phone = false }: { speaker: PickerSpeaker; draft: string; setDraft: (v: string) => void; onCommit: () => void; onCancel: () => void; phone?: boolean }) {
   return (
     <div data-speaker-row={speaker.id} data-renaming="" className={cn("flex items-center rounded-xl px-3 py-1.5", phone ? "gap-3" : "gap-2.5")}>
       <SpeakerDot speaker={speaker} />
-      <Input autoFocus value={draft} onChange={(e) => setDraft(e.target.value)} onBlur={onCommit} onKeyDown={(e) => { if (e.key === "Enter") onCommit(); if (e.key === "Escape") onCancel(); e.stopPropagation(); }} aria-label="Speaker name" className={cn("min-w-0 flex-1", phone ? "h-10 rounded-xl px-3 text-[14px]" : "h-8 rounded-[7px] px-2 text-[13px]")} />
-      <button type="button" data-rename-save="" aria-label="Save name" onMouseDown={keep} onClick={onCommit} disabled={!draft.trim()} className={cn("flex shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/90 disabled:opacity-40", phone ? "size-8" : "size-7")}>
-        <Icon icon={Tick02Icon} size={phone ? 16 : 14} />
-      </button>
-      <button type="button" data-rename-cancel="" aria-label="Cancel" onMouseDown={keep} onClick={onCancel} className={cn("flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-muted", phone ? "size-8" : "size-7")}>
-        <Icon icon={Cancel01Icon} size={phone ? 15 : 13} />
-      </button>
+      <NameField value={draft} onChange={setDraft} onCommit={onCommit} onCancel={onCancel} commitOnBlur label="Speaker name" saveLabel="Save name" kind="rename" phone={phone} />
     </div>
   );
 }
@@ -113,18 +123,11 @@ function RenameField({ speaker, draft, setDraft, onCommit, onCancel, phone = fal
    One shape in every list (Kirill 24.09: "the field appears at the bottom, that is all"). */
 function AddSpeakerField({ onAdd, onCancel, phone = false }: { onAdd: (name: string) => void; onCancel: () => void; phone?: boolean }) {
   const [name, setName] = useState("");
-  const keep = (e: React.MouseEvent) => e.preventDefault();
   const commit = () => { const t = name.trim(); if (t) onAdd(t); };
   return (
     <div data-adding-speaker="">
       <div className={cn("flex items-center rounded-xl px-3 py-1.5", phone ? "gap-3" : "gap-2.5")}>
-        <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="New speaker's name" aria-label="New speaker name" onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") onCancel(); e.stopPropagation(); }} className={cn("min-w-0 flex-1", phone ? "h-10 rounded-xl px-3 text-[14px]" : "h-8 rounded-[7px] px-2 text-[13px]")} />
-        <button type="button" data-add-save="" aria-label="Add" onMouseDown={keep} onClick={commit} disabled={!name.trim()} className={cn("flex shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/90 disabled:opacity-40", phone ? "size-8" : "size-7")}>
-          <Icon icon={Tick02Icon} size={phone ? 16 : 14} />
-        </button>
-        <button type="button" data-add-cancel="" aria-label="Cancel" onMouseDown={keep} onClick={onCancel} className={cn("flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-muted", phone ? "size-8" : "size-7")}>
-          <Icon icon={Cancel01Icon} size={phone ? 15 : 13} />
-        </button>
+        <NameField value={name} onChange={setName} onCommit={commit} onCancel={onCancel} label="New speaker name" placeholder="New speaker's name" saveLabel="Add" kind="add" phone={phone} />
       </div>
     </div>
   );

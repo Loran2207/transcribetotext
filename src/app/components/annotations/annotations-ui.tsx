@@ -92,8 +92,6 @@ export function toastUndo(title: string, onUndo: () => void, glyph: unknown = De
     /* a finger needs 36px */
     classNames: { cancelButton: "[@media(pointer:coarse)]:!h-9 [@media(pointer:coarse)]:!px-3" },
     duration: 5000,
-    /* above the player, clear of the panel tabs whose counts just changed */
-    position: "bottom-center",
   });
 }
 
@@ -139,7 +137,7 @@ function TimeChip({ timestamp, onSeek }: { timestamp: string; onSeek: (t: string
       type="button"
       title="Play from here"
       onClick={(e) => { e.stopPropagation(); onSeek(timestamp); }}
-      className="inline-flex items-center gap-1 tabular-nums transition-colors hover:text-primary"
+      className="inline-flex items-center gap-1 tabular-nums transition-colors hover:text-primary [@media(pointer:coarse)]:-my-2.5 [@media(pointer:coarse)]:py-2.5"
     >
       {timestamp}
       <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" className="opacity-60"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg>
@@ -213,10 +211,10 @@ export function AnnotatedText({
               hl && cn(HIGHLIGHT_SHAPE, WASH[color]),
               hlFocused && WASH_ON[color],
               th.length > 0 && "underline decoration-primary/50 decoration-[1.5px] underline-offset-[4px]",
-              /* the thread being read: its words lit, but a highlight keeps its colour */
-              /* the thread being read: a firmer underline, no fill that could pass for a highlight */
+              /* the thread being read, and the words a new comment is being written on: a firmer
+                 underline, no fill that could pass for a highlight; a highlight keeps its colour */
               thFocused && "decoration-primary decoration-2",
-              isPending && "rounded-[3px] bg-primary/20",
+              isPending && "underline decoration-primary decoration-2 underline-offset-[4px]",
               (hl || th.length > 0) && !isPending && "cursor-pointer transition-colors",
               sound,
             )}
@@ -392,7 +390,7 @@ export function MarkBar({
           key={a.key}
           size="sm"
           variant="ghost"
-          className={cn("h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground", a.danger && "hover:text-destructive")}
+          className={cn("h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground [@media(pointer:coarse)]:h-9", a.danger && "hover:text-destructive")}
           onClick={() => { a.onClick(); onClose(); }}
         >
           <Icon icon={a.icon} className="size-[14px]" strokeWidth={1.8} />
@@ -523,7 +521,7 @@ function CommentForm({
       {mentions === "inline" && m.list}
       <MentionNote people={fresh} />
       <div className="mt-2 flex justify-end gap-1.5">
-        <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-[13px] text-muted-foreground [@media(pointer:coarse)]:h-9" onClick={onCancel}>Cancel</Button>
+        <Button variant="pill-outline" size="sm" className="h-8 px-3 text-[13px] [@media(pointer:coarse)]:h-9" onClick={onCancel}>Cancel</Button>
         <Button size="sm" className="h-8 rounded-full px-3.5 text-[13px] [@media(pointer:coarse)]:h-9" disabled={!text.trim()} onClick={send}>{submitLabel}</Button>
       </div>
     </div>
@@ -558,13 +556,16 @@ export function CommentComposer({
 }) {
   const dirty = useRef(false);
   const setDirty = useRef((d: boolean) => { dirty.current = d; }).current;
+  /* the x, Cancel, Escape and a swipe always leave; only a stray press outside keeps the words typed */
+  const guard = (e: Event) => { if (dirty.current) e.preventDefault(); };
   const phone = useIsPhone();
   if (sheet && !phone) {
     return (
-      <Dialog open onOpenChange={(o) => { if (!o && !dirty.current) onCancel(); }}>
-        <DialogContent data-comment-composer="" aria-describedby={undefined} className="gap-0 p-5 sm:max-w-[480px]">
-          <DialogHeader className="pb-2 text-left">
+      <Dialog open onOpenChange={(o) => { if (!o) onCancel(); }}>
+        <DialogContent data-comment-composer="" aria-describedby={undefined} onInteractOutside={guard} className="gap-0 p-5 sm:max-w-[480px] [&>button:last-child]:hidden">
+          <DialogHeader className="flex-row items-center justify-between pb-2 text-left">
             <DialogTitle className="text-[17px] font-semibold">Comment</DialogTitle>
+            <button type="button" onClick={onCancel} aria-label="Close" className="-mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [@media(pointer:coarse)]:size-9"><Icon icon={Cancel01Icon} size={16} /></button>
           </DialogHeader>
           <QuoteLine text={quote} clamp={3} />
           <div className="mt-3">
@@ -576,10 +577,11 @@ export function CommentComposer({
   }
   if (sheet) {
     return (
-      <Drawer open onOpenChange={(o) => { if (!o && !dirty.current) onCancel(); }}>
-        <DrawerContent data-comment-composer="" aria-describedby={undefined} className="[&>div:first-child]:hidden">
-          <DrawerHeader className="pb-2 text-left">
+      <Drawer open onOpenChange={(o) => { if (!o) onCancel(); }}>
+        <DrawerContent data-comment-composer="" aria-describedby={undefined} onInteractOutside={guard} className="[&>div:first-child]:hidden">
+          <DrawerHeader className="flex-row items-center justify-between pb-2 text-left">
             <DrawerTitle className="text-[17px] font-semibold">Comment</DrawerTitle>
+            <button type="button" onClick={onCancel} aria-label="Close" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={16} /></button>
           </DrawerHeader>
           <div className="px-4 pb-5">
             <QuoteLine text={quote} clamp={3} />
@@ -592,12 +594,12 @@ export function CommentComposer({
     );
   }
   return (
-    <Popover open onOpenChange={(o) => { if (!o && !dirty.current) onCancel(); }}>
+    <Popover open onOpenChange={(o) => { if (!o) onCancel(); }}>
       <PopoverAnchor asChild>
         <span aria-hidden className="pointer-events-none fixed" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }} />
       </PopoverAnchor>
       {/* the player sits under the transcript: near it the field opens above the words */}
-      <PopoverContent data-comment-composer="" side="bottom" align="start" sideOffset={8} collisionPadding={{ top: 8, left: 8, right: 8, bottom: 128 }} className="w-[320px] p-3">
+      <PopoverContent data-comment-composer="" side="bottom" align="start" sideOffset={8} collisionPadding={{ top: 8, left: 8, right: 8, bottom: 128 }} onInteractOutside={guard} className="w-[320px] p-3">
         <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} onDirty={setDirty} />
       </PopoverContent>
     </Popover>
@@ -750,7 +752,7 @@ function Entry({
   );
 }
 
-export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView; inSheet?: boolean }) {
+export function ThreadCard({ t, v, inSheet = false, onDone }: { t: Thread; v: NotesView; inSheet?: boolean; onDone?: () => void }) {
   const focused = !inSheet && v.focus?.kind === "thread" && v.focus.id === t.id;
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState<Record<string, boolean>>({});
@@ -795,8 +797,8 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
         <div className="-mr-1.5 -mt-1 mb-2 flex items-center gap-2 text-[12px] text-muted-foreground">
           <Icon icon={CheckmarkCircle02Icon} className="size-[14px]" strokeWidth={1.8} />
           <span className="min-w-0 flex-1 truncate">Resolved by {resolvedBy}</span>
-          <Button variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium text-primary hover:text-primary" onClick={() => v.api.reopen(t.id)}>Reopen</Button>
-          <Button variant="ghost" size="icon" aria-label="Collapse" className="size-7 rounded-full text-muted-foreground" onClick={() => setExpanded(false)}>
+          <Button variant="ghost" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium text-primary hover:text-primary [@media(pointer:coarse)]:h-9" onClick={() => v.api.reopen(t.id)}>Reopen</Button>
+          <Button variant="ghost" size="icon" aria-label="Collapse" className="size-7 rounded-full text-muted-foreground [@media(pointer:coarse)]:size-9" onClick={() => setExpanded(false)}>
             <Icon icon={ArrowUp01Icon} className="size-[14px]" strokeWidth={2} />
           </Button>
         </div>
@@ -811,9 +813,9 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
         at={t.at}
         edited={t.edited}
         text={t.text}
-        onResolve={t.resolved ? undefined : () => { v.api.resolve(t.id); toastUndo("Comment resolved", () => v.api.reopen(t.id), CheckmarkCircle02Icon); }}
+        onResolve={t.resolved ? undefined : () => { onDone?.(); v.api.resolve(t.id); toastUndo("Comment resolved", () => v.api.reopen(t.id), CheckmarkCircle02Icon); }}
         onEdit={t.by.you ? (text) => v.api.editThread(t.id, text) : undefined}
-        onDelete={canRemove(v, t.by) ? () => deleteThreadWithUndo(v.api, t.id) : undefined}
+        onDelete={canRemove(v, t.by) ? () => { onDone?.(); deleteThreadWithUndo(v.api, t.id); } : undefined}
         sheet={v.sheet}
         quiet={!inSheet && !focused}
         locked={anyEditing}
@@ -827,7 +829,7 @@ export function ThreadCard({ t, v, inSheet = false }: { t: Thread; v: NotesView;
           edited={r.edited}
           text={r.text}
           onEdit={r.by.you ? (text) => v.api.editReply(t.id, r.id, text) : undefined}
-          onDelete={canRemove(v, r.by) ? () => deleteReplyWithUndo(v.api, t.id, r.id) : undefined}
+          onDelete={canRemove(v, r.by) ? () => { onDone?.(); deleteReplyWithUndo(v.api, t.id, r.id); } : undefined}
           sheet={v.sheet}
           reply
           quiet={!inSheet && !focused}
@@ -946,7 +948,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
             onPick={(id) => v.api.setLabel(h.id, id)}
             onManage={v.manageLabels}
             trigger={
-              <button type="button" aria-label={`Label: ${label.name}. Change`} className="-mx-1.5 rounded-md px-1.5 transition-colors hover:bg-muted data-[state=open]:bg-muted">
+              <button type="button" aria-label={`Label: ${label.name}. Change`} className="-mx-1.5 rounded-md px-1.5 transition-colors hover:bg-muted data-[state=open]:bg-muted [@media(pointer:coarse)]:-my-1.5 [@media(pointer:coarse)]:py-1.5">
                 <LabelChip label={label}>
                   <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><path d="M6 9l6 6 6-6" /></svg>
                 </LabelChip>
@@ -960,7 +962,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
         {linked.length > 0 && (() => {
           const n = linked.reduce((sum, t) => sum + 1 + t.replies.length, 0);
           return (
-            <button type="button" className="inline-flex shrink-0 items-center gap-1 font-medium text-primary hover:underline" onClick={() => v.openThread(linked[0].id)}>
+            <button type="button" className="inline-flex shrink-0 items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:-my-2.5 [@media(pointer:coarse)]:py-2.5" onClick={() => v.openThread(linked[0].id)}>
               <Icon icon={Comment01Icon} className="size-[13px]" strokeWidth={2} />
               {n === 1 ? "1 comment" : `${n} comments`}
             </button>
@@ -1006,16 +1008,16 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
     <div className="flex flex-col px-2 pb-3 pt-2">
       <div className="flex items-center justify-between gap-2 px-1">
         {v.reel ? (
-          <Button variant="outline" size="sm" className="h-7 gap-1.5 rounded-full border-border px-2.5 text-xs font-medium" onClick={v.stopReel}>
+          <Button variant="pill-outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs font-medium [@media(pointer:coarse)]:h-9" onClick={v.stopReel}>
             <Icon icon={StopIcon} className="size-[13px]" strokeWidth={2} />Stop
             <span className="tabular-nums text-muted-foreground">· {v.reel.index + 1} of {v.reel.ids.length}</span>
           </Button>
         ) : (
-          <Button variant="ghost" size="sm" data-list-play="" className="h-7 gap-1.5 rounded-full px-2 text-xs font-medium text-primary hover:text-primary" onClick={() => v.playAll(list.map((h) => h.id))}>
+          <Button variant="ghost" size="sm" data-list-play="" className="h-7 gap-1.5 rounded-full px-2 text-xs font-medium text-primary hover:text-primary [@media(pointer:coarse)]:h-9" onClick={() => v.playAll(list.map((h) => h.id))}>
             <Icon icon={PlayIcon} className="size-[13px]" strokeWidth={2} />{active === "all" ? "Play all" : "Play"}
           </Button>
         )}
-        <Button variant="ghost" size="sm" data-list-copy="" className="h-7 gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:text-foreground" onClick={copyAll}>
+        <Button variant="ghost" size="sm" data-list-copy="" className="h-7 gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-9" onClick={copyAll}>
           <Icon icon={Copy01Icon} className="size-[14px]" strokeWidth={1.8} />{active === "all" ? "Copy all" : "Copy"}
         </Button>
       </div>
@@ -1051,7 +1053,7 @@ export function ThreadSheet({ threads, v, onClose }: { threads: Thread[]; v: Not
           </Button>
         </DrawerHeader>
         <div className="flex flex-col gap-2 overflow-y-auto px-4 pb-6">
-          {threads.map((t) => <ThreadCard key={t.id} t={t} v={v} inSheet />)}
+          {threads.map((t) => <ThreadCard key={t.id} t={t} v={v} inSheet onDone={onClose} />)}
         </div>
       </DrawerContent>
     </Drawer>
