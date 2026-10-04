@@ -49,7 +49,7 @@ export function ActionSheet({
             type="button"
             onClick={() => onOpenChange(false)}
             aria-label="Close"
-            className="-mr-[4px] size-[32px] shrink-0 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+            className="-mr-[4px] size-9 shrink-0 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
           >
             <Icon icon={X} className="size-[18px]" strokeWidth={2} />
           </button>

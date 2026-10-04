@@ -296,7 +296,7 @@ export function BlockActions({
           </Button>
         </Tip>
         <Tip label="Copy text">
-          <Button variant="ghost" size="icon" aria-label="Copy text" className={btn} onClick={onCopy}>
+          <Button variant="ghost" size="icon" aria-label="Copy text" className={btn} onClick={(e) => { if (sheet) e.currentTarget.blur(); onCopy(); }}>
             <Icon icon={Copy01Icon} className={icon} strokeWidth={1.8} />
           </Button>
         </Tip>
@@ -352,9 +352,11 @@ export function MarkBar({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [left, setLeft] = useState<number | null>(null);
+  const [height, setHeight] = useState(38);
   useLayoutEffect(() => {
     setLeft(clampToColumn((line ?? rect).left, ref.current?.offsetWidth ?? 0));
   }, [rect.left, rect.width, line?.left, line?.width]);
+  useLayoutEffect(() => { setHeight(ref.current?.offsetHeight ?? 38); }, []);
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", esc);
@@ -381,7 +383,7 @@ export function MarkBar({
       ref={ref}
       data-mark-bar=""
       className="fixed z-50 flex max-w-[calc(100vw-16px)] items-center gap-0.5 rounded-full border border-border/70 bg-background p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
-      style={{ left: left ?? rect.left, top: below ? rect.bottom + 8 : rect.top - 44, visibility: left === null ? "hidden" : undefined }}
+      style={{ left: left ?? rect.left, top: below ? rect.bottom + 8 : rect.top - height - 6, visibility: left === null ? "hidden" : undefined }}
     >
       {lead}
       {lead && <span className="mx-0.5 h-4 w-px bg-border" />}
@@ -595,7 +597,7 @@ export function CommentComposer({
         <DrawerContent data-comment-composer="" aria-describedby={undefined} onInteractOutside={guard} onEscapeKeyDown={fieldTakesEscape} className="[&>div:first-child]:hidden">
           <DrawerHeader className="flex-row items-center justify-between pb-2 text-left">
             <DrawerTitle className="text-[17px] font-semibold">Comment</DrawerTitle>
-            <button type="button" onClick={onCancel} aria-label="Close" className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={16} /></button>
+            <button type="button" onClick={onCancel} aria-label="Close" className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={16} /></button>
           </DrawerHeader>
           <div className="px-4 pb-5">
             <QuoteLine text={quote} clamp={3} />
@@ -1009,7 +1011,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
   const list = active === "all" ? all : all.filter((h) => v.labels.labelOf(h.labelId).id === active);
   const playingId = v.reel ? v.reel.ids[v.reel.index] : null;
   if (all.length === 0) {
-    return <Empty icon={HighlighterIcon} title="No highlights yet" line="Select words in the transcript, or use Highlight in the player." />;
+    return <Empty icon={HighlighterIcon} title="No highlights yet" line="Select words in the transcript, or highlight what is playing from the player." />;
   }
   const copyAll = () => {
     const body = list

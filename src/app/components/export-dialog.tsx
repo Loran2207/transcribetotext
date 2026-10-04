@@ -565,7 +565,7 @@ export function ExportDialog({ open, onClose, records, availableRecords, format 
                 >
                   <TabsList variant="line" className="gap-[16px] border-b-0">
                     <TabsTrigger value="settings" variant="line" className="text-[13px]">Settings</TabsTrigger>
-                    <TabsTrigger value="transcript" variant="line" className="text-[13px]">Transcript</TabsTrigger>
+                    <TabsTrigger value="transcript" variant="line" className="text-[13px]">Preview</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>

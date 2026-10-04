@@ -98,11 +98,11 @@ export function NameField({ value, onChange, onCommit, onCancel, label, placehol
   const keep = (e: React.MouseEvent) => e.preventDefault();
   return (
     <>
-      <Input autoFocus value={value} maxLength={maxLength} onChange={(e) => onChange(e.target.value)} onBlur={commitOnBlur ? onCommit : undefined} placeholder={placeholder} aria-label={label} onKeyDown={(e) => { if (e.key === "Enter") onCommit(); if (e.key === "Escape") onCancel(); e.stopPropagation(); }} className={cn("min-w-0 flex-1", phone ? "h-10 rounded-xl px-3 text-[14px]" : "h-8 rounded-[7px] px-2 text-[13px]")} />
-      <button type="button" {...{ [`data-${kind}-save`]: "" }} aria-label={saveLabel} onMouseDown={keep} onClick={onCommit} disabled={!value.trim() || blocked} className={cn("flex shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/90 disabled:opacity-40", phone ? "size-8" : "size-7")}>
+      <Input autoFocus value={value} maxLength={maxLength} onChange={(e) => onChange(e.target.value)} onBlur={commitOnBlur ? onCommit : undefined} placeholder={placeholder} aria-label={label} onKeyDown={(e) => { if (e.key === "Enter") onCommit(); if (e.key === "Escape") onCancel(); e.stopPropagation(); }} className={cn("min-w-0 flex-1", phone ? "h-10 rounded-xl px-3 text-[14px]" : "h-8 rounded-[7px] px-2 text-[13px] [@media(pointer:coarse)]:h-9")} />
+      <button type="button" {...{ [`data-${kind}-save`]: "" }} aria-label={saveLabel} onMouseDown={keep} onClick={onCommit} disabled={!value.trim() || blocked} className={cn("flex shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/90 disabled:opacity-40", phone ? "size-9" : "size-7 [@media(pointer:coarse)]:size-9")}>
         <Icon icon={Tick02Icon} size={phone ? 16 : 14} />
       </button>
-      <button type="button" {...{ [`data-${kind}-cancel`]: "" }} aria-label="Cancel" onMouseDown={keep} onClick={onCancel} className={cn("flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-muted", phone ? "size-8" : "size-7")}>
+      <button type="button" {...{ [`data-${kind}-cancel`]: "" }} aria-label="Cancel" onMouseDown={keep} onClick={onCancel} className={cn("flex shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-muted", phone ? "size-9" : "size-7 [@media(pointer:coarse)]:size-9")}>
         <Icon icon={Cancel01Icon} size={phone ? 15 : 13} />
       </button>
     </>

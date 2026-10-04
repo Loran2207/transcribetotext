@@ -595,9 +595,11 @@ function SelectionHighlightPill({
   const [open, setOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
   const [left, setLeft] = useState(position.x);
+  const [height, setHeight] = useState(38);
   useLayoutEffect(() => {
     setLeft(clampToColumn(position.x, barRef.current?.offsetWidth ?? 0));
   }, [position.x]);
+  useLayoutEffect(() => { setHeight(barRef.current?.offsetHeight ?? 38); }, []);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
   const action = "h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground data-[state=open]:bg-muted/70 [@media(pointer:coarse)]:h-9";
   return (
@@ -605,7 +607,7 @@ function SelectionHighlightPill({
       ref={barRef}
       data-selection-pill=""
       className="fixed z-50 flex items-center gap-0.5 rounded-full border border-border/70 bg-background p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
-      style={{ left, top: below ? position.bottom + 10 : position.y - 40 }}
+      style={{ left, top: below ? position.bottom + 10 : position.y - height - 2 }}
       onMouseDown={(e) => { if (!open) e.preventDefault(); }}
       onPointerDown={onPress}
     >
@@ -1926,7 +1928,7 @@ export function TranscriptViewChecks() {
   return (
     <div className="flex items-center gap-3">
       {([["speakers", "Speakers"], ["timestamps", "Timestamps"]] as const).map(([k, label]) => (
-        <label key={k} className="flex h-7 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
+        <label key={k} className="flex h-7 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none [@media(pointer:coarse)]:h-9">
           <FigmaCheckbox checked={view[k]} onChange={() => toggle(k)} />
           <span>{label}</span>
         </label>
@@ -3904,7 +3906,7 @@ export function TranscriptionDetailPage() {
   /* Highlights only: a check like Speakers and Timestamps, first in the row,
      because it filters the words rather than changing how they look */
   const onlyHighlightsCheck = notesApi.highlights.length > 0 ? (
-    <label data-only-highlights="" data-on={onlyHighlights ? "true" : "false"} className="flex h-7 shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
+    <label data-only-highlights="" data-on={onlyHighlights ? "true" : "false"} className="flex h-7 shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none [@media(pointer:coarse)]:h-9">
       <FigmaCheckbox checked={onlyHighlights} onChange={() => setOnlyHighlights((v) => !v)} />
       <span>Highlights only</span>
     </label>
@@ -3967,33 +3969,36 @@ export function TranscriptionDetailPage() {
       requestAnimationFrame(settle);
     }, switching ? 80 : 0);
   }
+  /* the commented words themselves: in a long block its first line would leave them under the sheet */
+  const wordsOf = (segmentId: number, threadId?: string) =>
+    (threadId ? segmentRefs.current[segmentId]?.querySelector<HTMLElement>(`[data-th~="${threadId}"]`) : null) ?? segmentRefs.current[segmentId];
   function goToNote(anchor: Anchor, f: Focus) {
     if (noPanel) setActiveTab("transcript");
     setNoteFocus(f);
     /* touch: a comment picked in the list opens over its words with its tools, as a tap on the words does */
     const sheet = f.kind === "thread" && belowLg;
     if (sheet) setThreadSheet({ segmentId: anchor.segmentId });
-    window.setTimeout(() => segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: sheet ? "start" : "center" }), noPanel ? 80 : 0);
+    window.setTimeout(() => (sheet ? wordsOf(anchor.segmentId, f.id) : segmentRefs.current[anchor.segmentId])?.scrollIntoView({ behavior: "smooth", block: sheet ? "start" : "center" }), noPanel ? 80 : 0);
     if (f.kind === "highlight") window.setTimeout(() => setNoteFocus((cur) => (cur?.id === f.id ? null : cur)), 1800);
   }
   /* touch: the discussion opens from the bottom with its words above it, on the transcript */
-  function openSheetOver(segmentId: number) {
+  function openSheetOver(segmentId: number, threadId?: string) {
     if (noPanel) setActiveTab("transcript");
     setThreadSheet({ segmentId });
-    window.setTimeout(() => segmentRefs.current[segmentId]?.scrollIntoView({ behavior: "smooth", block: "start" }), noPanel ? 80 : 0);
+    window.setTimeout(() => wordsOf(segmentId, threadId)?.scrollIntoView({ behavior: "smooth", block: "start" }), noPanel ? 80 : 0);
   }
   function openThread(threadId: string) {
     const t = notesApi.threads.find((x) => x.id === threadId);
     if (!t) return;
     setNoteFocus({ kind: "thread", id: threadId });
-    if (belowLg) { openSheetOver(t.segmentId); return; }
+    if (belowLg) { openSheetOver(t.segmentId, t.id); return; }
     if (noPanel) setActiveTab("comments");
     else setPanelTab("comments");
   }
   function openBlockComments(segId: number) {
     setRevealedBlock(null);
-    if (belowLg) { openSheetOver(segId); return; }
     const first = notesApi.threads.find((t) => t.segmentId === segId && !t.resolved);
+    if (belowLg) { openSheetOver(segId, first?.id); return; }
     if (first) { setNoteFocus({ kind: "thread", id: first.id }); if (noPanel) setActiveTab("comments"); else setPanelTab("comments"); }
   }
   function handleMark(segId: number, run: Run, rect: DOMRect, lines: DOMRect[]) {
@@ -4023,7 +4028,7 @@ export function TranscriptionDetailPage() {
         onRemove={coarsePointer ? () => { closeMarkBar(); removeHighlightWithUndo(notesApi, h.id); } : undefined}
         onManage={manageLabels ? () => { closeMarkBar(); setManageLabelsOpen(true); } : undefined}
         trigger={
-          <button type="button" aria-label={`Label: ${label.name}. Change`} className="ml-0.5 rounded-full px-2 transition-colors hover:bg-muted data-[state=open]:bg-muted">
+          <button type="button" aria-label={`Label: ${label.name}. Change`} className="ml-0.5 inline-flex h-7 items-center rounded-full px-2 transition-colors hover:bg-muted data-[state=open]:bg-muted [@media(pointer:coarse)]:h-9">
             <LabelChip label={label}>
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><path d="M6 9l6 6 6-6" /></svg>
             </LabelChip>
@@ -4170,6 +4175,8 @@ export function TranscriptionDetailPage() {
       if (!window.matchMedia("(hover: none)").matches) return;
       window.clearTimeout(touchTimer);
       touchTimer = window.setTimeout(() => {
+        const t = document.activeElement;
+        if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || document.querySelector("[data-label-sheet], [data-label-menu], [data-manage-labels]")) return;
         const next = read();
         if (next) { setSelectionPill(next); setRevealedBlock(null); return; }
         if (Date.now() - pillPressRef.current < 800) return;
@@ -5148,7 +5155,7 @@ export function TranscriptionDetailPage() {
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
                   <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
                 </Button>
-                {templateCta}
+                {isOwner && templateCta}
               </div>
             )}
           </div>
