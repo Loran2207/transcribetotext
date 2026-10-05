@@ -64,7 +64,7 @@ export function MobileTopBar({ onNavigate }: { onNavigate: (page: string) => voi
       </button>
 
       {plan === "free" && (
-        <button onClick={() => onNavigate("settings")} aria-label="Start my trial now" className="flex items-center justify-center gap-[5px] size-[38px] md:w-auto md:h-[36px] md:pl-[12px] md:pr-[14px] rounded-full bg-primary/10 text-primary shrink-0 active:bg-primary/15 transition-colors">
+        <button data-tour="mobile-plan" onClick={() => onNavigate("settings")} aria-label="Start my trial now" className="flex items-center justify-center gap-[5px] size-[38px] md:w-auto md:h-[36px] md:pl-[12px] md:pr-[14px] rounded-full bg-primary/10 text-primary shrink-0 active:bg-primary/15 transition-colors">
           <Icon icon={Zap} className="size-[16px] md:size-[15px]" strokeWidth={2} fill="currentColor" />
           <span className="hidden md:inline text-[13px] font-semibold whitespace-nowrap">Start my trial now</span>
         </button>

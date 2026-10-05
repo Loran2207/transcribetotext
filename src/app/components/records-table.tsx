@@ -1720,8 +1720,11 @@ export function RecordsTable({ hideTopHeader = false, showAddFolderButton = fals
         ) : (
           <>
             <div className="grid grid-cols-1 gap-[10px]">
-              {pagedRecords.map((record) => (
-                <RecordCardMobile key={record.id} record={record} isTrash={activeTab === "Trash"} selected={selectedRows.has(record.id)} selectionMode={hasSelection} isShared={sharedIds.has(record.id)} onToggleSelect={() => toggleRow(record.id)} />
+              {/* the first card is the phone's stand-in for the desktop table in the tours */}
+              {pagedRecords.map((record, i) => (
+                <div key={record.id} data-tour={i === 0 ? "records-first-card" : undefined}>
+                  <RecordCardMobile record={record} isTrash={activeTab === "Trash"} selected={selectedRows.has(record.id)} selectionMode={hasSelection} isShared={sharedIds.has(record.id)} onToggleSelect={() => toggleRow(record.id)} />
+                </div>
               ))}
             </div>
             <PaginationBar compact total={filteredRecords.length} page={safePage} pageSize={pageSize} onPage={setPage} onPageSize={(n) => { setPageSize(n); setPage(1); }} />

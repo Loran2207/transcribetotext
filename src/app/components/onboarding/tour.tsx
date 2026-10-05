@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { ArrowLeft01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { Button } from "../ui/button";
-import { useIsPhone } from "../ui/use-mobile";
+import { useIsMobile, useIsPhone } from "../ui/use-mobile";
 import { cn } from "../ui/utils";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
@@ -64,6 +64,7 @@ export function OnboardingTour() {
   const { tour, nextStep, prevStep, endTour, celebration, dismissCelebration, guides, done, startGuide } = useOnboarding();
   const { setOpenModal } = useTranscriptionModals();
   const phone = useIsPhone();
+  const compact = useIsMobile();
   const reduce = useReducedMotion();
 
   /* the moment a lesson ends: confetti and a word; the last first step opens the reward dialog instead of a toast */
@@ -257,9 +258,12 @@ export function OnboardingTour() {
 
   /* on the phone the card sits at the bottom, unless the lit element is down there too;
      handed over, it goes to the top whenever it fits above the control, because the
-     bottom of a phone is where a sheet keeps its Start or Save button */
+     bottom of a phone is where a sheet keeps its Start or Save button. A whole
+     page lit stays at the bottom: its title and tabs, which the card talks
+     about, are at the top */
   const phoneCardH = cardRef.current?.offsetHeight ?? 190;
-  const phoneTop = !!(phone && rect && (handoff ? rect.top >= phoneCardH + 24 : rect.top + rect.height > window.innerHeight - 240));
+  const phonePage = !!(rect && (anchorName?.startsWith("page-") || rect.height > window.innerHeight * 0.7));
+  const phoneTop = !!(phone && rect && (handoff ? rect.top >= phoneCardH + 24 : !phonePage && rect.top + rect.height > window.innerHeight - 240));
 
   const spring = reduce ? { duration: 0 } : { type: "spring" as const, stiffness: 320, damping: 30 };
 
@@ -340,7 +344,7 @@ export function OnboardingTour() {
           </button>
         </div>
         <p className="text-[15px] font-semibold leading-[20px] text-foreground">{step.title}</p>
-        <p className="text-[13px] leading-[19px] text-foreground/80">{missing ? (handoff ? "This part is not on the screen right now. Close me and press the step again." : "This part is not on the screen right now. Skip ahead.") : (phone && step.phoneBody) || step.body}</p>
+        <p className="text-[13px] leading-[19px] text-foreground/80">{missing ? (handoff ? "This part is not on the screen right now. Close me and press the step again." : "This part is not on the screen right now. Skip ahead.") : (phone && step.phoneBody) || (compact && step.compactBody) || step.body}</p>
         <div className="mt-1 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1">
             {tour.guide.steps.map((_, i) => (

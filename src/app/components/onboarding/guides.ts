@@ -19,6 +19,8 @@ export type TourStep = {
   body: string;
   /* the words on a phone, where the control lives somewhere else (a sheet, the More menu) */
   phoneBody?: string;
+  /* the words below 1024px, where the right panel is gone and a top bar button stands in */
+  compactBody?: string;
   go: TourTarget;
   side?: "top" | "bottom" | "left" | "right";
   /* the last step may end on a real action instead of "Done" */
@@ -113,9 +115,9 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     seconds: 30,
     steps: [
       OPEN_RECORD_AGAIN,
-      { anchor: "record-translate|record-tabs", go: RECORD, side: "bottom", title: "Translate to", body: "The transcript and the summary, in another language. Next opens the list.", trigger: "view-reset" },
+      { anchor: "record-translate|record-translate-tablet|record-translate-phone|record-tabs", go: RECORD, side: "bottom", title: "Translate to", body: "The transcript and the summary, in another language. Next opens the list.", trigger: "view-reset" },
       { anchor: "record-translate-menu|record-translate", go: RECORD, side: "left", title: "Pick a language", body: "Dozens of them. I'll take Spanish for this one.", trigger: "translate-open" },
-      { anchor: "record-translate", go: RECORD, side: "bottom", title: "Then press Translate", body: "Spanish is picked. The Translate button next to it starts the work.", trigger: "translate-pick" },
+      { anchor: "record-translate|record-translate-tablet|record-translate-phone", go: RECORD, side: "bottom", title: "Then press Translate", body: "Spanish is picked. The Translate button next to it starts the work.", phoneBody: "Spanish is picked. On a phone the work starts the moment you pick a language.", trigger: "translate-pick" },
       { anchor: "record-tabs", go: RECORD, side: "bottom", title: "A tab for each language", body: "The Spanish transcript opens next to the original. Nothing is replaced: switch between them any time.", trigger: "translate-run" },
       { anchor: "record-copy|record-tabs", go: RECORD, side: "bottom", title: "Copy or export it", body: "Copy and Export now ask which language you want." },
     ],
@@ -152,7 +154,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       OPEN_RECORD_AGAIN,
       { anchor: "record-tabs", go: RECORD, side: "bottom", title: "The Summary tab", body: "Notes written from the transcript: the decisions, the action items, what to remember.", trigger: "tab-summary" },
       { anchor: "record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Apply template", body: "A template decides the shape: meeting notes, interview, lecture, action items. Pick one and the summary is rewritten in it." },
-      { anchor: "nav-templates|menu", go: RECORD, side: "right", title: "All templates live here", body: "Next takes you to the Templates page.", trigger: "tab-transcript" },
+      { anchor: "nav-templates|menu", go: HOME, side: "right", title: "All templates live here", body: "Next takes you to the Templates page.", trigger: "tab-transcript" },
       PAGE_TEMPLATES,
       { anchor: "templates-tabs", go: TEMPLATES, side: "bottom", title: "Ready to use", body: "Meeting notes, interviews, lectures and more. Star the ones you use and they stay close." },
       { anchor: "templates-grid|templates-tabs", go: TEMPLATES, side: "top", title: "See it before you apply", body: "Open a template to read its example summary. Then apply it from any recording." },
@@ -178,9 +180,9 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       OPEN_RECORD_AGAIN,
       { anchor: "record-share|record-speakers-chip", go: RECORD, side: "bottom", title: "Share", body: "Invite people by email or turn on a link. Next opens it.", trigger: "share-close" },
       { anchor: "share-dialog", go: RECORD, side: "right", title: "Who can see it", body: "Only the people you invite, or anyone with the link. They see the recording, its transcript and its summary.", trigger: "share-open" },
-      { anchor: "record-copy|record-share", go: RECORD, side: "bottom", title: "Or just copy", body: "No invite needed when you only want the words. Next opens Copy.", trigger: "share-close" },
+      { anchor: "record-copy|record-share|record-more", go: RECORD, side: "bottom", title: "Or just copy", body: "No invite needed when you only want the words. Next opens Copy.", phoneBody: "No invite needed when you only want the words. Copy is under More; Next opens it.", trigger: "share-close" },
       { anchor: "record-copy-menu|record-copy", go: RECORD, side: "left", title: "Transcript or summary", body: "Either one goes straight to your clipboard, ready to paste into an email or a doc.", trigger: "copy-open" },
-      { anchor: "nav-shared|menu", go: RECORD, side: "right", title: "Shared with me", body: "Recordings other people share with you land here.", trigger: "copy-close" },
+      { anchor: "nav-shared|menu", go: HOME, side: "right", title: "Shared with me", body: "Recordings other people share with you land here.", trigger: "copy-close" },
     ],
   },
   {
@@ -193,7 +195,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       { anchor: "records-tabs|home-records", go: RECORDS, side: "bottom", title: "Recent, Starred, Shared, Trash", body: "Star what you come back to. Trash keeps deleted recordings until you empty it." },
       { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Create a folder", body: "One per client or project. Next opens the form.", trigger: "add-folder-close" },
       { anchor: "add-folder-dialog", go: RECORDS, side: "right", title: "A name and a colour", body: "That is all a folder needs. It appears in the sidebar the moment you press Create.", trigger: "add-folder-open" },
-      { anchor: "records-table|home-records", go: RECORDS, side: "bottom", title: "Move recordings", body: "Tick one or more and choose Move to folder. You can also pick a folder while uploading.", trigger: "add-folder-close" },
+      { anchor: "records-table|records-first-card|home-records", go: RECORDS, side: "bottom", title: "Move recordings", body: "Tick one or more and choose Move to folder. You can also pick a folder while uploading.", trigger: "add-folder-close" },
       { anchor: "sidebar-folders|menu", go: RECORDS, side: "right", title: "Share a whole folder", body: "Hover a folder and press the people icon. Everyone invited sees every recording in it." },
     ],
   },
@@ -204,10 +206,10 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     steps: [
       { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Where your calls live", body: "Meetings, in the sidebar. Next takes you there." },
       PAGE_MEETINGS,
-      { anchor: "meetings-tabs", go: CALENDAR, side: "bottom", title: "Upcoming, past, settings", body: "What is coming, what was recorded, and the calendars behind it.", trigger: "meetings-upcoming" },
+      { anchor: "meetings-tabs|meetings-connect", go: CALENDAR, side: "bottom", title: "Upcoming, past, settings", body: "What is coming, what was recorded, and the calendars behind it, once a calendar is connected.", trigger: "meetings-upcoming" },
       { anchor: "meetings-accounts|meetings-connect|meetings-tabs", go: CALENDAR, side: "top", title: "Connect a calendar once", body: "Google or Outlook. Every meeting shows up here by itself. With nothing connected, this page asks you to connect first.", trigger: "meetings-upcoming" },
-      { anchor: "calendar-week|meetings-tabs", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Each meeting has a switch. On, and the recorder joins by itself; the transcript is ready when the call ends.", trigger: "meetings-upcoming" },
-      { anchor: "home-card-meeting|nav-calendar", go: HOME, side: "bottom", title: "Or record one now", body: "Paste any invite link from the Home page. Same recorder, no calendar needed." },
+      { anchor: "calendar-week|meetings-tabs|meetings-connect", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Each meeting has a switch. On, and the recorder joins by itself; the transcript is ready when the call ends.", trigger: "meetings-upcoming" },
+      { anchor: "home-card-meeting|add-fab|nav-calendar", go: HOME, side: "bottom", title: "Or record one now", body: "Paste any invite link from the Home page. Same recorder, no calendar needed." },
     ],
   },
   {
@@ -216,7 +218,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     seconds: 25,
     steps: [
       { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Searches what was said, not only the titles. Ctrl K opens it from anywhere.", quickFind: { open: false, query: "" } },
-      { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A name, a topic, a phrase. I typed one for you.", quickFind: { open: true, query: "speaker" } },
+      { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A name, a topic, a phrase. I typed one for you.", quickFind: { open: true, query: "record" } },
       { anchor: "quick-find-results", go: HOME, side: "bottom", title: "Every match, with its moment", body: "Each result is a recording where those words were said. Click one to open it right there.", quickFind: { open: true } },
       { anchor: "quick-find-filters", go: HOME, side: "bottom", title: "Narrow it down", body: "By folder, source, who recorded it or when.", quickFind: { open: true } },
     ],
@@ -261,8 +263,8 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     seconds: 20,
     steps: [
       PAGE_HOME,
-      { anchor: "plan-card", go: HOME, side: "left", title: "What Free includes", body: "The files you have used this month and the day the count resets." },
-      { anchor: "plan-cta|plan-card", go: HOME, side: "left", title: "When you need more", body: "Start the trial or upgrade, right from this card." },
+      { anchor: "plan-card|mobile-plan", go: HOME, side: "left", title: "What Free includes", body: "The files you have used this month and the day the count resets.", compactBody: "This button opens your plan: what Free includes and what an upgrade adds." },
+      { anchor: "plan-cta|plan-card|mobile-plan", go: HOME, side: "left", title: "When you need more", body: "Start the trial or upgrade, right from this card.", compactBody: "Start the trial or upgrade from the same button." },
     ],
   },
 ];
