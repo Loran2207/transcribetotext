@@ -833,6 +833,58 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 
 **Rule:** Use `react-dnd` with `HTML5Backend`. Do not introduce alternative DnD libraries.
 
+### 7p. Focus, Escape and touch
+
+These came out of the record page (comments, highlights, labels) and apply to any new surface.
+
+**A dialog gives focus back to what opened it** (WAI-ARIA dialog pattern). Read the opener at the moment the dialog is asked to open, give it back in the dialog's `onCloseAutoFocus`. `focusOrigin()` (`focus-origin.ts`) walks from a menu item up to the menu's own button, through every submenu, because the item is gone once its menu closes.
+```tsx
+import { focusOrigin } from "./focus-origin";
+
+const origin = useRef<HTMLElement | null>(null);
+function openExport() { origin.current = focusOrigin(); setExportOpen(true); }
+
+<DialogContent onCloseAutoFocus={(e) => {
+  const el = origin.current; origin.current = null;
+  if (el?.isConnected) { e.preventDefault(); el.focus({ preventScroll: true }); }
+}}>
+```
+When the opener sat on a floating bar that the dialog put away (selection pill, highlight bar), the bar comes back first inside `flushSync`, then its button takes the focus: see `returnFocus` and `BarBack` in `transcription-detail-page.tsx`. A bar is `visibility:hidden` until it measures itself and its buttons fade in from hidden (`transition-all`), so focus it with `focusWhenShown` (tries again for a few frames until the focus lands).
+
+Gotchas:
+- Give focus back in `onCloseAutoFocus`, never right after `setOpen(false)`: Radix calls it once the content is gone and the closing key press is over. This holds even for content that is unmounted rather than closed (the comment composer).
+- A press outside a non-modal card (Popover) means the user went elsewhere: forget the opener in `onInteractOutside`, nothing comes back. Radix's own Popover does the same.
+- A dialog that swaps Dialog for Drawer at the phone breakpoint remounts its content when the screen turns, and `onCloseAutoFocus` fires while it is still open. Only a real close gives focus back; a swap forgets the opener, because the page was laid out anew and a bar would come back where the words used to be: `onCloseAutoFocus={closedFocus(() => open)}`.
+
+**Something that opens from a menu item opens after the menu has closed.** The menu hands focus back to its trigger in `onCloseAutoFocus`, after its exit animation, and would take the focus from whatever you opened. Set a ref flag in `onSelect`, act in the menu's `onCloseAutoFocus`.
+```tsx
+const wantsEdit = useRef(false);
+<DropdownMenuItem onSelect={() => { wantsEdit.current = true; }}>Edit</DropdownMenuItem>
+<DropdownMenuContent onCloseAutoFocus={(e) => {
+  if (!wantsEdit.current) return;
+  wantsEdit.current = false; e.preventDefault(); flushSync(() => setEditing(true)); field.current?.focus();
+}}>
+```
+Files: `annotations-ui.tsx` (comment Edit), `labels-ui.tsx` (Change color).
+
+**Escape peels one layer at a time.** Radix calls `preventDefault()` on the Escape it uses to close a layer. A `window` keydown listener for a bar or a highlight must skip that Escape, or one press closes two things.
+```tsx
+const esc = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) onClose(); };
+```
+A field inside a layer takes Escape first through the layer's `onEscapeKeyDown` (`fieldTakesEscape` in `annotations-ui.tsx`: an open @ list closes before the card around it).
+
+**Touch targets are 36px.** On a coarse pointer, size the control up with `[@media(pointer:coarse)]:size-9` (or `:h-9`). When the drawn size must stay, give it an invisible hit area instead:
+```tsx
+className="relative [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-2.5"
+```
+Desktop (fine pointer) stays pixel-identical. When a taller tab or button would push its row, trade the margin above it for padding inside it, so the row stays where it was (record page tabs, Export tabs).
+
+**One name field, one action sheet.** Renaming or adding a name uses `NameField` (`speaker-picker.tsx`: line, filled check to save, x to cancel; Enter and Escape do the same). "What can I do with this" on a phone uses `ActionSheet` (`action-sheet.tsx`) with the object's glyph in `mark`, its colour in `tile`, its name in `title`. Do not build another.
+
+**A shared record opens as a reader.** The list passes who shared it through history state, not the URL: ``navigate(`/transcriptions/${id}`, { state: { sharedBy: owner.email } })``, read in `src/lib/share-demo.ts`. A reader sees no control that cannot act for them (no Move to folder, no Apply template, no folder chip); hide it, do not disable it, and say plainly who can act ("When {owner} adds one, it shows here.").
+
+**Phone text selection sends no mouseup.** Read the selection on `selectionchange` once the handles rest (350ms), only under `(hover: none)`, and ignore it while a field or a label sheet has the focus (record page `useEffect` around `selectionchange`).
+
 ---
 
 ## 8. FILE STRUCTURE

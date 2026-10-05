@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
@@ -10,6 +11,7 @@ import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotatio
 import { coversBlock, mergesWith, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
 import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, clampToColumn, edgeLine, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
 import { HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
+import { focusOrigin } from "./focus-origin";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, RemoveSpeakerDialog, SpeakersChip, PencilIcon, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
@@ -612,7 +614,7 @@ function SelectionHighlightPill({
       onPointerDown={onPress}
     >
       <HighlightButton labels={labels} sheet={sheet} variant="bar" side={below ? "bottom" : "top"} shortcut="H" open={menuOpen} onOpenChange={onMenuOpenChange} onHighlight={(id) => onHighlight(id)} onManage={onManageLabels} />
-      <Button size="sm" variant="ghost" className={action} onClick={onComment}>
+      <Button size="sm" variant="ghost" data-pill-comment="" className={action} onClick={onComment}>
         <Icon icon={CommentAdd01Icon} className="size-[14px]" strokeWidth={1.8} />Comment
       </Button>
       {speaker && (
@@ -1453,7 +1455,7 @@ function MediaPlayer({
           {leading}
         </div>
         <div className="flex items-center justify-center gap-1.5">
-          <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.max(0, progress[0] - (5 / totalSeconds) * 100))])} title="Back 5s">
+          <Button variant="outline" size="icon" className="size-8 rounded-full border-border [@media(pointer:coarse)]:size-9" onClick={() => onProgressChange([(Math.max(0, progress[0] - (5 / totalSeconds) * 100))])} title="Back 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 19l-7-7 7-7" /><text x="14" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
           <Button
@@ -1466,7 +1468,7 @@ function MediaPlayer({
               : <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg><span className="text-[13px] font-semibold">Play</span></>
             }
           </Button>
-          <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])} title="Forward 5s">
+          <Button variant="outline" size="icon" className="size-8 rounded-full border-border [@media(pointer:coarse)]:size-9" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])} title="Forward 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l7 7-7 7" /><text x="2" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
         </div>
@@ -1474,7 +1476,7 @@ function MediaPlayer({
         <div className="flex items-center justify-end gap-2">
           {trailing && <span className="mr-auto pl-4">{trailing}</span>}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border [@media(pointer:coarse)]:h-9">{speed}x</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
           </DropdownMenu>
           <span className="text-xs tabular-nums text-muted-foreground">{duration}</span>
@@ -1662,6 +1664,34 @@ function RecordingOptions({ compact }: { compact: boolean }) {
   );
 }
 
+
+/* A floating bar a dialog put away: brings it back and names the button that takes the focus */
+type BarBack = () => { focus: string; select?: () => void; reveal?: boolean };
+
+/* A bar measures itself before it shows, and its buttons fade in from hidden:
+   until they show they cannot take the focus. Try again on the next frames,
+   a moment at most. */
+function focusWhenShown(el: HTMLElement, frames = 10) {
+  el.focus({ preventScroll: true });
+  if (document.activeElement !== el && frames > 0) window.requestAnimationFrame(() => focusWhenShown(el, frames - 1));
+}
+
+/* Selects a line's characters from start to end again, counted the way the
+   selection bar counts them: through the line's text, whatever wraps it. */
+function selectInLine(line: HTMLElement, start: number, end: number) {
+  const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+  let offset = 0, started = false;
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const len = node.textContent?.length ?? 0;
+    if (!started && start <= offset + len) { range.setStart(node, start - offset); started = true; }
+    if (started && end <= offset + len) { range.setEnd(node, end - offset); break; }
+    offset += len;
+  }
+  const sel = window.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
 
 /* A folder drawn in its own colour: the glyph the Move menu uses, so a folder
    looks the same wherever it is named. */
@@ -2329,7 +2359,7 @@ function PageHeader({
                   <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                   Copy summary
                 </DropdownMenuItem>
-              ) : (
+              ) : !sharedOwner && (
                 <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={onSetTemplate}>
                   Apply template
                 </DropdownMenuItem>
@@ -3670,6 +3700,32 @@ export function TranscriptionDetailPage() {
     };
   }, [activeTranslationLang, translatedSegments, translatedSummary, translationSummaryStatus, contentSummary, selectedRecord?.language]);
 
+  /* A dialog hands focus back to what opened it when it closes (WAI-ARIA).
+     When that sat on a floating bar the dialog put away, the bar comes back
+     first and its button takes the focus. */
+  const dialogOrigin = useRef<{ el: HTMLElement | null; back?: BarBack } | null>(null);
+  const rememberOrigin = (back?: BarBack) => { dialogOrigin.current = { el: focusOrigin(), back }; };
+  const returnFocus = useCallback((e?: Event) => {
+    const origin = dialogOrigin.current;
+    dialogOrigin.current = null;
+    let bar: ReturnType<BarBack> | undefined;
+    if (origin?.back) flushSync(() => { bar = origin.back?.(); });
+    /* the words are selected once the page has drawn them without the dialog's marks */
+    bar?.select?.();
+    const el = bar ? document.querySelector<HTMLElement>(bar.focus) : origin?.el;
+    if (!el?.isConnected) return;
+    e?.preventDefault();
+    /* a list drawn anew starts at its top: the row comes into view */
+    if (bar?.reveal) el.scrollIntoView({ block: "nearest" });
+    focusWhenShown(el);
+  }, []);
+  /* Only a real close gives the focus back. A turned screen swaps a dialog for
+     a sheet while it stays open, and the page is laid out anew: the words and
+     their bar have moved, so nothing is brought back. */
+  const closedFocus = (stillOpen: () => boolean) => (e: Event) => {
+    if (stillOpen()) dialogOrigin.current = null;
+    else returnFocus(e);
+  };
   const [exportDialogOpen, setExportDialogOpen] = useState(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("export") === "1");
   const [copySheetOpen, setCopySheetOpen] = useState(false);
@@ -3678,6 +3734,7 @@ export function TranscriptionDetailPage() {
   /* the format picked in the Export menu is the one the export opens with */
   const [exportFormat, setExportFormat] = useState<ExportFormat | undefined>(undefined);
   function exportTranscript(format?: ExportFormat) {
+    rememberOrigin();
     setExportFormat(format);
     setExportDialogOpen(true);
   }
@@ -3767,7 +3824,20 @@ export function TranscriptionDetailPage() {
   const blockSpeaker = (segmentId: number) => (isSingleSpeaker ? undefined : displaySegments.find((sg) => sg.id === segmentId)?.speaker.name);
 
   /* labels belong to the workspace: only the record's owner manages them */
-  const manageLabels = isOwner ? () => setManageLabelsOpen(true) : undefined;
+  const openManageLabels = (back?: BarBack) => { rememberOrigin(back); setManageLabelsOpen(true); };
+  const manageLabels = isOwner ? () => openManageLabels() : undefined;
+  /* the selected words and their bar come back, the way they were */
+  const pillBack = (pill: NonNullable<typeof selectionPill>, button: string): BarBack => () => {
+    setSelectionPill(pill);
+    return {
+      focus: `[data-selection-pill] ${button}`,
+      select: () => {
+        const line = segmentRefs.current[pill.segmentId]?.querySelector<HTMLElement>("[data-transcript-line]");
+        if (line) selectInLine(line, pill.start, pill.end);
+      },
+    };
+  };
+  const markBarBack = (bar: NonNullable<typeof markBar>, button: string): BarBack => () => { setMarkBar(bar); return { focus: `[data-mark-bar] ${button}` }; };
   const timeOf = (a: Anchor) => { const r = rangeSeconds(a); return r ? clock(r.start) : blockTimestamp(a.segmentId); };
   const continuationOf = (seg: Segment) => {
     const i = displaySegments.findIndex((sg) => sg.id === seg.id);
@@ -3920,7 +3990,8 @@ export function TranscriptionDetailPage() {
     if (mine) notesApi.setLabel(mine.id, labelId);
     else notesApi.addHighlight({ segmentId: segId, start: 0, end: len }, labelId, false);
   }
-  function startComment(anchor: Anchor, rect: { left: number; top: number; width: number; height: number }, returnTo?: string) {
+  function startComment(anchor: Anchor, rect: { left: number; top: number; width: number; height: number }, returnTo?: string, back?: BarBack) {
+    rememberOrigin(back);
     const a = { segmentId: anchor.segmentId, start: anchor.start, end: anchor.end };
     setMarkBar(null);
     setSelectionPill(null);
@@ -3936,6 +4007,7 @@ export function TranscriptionDetailPage() {
   function submitComposer(body: string) {
     if (!composer) return;
     const threadId = notesApi.addThread({ ...composer.anchor, quote: composer.quote, timestamp: composer.timestamp }, body);
+    dialogOrigin.current = null;
     if (composer.returnTo) setActiveTab(composer.returnTo);
     setComposer(null);
     setNoteFocus({ kind: "thread", id: threadId });
@@ -3948,6 +4020,10 @@ export function TranscriptionDetailPage() {
     if (belowLg) { startComment(anchor, { left: 0, top: 0, width: 0, height: 0 }); return; }
     const switching = noPanel && activeTab !== "transcript";
     const from = switching ? activeTab : undefined;
+    /* the list goes away with its tab: a cancel brings the tab back, and the focus to the row's button */
+    const back: BarBack | undefined = switching && highlightId
+      ? () => ({ focus: `[data-highlight-item="${highlightId}"] button:is([aria-label="Comment on highlight"], [aria-label="More"])`, reveal: true })
+      : undefined;
     if (switching) setActiveTab("transcript");
     const target = () => {
       const block = segmentRefs.current[anchor.segmentId];
@@ -3964,7 +4040,7 @@ export function TranscriptionDetailPage() {
         last = top;
         if (still < 4 && frames++ < 90) { requestAnimationFrame(settle); return; }
         const r = target()?.getBoundingClientRect();
-        startComment(anchor, r ? { left: r.left, top: r.top, width: r.width, height: r.height } : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 }, from);
+        startComment(anchor, r ? { left: r.left, top: r.top, width: r.width, height: r.height } : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 }, from, back);
       };
       requestAnimationFrame(settle);
     }, switching ? 80 : 0);
@@ -4026,9 +4102,9 @@ export function TranscriptionDetailPage() {
         onPick={(id) => { notesApi.setLabel(h.id, id); closeMarkBar(); }}
         /* on touch the sheet covers the bar and its Remove, so the sheet carries it */
         onRemove={coarsePointer ? () => { closeMarkBar(); removeHighlightWithUndo(notesApi, h.id); } : undefined}
-        onManage={manageLabels ? () => { closeMarkBar(); setManageLabelsOpen(true); } : undefined}
+        onManage={manageLabels ? () => { openManageLabels(markBarBack(markBar, "[data-mark-label]")); closeMarkBar(); } : undefined}
         trigger={
-          <button type="button" aria-label={`Label: ${label.name}. Change`} className="ml-0.5 inline-flex h-7 items-center rounded-full px-2 transition-colors hover:bg-muted data-[state=open]:bg-muted [@media(pointer:coarse)]:h-9">
+          <button type="button" data-mark-label="" aria-label={`Label: ${label.name}. Change`} className="ml-0.5 inline-flex h-7 items-center rounded-full px-2 transition-colors hover:bg-muted data-[state=open]:bg-muted [@media(pointer:coarse)]:h-9">
             <LabelChip label={label}>
               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><path d="M6 9l6 6 6-6" /></svg>
             </LabelChip>
@@ -4047,7 +4123,7 @@ export function TranscriptionDetailPage() {
     const actions: BarAction[] = [
       thread
         ? { key: "open", label: "Open comment", icon: Comment01Icon, onClick: () => openThread(thread) }
-        : { key: "comment", label: "Comment", icon: CommentAdd01Icon, onClick: () => startComment(h, { left: r.left, top: r.top, width: r.width, height: r.bottom - r.top }) },
+        : { key: "comment", label: "Comment", icon: CommentAdd01Icon, onClick: () => startComment(h, { left: r.left, top: r.top, width: r.width, height: r.bottom - r.top }, undefined, markBarBack(markBar, "[data-bar-action=comment]")) },
       { key: "copy", label: "Copy", icon: Copy01Icon, onClick: () => { void navigator.clipboard?.writeText(text); toast("Text copied"); } },
     ];
     if (h.by.you || isOwner) actions.push({ key: "remove", label: "Remove", icon: Delete02Icon, danger: true, onClick: () => removeHighlightWithUndo(notesApi, h.id) });
@@ -4238,7 +4314,7 @@ export function TranscriptionDetailPage() {
     if (!selectionPill) return;
     const { segmentId } = selectionPill;
     const r = snapRange(blockText(segmentId), selectionPill.start, selectionPill.end);
-    if (r.end > r.start) startComment({ segmentId, ...r }, selectionPill.rect);
+    if (r.end > r.start) startComment({ segmentId, ...r }, selectionPill.rect, undefined, pillBack(selectionPill, "[data-pill-comment]"));
   }
 
   const runGeneration = (selected: Template) => {
@@ -4621,7 +4697,7 @@ export function TranscriptionDetailPage() {
           trailing={(
             <>
               {/* the folder as a pill in the meta line on the web too, like the desktop shell (Kirill 23.09) */}
-              {!desktopShell && <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />}
+              {!desktopShell && !sharedOwner && <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />}
               {!isSingleSpeaker && !isJobTranscribing && (
                 <SpeakersPanel speakers={managedSpeakers} actions={speakersPanelActions} open={speakersPanelOpen} onOpenChange={setSpeakersPanelOpen} onAskRemove={setRemoveTarget}>
                   <SpeakersChip speakers={resolved.speakers} />
@@ -4631,8 +4707,8 @@ export function TranscriptionDetailPage() {
           )}
           chips={desktopShell ? (<>
             <MeetingCard meetingId={recordMeetingId} onChange={setRecordMeetingId} dateLabel={(selectedRecord?.dateCreated ?? "Mar 24, 2026 · 10:30 AM").split(/[,·]/)[0].trim()} />
-            <span className="text-border">{"\u2022"}</span>
-            <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />
+            {!sharedOwner && <><span className="text-border">{"\u2022"}</span>
+            <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} /></>}
           </>) : undefined}
           onCreateFolderAndMove={createFolderAndMove}
           onExport={exportTranscript}
@@ -4657,7 +4733,7 @@ export function TranscriptionDetailPage() {
             </Button>
           </div>
         )}
-        <ExportDialog open={exportDialogOpen} format={exportFormat} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
+        <ExportDialog open={exportDialogOpen} format={exportFormat} onClose={() => setExportDialogOpen(false)} onCloseAutoFocus={closedFocus(() => exportDialogOpen)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
 
         <ShareDialog
           open={shareDialogOpen}
@@ -4669,9 +4745,9 @@ export function TranscriptionDetailPage() {
 
         <UpgradeGateModal open={limitedModalOpen} onOpenChange={setLimitedModalOpen} variant="done" />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden max-md:[@media(pointer:coarse)]:mt-1.5">
           <div className="flex items-end justify-between gap-4 border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto max-md:[mask-image:linear-gradient(to_right,black_calc(100%_-_32px),transparent)]">
-            <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
+            <TabsList variant="line" className="border-b-0 max-lg:shrink-0 max-md:[@media(pointer:coarse)]:*:pt-2.5 md:max-lg:[@media(pointer:coarse)]:*:pt-0.5">
               {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
@@ -4931,11 +5007,13 @@ export function TranscriptionDetailPage() {
                 </div>
                 <h3 className="text-[16px] font-semibold text-foreground">No summary yet</h3>
                 <p className="text-[13px] text-muted-foreground leading-relaxed mt-1.5 max-w-[360px]">
-                  Pick a template and we will turn this transcript into a structured summary.
+                  {sharedOwner ? `When ${sharedOwner.name} adds one, it shows here.` : "Pick a template and we will turn this transcript into a structured summary."}
                 </p>
-                <Button className="rounded-full h-9 px-5 text-[13px] font-medium mt-5" onClick={() => setTemplatePickerOpen(true)}>
-                  Apply template
-                </Button>
+                {!sharedOwner && (
+                  <Button className="rounded-full h-9 px-5 text-[13px] font-medium mt-5" onClick={() => setTemplatePickerOpen(true)}>
+                    Apply template
+                  </Button>
+                )}
               </div>
             ) : (
               <SummaryTab summaryText={contentSummary} template={activeTemplate} highlight={summaryQuery} />
@@ -5057,7 +5135,9 @@ export function TranscriptionDetailPage() {
           {!sharedOwner && (
             <ActionSheetItem icon={Zap} label="Regenerate summary" onClick={() => { setMoreSheetOpen(false); regenerateSummary(); }} />
           )}
-          <ActionSheetItem icon={FolderOpen} label="Move to folder" onClick={() => { setMoreSheetOpen(false); setMoveDialogOpen(true); }} />
+          {!sharedOwner && (
+            <ActionSheetItem icon={FolderOpen} label="Move to folder" onClick={() => { setMoreSheetOpen(false); setMoveDialogOpen(true); }} />
+          )}
           {/* Leaving the object comes last, wherever the sheet is opened. */}
           {sharedOwner ? (
             <ActionSheetItem icon={Cancel01Icon} label="Remove from Shared" onClick={() => setMoreSheetOpen(false)} />
@@ -5192,7 +5272,7 @@ export function TranscriptionDetailPage() {
           onComment={handleSelectionComment}
           labels={labelsApi}
           sheet={coarsePointer}
-          onManageLabels={manageLabels && (() => { window.getSelection()?.removeAllRanges(); setSelectionPill(null); manageLabels(); })}
+          onManageLabels={manageLabels && (() => { openManageLabels(pillBack(selectionPill, "[data-highlight-button] button")); window.getSelection()?.removeAllRanges(); setSelectionPill(null); })}
           menuOpen={highlightMenu === "pill"}
           onMenuOpenChange={(o) => setHighlightMenu(o ? "pill" : null)}
           speaker={isSingleSpeaker || !isOwner ? undefined : (() => {
@@ -5207,10 +5287,12 @@ export function TranscriptionDetailPage() {
         />
       )}
       {composer && (
-        <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={cancelComposer} />
+        <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={cancelComposer} onOutside={() => { dialogOrigin.current = null; }}
+          /* the field leaves the page when it closes: it is open while it is there */
+          onCloseAutoFocus={closedFocus(() => !!document.querySelector("[data-comment-composer]"))} />
       )}
       {markBar && <MarkBar rect={markBar.rect} line={markBar.line ?? undefined} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
-      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} counts={labelCounts} elsewhere={labelsElsewhere} touch={coarsePointer} />
+      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} onCloseAutoFocus={closedFocus(() => manageLabelsOpen)} counts={labelCounts} elsewhere={labelsElsewhere} touch={coarsePointer} />
       {threadSheet && sheetThreads.length > 0 && <ThreadSheet threads={sheetThreads} v={notesView} onClose={() => setThreadSheet(null)} />}
     </div>
   );

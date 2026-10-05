@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactElement, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import {
   ArrowDown01Icon,
@@ -437,7 +438,7 @@ function Swatches({ value, onPick, label }: { value: LabelColor; onPick: (c: Lab
   );
 }
 
-export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhere = {}, touch = false }: { labels: LabelsApi; open: boolean; onOpenChange: (o: boolean) => void; counts: Record<string, number>; elsewhere?: Record<string, number>; touch?: boolean }) {
+export function ManageLabelsDialog({ labels, open, onOpenChange, onCloseAutoFocus, counts, elsewhere = {}, touch = false }: { labels: LabelsApi; open: boolean; onOpenChange: (o: boolean) => void; onCloseAutoFocus?: (e: Event) => void; counts: Record<string, number>; elsewhere?: Record<string, number>; touch?: boolean }) {
   const phone = useIsPhone();
   const canHover = !phone && !touch;
   const [adding, setAdding] = useState(false);
@@ -447,6 +448,8 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
   const [renaming, setRenaming] = useState<{ id: string; draft: string } | null>(null);
   /* the swatches open under one row at a time: a label's id, or "new" for the label being added */
   const [colourFor, setColourFor] = useState<string | null>(null);
+  /* "Change color" from a row's menu: the colours open once the menu is gone, and take its focus */
+  const colourNext = useRef<string | null>(null);
   const [asking, setAsking] = useState<string | null>(null);
   /* Undo lives in the dialog: a toast behind its overlay cannot be pressed */
   const [removed, setRemoved] = useState<{ label: Label; index: number } | null>(null);
@@ -469,7 +472,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
   const escape = (e: KeyboardEvent) => {
     if (!adding && !renaming && !colourFor && !asking) return;
     e.preventDefault();
-    if (colourFor) setColourFor(null);
+    if (colourFor) { setColourFor(null); refocus(`[data-label-row="${colourFor}"] button[aria-label^="Color of"]`); }
     else if (renaming) endRename(renaming.id);
     else if (asking) setAsking(null);
     else cancelAdd();
@@ -552,8 +555,8 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
                     <Icon icon={MoreHorizontalIcon} className="size-[16px]" strokeWidth={2} />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem className="gap-2.5" onSelect={() => window.setTimeout(() => setColourFor(l.id), 60)}><Icon icon={PaintBoardIcon} className="size-4" strokeWidth={1.8} />Change color</DropdownMenuItem>
+                <DropdownMenuContent align="end" className="w-56" onCloseAutoFocus={(e) => { if (colourNext.current !== l.id) return; colourNext.current = null; e.preventDefault(); flushSync(() => setColourFor(l.id)); document.querySelector<HTMLElement>(`[data-manage-labels] [data-label-row="${l.id}"] ~ [data-label-colours] [aria-checked="true"]`)?.focus({ preventScroll: true }); }}>
+                  <DropdownMenuItem className="gap-2.5" onSelect={() => { colourNext.current = l.id; }}><Icon icon={PaintBoardIcon} className="size-4" strokeWidth={1.8} />Change color</DropdownMenuItem>
                   {l.record && <DropdownMenuItem className="gap-2.5" onSelect={() => labels.setOnlyHere(l.id, false)}><Icon icon={Globe02Icon} className="size-4" strokeWidth={1.8} />Use in all recordings</DropdownMenuItem>}
                   {canKeepHere(l) && <DropdownMenuItem className="gap-2.5" onSelect={() => labels.setOnlyHere(l.id, true)}><Icon icon={FileAudioIcon} className="size-4" strokeWidth={1.8} />Use in this recording only</DropdownMenuItem>}
                   {labels.labels.length > 1 && <DropdownMenuSeparator />}
@@ -569,7 +572,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
         )}
       </div>
       {renaming?.id === l.id && taken(renaming.draft, l.id) && note("Already a label")}
-      {colourFor === l.id && <Swatches value={l.color} label={`Color of ${l.name}`} onPick={(c) => { labels.update(l.id, { color: c }); setColourFor(null); }} />}
+      {colourFor === l.id && <Swatches value={l.color} label={`Color of ${l.name}`} onPick={(c) => { labels.update(l.id, { color: c }); setColourFor(null); refocus(`[data-label-row="${l.id}"] button[aria-label^="Color of"]`); }} />}
     </div>
   );
   const removedRow = removed && (
@@ -633,7 +636,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
     return (
       <>
         <Drawer open={open} onOpenChange={close}>
-          <DrawerContent data-manage-labels="" aria-describedby={undefined} onEscapeKeyDown={escape} className="max-h-[92vh] [&>div:first-child]:hidden">
+          <DrawerContent data-manage-labels="" aria-describedby={undefined} onEscapeKeyDown={escape} onCloseAutoFocus={onCloseAutoFocus} className="max-h-[92vh] [&>div:first-child]:hidden">
             <DrawerHeader className="flex-row items-center justify-between pb-1 text-left">
               <DrawerTitle className="text-[17px]">Labels</DrawerTitle>
               <button type="button" onClick={() => close(false)} aria-label="Close" className="-mr-1 inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><Icon icon={Cancel01Icon} size={16} /></button>
@@ -648,7 +651,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, counts, elsewhe
   }
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent data-manage-labels="" onEscapeKeyDown={escape} className="flex max-h-[min(88dvh,720px)] flex-col gap-0 p-0 outline-none sm:max-w-[440px] [&>button:last-child]:hidden" aria-describedby={undefined}>
+      <DialogContent data-manage-labels="" onEscapeKeyDown={escape} onCloseAutoFocus={onCloseAutoFocus} className="flex max-h-[min(88dvh,720px)] flex-col gap-0 p-0 outline-none sm:max-w-[440px] [&>button:last-child]:hidden" aria-describedby={undefined}>
         <DialogHeader className="shrink-0 flex-row items-center justify-between px-5 pb-2 pt-4 text-left">
           <DialogTitle className="text-[17px]">Labels</DialogTitle>
           <button type="button" onClick={() => close(false)} aria-label="Close" className="-mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [@media(pointer:coarse)]:size-9"><Icon icon={Cancel01Icon} size={16} /></button>

@@ -358,7 +358,8 @@ export function MarkBar({
   }, [rect.left, rect.width, line?.left, line?.width]);
   useLayoutEffect(() => { setHeight(ref.current?.offsetHeight ?? 38); }, []);
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    /* an Escape a layer above already used (a menu, a composer) leaves the bar */
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) onClose(); };
     window.addEventListener("keydown", esc);
     return () => window.removeEventListener("keydown", esc);
   }, [onClose]);
@@ -390,6 +391,7 @@ export function MarkBar({
       {actions.map((a) => (
         <Button
           key={a.key}
+          data-bar-action={a.key}
           size="sm"
           variant="ghost"
           className={cn("h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground [@media(pointer:coarse)]:h-9", a.danger && "hover:text-destructive")}
@@ -563,12 +565,18 @@ export function CommentComposer({
   quote,
   onSubmit,
   onCancel,
+  onOutside,
+  onCloseAutoFocus,
 }: {
   sheet: boolean;
   rect: { left: number; top: number; width: number; height: number };
   quote: string;
   onSubmit: (text: string) => void;
   onCancel: () => void;
+  /* a press outside the card on a desk: you went elsewhere, nothing comes back */
+  onOutside?: () => void;
+  /* once the field is gone: the focus goes back to what opened it */
+  onCloseAutoFocus?: (e: Event) => void;
 }) {
   const dirty = useRef(false);
   const setDirty = useRef((d: boolean) => { dirty.current = d; }).current;
@@ -578,7 +586,7 @@ export function CommentComposer({
   if (sheet && !phone) {
     return (
       <Dialog open onOpenChange={(o) => { if (!o) onCancel(); }}>
-        <DialogContent data-comment-composer="" aria-describedby={undefined} onInteractOutside={guard} onEscapeKeyDown={fieldTakesEscape} className="gap-0 p-5 sm:max-w-[480px] [&>button:last-child]:hidden">
+        <DialogContent data-comment-composer="" aria-describedby={undefined} onCloseAutoFocus={onCloseAutoFocus} onInteractOutside={guard} onEscapeKeyDown={fieldTakesEscape} className="gap-0 p-5 sm:max-w-[480px] [&>button:last-child]:hidden">
           <DialogHeader className="flex-row items-center justify-between pb-2 text-left">
             <DialogTitle className="text-[17px] font-semibold">Comment</DialogTitle>
             <button type="button" onClick={onCancel} aria-label="Close" className="-mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [@media(pointer:coarse)]:size-9"><Icon icon={Cancel01Icon} size={16} /></button>
@@ -594,7 +602,7 @@ export function CommentComposer({
   if (sheet) {
     return (
       <Drawer open onOpenChange={(o) => { if (!o) onCancel(); }}>
-        <DrawerContent data-comment-composer="" aria-describedby={undefined} onInteractOutside={guard} onEscapeKeyDown={fieldTakesEscape} className="[&>div:first-child]:hidden">
+        <DrawerContent data-comment-composer="" aria-describedby={undefined} onCloseAutoFocus={onCloseAutoFocus} onInteractOutside={guard} onEscapeKeyDown={fieldTakesEscape} className="[&>div:first-child]:hidden">
           <DrawerHeader className="flex-row items-center justify-between pb-2 text-left">
             <DrawerTitle className="text-[17px] font-semibold">Comment</DrawerTitle>
             <button type="button" onClick={onCancel} aria-label="Close" className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"><Icon icon={Cancel01Icon} size={16} /></button>
@@ -617,7 +625,7 @@ export function CommentComposer({
         <span aria-hidden className="pointer-events-none fixed" style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height }} />
       </PopoverAnchor>
       {/* the player sits under the transcript: near it the field opens above the words, so the @ list never makes it jump */}
-      <PopoverContent data-comment-composer="" side={side} align="start" sideOffset={8} collisionPadding={{ top: 8, left: 8, right: 8, bottom: 128 }} onInteractOutside={guard} onEscapeKeyDown={fieldTakesEscape} className="w-[320px] p-3">
+      <PopoverContent data-comment-composer="" side={side} align="start" sideOffset={8} onCloseAutoFocus={onCloseAutoFocus} collisionPadding={{ top: 8, left: 8, right: 8, bottom: 128 }} onInteractOutside={(e) => { guard(e); if (!e.defaultPrevented) onOutside?.(); }} onEscapeKeyDown={fieldTakesEscape} className="w-[320px] p-3">
         <CommentForm submitLabel="Comment" placeholder="Add a comment" onSubmit={onSubmit} onCancel={onCancel} onDirty={setDirty} grow={side === "top" ? "up" : "down"} />
       </PopoverContent>
     </Popover>

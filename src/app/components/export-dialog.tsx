@@ -120,9 +120,10 @@ function useIsPhone() {
    only its top corners rounded - the sort sheet and the move-to-folder sheet
    are both built that way. On a tablet and up it is a centred card. The body
    is written once and the shell changes under it. */
-function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
+function Modal({ open, onOpenChange, onCloseAutoFocus, sheetClass, dialogClass, children }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  onCloseAutoFocus?: (e: Event) => void;
   sheetClass?: string;
   dialogClass?: string;
   children: React.ReactNode;
@@ -131,7 +132,7 @@ function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
   if (isPhone) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className={"rounded-t-[22px] p-0 gap-0 flex flex-col " + (sheetClass || "")}>
+        <SheetContent side="bottom" onCloseAutoFocus={onCloseAutoFocus} className={"rounded-t-[22px] p-0 gap-0 flex flex-col " + (sheetClass || "")}>
           {children}
         </SheetContent>
       </Sheet>
@@ -139,7 +140,7 @@ function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={"p-0 gap-0 overflow-hidden flex flex-col " + (dialogClass || "")} aria-describedby={undefined}>
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus} className={"p-0 gap-0 overflow-hidden flex flex-col " + (dialogClass || "")} aria-describedby={undefined}>
         {children}
       </DialogContent>
     </Dialog>
@@ -215,8 +216,8 @@ function TranscriptPreview({ record, options }: { record: ExportableRecord; opti
   );
 }
 
-export function ExportDialog({ open, onClose, records, availableRecords, format }: {
-  open: boolean; onClose: () => void; records: ExportableRecord[]; availableRecords?: ExportableRecord[];
+export function ExportDialog({ open, onClose, onCloseAutoFocus, records, availableRecords, format }: {
+  open: boolean; onClose: () => void; onCloseAutoFocus?: (e: Event) => void; records: ExportableRecord[]; availableRecords?: ExportableRecord[];
   /* the format chosen on the way in (the record's Export menu); a Pro format stays Plain text on the free plan */
   format?: ExportFormat;
 }) {
@@ -405,7 +406,7 @@ export function ExportDialog({ open, onClose, records, availableRecords, format 
               </SelectContent>
             </Select>
           </div>
-          <button type="button" className="flex items-center gap-[4px] text-[13px] text-foreground/70 hover:text-foreground w-fit" onClick={() => setMoreOpen(!moreOpen)}>
+          <button type="button" className="relative flex items-center gap-[4px] text-[13px] text-foreground/70 hover:text-foreground w-fit [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-x-1 [@media(pointer:coarse)]:after:-inset-y-2" onClick={() => setMoreOpen(!moreOpen)}>
             More options
             <Icon icon={moreOpen ? ArrowUp01Icon : ArrowDown01Icon} size={13} strokeWidth={1.8} />
           </button>
@@ -462,6 +463,7 @@ export function ExportDialog({ open, onClose, records, availableRecords, format 
     <Modal
       open={open}
       onOpenChange={(o) => { if (!o) onClose(); }}
+      onCloseAutoFocus={onCloseAutoFocus}
       sheetClass="bg-background h-[84dvh]"
       dialogClass="bg-background lg:max-w-[960px]! sm:max-w-[560px] max-lg:h-[74dvh]"
     >
@@ -473,7 +475,7 @@ export function ExportDialog({ open, onClose, records, availableRecords, format 
           <button
             type="button"
             onClick={() => setFilesOpen(true)}
-            className="flex shrink-0 items-center gap-[6px] h-[26px] pl-[9px] pr-[11px] rounded-full border border-border bg-card text-muted-foreground active:bg-muted/50 transition-colors lg:hidden"
+            className="relative flex shrink-0 items-center gap-[6px] h-[26px] pl-[9px] pr-[11px] rounded-full border border-border bg-card text-muted-foreground active:bg-muted/50 transition-colors lg:hidden [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-[5px]"
           >
             <Icon icon={PencilEdit02Icon} size={13} strokeWidth={1.9} />
             <span className="text-[12px] font-medium text-foreground">{items.length === 1 ? "1 file" : `${items.length} files`}</span>
@@ -554,7 +556,7 @@ export function ExportDialog({ open, onClose, records, availableRecords, format 
                   Both sit clear of the dividers: an underline that lands on a
                   border reads as one thick line and the tabs stop looking like
                   tabs. */}
-              <div className="flex w-full shrink-0 items-end gap-[12px] border-b border-border px-[16px] pt-[10px] lg:hidden">
+              <div className="flex w-full shrink-0 items-end gap-[12px] border-b border-border px-[16px] pt-[10px] lg:hidden [@media(pointer:coarse)]:pt-0">
                 <span className="min-w-0 flex-1 truncate pb-[10px] text-[13px] font-medium text-foreground">
                   {activeRecord ? activeRecord.title : ""}
                 </span>
@@ -563,7 +565,7 @@ export function ExportDialog({ open, onClose, records, availableRecords, format 
                   onValueChange={(v) => setMobilePane(v === "transcript" ? "transcript" : "settings")}
                   className="shrink-0"
                 >
-                  <TabsList variant="line" className="gap-[16px] border-b-0">
+                  <TabsList variant="line" className="gap-[16px] border-b-0 [@media(pointer:coarse)]:*:pt-3">
                     <TabsTrigger value="settings" variant="line" className="text-[13px]">Settings</TabsTrigger>
                     <TabsTrigger value="transcript" variant="line" className="text-[13px]">Preview</TabsTrigger>
                   </TabsList>

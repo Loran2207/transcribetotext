@@ -466,7 +466,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           </motion.div>
           
           <DesktopAppBanner />
-          <div className="max-lg:mt-[16px]"><DashboardInsights onNavigate={onNavigate} /></div>
+          <div className="max-xl:mt-[16px]"><DashboardInsights onNavigate={onNavigate} /></div>
           {/* Records: folder chips + tabs + cards on mobile, full table on desktop */}
           <motion.div {...fadeUp(0.18, 70)}>
             <RecordsTable surface="home" onNavigateToRecords={() => onNavigate?.("records")} onOpenFolder={onOpenFolder} />
@@ -476,7 +476,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           <ScrollFade scrollRef={scrollRef} />
         </div>
       </div>
-      <motion.div className="hidden lg:block" {...fadeUp(0.1, 70)}>
+      <motion.div className="hidden xl:block" {...fadeUp(0.1, 70)}>
         <RightPanel />
       </motion.div>
 
