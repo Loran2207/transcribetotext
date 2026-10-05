@@ -393,7 +393,8 @@ const WELCOME_SEGMENTS: Segment[] = [
   { id: 7, speaker: CLIENT, timestamp: "1:13", text: "Fridays work. And please keep the speaker names in, the quotes are worth nothing without who said them." },
   { id: 8, speaker: SAM, timestamp: "1:22", text: "Done. Fridays it is, names stay in, draft template on Tuesday. I'll put the summary of this call in the shared folder tonight." },
 ];
-const WELCOME_DURATION_SECONDS = 92;
+const WELCOME_END = "1:32";
+const WELCOME_DURATION_SECONDS = timestampToSeconds(WELCOME_END);
 
 // Single-speaker (podcast / monologue / dictation) demo content - one voice, no speaker column.
 const MONO_SPEAKER: Speaker = { id: "mono", name: "Host", color: "#2563eb", initial: "H" };
@@ -3402,6 +3403,8 @@ export function TranscriptionDetailPage() {
     : undefined;
   const hasVideo = Boolean(videoPreview);
   const fallbackDurationSeconds = sampleRecord ? WELCOME_DURATION_SECONDS : 17 * 60 + 50;
+  /* the sample's last block ends where the file ends */
+  const lastBlockEnd = sampleRecord ? WELCOME_END : undefined;
   const effectiveDurationSeconds = hasVideo ? Math.max(1, videoDuration || 0) : fallbackDurationSeconds;
   const effectiveCurrentSeconds = hasVideo
     ? videoCurrentTime
@@ -4633,7 +4636,7 @@ export function TranscriptionDetailPage() {
                   <TranscriptSegment
                     key={seg.id}
                     segment={seg}
-                    nextTimestamp={shownSegments[index + 1]?.timestamp}
+                    nextTimestamp={shownSegments[index + 1]?.timestamp ?? lastBlockEnd}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && !seg.preview && !shownSegments[index - 1]?.preview && shownSegments[index - 1]?.speaker.id === seg.speaker.id}
                     speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.managed, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, onAddSpeaker: speakersPanelActions.onAdd, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
@@ -4757,7 +4760,7 @@ export function TranscriptionDetailPage() {
                   <TranscriptSegment
                     key={`${seg.id}-translated`}
                     segment={seg}
-                    nextTimestamp={displaySegments[index + 1]?.timestamp}
+                    nextTimestamp={displaySegments[index + 1]?.timestamp ?? lastBlockEnd}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
                     continuation={index > 0 && displaySegments[index - 1]?.speaker.id === seg.speaker.id}
                     hideTimecodes={!transcriptView.timestamps}
