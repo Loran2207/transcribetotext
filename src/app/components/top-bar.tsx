@@ -121,11 +121,12 @@ export function TopBar({ onNavigate }: TopBarProps) {
       <Button variant="ghost"
         data-tour="quick-find"
         onClick={() => { setSearchOpen(true); creditOnboarding("find"); }}
-        className="relative flex items-center flex-1 max-w-[380px] h-[32px] rounded-full bg-foreground/[0.04] justify-start"
+        className="@container relative flex items-center flex-1 min-w-[136px] max-w-[380px] h-[32px] rounded-full bg-foreground/[0.04] justify-start"
       >
         <Icon icon={Search} className="absolute left-[12px] size-[14px] text-muted-foreground" strokeWidth={1.5} />
         <span className="absolute left-[34px] font-normal text-[13px] text-muted-foreground">Quick Find</span>
-        <div className="absolute right-[10px] flex items-center gap-[3px]">
+        {/* the shortcut hint steps aside when the field is too short for both (1024 with everything else in the bar) */}
+        <div className="absolute right-[10px] flex items-center gap-[3px] @max-[180px]:hidden">
           <kbd className={kbdClass}>Ctrl</kbd>
           <kbd className={`${kbdClass} size-[18px] px-0`}>K</kbd>
         </div>

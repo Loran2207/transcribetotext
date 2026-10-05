@@ -2574,12 +2574,12 @@ function PageHeader({
           </DropdownMenu>
         </div>
       </div>
-      <div className="flex items-center gap-3 text-xs text-muted-foreground max-lg:flex-wrap">
+      <div className="flex flex-wrap items-center gap-3 whitespace-nowrap text-xs text-muted-foreground [&>*]:shrink-0">
         {/* Whose record this is survives on a phone: it is the first thing a
-            reader needs and it used to be the first thing hidden. On a narrow
-            screen it takes the whole line rather than wrapping mid-sentence. */}
+            reader needs and it used to be the first thing hidden. It takes its
+            own line at every width, so the facts below never wrap mid-word. */}
         {sharedOwner ? (
-          <div className="flex items-center gap-1.5 max-md:w-full">
+          <div className="flex w-full items-center gap-1.5 max-md:whitespace-normal">
             <Avatar className="size-5">
               <AvatarFallback className="text-[10px]" style={{ background: sharedOwner.tint, color: sharedOwner.ink }}>
                 {sharedOwner.name.charAt(0)}

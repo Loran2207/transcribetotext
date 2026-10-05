@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { toast } from "sonner";
 import { GUIDES, INTRO_STEP, SETUP, SETUP_ACTION_IDS, STEP_TOURS, setupComplete, setupIds, type Guide, type TourTarget } from "./guides";
 
 /* State of the guide: the Academy (ten lessons, competence) and Account Setup
@@ -141,6 +142,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     const hello = !base.forStep && (!stored.introSeen || stored.done.length === 0);
     const guide: Guide = hello ? { ...base, steps: [INTRO_STEP, ...base.steps] } : base;
     setStored((s) => ({ ...s, expanded: false, introSeen: true }));
+    /* a toast from the step just finished ("Template applied") would sit over her card */
+    toast.dismiss();
     go(guide.steps[0].go);
     setTour({ guide, step: 0 });
   }, [go, stored.introSeen, stored.done.length]);

@@ -833,6 +833,22 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 
 **Rule:** Use `react-dnd` with `HTML5Backend`. Do not introduce alternative DnD libraries.
 
+### 7p. Onboarding hints and tours
+
+**The column decides the wording, not the window.** A strip that sits in a column whose width changes without the window changing (the record page beside its side panel) is a `@container`, and its copy switches on the container's width, so a long lead never cuts the part that matters.
+```tsx
+<div className="@container px-4 pt-3 lg:px-8">
+  <p className="min-w-0 flex-1 truncate">
+    <span className="hidden @[520px]:inline">Try the next step here: </span>
+    <span className="@[520px]:hidden">Next: </span>
+    <span className="font-semibold">{next.title}</span>
+  </p>
+</div>
+```
+File: `onboarding/welcome-hint.tsx`. The same idea in `top-bar.tsx`: the Ctrl K hint hides under `@max-[180px]:hidden` when the field is too short for the placeholder and the keys.
+
+**A tour started where it ends skips the steps that would walk there.** A step that only opens the record carries `opensRecord: true` (`guides.ts`). `startGuide(id, { onRecord: true })` drops those steps, so the in-file hint starts the tour on the step itself instead of sending the person Home and back. A starting guide also calls `toast.dismiss()`, because the toast from the step just finished would sit over the guide's card.
+
 ---
 
 ## 8. FILE STRUCTURE
