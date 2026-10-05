@@ -10,6 +10,7 @@ import { readSharedRecordOwner } from "@/lib/share-demo";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { creditOnboarding } from "./onboarding/onboarding-context";
+import { WelcomeStepHint } from "./onboarding/welcome-hint";
 import { WELCOME_RECORD_ID } from "@/lib/fresh-account";
 import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, RemoveSpeakerDialog, SpeakersChip, PencilIcon, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
 import { LanguageSelector, SpeakerSection } from "./transcription-modals";
@@ -3092,6 +3093,7 @@ export function TranscriptionDetailPage() {
   const [nameSpeakersOpen, setNameSpeakersOpen] = useState(false);
   function saveSpeakerNames(names: Record<string, string>) {
     const before = speakerNames;
+    if (Object.keys(names).length > 0) creditOnboarding("speakers");
     setSpeakerNames((n) => ({ ...n, ...names }));
     const count = Object.keys(names).length;
     toast.success(count === 1 ? `${Object.values(names)[0]} is named` : `${count} speakers named`, { cancel: { label: "Undo", onClick: () => setSpeakerNames(before) } });
@@ -3156,6 +3158,7 @@ export function TranscriptionDetailPage() {
       return;
     }
     if (choice.kind === "rename") {
+      creditOnboarding("speakers");
       setSpeakerNames((n) => ({ ...n, [from.id]: choice.name }));
       toast.success(`${from.name} is now ${choice.name}`, { description: `Renamed in ${blocks(fromCount)}`, cancel: undo });
       return;
@@ -4463,6 +4466,9 @@ export function TranscriptionDetailPage() {
         />
 
         <UpgradeGateModal open={limitedModalOpen} onOpenChange={setLimitedModalOpen} variant="done" />
+
+        {/* three First steps happen in this file: a quiet row names the next one */}
+        {sampleRecord && !sharedOwner && <WelcomeStepHint />}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
           <div className="flex items-end justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">

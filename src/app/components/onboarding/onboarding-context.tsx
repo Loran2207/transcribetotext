@@ -11,6 +11,7 @@ import { GUIDES, INTRO_STEP, SETUP, SETUP_ACTION_IDS, STEP_TOURS, setupComplete,
    - done: lessons finished by a tour
    - seen: lessons read in the Academy panel (count as watched)
    - actions: real actions performed (setup items; a matching lesson is ticked too)
+   - welcomeHintHidden: the person closed the First steps row on the welcome recording
    Real actions arrive as `window.dispatchEvent(new CustomEvent("ttt-onboarding",
    { detail: "<id>" }))` from the component that did the thing.
 
@@ -24,8 +25,8 @@ import { GUIDES, INTRO_STEP, SETUP, SETUP_ACTION_IDS, STEP_TOURS, setupComplete,
 const KEY = "ttt_onboarding_v1";
 const EVENT = "ttt-onboarding";
 
-type Stored = { done: string[]; seen: string[]; actions: string[]; hidden: boolean; rewardClaimed: boolean; expanded: boolean; introSeen: boolean };
-const EMPTY: Stored = { done: [], seen: [], actions: [], hidden: false, rewardClaimed: false, expanded: true, introSeen: false };
+type Stored = { done: string[]; seen: string[]; actions: string[]; hidden: boolean; rewardClaimed: boolean; expanded: boolean; introSeen: boolean; welcomeHintHidden: boolean };
+const EMPTY: Stored = { done: [], seen: [], actions: [], hidden: false, rewardClaimed: false, expanded: true, introSeen: false, welcomeHintHidden: false };
 
 function load(): Stored {
   if (typeof window === "undefined") return EMPTY;
@@ -70,6 +71,8 @@ type Ctx = {
   expanded: boolean;
   setExpanded: (v: boolean) => void;
   hide: () => void;
+  welcomeHintHidden: boolean;
+  hideWelcomeHint: () => void;
   reset: () => void;
   markDone: (id: string) => void;
   markSeen: (id: string) => void;
@@ -77,7 +80,8 @@ type Ctx = {
   tour: Tour | null;
   celebration: Celebration;
   dismissCelebration: () => void;
-  startGuide: (id: string) => void;
+  /* onRecord: started on the welcome recording itself, so the step that walks there is skipped */
+  startGuide: (id: string, opts?: { onRecord?: boolean }) => void;
   nextStep: () => void;
   prevStep: () => void;
   endTour: () => void;
@@ -128,8 +132,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
   const go = useCallback((t: TourTarget) => { navigator.current?.(t); }, []);
 
-  const startGuide = useCallback((id: string) => {
-    const base = GUIDES.find((g) => g.id === id) ?? STEP_TOURS.find((g) => g.id === id); if (!base) return;
+  const startGuide = useCallback((id: string, opts?: { onRecord?: boolean }) => {
+    const found = GUIDES.find((g) => g.id === id) ?? STEP_TOURS.find((g) => g.id === id); if (!found) return;
+    const base = opts?.onRecord ? { ...found, steps: found.steps.filter((s) => !s.opensRecord) } : found;
     /* she says hello on the first lesson started, and again on any later start as long as
        nothing is finished yet (the person closed the tour and came back); a First steps
        tour goes straight to its step */
@@ -189,6 +194,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       expanded: stored.expanded,
       setExpanded: (v) => setStored((s) => ({ ...s, expanded: v })),
       hide: () => setStored((s) => ({ ...s, hidden: true })),
+      welcomeHintHidden: stored.welcomeHintHidden,
+      hideWelcomeHint: () => setStored((s) => ({ ...s, welcomeHintHidden: true })),
       reset: () => { setTour(null); setCelebration(null); setStored({ ...EMPTY }); },
       markDone,
       markSeen,

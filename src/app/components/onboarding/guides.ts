@@ -31,6 +31,8 @@ export type TourStep = {
   quickFind?: { open: boolean; query?: string };
   /* the step opens a real dialog of the page (`ttt-tour` window event) */
   trigger?: string;
+  /* the step only walks from Home into the welcome recording: a tour started on that recording skips it */
+  opensRecord?: boolean;
 };
 
 export type Guide = {
@@ -345,7 +347,7 @@ export const REWARD = {
    page under it stays live, and the tour ends by itself when the step is
    credited. Not listed in the Academy. */
 const STEP_META = { cover: "", category: "", summary: "" };
-const OPEN_RECORD_FOR_STEP: TourStep = { anchor: "record-row-welcome|home-records", go: HOME, side: "bottom", title: "Open the welcome recording", body: "I made this one for you, so you can try it on real text. Next opens it." };
+const OPEN_RECORD_FOR_STEP: TourStep = { anchor: "record-row-welcome|home-records", go: HOME, side: "bottom", title: "Open the welcome recording", body: "I made this one for you, so you can try it on real text. Next opens it.", opensRecord: true };
 export const STEP_TOURS: Guide[] = [
   { ...STEP_META, id: "step-way-file", forStep: "way-file", title: "Upload a file", seconds: 15, steps: [
     { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Audio and video files", body: "This card takes any recording from your computer. Next opens it.", trigger: "upload-close" },
