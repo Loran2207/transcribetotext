@@ -80,6 +80,8 @@ await p.addInitScript(() => {
   };
 });
 if (process.env.SEED) await p.addInitScript((seed) => localStorage.setItem("ttt-desktop", seed), process.env.SEED);
+/* LS={"key":"value",...}: flags that must be in place before the first mount (a demo account state read at login) */
+if (process.env.LS) await p.addInitScript((ls) => { for (const [k, v] of Object.entries(JSON.parse(ls))) localStorage.setItem(k, v); }, process.env.LS);
 /* the demo session lives in React state, so every capture signs in first and
    then walks client-side; the shell and os flags ride on the login address */
 const [path, query = ""] = route.split("?");
@@ -101,6 +103,10 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   /* tryclick=<sel>: a control that some widths or shells do not show is clicked when it is there */
   else if (op === "tryclick") { const el = p.locator(arg).filter({ visible: true }).first(); if (await el.count()) await el.click(); }
   else if (op === "store") { const [k, v] = arg.split("|"); await p.evaluate(([k, v]) => { localStorage.setItem(k, v); dispatchEvent(new Event("ttt-banner-hidden")); }, [k, v]); await p.waitForTimeout(600); }
+  /* unstore=<key>: a flag taken away again (a demo loader that must not re-run) */
+  else if (op === "unstore") await p.evaluate((k) => localStorage.removeItem(k), arg);
+  /* event=<name>|<detail>: a window CustomEvent the app listens for (a step credited) */
+  else if (op === "event") { const [name, detail] = arg.split("|"); await p.evaluate(([n, d]) => dispatchEvent(new CustomEvent(n, { detail: d })), [name, detail]); }
   else if (op === "fill") { const [sel, text] = arg.split("|"); await p.fill(sel, text); }
   else if (op === "hover") await p.hover(arg);
   /* focus=<sel>: a tooltip opened by focus stays open after the pointer leaves */
