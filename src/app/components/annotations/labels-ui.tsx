@@ -659,6 +659,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, onCloseAutoFocu
               <DrawerTitle className="text-[17px]">Labels</DrawerTitle>
               <button type="button" onClick={() => close(false)} aria-label="Close" className="-mr-1 inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><Icon icon={Cancel01Icon} size={16} /></button>
             </DrawerHeader>
+            <p className="shrink-0 px-4 pb-2 text-[12px] leading-relaxed text-muted-foreground">Labels sort your highlights in the list, the summary and the export.</p>
             {body}
             {footer}
           </DrawerContent>
