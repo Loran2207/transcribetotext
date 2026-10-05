@@ -140,7 +140,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     seconds: 30,
     steps: [
       OPEN_RECORD_AGAIN,
-      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Two voices, one unnamed", body: "The app heard two people. Speaker 2 still needs a name. Next opens the list.", trigger: "speakers-close" },
+      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Three voices, one unnamed", body: "The app heard three people. Speaker 2 still needs a name. Next opens the list.", trigger: "speakers-close" },
       { anchor: "speakers-panel", go: RECORD, side: "right", title: "Rename, add, remove", body: "Click a name to rename it. Remove a voice and its blocks go to someone else.", trigger: "speakers-open" },
       { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Wrong name on one block?", body: "Click the name on that block and pick who really said it.", trigger: "speakers-close" },
       { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Two people in one block?", body: "Select the other person's words and pick their name. Only those words move." },
@@ -373,7 +373,7 @@ export const STEP_TOURS: Guide[] = [
   ] },
   { ...STEP_META, id: "step-edit", forStep: "edit", title: "Edit the transcript", seconds: 15, steps: [
     OPEN_RECORD_FOR_STEP,
-    { anchor: "record-edit-bar|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "Press Edit transcript, click into the text, change a word and press Save. That is the step.", phoneBody: "Open More and press Edit transcript. Change a word, then press Save. That is the step.", trigger: "tab-transcript", handoff: true },
+    { anchor: "record-edit-bar|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "At 1:02 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.", phoneBody: "At 1:02 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.", trigger: "tab-transcript", handoff: true },
   ] },
   { ...STEP_META, id: "step-folders", forStep: "folders", title: "Create a folder", seconds: 15, steps: [
     { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Folders live here. Next opens a new one." },
@@ -381,8 +381,8 @@ export const STEP_TOURS: Guide[] = [
   ] },
   { ...STEP_META, id: "step-speakers", forStep: "speakers", title: "Name a speaker", seconds: 15, steps: [
     OPEN_RECORD_FOR_STEP,
-    { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Two voices, one unnamed", body: "Speaker 2 still needs a name. Next opens the list.", trigger: "speakers-close" },
-    { anchor: "speakers-panel", go: RECORD, side: "right", title: "Give Speaker 2 a name", body: "Click the name, type the real one, press Enter.", trigger: "speakers-open", handoff: true },
+    { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Three voices, one unnamed", body: "Sam greets Priya in the first line, and Speaker 2 answers. Next opens the list.", trigger: "speakers-close" },
+    { anchor: "speakers-panel", go: RECORD, side: "right", title: "Give Speaker 2 a name", body: "Point at Speaker 2 and press the pencil. Type Priya, press Enter.", phoneBody: "Press the pencil next to Speaker 2. Type Priya, press Enter.", trigger: "speakers-open", handoff: true },
   ] },
 ];
 export const stepTourId = (stepId: string) => `step-${stepId}`;

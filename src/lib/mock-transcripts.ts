@@ -3,15 +3,16 @@ import type { ExportSegment } from "@/lib/export-formats";
 /* Mock transcript segments for the demo records (keyed by record id).
    Used by the export dialog live preview and exported files. */
 export const MOCK_TRANSCRIPTS: Record<string, ExportSegment[]> = {
+  /* mirrors WELCOME_SEGMENTS in transcription-detail-page.tsx */
   welcome: [
-    { speaker: "Sam Rivera", timestamp: "0:00", text: "Hi, and welcome to Transcribe To Text. This recording is here so you can see what a finished transcript looks like before you upload your own." },
-    { speaker: "Speaker 2", timestamp: "0:11", text: "So everything we say ends up as text, with the time it was said?" },
-    { speaker: "Sam Rivera", timestamp: "0:16", text: "Exactly. Click a timecode to hear that moment. The Summary tab turns the whole conversation into notes, and Apply template picks the style." },
-    { speaker: "Speaker 2", timestamp: "0:31", text: "And if the app gets a name wrong?" },
-    { speaker: "Sam Rivera", timestamp: "0:34", text: "Click the name on any block and pick the right person. If two people share one block, select the words that belong to the other person and only those words move." },
-    { speaker: "Speaker 2", timestamp: "0:49", text: "Where do my recordings live?" },
-    { speaker: "Sam Rivera", timestamp: "0:52", text: "In My Records. Folders keep clients or projects apart, and you can share one recording or a whole folder." },
-    { speaker: "Sam Rivera", timestamp: "1:06", text: "Upload your first file from the Home page and the guide walks you through the rest." },
+    { speaker: "Sam Rivera", timestamp: "0:00", text: "Thanks for making time, Priya. Jordan runs production on our side and joins us today. The goal is to plan the customer interview series and agree how the recordings turn into notes." },
+    { speaker: "Speaker 2", timestamp: "0:13", text: "Perfect. We have twelve interviews booked between now and the end of the month, mostly on Zoom, a few in person. Nobody on my team has time to write them up by hand." },
+    { speaker: "Jordan Lee", timestamp: "0:27", text: "Then we record every call and send the files in a weekly batch. Each one comes back as a transcript, a summary and the action items, in the same shape every week." },
+    { speaker: "Speaker 2", timestamp: "0:40", text: "The same shape matters. My head of product reads these on the train, so a one-page summary with quotes is ideal." },
+    { speaker: "Sam Rivera", timestamp: "0:50", text: "That is a template. We set it once and every interview comes out as a one-pager with quotes. I'll send you the draft on Tuesday so you can tweak the sections." },
+    { speaker: "Jordan Lee", timestamp: "1:02", text: "One thing to decide: Fridays for the batch? The lunch is on the fourteenth, so the last batch lands the week before." },
+    { speaker: "Speaker 2", timestamp: "1:13", text: "Fridays work. And please keep the speaker names in, the quotes are worth nothing without who said them." },
+    { speaker: "Sam Rivera", timestamp: "1:22", text: "Done. Fridays it is, names stay in, draft template on Tuesday. I'll put the summary of this call in the shared folder tonight." },
   ],
   "2": [
     { speaker: "Maria Garcia", timestamp: "0:02", text: "Alright, everyone's here - let's get started. Today I want to lock the Q2 roadmap: the new export flow, transcription accuracy for noisy audio, and folder sharing." },

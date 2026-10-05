@@ -40,7 +40,7 @@ import { useFolders } from "./folder-context";
 import { useStarred } from "./starred-context";
 import { SourceIcon, getSourceLabel, type SourceType } from "./source-icons";
 import { ActionSheet, ActionSheetItem } from "./action-sheet";
-import { records, type RecordRow } from "./records-table";
+import { records, WELCOME_RECORD, type RecordRow } from "./records-table";
 import { TemplatePicker } from "./template-picker";
 import { TemplateLibraryDialog } from "./template-library-dialog";
 import { meetings as calendarMeetings } from "./todays-events";
@@ -369,24 +369,30 @@ const MOCK_SEGMENTS: Segment[] = [
   { id: 12, speaker: SPEAKERS[2], timestamp: "4:30", text: "Same here. Let's wrap up and get back to work. Thanks everyone." },
 ];
 
-/* The welcome recording of a fresh account: two voices, short, and it
-   teaches while it talks. The second voice stays unnamed so the speakers
-   lesson has a real thing to fix. */
+/* The welcome recording of a fresh account: a real sample to work on, not a
+   text to read. A planning call about a customer interview series, three
+   voices. The client's voice stays "Speaker 2" (Sam greets the client as Priya) so
+   Name a speaker has a real thing to fix, and block 6 carries the model's
+   classic slip, "lunch" for "launch", for Edit the transcript. Its summary,
+   outline and comments below belong to this call; the 1:32 length is the
+   end of the last block. */
 const WELCOME_SPEAKERS: Speaker[] = [
   { id: "w1", name: "Sam Rivera", color: "#2563eb", initial: "S" },
   { id: "w2", name: "Speaker 2", color: "#a855f7", initial: "2" },
+  { id: "w3", name: "Jordan Lee", color: "#10b981", initial: "J" },
 ];
+const [SAM, CLIENT, JORDAN] = WELCOME_SPEAKERS;
 const WELCOME_SEGMENTS: Segment[] = [
-  { id: 1, speaker: WELCOME_SPEAKERS[0], timestamp: "0:00", text: "Hi, and welcome to Transcribe To Text. This recording is here so you can see what a finished transcript looks like before you upload your own." },
-  { id: 2, speaker: WELCOME_SPEAKERS[1], timestamp: "0:11", text: "So everything we say ends up as text, with the time it was said?" },
-  { id: 3, speaker: WELCOME_SPEAKERS[0], timestamp: "0:16", text: "Exactly. Click a timecode to hear that moment. The Summary tab turns the whole conversation into notes, and Apply template picks the style: meeting notes, interview, action items." },
-  { id: 4, speaker: WELCOME_SPEAKERS[1], timestamp: "0:31", text: "And if the app gets a name wrong?" },
-  { id: 5, speaker: WELCOME_SPEAKERS[0], timestamp: "0:34", text: "Click the name on any block and pick the right person. If two people share one block, select the words that belong to the other person and only those words move." },
-  { id: 6, speaker: WELCOME_SPEAKERS[1], timestamp: "0:49", text: "Where do my recordings live?" },
-  { id: 7, speaker: WELCOME_SPEAKERS[0], timestamp: "0:52", text: "In My Records. Folders keep clients or projects apart, and you can share one recording or a whole folder with a link or an invite." },
-  { id: 8, speaker: WELCOME_SPEAKERS[1], timestamp: "1:04", text: "Sounds simple enough." },
-  { id: 9, speaker: WELCOME_SPEAKERS[0], timestamp: "1:06", text: "It is. Upload your first file from the Home page and the guide walks you through the rest." },
+  { id: 1, speaker: SAM, timestamp: "0:00", text: "Thanks for making time, Priya. Jordan runs production on our side and joins us today. The goal is to plan the customer interview series and agree how the recordings turn into notes." },
+  { id: 2, speaker: CLIENT, timestamp: "0:13", text: "Perfect. We have twelve interviews booked between now and the end of the month, mostly on Zoom, a few in person. Nobody on my team has time to write them up by hand." },
+  { id: 3, speaker: JORDAN, timestamp: "0:27", text: "Then we record every call and send the files in a weekly batch. Each one comes back as a transcript, a summary and the action items, in the same shape every week." },
+  { id: 4, speaker: CLIENT, timestamp: "0:40", text: "The same shape matters. My head of product reads these on the train, so a one-page summary with quotes is ideal." },
+  { id: 5, speaker: SAM, timestamp: "0:50", text: "That is a template. We set it once and every interview comes out as a one-pager with quotes. I'll send you the draft on Tuesday so you can tweak the sections." },
+  { id: 6, speaker: JORDAN, timestamp: "1:02", text: "One thing to decide: Fridays for the batch? The lunch is on the fourteenth, so the last batch lands the week before." },
+  { id: 7, speaker: CLIENT, timestamp: "1:13", text: "Fridays work. And please keep the speaker names in, the quotes are worth nothing without who said them." },
+  { id: 8, speaker: SAM, timestamp: "1:22", text: "Done. Fridays it is, names stay in, draft template on Tuesday. I'll put the summary of this call in the shared folder tonight." },
 ];
+const WELCOME_DURATION_SECONDS = 92;
 
 // Single-speaker (podcast / monologue / dictation) demo content - one voice, no speaker column.
 const MONO_SPEAKER: Speaker = { id: "mono", name: "Host", color: "#2563eb", initial: "H" };
@@ -419,6 +425,30 @@ const MOCK_OUTLINE: OutlineSection[] = [
   { id: "o4", title: "Q2 Planning & User Research", timestamp: "3:05", segmentId: 8, bullets: [{ text: "User research: 40% find notification settings confusing", segmentId: 9 }, { text: "Notification UX to be added to Q2 priorities", segmentId: 10 }] },
   { id: "o5", title: "Wrap-up", timestamp: "4:18", segmentId: 11, bullets: [{ text: "No further concerns raised", segmentId: 11 }] },
 ];
+
+const WELCOME_OUTLINE: OutlineSection[] = [
+  { id: "w-o1", title: "Goal and scope", timestamp: "0:00", segmentId: 1, bullets: [{ text: "Twelve interviews by the end of the month", segmentId: 2 }, { text: "Nobody has time to write them up", segmentId: 2 }] },
+  { id: "w-o2", title: "How the notes come out", timestamp: "0:27", segmentId: 3, bullets: [{ text: "A weekly batch, the same shape every week", segmentId: 3 }, { text: "A one-pager with quotes", segmentId: 4 }] },
+  { id: "w-o3", title: "Decisions", timestamp: "1:02", segmentId: 6, bullets: [{ text: "Fridays for the batch", segmentId: 6 }, { text: "Names stay in, draft template on Tuesday", segmentId: 8 }] },
+];
+
+const WELCOME_SUMMARY = `## Key points
+
+- Twelve customer interviews are booked before the end of the month, mostly on Zoom
+- Recordings go out in a weekly batch; each comes back as a transcript, a summary and action items
+- The summary is a one-pager with quotes, with speaker names kept in
+
+## Decisions
+
+- Batch day is Friday; the last batch lands the week before the launch on the 14th
+- Speaker names stay in every summary
+
+## Action items
+
+- Sam sends the draft template on Tuesday
+- Sam puts the summary of this call in the shared folder tonight
+- The client team tweaks the template sections after Tuesday
+`;
 
 const MOCK_COMMENTS: Comment[] = [
   { id: "c1", segmentId: 3, quote: "The engineering team has been waiting on those mockups...", timestamp: "0:58", author: "Alex Johnson", avatarColor: "#3b82f6", avatarInitial: "A", text: "We should track this dependency more formally going forward.", createdAt: "2h ago", replies: [{ id: "r1", author: "James Chen", avatarColor: "#10b981", avatarInitial: "J", text: "Agreed - I'll add it to our sprint retro.", createdAt: "1h ago" }] },
@@ -1263,16 +1293,16 @@ function TemplateSelectorButton({
 // Right Panel - Outline Tab
 // ════════════════════════════════════════════════════════════
 
-function OutlineTab({ onSeek, onScrollToSegment }: { onSeek: (timestamp: string) => void; onScrollToSegment: (segmentId: number) => void }) {
+function OutlineTab({ sections, onSeek, onScrollToSegment }: { sections: OutlineSection[]; onSeek: (timestamp: string) => void; onScrollToSegment: (segmentId: number) => void }) {
   const [allExpanded, setAllExpanded] = useState(true);
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(MOCK_OUTLINE.map((s) => s.id)));
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(sections.map((s) => s.id)));
 
   function toggleSection(id: string) {
     setExpanded((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   }
 
   function toggleAll() {
-    if (allExpanded) { setExpanded(new Set()); } else { setExpanded(new Set(MOCK_OUTLINE.map((s) => s.id))); }
+    if (allExpanded) { setExpanded(new Set()); } else { setExpanded(new Set(sections.map((s) => s.id))); }
     setAllExpanded(!allExpanded);
   }
 
@@ -1288,7 +1318,7 @@ function OutlineTab({ onSeek, onScrollToSegment }: { onSeek: (timestamp: string)
             size="icon"
             className="size-6 rounded-full"
             onClick={() => {
-              navigator.clipboard.writeText(MOCK_OUTLINE.map((s) => `${s.title}\n${s.bullets.map((b) => `  - ${b.text}`).join("\n")}`).join("\n\n"));
+              navigator.clipboard.writeText(sections.map((s) => `${s.title}\n${s.bullets.map((b) => `  - ${b.text}`).join("\n")}`).join("\n\n"));
               toast.success("Outline copied");
             }}
           >
@@ -1310,7 +1340,7 @@ function OutlineTab({ onSeek, onScrollToSegment }: { onSeek: (timestamp: string)
 
       <ScrollArea className="flex-1">
         <div className="px-4 py-2">
-          {MOCK_OUTLINE.map((section) => (
+          {sections.map((section) => (
             <Collapsible key={section.id} open={expanded.has(section.id)} onOpenChange={() => toggleSection(section.id)}>
               <CollapsibleTrigger className="flex w-full items-center gap-1.5 py-2 text-left">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" className={`shrink-0 text-muted-foreground transition-transform ${expanded.has(section.id) ? "rotate-90" : ""}`}><path d="M8 5l8 7-8 7z" /></svg>
@@ -1365,7 +1395,7 @@ function CommentsTab({ comments, onSeek, onScrollToSegment }: { comments: Commen
   if (comments.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center px-6 py-12">
-        <p className="text-center text-sm text-muted-foreground">No comments yet &mdash; select text in the transcript to add one</p>
+        <p className="text-center text-sm text-muted-foreground">No comments yet. Select text in the transcript to add one.</p>
       </div>
     );
   }
@@ -2725,7 +2755,8 @@ export function TranscriptionDetailPage() {
     if (selectedJob) return mapJobToDetailRecord(selectedJob);
     if (routeStateRecord && (!id || routeStateRecord.id === id)) return routeStateRecord;
     if (persistedRecord && (!id || persistedRecord.id === id)) return persistedRecord;
-    if (id) return records.find((record) => record.id === id) ?? null;
+    /* the lessons open the welcome recording in the full demo world too, where the list does not hold it */
+    if (id) return records.find((record) => record.id === id) ?? (id === WELCOME_RECORD_ID ? WELCOME_RECORD : null);
     return records[0] ?? null;
   }, [id, isLiveRecordingRoute, persistedRecord, routeStateRecord, selectedJob]);
 
@@ -2763,7 +2794,13 @@ export function TranscriptionDetailPage() {
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoPlaybackRate, setVideoPlaybackRate] = useState(1);
-  const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
+  /* the welcome recording is a sample: any template can be tried on it on the
+     Free plan (decided by the client, 05.10). The sample is where a new person
+     tries a template before paying, so First steps "Apply a template" works on
+     Free; every other recording keeps the plan gate. It also brings its own
+     transcript, summary and outline, and no comments. */
+  const sampleRecord = id === WELCOME_RECORD_ID;
+  const [comments, setComments] = useState<Comment[]>(() => (sampleRecord ? [] : MOCK_COMMENTS));
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
     selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null,
   );
@@ -2775,10 +2812,6 @@ export function TranscriptionDetailPage() {
   useEffect(() => { setPermDemo(permFlag === "1" || permFlag === "mic" ? permFlag : null); }, [permFlag]);
   const [summaryStage, setSummaryStage] = useState("");
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
-  /* the welcome recording is a sample: any template can be tried on it on the Free plan,
-     so the First steps "Apply a template" can be done before paying (proposal, not yet
-     confirmed by the client) */
-  const sampleRecord = id === WELCOME_RECORD_ID;
   const [langSheetOpen, setLangSheetOpen] = useState(false);
   const [belowLg, setBelowLg] = useState(false);
   const [belowMd, setBelowMd] = useState(false);
@@ -2898,7 +2931,7 @@ export function TranscriptionDetailPage() {
     try { return window.localStorage.getItem("ttt_demo_unnamed_speakers") === "1"; } catch { return false; }
   })();
   const contentSegments = useMemo<Segment[]>(
-    () => (selectedRecord?.id === WELCOME_RECORD_ID
+    () => (sampleRecord
       ? WELCOME_SEGMENTS
       : showCases
       ? CASE_SEGMENTS
@@ -2909,7 +2942,7 @@ export function TranscriptionDetailPage() {
             ? { ...seg, text: seg.text + " Absolutely, I'll set something up for Wednesday morning." }
             : seg.id === 5 ? { ...seg, text: "That gives us a day to incorporate any feedback before James's team picks it up on Thursday." } : seg)
           : MOCK_SEGMENTS),
-    [previewDetailSegments, selectedJob?.source, showCases, mergedDemo, selectedRecord?.id],
+    [previewDetailSegments, selectedJob?.source, showCases, mergedDemo, sampleRecord],
   );
   // Single-speaker / monologue mode: hide the speaker column when there's only one voice.
   // Demo flag forces it with dedicated monologue content for design captures.
@@ -3180,12 +3213,13 @@ export function TranscriptionDetailPage() {
       ].join("\n");
     }
 
+    const baseSummary = sampleRecord ? WELCOME_SUMMARY : MOCK_SUMMARY;
     // When a template is applied, restructure summary using template sections
     if (activeTemplate?.sections?.length) {
-      // Parse the MOCK_SUMMARY into sections (## heading → content blocks)
+      // Parse the base summary into sections (## heading → content blocks)
       const mockSections: { heading: string; lines: string[] }[] = [];
       let current: { heading: string; lines: string[] } | null = null;
-      for (const line of MOCK_SUMMARY.split("\n")) {
+      for (const line of baseSummary.split("\n")) {
         if (line.startsWith("## ")) {
           if (current) mockSections.push(current);
           current = { heading: line.replace("## ", ""), lines: [] };
@@ -3210,8 +3244,8 @@ export function TranscriptionDetailPage() {
       return result.join("\n");
     }
 
-    return MOCK_SUMMARY;
-  }, [previewDetailSegments, selectedJob?.source, selectedJob?.status, selectedRecord?.duration, activeTemplate]);
+    return baseSummary;
+  }, [previewDetailSegments, selectedJob?.source, selectedJob?.status, selectedRecord?.duration, activeTemplate, sampleRecord]);
 
   // Build initial text map for edit history
   const initialTexts = useMemo(() => {
@@ -3364,7 +3398,7 @@ export function TranscriptionDetailPage() {
     ? { url: selectedRecord.videoUrl, poster: selectedRecord.thumbnail }
     : undefined;
   const hasVideo = Boolean(videoPreview);
-  const fallbackDurationSeconds = 17 * 60 + 50;
+  const fallbackDurationSeconds = sampleRecord ? WELCOME_DURATION_SECONDS : 17 * 60 + 50;
   const effectiveDurationSeconds = hasVideo ? Math.max(1, videoDuration || 0) : fallbackDurationSeconds;
   const effectiveCurrentSeconds = hasVideo
     ? videoCurrentTime
@@ -3544,6 +3578,7 @@ export function TranscriptionDetailPage() {
     setTranslationSummaryStatus("idle");
     setTranslationTranscriptStatus("idle");
     setSummaryError(false);
+    setComments(sampleRecord ? [] : MOCK_COMMENTS);
 
     // Demo: force result-page states for design captures.
     const readFlag = (k: string) => { try { return window.localStorage.getItem(k); } catch { return null; } };

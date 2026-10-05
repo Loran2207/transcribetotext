@@ -24,7 +24,7 @@ const MOCK_RESULTS: SearchResult[] = [
   { id: "sr6", name: "Customer feedback session - beta cohort", source: "zoom", date: "Mar 12, 2026 14:30", duration: "28min", creator: "Alex Johnson", summary: "Five beta users shared feedback on the new export flow. Two asked for shareable links and excluding filler words from transcripts." },
 ];
 /* a fresh account has one recording, so the search can only find that one */
-if (isFreshAccount()) MOCK_RESULTS.splice(0, MOCK_RESULTS.length, { id: "welcome", name: "Welcome to Transcribe To Text", source: "mp3", date: "Today", duration: "1min", creator: "Me", summary: "A short welcome: what a finished transcript looks like, where the Summary and templates are, how to fix a speaker's name, and where recordings live." });
+if (isFreshAccount()) MOCK_RESULTS.splice(0, MOCK_RESULTS.length, { id: "welcome", name: "Welcome to Transcribe To Text", source: "mp3", date: "Today", duration: "1min 32s", creator: "Me", summary: "Planning call for twelve customer interviews. Every call is recorded and sent in a Friday batch, each comes back as a one-page summary with quotes and speaker names. Sam sends the draft template on Tuesday." });
 
 
 const MOCK_FOLDERS = [
