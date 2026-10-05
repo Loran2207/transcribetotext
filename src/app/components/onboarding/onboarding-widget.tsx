@@ -170,7 +170,7 @@ function SetupList({ compact }: { compact: boolean }) {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13.5px] font-semibold leading-[18px] text-foreground">Your bonus: priority processing</span>
-            <span className="block text-[12px] font-medium leading-[16px] text-muted-foreground">Unlocks when the {total} steps are done. Your recordings skip the queue and get the highest-quality transcript.</span>
+            <span className="block text-[12px] font-medium leading-[16px] text-muted-foreground">Unlocks when all {total} steps are done. Your files are processed first, even at peak times, with our best model.</span>
           </span>
         </div>
       </li>

@@ -334,11 +334,12 @@ export const setupComplete = (has: (id: string) => boolean) => SETUP.every((x) =
 export const GUIDE_PERSON = { name: "Mia", title: "Customer Success Lead", avatar: "/images/onboarding-guide.png", figure: "/images/onboarding-mia.png" };
 
 
-/* The bonus for finishing the first steps (client call 05.10): better
-   processing, not a subscription. No code, no checkout. */
+/* The bonus for finishing the first steps (client call 05.10): priority
+   processing, a real feature, in the words the plan page uses for the perk.
+   Not a subscription: no code, no checkout. */
 export const REWARD = {
   title: "Priority processing is on",
-  body: "You know your way around now. From here your recordings skip the queue and get our highest-quality transcript.",
+  body: "You know your way around now. From here your files are processed first, even at peak times, with our best model.",
 };
 
 /* One short tour per First step (client call 05.10, mechanism from the

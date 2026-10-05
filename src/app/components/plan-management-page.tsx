@@ -724,7 +724,7 @@ function PriorityBonusRow() {
       <img src="/images/discount-gift.png" alt="" aria-hidden className="size-[40px] shrink-0 object-contain" />
       <div className="min-w-0 flex-1">
         <p className="text-[13.5px] font-semibold text-foreground">Priority processing: on</p>
-        <p className="text-[12px] text-muted-foreground">Earned in First steps.</p>
+        <p className="text-[12px] text-muted-foreground">Earned in First steps. Files are processed first, even at peak times.</p>
       </div>
     </div>
   );
