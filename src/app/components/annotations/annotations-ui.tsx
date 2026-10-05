@@ -258,7 +258,8 @@ export function BlockActions({
   onManageLabels?: () => void;
   onHighlight: (labelId: string) => void;
   onRemoveHighlight: () => void;
-  onComment: () => void;
+  /* absent while the call is still running: comments wait for the finished note */
+  onComment?: () => void;
   onCopy: () => void;
   onOpenComments: () => void;
 }) {
@@ -290,11 +291,13 @@ export function BlockActions({
         className={cn("flex items-center gap-0.5 rounded-full border border-border/70 bg-background p-1 shadow-sm backdrop-blur-[2px] transition-all duration-150", shown)}
       >
         <HighlightButton labels={labels} sheet={sheet} variant="icon" current={current} onHighlight={onHighlight} onRemove={onRemoveHighlight} onManage={onManageLabels} />
-        <Tip label="Comment">
-          <Button variant="ghost" size="icon" aria-label="Comment on block" className={btn} onClick={onComment}>
-            <Icon icon={CommentAdd01Icon} className={icon} strokeWidth={1.8} />
-          </Button>
-        </Tip>
+        {onComment && (
+          <Tip label="Comment">
+            <Button variant="ghost" size="icon" aria-label="Comment on block" className={btn} onClick={onComment}>
+              <Icon icon={CommentAdd01Icon} className={icon} strokeWidth={1.8} />
+            </Button>
+          </Tip>
+        )}
         <Tip label="Copy text">
           <Button variant="ghost" size="icon" aria-label="Copy text" className={btn} onClick={(e) => { if (sheet) e.currentTarget.blur(); onCopy(); }}>
             <Icon icon={Copy01Icon} className={icon} strokeWidth={1.8} />

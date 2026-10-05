@@ -744,7 +744,8 @@ type SegmentNotes = {
   sheet: boolean;
   onManageLabels?: () => void;
   colorOf: (highlightId: string) => LabelColor;
-  onCommentBlock: (rect: DOMRect) => void;
+  /* absent while the call is still running: comments wait for the finished note */
+  onCommentBlock?: (rect: DOMRect) => void;
   onOpenComments: () => void;
   onCopy: () => void;
 };
@@ -834,7 +835,7 @@ function TranscriptSegment({
           sheet={notes.sheet}
           onManageLabels={notes.onManageLabels}
           raised={notes.raised}
-          onComment={() => { const r = textRef.current?.getBoundingClientRect(); if (r) notes.onCommentBlock(r); }}
+          onComment={notes.onCommentBlock ? () => { const r = textRef.current?.getBoundingClientRect(); if (r) notes.onCommentBlock?.(r); } : undefined}
           onCopy={notes.onCopy}
           onOpenComments={notes.onOpenComments}
         />
@@ -1540,8 +1541,84 @@ export function LiveTopControls({ compact = false }: { compact?: boolean }) {
   );
 }
 
+/* Marking during a docked call (the half-width panel beside the meeting): the
+   same labels and the same "live" store as the full window, so a mark made here
+   shows in the full window too and goes with the note when the call ends. The
+   block tools are the finished note's minus Comment: comments wait for the note,
+   the way the summary does. */
+export type LiveMarking = ReturnType<typeof useLiveMarking>;
+export function useLiveMarking() {
+  const { liveTranscriptSegments, liveTranscriptInterim } = useTranscriptionModals();
+  const blocks = useMemo(() => liveTranscriptSegments.map((s) => ({ id: s.id, text: s.text, timestamp: s.timestamp })), [liveTranscriptSegments]);
+  const notesApi = useAnnotations("live", blocks);
+  const labelsApi = useLabels("live");
+  const coarse = useCoarsePointer();
+  /* a sentence still being said takes its label once it is written down */
+  const [pendingMark, setPendingMark] = useState<{ segmentId: number; labelId: string } | null>(null);
+  const [focus, setFocus] = useState<Focus | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
+  const refs = useRef<Record<number, HTMLDivElement | null>>({});
+  const flash = useCallback((id: string) => {
+    setFocus({ kind: "highlight", id });
+    window.setTimeout(() => setFocus((cur) => (cur?.id === id ? null : cur)), 1800);
+  }, []);
+  const textOf = (segmentId: number) => liveTranscriptSegments.find((s) => s.id === segmentId)?.text ?? "";
+  const mark = (labelId: string) => {
+    if (liveTranscriptInterim.trim().length > 0) { setPendingMark({ segmentId: liveTranscriptSegments.length + 1, labelId }); return; }
+    const last = liveTranscriptSegments[liveTranscriptSegments.length - 1];
+    if (!last) { toast("Nothing has been said yet"); return; }
+    const parts = splitSentences(last.text);
+    const r = snapRange(last.text, Math.max(0, last.text.length - (parts[parts.length - 1]?.length ?? last.text.length)), last.text.length);
+    if (r.end <= r.start) return;
+    const id = notesApi.addHighlight({ segmentId: last.id, ...r }, labelId);
+    flash(id);
+    refs.current[last.id]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    toastUndo(`${labelsApi.labelOf(labelId).name} at ${last.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+  };
+  useEffect(() => {
+    if (!pendingMark) return;
+    const seg = liveTranscriptSegments.find((s) => s.id === pendingMark.segmentId);
+    if (!seg) return;
+    const r = snapRange(seg.text, 0, seg.text.length);
+    setPendingMark(null);
+    if (r.end <= r.start) return;
+    const id = notesApi.addHighlight({ segmentId: seg.id, ...r }, pendingMark.labelId);
+    flash(id);
+    toastUndo(`${labelsApi.labelOf(pendingMark.labelId).name} at ${seg.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingMark, liveTranscriptSegments]);
+  const colorOf = (highlightId: string): LabelColor => labelsApi.labelOf(notesApi.highlights.find((h) => h.id === highlightId)?.labelId).color;
+  const notesFor = (seg: Segment): SegmentNotes => {
+    const len = textOf(seg.id).length;
+    const highlights = notesApi.highlights.filter((h) => h.segmentId === seg.id);
+    const whole = highlights.find((h) => coversBlock(h, len));
+    return {
+      highlights,
+      threads: [],
+      focus,
+      blockHighlighted: Boolean(whole),
+      blockLabel: whole ? labelsApi.labelOf(whole.labelId) : undefined,
+      revealed: false,
+      quiet: false,
+      onMark: () => {},
+      onTapText: () => {},
+      onHighlightBlock: (labelId) => { if (whole) notesApi.setLabel(whole.id, labelId); else notesApi.addHighlight({ segmentId: seg.id, start: 0, end: len }, labelId, false); },
+      onRemoveBlockHighlight: () => { if (whole) removeHighlightWithUndo(notesApi, whole.id); },
+      labels: labelsApi,
+      sheet: coarse,
+      onManageLabels: () => setManageOpen(true),
+      colorOf,
+      onOpenComments: () => {},
+      onCopy: () => { const t = textOf(seg.id); if (t) { navigator.clipboard.writeText(t); toast("Text copied"); } },
+    };
+  };
+  const counts = notesApi.highlights.reduce<Record<string, number>>((acc, h) => { const id = labelsApi.labelOf(h.labelId).id; acc[id] = (acc[id] ?? 0) + 1; return acc; }, {});
+  const segmentRef = (id: number) => (el: HTMLDivElement | null) => { refs.current[id] = el; };
+  return { notesApi, labelsApi, coarse, pendingMark, mark, notesFor, segmentRef, manageOpen, setManageOpen, counts };
+}
+
 /* the live transcript itself: the permission warning, the listening placeholder, every segment, the words still being said */
-export function LiveTranscriptBody({ compact = false }: { compact?: boolean }) {
+export function LiveTranscriptBody({ compact = false, marking }: { compact?: boolean; marking?: LiveMarking }) {
   const { liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingPhase } = useTranscriptionModals();
   const { view } = useTranscriptView();
   const { machine } = useShell();
@@ -1574,13 +1651,19 @@ export function LiveTranscriptBody({ compact = false }: { compact?: boolean }) {
       {segments.map((segment, index) => (
         <TranscriptSegment key={segment.id} segment={segment} nextTimestamp={segments[index + 1]?.timestamp} isEditing={false} highlighted={false}
           isPlaybackActive={!isPaused && index === segments.length - 1} hideSpeaker={!view.speakers} hideTimecodes={!view.timestamps}
-          segmentRef={() => {}} />
+          notes={marking?.notesFor(segment)}
+          segmentRef={marking ? marking.segmentRef(segment.id) : () => {}} />
       ))}
       {liveTranscriptInterim.trim().length > 0 && (
         <div className="mx-[-8px] rounded-xl bg-primary/5 px-2 py-3 ring-1 ring-primary/20">
           <div className={`grid gap-4 ${compact ? "grid-cols-1" : "grid-cols-[minmax(160px,220px)_1fr] max-md:grid-cols-1"}`}>
-            <div className="min-w-0 pt-1"><div className="flex items-center gap-2.5"><div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">Y</div><span className="truncate text-sm font-medium text-foreground">You (speaking...)</span></div></div>
-            <div className="relative min-w-0 pl-5"><div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-primary/65" /><p className="mt-1 text-sm leading-relaxed text-foreground/85">{liveTranscriptInterim}<span className="ml-1 inline-block h-4 w-[2px] translate-y-[2px] animate-pulse bg-primary" /></p></div>
+            <div className="min-w-0 pt-1"><div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5"><div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">Y</div><span className="truncate text-sm font-medium text-foreground">You (speaking...)</span>
+              {marking?.pendingMark && (
+                /* the label waits under the name until the sentence is written down */
+                <LabelChip label={marking.labelsApi.labelOf(marking.pendingMark.labelId)} className={compact ? "shrink-0" : "basis-full shrink-0 self-start"} />
+              )}
+            </div></div>
+            <div className="relative min-w-0 pl-5"><div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-full ${marking?.pendingMark ? DOT[marking.labelsApi.labelOf(marking.pendingMark.labelId).color] : "bg-primary/65"}`} /><p className="mt-1 text-sm leading-relaxed text-foreground/85">{liveTranscriptInterim}<span className="ml-1 inline-block h-4 w-[2px] translate-y-[2px] animate-pulse bg-primary" /></p></div>
           </div>
         </div>
       )}
