@@ -152,6 +152,12 @@ export function RecordCard({ record, isTrash = false, selected = false, selectio
             see this and the mark would be a second answer to one question. */}
         <div className="flex min-w-0 items-center gap-[6px]">
           <p className="truncate text-foreground" style={{ fontWeight: 500, fontSize: 14, lineHeight: "19px" }}>{displayName}</p>
+          {/* The desktop row's star column, so a starred card says so without opening its menu */}
+          {isStarred && !isTrash && (
+            <svg data-starred-mark="" aria-label={t("table.starred")} className="size-[13px] shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" />
+            </svg>
+          )}
           {isShared && !owner && !isTrash && <SharedBadge />}
         </div>
         <div className="flex items-center gap-[8px] mt-[3px] text-muted-foreground" style={{ fontSize: 12, lineHeight: "16px" }}>

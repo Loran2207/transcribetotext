@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import type { SourceType } from "./source-icons";
+import { isFreshAccount, WELCOME_RECORD_ID } from "@/lib/fresh-account";
 
 export interface StarredRecord {
   id: string;
@@ -19,8 +20,13 @@ interface StarredContextType {
 
 const StarredContext = createContext<StarredContextType | null>(null);
 
+/* A fresh account starts with its welcome recording starred, so the star and
+   the Starred view are not empty on the first visit. Mirrors WELCOME_RECORD in
+   records-table.tsx (imported there, not here, to keep this context light). */
+const WELCOME_STARRED: StarredRecord = { id: WELCOME_RECORD_ID, name: "Welcome to Transcribe To Text", iconColor: "#2563EB", iconType: "circle", source: "mp3" };
+
 export function StarredProvider({ children }: { children: ReactNode }) {
-  const [starredRecords, setStarredRecords] = useState<StarredRecord[]>([]);
+  const [starredRecords, setStarredRecords] = useState<StarredRecord[]>(() => (isFreshAccount() ? [WELCOME_STARRED] : []));
   const [renames, setRenames] = useState<Record<string, string>>({});
 
   const starred = new Set(starredRecords.map((r) => r.id));
