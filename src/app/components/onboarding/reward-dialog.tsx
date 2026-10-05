@@ -24,7 +24,7 @@ export function RewardDialog() {
             <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="absolute -right-[6px] bottom-[6px] size-[44px] select-none rounded-full object-cover ring-[3px] ring-card" />
           </div>
           <DialogTitle className="mt-2 text-[22px] font-bold tracking-[-0.3px] text-foreground">{REWARD.title}</DialogTitle>
-          <DialogDescription className="mt-2 text-[14px] leading-[20px] text-muted-foreground">{GUIDE_PERSON.name}, {GUIDE_PERSON.title}: "First steps done. {REWARD.body}"</DialogDescription>
+          <DialogDescription className="mt-2 text-[14px] leading-[20px] text-muted-foreground">{GUIDE_PERSON.name}, {GUIDE_PERSON.title}: "{REWARD.body}"</DialogDescription>
           <Button data-onboarding-claim="" onClick={ob.claimReward} className="mt-5 h-11 w-full text-[14px] font-semibold">Done</Button>
         </div>
       </DialogContent>
