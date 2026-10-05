@@ -4536,11 +4536,12 @@ export function TranscriptionDetailPage() {
                   </div>
                 ) : (
                   <>
-                  <TranscriptViewChecks />
+                  {/* beside the side panel at 1024 the row has no room for the checks, and the pencil says Edit on its own */}
+                  <span className="contents max-xl:hidden"><TranscriptViewChecks /></span>
                   {sharedOwner ? null : (
-                  <Button variant="ghost" size="sm" data-tour="record-edit" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
+                  <Button variant="ghost" size="sm" data-tour="record-edit" aria-label="Edit transcript" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
                     <PencilIcon className="size-3.5" />
-                    Edit transcript
+                    <span className="max-lg:hidden">Edit transcript</span>
                   </Button>
                   )}
                   </>
