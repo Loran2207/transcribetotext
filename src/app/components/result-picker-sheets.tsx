@@ -86,16 +86,18 @@ export function LanguageSheet({
 
 /* Template picker - bottom sheet. Desktop uses the Popover TemplatePicker. */
 export function TemplateSheet({
-  open, onOpenChange, value, onSelect,
+  open, onOpenChange, value, onSelect, gate = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   value: string | null;
   onSelect: (templateId: string | null) => void;
+  /* false: any template applies on the Free plan too (the welcome recording) */
+  gate?: boolean;
 }) {
   const { templates } = useTemplates();
   const plan = usePlan();
-  const isFree = plan === "free";
+  const isFree = gate && plan === "free";
   const [query, setQuery] = useState("");
   const [libraryOpen, setLibraryOpen] = useState(false);
 
@@ -152,7 +154,7 @@ export function TemplateSheet({
   return (
     <>
       <Drawer open={open} onOpenChange={setOpen}>
-        <DrawerContent className="lg:hidden [&>div:first-child]:hidden max-h-[88vh]">
+        <DrawerContent data-tour="template-picker" className="lg:hidden [&>div:first-child]:hidden max-h-[88vh]">
           <DrawerHeader className="pb-2 flex-row items-center justify-between text-left">
             <DrawerTitle>Choose a template</DrawerTitle>
             <CloseButton onClick={() => setOpen(false)} />
@@ -203,7 +205,7 @@ export function TemplateSheet({
           </div>
         </DrawerContent>
       </Drawer>
-      <TemplateLibraryDialog open={libraryOpen} onOpenChange={setLibraryOpen} value={value} onSelect={onSelect} />
+      <TemplateLibraryDialog open={libraryOpen} onOpenChange={setLibraryOpen} value={value} onSelect={onSelect} gate={gate} />
     </>
   );
 }

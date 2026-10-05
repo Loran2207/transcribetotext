@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { useAuth } from "./auth-context";
-import { useNavigate } from "react-router";
 import { useOnboarding } from "./onboarding/onboarding-context";
-import { REWARD } from "./onboarding/guides";
 import { toast } from "sonner";
 import {
   CancelSubscriptionFlow,
@@ -664,7 +662,7 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
 
   return (
     <div className="flex flex-col">
-      <RewardCodeRow />
+      <PriorityBonusRow />
       <CancelSubscriptionFlow
         open={cancelFlowOpen}
         onOpenChange={setCancelFlowOpen}
@@ -714,20 +712,20 @@ export function PlanManagementPage({ state }: PlanManagementPageProps) {
   );
 }
 
-/* The onboarding reward lives here for good: the panel card can be hidden,
-   this row cannot, only used. */
-function RewardCodeRow() {
+/* The onboarding bonus stays visible here once it is claimed: the First steps
+   card is gone by then, so this row is where the user can see it is on.
+   It is a state, not an offer, so it has no button. Closing the reward
+   dialog claims it; allDone covers a reload while that dialog was open. */
+function PriorityBonusRow() {
   const ob = useOnboarding();
-  const navigate = useNavigate();
-  if (!ob.allDone) return null;
+  if (!ob.rewardClaimed && !ob.allDone) return null;
   return (
-    <div data-plan-reward-code="" className="mb-5 flex items-center gap-3 rounded-[14px] border border-border bg-primary/[0.04] px-4 py-3">
+    <div data-plan-priority-bonus="" className="mb-5 flex items-center gap-3 rounded-[14px] border border-border bg-primary/[0.04] px-4 py-3">
       <img src="/images/discount-gift.png" alt="" aria-hidden className="size-[40px] shrink-0 object-contain" />
       <div className="min-w-0 flex-1">
-        <p className="text-[13.5px] font-semibold text-foreground">1 month free <span className="ml-1 font-mono text-[12.5px] font-semibold text-primary">{REWARD.code}</span></p>
-        <p className="text-[12px] text-muted-foreground">Your reward for finishing the guide. Applies at checkout.</p>
+        <p className="text-[13.5px] font-semibold text-foreground">Priority processing: on</p>
+        <p className="text-[12px] text-muted-foreground">Earned in First steps.</p>
       </div>
-      <Button size="sm" onClick={() => navigate(`/checkout?code=${REWARD.code}`)} className="h-8 shrink-0 px-4 text-[12.5px] font-semibold">Use it</Button>
     </div>
   );
 }

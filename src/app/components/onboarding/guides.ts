@@ -17,17 +17,23 @@ export type TourStep = {
   anchor: string;
   title: string;
   body: string;
+  /* the words on a phone, where the control lives somewhere else (a sheet, the More menu) */
+  phoneBody?: string;
   go: TourTarget;
   side?: "top" | "bottom" | "left" | "right";
   /* the last step may end on a real action instead of "Done" */
   action?: { label: string; kind: "upload" };
+  /* the last step of a First steps tour: the page stays live under Mia's card, the person does the thing right there */
+  handoff?: boolean;
   /* the step opens (or closes) Quick Find, typing for the person */
   quickFind?: { open: boolean; query?: string };
   /* the step opens a real dialog of the page (`ttt-tour` window event) */
-  trigger?: "share-open" | "share-close" | "speakers-open" | "speakers-close" | "add-folder-open" | "add-folder-close" | "export-open" | "export-close" | "edit-open" | "edit-close" | "meetings-upcoming" | "meetings-settings";
+  trigger?: string;
 };
 
 export type Guide = {
+  /* a First steps tour: it explains one step and ends by itself when that step is credited */
+  forStep?: string;
   id: string;
   title: string;
   /* how long the lesson takes, in seconds, shown beside the title */
@@ -256,7 +262,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     steps: [
       PAGE_HOME,
       { anchor: "plan-card", go: HOME, side: "left", title: "What Free includes", body: "The files you have used this month and the day the count resets." },
-      { anchor: "plan-cta|plan-card", go: HOME, side: "left", title: "When you need more", body: "Start the trial or upgrade. A gift code goes in at checkout." },
+      { anchor: "plan-cta|plan-card", go: HOME, side: "left", title: "When you need more", body: "Start the trial or upgrade, right from this card." },
     ],
   },
 ];
@@ -294,19 +300,21 @@ export const GUIDES: Guide[] = RAW_GUIDES.map((g) => ({ ...g, ...GUIDE_META[g.id
    tries once, each done by doing it in the product (the component fires
    `creditOnboarding(id)`); `how` is the Academy lesson behind it. Review 59:
    every way in is its own step, so the list reads "try this, try that". Every
-   required step works on the Free plan, so the gift can always be earned
-   (sharing is paid, so it is not here). The photo is optional. */
-export type SetupItem = { id: string; title: string; why: string; how: string; group: "try" | "yours"; run: "modal" | "calendar" | "tour" | "profile"; modal?: "upload" | "record" | "meeting" | "link"; cta: string; parts?: { id: string }[]; optional?: boolean };
+   step works on the Free plan, so the bonus can always be earned (sharing is
+   paid, so it is not here). Client call 05.10: the photo step is gone, "Edit
+   the transcript" takes its place, and speakers go last. Each step opens its
+   own short tour (`STEP_TOURS`), so Mia always says what to do. */
+export type SetupItem = { id: string; title: string; why: string; how: string; group: "try" | "yours"; cta: string; parts?: { id: string }[] };
 export const SETUP: SetupItem[] = [
-  { id: "way-file", title: "Upload a file", why: "Audio or video from your computer.", how: "first-record", group: "try", run: "modal", modal: "upload", cta: "Upload" },
-  { id: "way-voice", title: "Try Instant speech", why: "Talk, and watch it become text.", how: "first-record", group: "try", run: "modal", modal: "record", cta: "Try" },
-  { id: "way-meeting", title: "Send the recorder to a call", why: "Paste a Zoom, Meet or Teams link.", how: "first-record", group: "try", run: "modal", modal: "meeting", cta: "Try" },
-  { id: "way-link", title: "Transcribe a link", why: "YouTube, Drive, Dropbox and more.", how: "first-record", group: "try", run: "modal", modal: "link", cta: "Paste" },
-  { id: "calendar", title: "Connect your calendar", why: "The recorder joins your meetings by itself.", how: "meetings", group: "yours", run: "calendar", cta: "Connect" },
-  { id: "template", title: "Apply a template", why: "Notes in the shape you need, every time.", how: "summary", group: "yours", run: "tour", cta: "Show me" },
-  { id: "speakers", title: "Name a speaker", why: "So the notes say who said what.", how: "speakers", group: "yours", run: "tour", cta: "Show me" },
-  { id: "folders", title: "Create a folder", why: "One per client or project.", how: "folders", group: "yours", run: "tour", cta: "Show me" },
-  { id: "photo", title: "Add your photo", why: "So people know who shared the notes.", how: "", group: "yours", run: "profile", cta: "Add", optional: true },
+  { id: "way-file", title: "Upload a file", why: "Audio or video from your computer.", how: "first-record", group: "try", cta: "Upload" },
+  { id: "way-voice", title: "Try Instant speech", why: "Talk, and watch it become text.", how: "first-record", group: "try", cta: "Try" },
+  { id: "way-meeting", title: "Send the recorder to a call", why: "Paste a Zoom, Meet or Teams link.", how: "first-record", group: "try", cta: "Try" },
+  { id: "way-link", title: "Transcribe a link", why: "YouTube, Drive, Dropbox and more.", how: "first-record", group: "try", cta: "Paste" },
+  { id: "calendar", title: "Connect your calendar", why: "The recorder joins your meetings by itself.", how: "meetings", group: "yours", cta: "Connect" },
+  { id: "template", title: "Apply a template", why: "Notes in the shape you need, every time.", how: "summary", group: "yours", cta: "Show me" },
+  { id: "edit", title: "Edit the transcript", why: "Fix a word the model misheard.", how: "edit-transcript", group: "yours", cta: "Show me" },
+  { id: "folders", title: "Create a folder", why: "One per client or project.", how: "folders", group: "yours", cta: "Show me" },
+  { id: "speakers", title: "Name a speaker", why: "So the notes say who said what.", how: "speakers", group: "yours", cta: "Show me" },
 ];
 export const SETUP_GROUPS: { id: SetupItem["group"]; title: string }[] = [
   { id: "try", title: "Try every way in" },
@@ -314,18 +322,65 @@ export const SETUP_GROUPS: { id: SetupItem["group"]; title: string }[] = [
 ];
 export const setupIds = (x: SetupItem) => (x.parts ? x.parts.map((p) => p.id) : [x.id]);
 export const isSetupDone = (x: SetupItem, has: (id: string) => boolean) => setupIds(x).every(has);
-export const SETUP_REQUIRED = SETUP.filter((x) => !x.optional);
 export const SETUP_ACTION_IDS = SETUP.flatMap(setupIds);
-export const setupComplete = (has: (id: string) => boolean) => SETUP_REQUIRED.every((x) => isSetupDone(x, has));
+export const setupComplete = (has: (id: string) => boolean) => SETUP.every((x) => isSetupDone(x, has));
 
 /* The guide who walks you through: her portrait sits on every tour card and
    on the reward, the words are hers, the arrows only point. */
 export const GUIDE_PERSON = { name: "Mia", title: "Customer Success Lead", avatar: "/images/onboarding-guide.png", figure: "/images/onboarding-mia.png" };
 
 
-/* The reward for finishing the first steps. */
+/* The bonus for finishing the first steps (client call 05.10): better
+   processing, not a subscription. No code, no checkout. */
 export const REWARD = {
-  code: "WELCOME1M",
-  title: "Your first month is on us",
-  body: "You know your way around now. This code makes the first month free.",
+  title: "Priority processing is on",
+  body: "You know your way around now. From here your recordings skip the queue and get our highest-quality transcript.",
 };
+
+/* One short tour per First step (client call 05.10, mechanism from the
+   variant b branch): it walks to the exact control, opens what needs opening
+   and hands over. The last card stays while the person does the thing, the
+   page under it stays live, and the tour ends by itself when the step is
+   credited. Not listed in the Academy. */
+const STEP_META = { cover: "", category: "", summary: "" };
+const OPEN_RECORD_FOR_STEP: TourStep = { anchor: "record-row-welcome|home-records", go: HOME, side: "bottom", title: "Open the welcome recording", body: "I made this one for you, so you can try it on real text. Next opens it." };
+export const STEP_TOURS: Guide[] = [
+  { ...STEP_META, id: "step-way-file", forStep: "way-file", title: "Upload a file", seconds: 15, steps: [
+    { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Audio and video files", body: "This card takes any recording from your computer. Next opens it.", trigger: "upload-close" },
+    { anchor: "upload-drop", go: HOME, side: "right", title: "Drop a file here", body: "Or click to choose one, then press Start transcription. The step is done the moment the upload starts.", trigger: "upload-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-way-voice", forStep: "way-voice", title: "Try Instant speech", seconds: 15, steps: [
+    { anchor: "home-card-record|add-fab", go: HOME, side: "bottom", title: "Instant speech", body: "Talk, and the words appear as you speak. Next opens it.", trigger: "record-close" },
+    { anchor: "recording-stop|record-start", go: HOME, side: "right", title: "Say a few words", body: "Press Start recording and talk for a few seconds. Press the red Stop and the step is done.", trigger: "record-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-way-meeting", forStep: "way-meeting", title: "Send the recorder to a call", seconds: 15, steps: [
+    { anchor: "home-card-meeting|add-fab", go: HOME, side: "bottom", title: "Meeting Recorder", body: "A bot joins a Zoom, Meet or Teams call and writes the notes. Next opens it.", trigger: "meeting-close" },
+    { anchor: "meeting-url", go: HOME, side: "right", title: "Paste the invite link", body: "Copy it from the calendar invite, paste it here and press Transcribe now. The step is done when the recorder is on its way.", trigger: "meeting-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-way-link", forStep: "way-link", title: "Transcribe a link", seconds: 15, steps: [
+    { anchor: "home-card-link|add-fab", go: HOME, side: "bottom", title: "Transcribe from URL", body: "YouTube, Google Drive, Dropbox and more. Next opens it.", trigger: "link-close" },
+    { anchor: "link-url", go: HOME, side: "right", title: "Paste a link", body: "Any public video or audio link, then press Start transcription. The step is done the moment it starts.", trigger: "link-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-calendar", forStep: "calendar", title: "Connect your calendar", seconds: 15, steps: [
+    { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Your calendar lives here. Next takes you there." },
+    { anchor: "meetings-connect|meetings-accounts|meetings-tabs", go: CALENDAR, side: "top", title: "Connect Google or Outlook", body: "Pick one and sign in. Your meetings then show up here by themselves.", trigger: "meetings-upcoming", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-template", forStep: "template", title: "Apply a template", seconds: 15, steps: [
+    OPEN_RECORD_FOR_STEP,
+    { anchor: "template-picker|record-apply-template|record-tabs", go: RECORD, side: "bottom", title: "Press Apply template", body: "Pick a shape: meeting notes, interview, action items. The summary is rewritten in it.", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-edit", forStep: "edit", title: "Edit the transcript", seconds: 15, steps: [
+    OPEN_RECORD_FOR_STEP,
+    { anchor: "record-edit-bar|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "Press Edit transcript, click into the text, change a word and press Save. That is the step.", phoneBody: "Open More and press Edit transcript. Change a word, then press Save. That is the step.", trigger: "tab-transcript", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-folders", forStep: "folders", title: "Create a folder", seconds: 15, steps: [
+    { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Folders live here. Next opens a new one." },
+    { anchor: "add-folder-dialog", go: RECORDS, side: "right", title: "Name it, press Create Folder", body: "One folder per client or project. It shows up in your folders at once.", trigger: "add-folder-open", handoff: true },
+  ] },
+  { ...STEP_META, id: "step-speakers", forStep: "speakers", title: "Name a speaker", seconds: 15, steps: [
+    OPEN_RECORD_FOR_STEP,
+    { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Two voices, one unnamed", body: "Speaker 2 still needs a name. Next opens the list.", trigger: "speakers-close" },
+    { anchor: "speakers-panel", go: RECORD, side: "right", title: "Give Speaker 2 a name", body: "Click the name, type the real one, press Enter.", trigger: "speakers-open", handoff: true },
+  ] },
+];
+export const stepTourId = (stepId: string) => `step-${stepId}`;

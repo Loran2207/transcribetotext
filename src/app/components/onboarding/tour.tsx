@@ -28,8 +28,13 @@ const CARD_W = 300;
 const MIA_W = 240;
 const MIA_H = 360;
 const GAP = 14;
+/* the narrowest the card gets when it must squeeze beside a control */
+const MIN_CARD_W = 244;
 
 type Rect = { top: number; left: number; width: number; height: number };
+type Side = "top" | "bottom" | "left" | "right";
+const SIDES: Side[] = ["bottom", "top", "right", "left"];
+const OPPOSITE: Record<Side, Side> = { top: "bottom", bottom: "top", left: "right", right: "left" };
 
 /* "a|b": the first visible anchor wins, so a phone layout without the web
    control can light its own stand-in (the menu button, the "+" button). */
@@ -90,9 +95,13 @@ export function OnboardingTour() {
 
   /* a step may open a real dialog of the page; when the lesson ends, everything it opened closes */
   const triggerUsed = useRef(false);
+  const handedOver = useRef(false);
   useEffect(() => {
     const t = step?.trigger;
+    if (step) handedOver.current = !!step.handoff;
     if (t) { triggerUsed.current = true; window.dispatchEvent(new CustomEvent("ttt-tour", { detail: t })); return; }
+    /* a First steps tour ends on the real thing, open: it stays for the person */
+    if (!step && handedOver.current) { triggerUsed.current = false; handedOver.current = false; return; }
     if (triggerUsed.current) { triggerUsed.current = false; window.dispatchEvent(new CustomEvent("ttt-tour", { detail: "close-all" })); }
   }, [step]);
 
@@ -105,6 +114,7 @@ export function OnboardingTour() {
   }, [step]);
   const anchorName = step?.anchor && step.anchor !== NO_ANCHOR ? step.anchor : null;
   const speaking = step?.anchor === NO_ANCHOR;
+  const handoff = !!step?.handoff;
 
   /* wait for the anchor: the step may have just navigated to another page */
   useLayoutEffect(() => {
@@ -145,16 +155,43 @@ export function OnboardingTour() {
     return () => { window.removeEventListener("resize", update); window.removeEventListener("scroll", update, true); };
   }, [anchorName]);
 
+  /* While the page is handed over, the control the person uses may change
+     under the card (Start becomes the recording pill's Stop, Edit becomes the
+     edit bar): follow it. If it is gone for good, the person closed what the
+     step opened, so the card goes too. A trigger fired before the page under
+     it had mounted is fired again. */
+  useEffect(() => {
+    if (!handoff || !anchorName) return;
+    let seen = false; let gone = 0; let retries = 0;
+    const id = window.setInterval(() => {
+      const el = findAnchor(anchorName);
+      if (el) {
+        seen = true; gone = 0;
+        const box = measure(el);
+        setRect((r) => (r && Math.abs(r.top - box.top) < 1 && Math.abs(r.left - box.left) < 1 && Math.abs(r.width - box.width) < 1 && Math.abs(r.height - box.height) < 1 ? r : box));
+        setMissing(false);
+        return;
+      }
+      if (!seen) { if (step?.trigger && retries++ < 3) window.dispatchEvent(new CustomEvent("ttt-tour", { detail: step.trigger })); return; }
+      if (++gone >= 5) endTour();
+    }, 300);
+    return () => window.clearInterval(id);
+  }, [handoff, anchorName, step, endTour]);
+
   useEffect(() => {
     if (!tour) return;
     const key = (e: KeyboardEvent) => {
+      /* handed over: the person types in the real form, so only Escape is ours, and it
+         closes this card alone; the dialog under it waits for its own Escape */
+      if (handoff) { if (e.key === "Escape") { e.stopPropagation(); endTour(); } return; }
       if (e.key === "Escape") endTour();
       if (e.key === "ArrowRight" || e.key === "Enter") nextStep();
       if (e.key === "ArrowLeft") prevStep();
     };
-    window.addEventListener("keydown", key);
-    return () => window.removeEventListener("keydown", key);
-  }, [tour, nextStep, prevStep, endTour]);
+    /* handed over, the card listens first (capture), so the dialog under it does not also close */
+    window.addEventListener("keydown", key, handoff);
+    return () => window.removeEventListener("keydown", key, handoff);
+  }, [tour, handoff, nextStep, prevStep, endTour]);
 
   if (!tour || !step) return null;
   /* the card waits for its place: nothing is drawn top-left and then moved */
@@ -180,20 +217,30 @@ export function OnboardingTour() {
     cardStyle = { top: Math.min(top, window.innerHeight - 220), left };
     arrow = "top";
   }
+  /* review 05.10: the card never sits on the control it points at. The preferred
+     side first, then the opposite one, then the other two; when no side has room
+     for the full card, a narrower card beside the control (a dialog filling a
+     1024px window leaves about 250px each side) beats one on top of it */
+  let cardW = CARD_W;
   if (rect && !phone && !pageWide) {
     const vw = window.innerWidth, vh = window.innerHeight;
     const est = cardRef.current?.offsetHeight ?? 200;
-    let side = step.side ?? "bottom";
-    const below = vh - (rect.top + rect.height + GAP), above = rect.top - GAP;
-    if (side === "bottom" && below < est + 12) side = above > below ? "top" : "bottom";
-    else if (side === "top" && above < est + 12) side = below > above ? "bottom" : "top";
-    if (side === "right" && rect.left + rect.width + GAP + CARD_W > vw) side = "bottom";
-    if (side === "left" && rect.left - GAP - CARD_W < 0) side = "bottom";
-    const clampX = (x: number) => Math.max(12, Math.min(vw - CARD_W - 12, x));
+    const pref = step.side ?? "bottom";
+    const room: Record<Side, number> = { bottom: vh - (rect.top + rect.height + GAP) - 12, top: rect.top - GAP - 12, right: vw - (rect.left + rect.width + GAP) - 12, left: rect.left - GAP - 12 };
+    const fits = (s: Side) => room[s] >= (s === "top" || s === "bottom" ? est : CARD_W);
+    const squeeze = (sides: Side[]) => sides.filter((s) => (s === "left" || s === "right") && room[s] >= MIN_CARD_W).sort((a, b) => room[b] - room[a])[0];
+    const own: Side[] = [pref, OPPOSITE[pref]];
+    let side = own.find(fits);
+    /* asked for beside: a narrower card beside still beats one over the dialog's other fields */
+    if (!side && (pref === "left" || pref === "right")) { side = squeeze(own); if (side) cardW = Math.floor(room[side]); }
+    if (!side) side = SIDES.filter((s) => !own.includes(s)).find(fits);
+    if (!side) { side = squeeze(SIDES); if (side) cardW = Math.floor(room[side]); }
+    if (!side) side = room.bottom >= room.top ? "bottom" : "top";
+    const clampX = (x: number) => Math.max(12, Math.min(vw - cardW - 12, x));
     if (side === "bottom") { cardStyle = { top: rect.top + rect.height + GAP, left: clampX(rect.left) }; arrow = "top"; }
     if (side === "top") { cardStyle = { bottom: vh - rect.top + GAP, left: clampX(rect.left) }; arrow = "bottom"; }
     if (side === "right") { cardStyle = { top: Math.max(12, rect.top), left: rect.left + rect.width + GAP }; arrow = "left"; }
-    if (side === "left") { cardStyle = { top: Math.max(12, rect.top), left: rect.left - GAP - CARD_W }; arrow = "right"; }
+    if (side === "left") { cardStyle = { top: Math.max(12, rect.top), left: rect.left - GAP - cardW }; arrow = "right"; }
   }
 
   /* side "top" needs the card's real height so `top` can be animated like the other sides */
@@ -208,15 +255,18 @@ export function OnboardingTour() {
     cardStyle = { ...cardStyle, top: Math.max(12, Math.min(window.innerHeight - h - 12, cardStyle.top)) };
   }
 
-  /* on the phone the card sits at the bottom, unless the lit element is down there too */
-  const phoneTop = !!(phone && rect && rect.top + rect.height > window.innerHeight - 240);
+  /* on the phone the card sits at the bottom, unless the lit element is down there too;
+     handed over, it goes to the top whenever it fits above the control, because the
+     bottom of a phone is where a sheet keeps its Start or Save button */
+  const phoneCardH = cardRef.current?.offsetHeight ?? 190;
+  const phoneTop = !!(phone && rect && (handoff ? rect.top >= phoneCardH + 24 : rect.top + rect.height > window.innerHeight - 240));
 
   const spring = reduce ? { duration: 0 } : { type: "spring" as const, stiffness: 320, damping: 30 };
 
   return createPortal(
-    <div data-onboarding-tour="" className="pointer-events-auto fixed inset-0 z-[300]">
-      {/* click catcher: a click on the dark goes to the next step */}
-      <div className="absolute inset-0" onClick={nextStep} />
+    <div data-onboarding-tour="" data-handoff={handoff ? "" : undefined} className={cn("fixed inset-0 z-[300]", handoff ? "pointer-events-none" : "pointer-events-auto")}>
+      {/* click catcher: a click on the dark goes to the next step; handed over, the page is live and nothing is dark */}
+      {!handoff && <div className="absolute inset-0" onClick={nextStep} />}
       <AnimatePresence>
         {rect && (
           <motion.div
@@ -225,10 +275,10 @@ export function OnboardingTour() {
             initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1, top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
             transition={spring}
-            style={{ borderRadius: RADIUS, boxShadow: "0 0 0 9999px rgba(15, 23, 42, 0.55)" }}
+            style={{ borderRadius: RADIUS, boxShadow: handoff ? "0 0 0 2px var(--primary)" : "0 0 0 9999px rgba(15, 23, 42, 0.55)" }}
           />
         )}
-        {!rect && (
+        {!rect && !handoff && (
           <motion.div key="dark" className="absolute inset-0 pointer-events-none" style={{ background: "rgba(15, 23, 42, 0.55)" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
         )}
       </AnimatePresence>
@@ -255,11 +305,11 @@ export function OnboardingTour() {
         aria-label={step.title}
         data-tour-card=""
         className={cn(
-          "absolute flex flex-col gap-2 rounded-[16px] border border-border bg-popover p-4 text-popover-foreground shadow-[var(--elevation-md)]",
+          "pointer-events-auto absolute flex flex-col gap-2 rounded-[16px] border border-border bg-popover p-4 text-popover-foreground shadow-[var(--elevation-md)]",
           phone && "left-3 right-3",
           phone && (phoneTop ? "top-[calc(12px+env(safe-area-inset-top))]" : "bottom-[calc(16px+env(safe-area-inset-bottom))]"),
         )}
-        style={phone ? undefined : { width: CARD_W }}
+        style={phone ? undefined : { width: cardW }}
         initial={reduce ? false : { opacity: 0, y: 8, ...(phone ? {} : cardStyle) }}
         animate={{ opacity: 1, y: 0, ...(phone ? {} : cardStyle) }}
         transition={spring}
@@ -285,12 +335,12 @@ export function OnboardingTour() {
               <span className="text-[11.5px] font-medium leading-[15px] text-muted-foreground">{GUIDE_PERSON.title}</span>
             </span>
           </span>
-          <button type="button" onClick={endTour} aria-label="Close the guide" className="-mr-1 -mt-1 flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+          <button type="button" onClick={endTour} aria-label="Close the guide" className="-mr-1 -mt-1 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:-mr-2 pointer-coarse:-mt-2 pointer-coarse:size-9">
             <Icon icon={Cancel01Icon} size={14} />
           </button>
         </div>
         <p className="text-[15px] font-semibold leading-[20px] text-foreground">{step.title}</p>
-        <p className="text-[13px] leading-[19px] text-foreground/80">{missing ? "This part is not on the screen right now. Skip ahead." : step.body}</p>
+        <p className="text-[13px] leading-[19px] text-foreground/80">{missing ? (handoff ? "This part is not on the screen right now. Close me and press the step again." : "This part is not on the screen right now. Skip ahead.") : (phone && step.phoneBody) || step.body}</p>
         <div className="mt-1 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1">
             {tour.guide.steps.map((_, i) => (
@@ -299,11 +349,12 @@ export function OnboardingTour() {
           </div>
           <div className="flex items-center gap-1.5">
             {tour.step > 0 && (
-              <Button variant="ghost" size="sm" onClick={prevStep} aria-label="Back" className="h-8 px-2.5 text-[13px]">
+              <Button variant="ghost" size="sm" onClick={prevStep} aria-label="Back" className="h-8 px-2.5 text-[13px] pointer-coarse:h-9 pointer-coarse:px-3">
                 <Icon icon={ArrowLeft01Icon} size={14} />
               </Button>
             )}
-            <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } nextStep(); }} className="h-8 pl-4 pr-3 text-[13px] font-semibold">{last ? (step.action?.label ?? "Done") : <>Next<span className="ml-2 rounded-full bg-primary-foreground/20 px-[7px] text-[11px] font-semibold tabular-nums leading-[18px]">{tour.step + 1}/{total}</span></>}</Button>
+            {/* handed over, there is nothing to press here: the real action ends the step */}
+            {!handoff && <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } nextStep(); }} className="h-8 pl-4 pr-3 text-[13px] font-semibold pointer-coarse:h-9">{last ? (step.action?.label ?? "Done") : <>Next<span className="ml-2 rounded-full bg-primary-foreground/20 px-[7px] text-[11px] font-semibold tabular-nums leading-[18px]">{tour.step + 1}/{total}</span></>}</Button>}
           </div>
         </div>
       </motion.div>}

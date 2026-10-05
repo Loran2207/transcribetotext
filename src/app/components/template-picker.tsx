@@ -36,17 +36,19 @@ interface TemplatePickerProps {
   trigger: React.ReactNode;
   align?: "start" | "end" | "center";
   onManageTemplates?: () => void;
+  /** false: any template applies on the Free plan too (the welcome recording is a sample to try them on) */
+  gate?: boolean;
   /** Controlled open state (optional) */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
 export function TemplatePicker({
-  value, onSelect, trigger, align = "end", onManageTemplates, open, onOpenChange,
+  value, onSelect, trigger, align = "end", onManageTemplates, gate = true, open, onOpenChange,
 }: TemplatePickerProps) {
   const { templates } = useTemplates();
   const plan = usePlan();
-  const isFree = plan === "free";
+  const isFree = gate && plan === "free";
 
   const [internalOpen, setInternalOpen] = useState(false);
   const [libraryOpen, setLibraryOpen] = useState(false);
@@ -164,7 +166,7 @@ export function TemplatePicker({
     <>
     <Popover open={isOpen} onOpenChange={setOpenState}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent align={align} className="w-[460px] p-0 z-[400]">
+      <PopoverContent align={align} data-tour="template-picker" className="w-[460px] p-0 z-[400]">
         {/* Search */}
         <div className="flex items-center gap-2 px-3.5 pt-3 pb-2.5">
           <Icon icon={SearchIcon} size={14} className="text-muted-foreground/60 shrink-0" />
@@ -282,7 +284,7 @@ export function TemplatePicker({
         </div>
       </PopoverContent>
     </Popover>
-    <TemplateLibraryDialog open={libraryOpen} onOpenChange={setLibraryOpen} value={value} onSelect={onSelect} />
+    <TemplateLibraryDialog open={libraryOpen} onOpenChange={setLibraryOpen} value={value} onSelect={onSelect} gate={gate} />
     </>
   );
 }

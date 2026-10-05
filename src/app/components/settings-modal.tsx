@@ -61,7 +61,6 @@ import { setInnerScreen } from "./inner-screen";
 import { useAuth } from "./auth-context";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { creditOnboarding } from "./onboarding/onboarding-context";
 
 // ── Reusable action button ────────────────────────────────────
 interface ActionBtnProps {
@@ -488,7 +487,6 @@ export function AccountSettingsDetailed({ onOpenSection }: { onOpenSection: (id:
     const file = e.target.files?.[0];
     if (!file) return;
     setAvatarSrc(URL.createObjectURL(file));
-    creditOnboarding("photo");
     e.target.value = "";
   }
 
@@ -760,13 +758,11 @@ function AccountPage({ onOpenSection }: { onOpenSection: (id: SectionId) => void
     toast.success("Profile updated");
   }
 
-  /* The photo people see next to your name when you share (review 58: the
-     First steps list offers it as an optional step, so the page must have it). */
+  /* The photo people see next to your name when you share. */
   function pickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setAvatarSrc(URL.createObjectURL(file));
-    creditOnboarding("photo");
     toast.success("Photo updated");
     e.target.value = "";
   }

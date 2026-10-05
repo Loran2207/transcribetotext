@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { GUIDES, INTRO_STEP, SETUP, SETUP_ACTION_IDS, SETUP_REQUIRED, setupComplete, setupIds, type Guide, type TourTarget } from "./guides";
+import { GUIDES, INTRO_STEP, SETUP, SETUP_ACTION_IDS, STEP_TOURS, setupComplete, setupIds, type Guide, type TourTarget } from "./guides";
 
 /* State of the guide: the Academy (ten lessons, competence) and Account Setup
    (the first steps, real actions that makes the account useful). Two different
-   motivations, kept apart on purpose (Artem + Kirill, 29.09): the Academy is
-   read or toured, Account Setup is done, and the gift rewards the setup.
+   motivations, kept apart on purpose (decided 29.09): the Academy is read or
+   toured, Account Setup is done, and the priority processing bonus rewards
+   the setup.
 
    Storage: one key, `ttt_onboarding_v1`:
    - done: lessons finished by a tour
@@ -17,7 +18,7 @@ import { GUIDES, INTRO_STEP, SETUP, SETUP_ACTION_IDS, SETUP_REQUIRED, setupCompl
    - `ttt_demo_onboarding=fresh`  nothing done
    - `ttt_demo_onboarding=half`   three lessons done, two setup actions done
    - `ttt_demo_onboarding=five`   all lessons but the last, all setup but the last
-   - `ttt_demo_onboarding=done`   everything done, reward shown
+   - `ttt_demo_onboarding=done`   everything done, the bonus claimed
    - `ttt_demo_onboarding=off`    widget hidden */
 
 const KEY = "ttt_onboarding_v1";
@@ -30,11 +31,11 @@ function load(): Stored {
   if (typeof window === "undefined") return EMPTY;
   const demo = window.localStorage.getItem("ttt_demo_onboarding");
   const gid = (n: number) => GUIDES.slice(0, n).map((g) => g.id);
-  const sid = (n: number) => SETUP_REQUIRED.slice(0, n).flatMap(setupIds);
+  const sid = (n: number) => SETUP.slice(0, n).flatMap(setupIds);
   if (demo === "fresh") return { ...EMPTY };
   if (demo === "half") return { ...EMPTY, introSeen: true, done: gid(3), seen: gid(4), actions: sid(2) };
-  if (demo === "five") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length - 1), seen: gid(GUIDES.length - 1), actions: sid(SETUP_REQUIRED.length - 1) };
-  if (demo === "done") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length), seen: gid(GUIDES.length), actions: sid(SETUP_REQUIRED.length) };
+  if (demo === "five") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length - 1), seen: gid(GUIDES.length - 1), actions: sid(SETUP.length - 1) };
+  if (demo === "done") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length), seen: gid(GUIDES.length), actions: sid(SETUP.length), rewardClaimed: true, hidden: true };
   if (demo === "off") return { ...EMPTY, hidden: true };
   try {
     const raw = window.localStorage.getItem(KEY);
@@ -52,7 +53,7 @@ function save(s: Stored) {
 }
 
 export type Tour = { guide: Guide; step: number };
-/* what to celebrate right after something finishes: one lesson, the whole Academy, or the setup (the gift) */
+/* what to celebrate right after something finishes: one lesson, the whole Academy, or the setup (the bonus) */
 export type Celebration = { kind: "guide"; guide: Guide; index: number } | { kind: "academy" } | "all" | null;
 
 type Ctx = {
@@ -61,7 +62,7 @@ type Ctx = {
   done: Set<string>;
   seen: Set<string>;
   actions: Set<string>;
-  /* the gift: every setup action done */
+  /* the bonus is earned: every setup action done */
   allDone: boolean;
   academyDone: boolean;
   hidden: boolean;
@@ -107,6 +108,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       const id = (e as CustomEvent<string>).detail;
       const setupItem = SETUP_ACTION_IDS.includes(id);
       const guide = GUIDES.find((g) => g.id === id);
+      /* the First steps tour for this step has done its job: Mia's card goes */
+      if (setupItem) setTour((t) => (t && t.guide.forStep === id ? null : t));
       if (!setupItem && !guide) return;
       setStored((s) => {
         const actions = setupItem && !s.actions.includes(id) ? [...s.actions, id] : s.actions;
@@ -126,10 +129,11 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const go = useCallback((t: TourTarget) => { navigator.current?.(t); }, []);
 
   const startGuide = useCallback((id: string) => {
-    const base = GUIDES.find((g) => g.id === id); if (!base) return;
+    const base = GUIDES.find((g) => g.id === id) ?? STEP_TOURS.find((g) => g.id === id); if (!base) return;
     /* she says hello on the first lesson started, and again on any later start as long as
-       nothing is finished yet (the person closed the tour and came back) */
-    const hello = !stored.introSeen || stored.done.length === 0;
+       nothing is finished yet (the person closed the tour and came back); a First steps
+       tour goes straight to its step */
+    const hello = !base.forStep && (!stored.introSeen || stored.done.length === 0);
     const guide: Guide = hello ? { ...base, steps: [INTRO_STEP, ...base.steps] } : base;
     setStored((s) => ({ ...s, expanded: false, introSeen: true }));
     go(guide.steps[0].go);
@@ -152,7 +156,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setTour((t) => {
       if (!t) return t;
       const last = t.step >= t.guide.steps.length - 1;
-      if (last) { if (t.guide.completeBy !== "action") finishGuide(t.guide); return null; }
+      if (last) { if (t.guide.completeBy !== "action" && !t.guide.forStep) finishGuide(t.guide); return null; }
       const next = t.guide.steps[t.step + 1];
       go(next.go);
       return { guide: t.guide, step: t.step + 1 };
@@ -188,7 +192,7 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
       reset: () => { setTour(null); setCelebration(null); setStored({ ...EMPTY }); },
       markDone,
       markSeen,
-      claimReward: () => setStored((s) => ({ ...s, rewardClaimed: true, hidden: true })),
+      claimReward: () => { setCelebration(null); setStored((s) => ({ ...s, rewardClaimed: true, hidden: true })); },
       tour,
       celebration,
       dismissCelebration: () => setCelebration(null),

@@ -896,12 +896,14 @@ function TranscriptSegment({
     return parts;
   }
 
+  /* the speaker column only from xl: at 1024 the sidebar and the right panel leave
+     about 450px, and a 220px name column squeezed the words into one per line */
   return (
     <div
       ref={segmentRef}
       data-segment-id={segment.id}
       data-split-preview={segment.preview ? "" : undefined}
-      className={`group/seg relative -mx-2 grid ${hideSpeaker && !segment.preview ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[minmax(160px,220px)_1fr]"} gap-4 rounded-xl px-2 ${continuation ? "pt-0 pb-4 -mt-1" : "py-4"} transition-colors duration-200 max-lg:gap-2 ${segment.preview ? "ttt-split-preview pointer-events-none my-1 border border-dashed border-primary/50 bg-primary/[0.04] " : ""}${
+      className={`group/seg relative -mx-2 grid ${hideSpeaker && !segment.preview ? "grid-cols-1" : "grid-cols-1 xl:grid-cols-[minmax(160px,220px)_1fr]"} gap-4 rounded-xl px-2 ${continuation ? "pt-0 pb-4 -mt-1" : "py-4"} transition-colors duration-200 max-xl:gap-2 ${segment.preview ? "ttt-split-preview pointer-events-none my-1 border border-dashed border-primary/50 bg-primary/[0.04] " : ""}${
         highlighted
           ? "bg-primary/8"
           : isSegHighlighted
@@ -921,7 +923,7 @@ function TranscriptSegment({
       )}
 
       {(!hideSpeaker || segment.preview) && (
-        <div className={`min-w-0 pt-1 ${continuation ? "max-lg:hidden max-lg:group-hover/seg:block max-lg:group-focus-within/seg:block" : ""}`}>
+        <div className={`min-w-0 pt-1 ${continuation ? "max-xl:hidden max-xl:group-hover/seg:block max-xl:group-focus-within/seg:block" : ""}`}>
           <SpeakerLabel
             speaker={segment.speaker}
             continuation={continuation}
@@ -932,7 +934,7 @@ function TranscriptSegment({
         </div>
       )}
 
-      <div className="relative min-w-0 pl-5 pr-28 max-lg:pr-16">
+      <div className="relative min-w-0 pl-5 pr-28 max-xl:pr-16">
         <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-full transition-colors ${lineTone}`} />
         {!hideTimecodes && (onSeekTimecode ? (
           <button
@@ -1219,6 +1221,7 @@ function TemplateSelectorButton({
   onNavigateToTemplates,
   open,
   onOpenChange,
+  gate,
 }: {
   activeTemplateId: string | null;
   templates: Template[];
@@ -1226,6 +1229,7 @@ function TemplateSelectorButton({
   onNavigateToTemplates: () => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  gate?: boolean;
 }) {
   const active = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) : null;
   return (
@@ -1233,6 +1237,7 @@ function TemplateSelectorButton({
       value={activeTemplateId}
       onSelect={onSelect}
       onManageTemplates={onNavigateToTemplates}
+      gate={gate}
       align="end"
       open={open}
       onOpenChange={onOpenChange}
@@ -2192,6 +2197,7 @@ export function LiveRecordingBar({
           <Button
             variant="destructive"
             className="h-9 rounded-full px-3 gap-1.5"
+            data-tour="recording-stop"
             onClick={onStop}
             title="Stop recording"
           >
@@ -2769,6 +2775,10 @@ export function TranscriptionDetailPage() {
   useEffect(() => { setPermDemo(permFlag === "1" || permFlag === "mic" ? permFlag : null); }, [permFlag]);
   const [summaryStage, setSummaryStage] = useState("");
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  /* the welcome recording is a sample: any template can be tried on it on the Free plan,
+     so the First steps "Apply a template" can be done before paying (proposal, not yet
+     confirmed by the client) */
+  const sampleRecord = id === WELCOME_RECORD_ID;
   const [langSheetOpen, setLangSheetOpen] = useState(false);
   const [belowLg, setBelowLg] = useState(false);
   const [belowMd, setBelowMd] = useState(false);
@@ -3243,7 +3253,8 @@ export function TranscriptionDetailPage() {
   const differsFromOriginal = !sameTexts(texts, originalTextsRef.current);
 
   function handleToggleEdit() { savedTextsRef.current = { ...texts }; setEditMode(true); }
-  function handleSave() { savedTextsRef.current = { ...texts }; setEditMode(false); toast.success("Transcript saved"); }
+  /* First steps: a saved correction is the "Edit the transcript" step (an unchanged save is not) */
+  function handleSave() { if (hasUnsavedEdits) creditOnboarding("edit"); savedTextsRef.current = { ...texts }; setEditMode(false); toast.success("Transcript saved"); }
   function leaveEdit() { reset(savedTextsRef.current); setDiscardOpen(false); setEditMode(false); }
   function handleCancel() { if (hasUnsavedEdits) { setDiscardOpen(true); return; } leaveEdit(); }
   function handleResetToOriginal() {
@@ -4239,7 +4250,7 @@ export function TranscriptionDetailPage() {
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
     </Button>
   ) : (
-    <Button onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] text-[14px] font-semibold">
+    <Button data-tour="record-apply-template" onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] text-[14px] font-semibold">
       Apply template
     </Button>
   );
@@ -4508,6 +4519,7 @@ export function TranscriptionDetailPage() {
                   onOpenChange={setTemplatePickerOpen}
                   onSelect={handleTemplateSelect}
                   onNavigateToTemplates={() => navigate("/")}
+                  gate={!sampleRecord}
                 />}
                 </div>
               )}
@@ -4823,7 +4835,7 @@ export function TranscriptionDetailPage() {
             <ActionSheetItem icon={Trash} label="Delete" destructive onClick={() => { setMoreSheetOpen(false); deleteTranscript(); }} />
           )}
         </ActionSheet>
-        <TemplateSheet open={templatePickerOpen && belowMd} onOpenChange={setTemplatePickerOpen} value={activeTemplateId} onSelect={handleTemplateSelect} />
+        <TemplateSheet open={templatePickerOpen && belowMd} onOpenChange={setTemplatePickerOpen} value={activeTemplateId} onSelect={handleTemplateSelect} gate={!sampleRecord} />
         <TemplateLibraryDialog open={padLibraryOpen} onOpenChange={setPadLibraryOpen} value={null} onSelect={(tid) => { if (tid) insertTemplate(tid); }} gate={false} />
         <LanguageSheet open={langSheetOpen && belowLg} onOpenChange={setLangSheetOpen} languages={TRANSLATION_LANGUAGES} activeLang={activeTranslationLang} disabled={isTranslationLoading || isJobTranscribing} onPick={(code) => { void handleTranslate(code); }} />
         <MoveToFolderDialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)} count={1} onMove={(id) => moveToFolder(id)} onCreateFolder={() => { setMoveDialogOpen(false); createFolderAndMove(); }} folders={folders} />
@@ -4888,7 +4900,7 @@ export function TranscriptionDetailPage() {
                     <span className="text-[13px] text-muted-foreground">{hasUnsavedEdits ? "Unsaved changes" : "Edited"}</span>
                   </div>
                 )}
-                <div className="flex items-center gap-2">
+                <div data-tour="record-edit-bar" className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="size-[46px] rounded-full shrink-0" disabled={!canUndo} onClick={undo} aria-label="Undo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 102.13-9.36L1 10" /></svg></Button>
                 <Button variant="ghost" size="icon" className="size-[46px] rounded-full shrink-0" disabled={!canRedo} onClick={redo} aria-label="Redo"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 11-2.13-9.36L23 10" /></svg></Button>
                 <Button variant="pill-outline" className="flex-1 h-[46px]" onClick={handleCancel}>Cancel</Button>
@@ -4907,7 +4919,7 @@ export function TranscriptionDetailPage() {
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
                   <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
                 </Button>
-                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
+                <Button variant="pill-outline" size="icon" data-tour="record-more" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
                   <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
                 </Button>
                 {templateCta}

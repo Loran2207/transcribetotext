@@ -4,18 +4,16 @@ import { ArrowRight01Icon, ArrowUp01Icon, Tick02Icon } from "@hugeicons/core-fre
 import { Icon } from "../ui/icon";
 import { cn } from "../ui/utils";
 import { useOnboarding } from "./onboarding-context";
-import { SETUP_GROUPS, SETUP_REQUIRED, isSetupDone, type SetupItem } from "./guides";
-import { useTranscriptionModals } from "../transcription-modals";
+import { SETUP, SETUP_GROUPS, isSetupDone, stepTourId } from "./guides";
 
 /* "First steps": a fixed card at the top of the Home right panel (web) and a
    slide of the Home info carousel on the phone and tablet.
 
-   The split (Artem + Kirill, 29.09): this card is the real actions a new
-   account tries once, each done by doing it; the lessons that explain the
-   product live on the Academy page. The gift rewards the first steps.
+   The split (29.09): this card is the real actions a new account tries
+   once, each done by doing it; the lessons that explain the product live on
+   the Academy page. The bonus (priority processing) rewards the first steps.
    Review 58: renamed from "Set up your account" (half of it is trying the
-   product, not configuring it); the first step is the four ways in, one chip
-   each; the photo is optional; every required step works on the Free plan.
+   product, not configuring it); every step works on the Free plan.
 
    Built in the in-app banner language: navy laid over a dark photograph from
    the left, sentence-case type on it, the site's notch as a bite on each side.
@@ -42,21 +40,13 @@ function SideNotches() {
 
 const iconButton = "flex size-[26px] shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white";
 
-/* what "Do it" does for each setup item: the upload opens right here, the
-   calendar page has the connect screen on a fresh account, the rest start the
-   lesson that walks to the exact control and the real action ticks the item */
+/* what a step does when pressed: its own short tour walks to the exact
+   control, Mia's card says what to do and stays while the person does it, and
+   the real action ticks the step (client call 05.10: the ways in used to open
+   their dialog with no word from Mia) */
 function useRunSetup() {
   const ob = useOnboarding();
-  const { setOpenModal } = useTranscriptionModals();
-  return (id: string) => {
-    const item = ob.setup.find((x) => x.id === id); if (!item) return;
-    if (item.run === "modal" && item.modal) { setOpenModal(item.modal); return; }
-    /* review 59: Connect used to land on a calendar that looked connected already;
-       now the Meetings lesson walks to the connect screen of a new account */
-    if (item.run === "calendar") { ob.startGuide("meetings"); return; }
-    if (item.run === "profile") { ob.navigate({ page: "settings" }); return; }
-    ob.startGuide(item.how);
-  };
+  return (id: string) => ob.startGuide(stepTourId(id));
 }
 
 export function OnboardingCard({ inAcademy = false }: { inAcademy?: boolean } = {}) {
@@ -64,11 +54,11 @@ export function OnboardingCard({ inAcademy = false }: { inAcademy?: boolean } = 
   const reduce = useReducedMotion();
   if (ob.hidden) return null;
   const has = (id: string) => ob.actions.has(id);
-  const doneCount = SETUP_REQUIRED.filter((x) => isSetupDone(x, has)).length;
-  const total = SETUP_REQUIRED.length;
+  const doneCount = SETUP.filter((x) => isSetupDone(x, has)).length;
+  const total = SETUP.length;
   const open = ob.expanded;
 
-  /* all first steps done: the dialog handed the gift over and the code lives in Plan Management */
+  /* all first steps done: the dialog turned the bonus on and Plan Management shows it */
   if (ob.allDone) return null;
 
   const fade = { initial: reduce ? false : { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, exit: reduce ? undefined : { opacity: 0, y: -4 }, transition: { duration: 0.16 } } as const;
@@ -90,7 +80,7 @@ export function OnboardingCard({ inAcademy = false }: { inAcademy?: boolean } = 
                 <span className="block truncate text-[13px] font-semibold leading-[19.5px] text-white">First steps</span>
                 <span className="mt-[1px] flex items-center gap-[5px] text-[11px] font-medium leading-[16.5px] text-white/80">
                   <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain" />
-                  <span className="truncate">{total - doneCount} to do, then 1 month free</span>
+                  <span className="truncate">{total - doneCount} to do. Then your recordings go first in line.</span>
                 </span>
               </motion.span>
             )}
@@ -126,17 +116,17 @@ function AcademyLink() {
   );
 }
 
-/* The first steps and the gift on one rail, in two groups: every way in, then
+/* The first steps and the bonus on one rail, in two groups: every way in, then
    the things that make the account yours. Shared by the web card and the
-   compact-shell slide. The photo is marked optional and the gift does not wait
-   for it. */
+   compact-shell slide. A whole open row is the button (a touch screen has no
+   hover to reveal the pill), so the tap target is the row, 38px high. */
 function SetupList({ compact }: { compact: boolean }) {
   const ob = useOnboarding();
   const run = useRunSetup();
   const has = (id: string) => ob.actions.has(id);
-  const total = SETUP_REQUIRED.length;
-  const next = SETUP_REQUIRED.find((x) => !isSetupDone(x, has));
-  const ROW_H = compact ? 34 : ROW;
+  const total = SETUP.length;
+  const next = SETUP.find((x) => !isSetupDone(x, has));
+  const ROW_H = compact ? 38 : ROW;
   let n = 0;
   return (
     <ol className="relative -mt-px flex flex-col bg-card px-[8px] pt-[4px] pb-[8px]">
@@ -149,10 +139,11 @@ function SetupList({ compact }: { compact: boolean }) {
               const done = isSetupDone(x, has);
               const isNext = next?.id === x.id;
               const last = i === arr.length - 1;
+              const Row = done ? "div" : "button";
               return (
                 <li key={x.id} className="relative">
                   {!last && <span aria-hidden className={cn("absolute left-[20px] top-[20px] z-[1] w-[2px] transition-colors duration-500", done ? "bg-primary" : "bg-border")} style={{ height: ROW_H }} />}
-                  <div className="group flex w-full items-center gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors hover:bg-muted/70" style={{ height: ROW_H }}>
+                  <Row {...(done ? {} : { type: "button" as const, "data-onboarding-setup": x.id, onClick: () => run(x.id) })} className={cn("group flex w-full items-center gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors", !done && "hover:bg-muted/70", !done && focus)} style={{ height: ROW_H }}>
                     <span className={cn(
                       "relative z-[2] flex size-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums transition-colors",
                       done ? "bg-primary text-primary-foreground" : isNext ? "border-2 border-primary bg-card text-primary" : "border-2 border-border bg-card text-muted-foreground group-hover:border-foreground/25 group-hover:text-foreground",
@@ -161,12 +152,11 @@ function SetupList({ compact }: { compact: boolean }) {
                     </span>
                     <span className="flex min-w-0 flex-1 items-baseline gap-[6px]">
                       <span className={cn("truncate text-[13.5px] leading-[18px] transition-colors", done ? "font-medium text-muted-foreground" : isNext ? "font-semibold text-foreground" : "font-medium text-foreground/80 group-hover:text-foreground")}>{x.title}</span>
-                      {x.optional && !done && <span className="shrink-0 text-[11.5px] font-medium text-muted-foreground">Optional</span>}
                     </span>
                     {!done && (
-                      <button type="button" data-onboarding-setup={x.id} onClick={() => run(x.id)} className={cn("flex h-[26px] shrink-0 items-center rounded-full px-[12px] text-[12px] font-semibold transition-colors", isNext ? "bg-primary text-primary-foreground hover:bg-primary/90" : "border border-border bg-card text-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 hover:bg-muted", focus)}>{x.cta}</button>
+                      <span aria-hidden className={cn("flex h-[26px] shrink-0 items-center rounded-full px-[12px] text-[12px] font-semibold transition-colors", isNext ? "bg-primary text-primary-foreground group-hover:bg-primary/90" : "border border-border bg-card text-foreground opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100")}>{x.cta}</span>
                     )}
-                  </div>
+                  </Row>
                 </li>
               );
             })}
@@ -174,13 +164,13 @@ function SetupList({ compact }: { compact: boolean }) {
         </li>
       ))}
       <li className="relative mt-[6px]">
-        <div data-onboarding-goal="" className="flex h-[54px] items-center gap-[12px] rounded-[12px] bg-primary/[0.06] pl-[7px] pr-[12px]">
+        <div data-onboarding-goal="" className="flex min-h-[54px] items-center gap-[12px] rounded-[12px] bg-primary/[0.06] py-[9px] pl-[7px] pr-[12px]">
           <span className="relative z-[2] flex size-[28px] shrink-0 items-center justify-center rounded-full bg-card ring-[3px] ring-card">
             <img src={GIFT} alt="" aria-hidden className="size-[26px] select-none object-contain" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13.5px] font-semibold leading-[18px] text-foreground">Your gift: 1 month free</span>
-            <span className="block truncate text-[12px] font-medium leading-[16px] text-muted-foreground">Unlocks when the {total} steps are done</span>
+            <span className="block truncate text-[13.5px] font-semibold leading-[18px] text-foreground">Your bonus: priority processing</span>
+            <span className="block text-[12px] font-medium leading-[16px] text-muted-foreground">Unlocks when the {total} steps are done. Your recordings skip the queue and get the highest-quality transcript.</span>
           </span>
         </div>
       </li>
@@ -195,8 +185,8 @@ export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCl
   const ob = useOnboarding();
   if (ob.hidden || ob.allDone) return null;
   const has = (id: string) => ob.actions.has(id);
-  const doneCount = SETUP_REQUIRED.filter((x) => isSetupDone(x, has)).length;
-  const total = SETUP_REQUIRED.length;
+  const doneCount = SETUP.filter((x) => isSetupDone(x, has)).length;
+  const total = SETUP.length;
   return (
     <div data-onboarding-card="" data-state={expanded ? "open" : "closed"} className={cardCls}>
       <button type="button" data-onboarding-collapse={expanded ? "" : undefined} data-onboarding-pill={expanded ? undefined : ""} onClick={onToggle} aria-expanded={expanded} className={headCls}>
@@ -208,7 +198,7 @@ export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCl
             <span className="text-muted-foreground/40" style={{ fontWeight: 400, fontSize: "16px", lineHeight: 1 }}>{"·"}</span>
             <span className="flex min-w-0 items-center gap-[5px] truncate text-muted-foreground" style={{ fontWeight: 500, fontSize: "13px", lineHeight: "18px" }}>
               <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain" />
-              <span className="truncate">1 month free at the end</span>
+              <span className="truncate">Bonus: skip the queue</span>
             </span>
           </span>
         </span>

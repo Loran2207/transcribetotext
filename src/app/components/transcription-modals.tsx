@@ -2027,6 +2027,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
               <Button
+                data-tour="record-start"
                 onClick={() => { void handleStart(); }}
                 disabled={isStarting}
                 className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
@@ -2431,7 +2432,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
               <svg className="absolute left-[12px] top-1/2 -translate-y-1/2 size-[15px] pointer-events-none text-muted-foreground" fill="none" viewBox="0 0 24 24">
                 <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <Input type="url" placeholder="Paste the URL here" value={url}
+              <Input data-tour="link-url" type="url" placeholder="Paste the URL here" value={url}
                 onChange={e => { setUrl(e.target.value); if (urlError) validateUrl(e.target.value); }}
                 onBlur={() => validateUrl(url)}
                 className={`w-full h-[42px] truncate pl-[36px] pr-[108px] rounded-[12px] text-sm ${urlError ? "border-destructive" : ""}`}
@@ -2748,7 +2749,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
           <div>
             <SectionLabel>Meeting invite URL</SectionLabel>
             <div className="relative">
-              <Input type="url" placeholder="Paste the meeting invite URL here" value={meetingUrl}
+              <Input data-tour="meeting-url" type="url" placeholder="Paste the meeting invite URL here" value={meetingUrl}
                 onChange={e => { setMeetingUrl(e.target.value); if (meetingUrlError) validateMeetingUrl(e.target.value); }}
                 onBlur={() => validateMeetingUrl(meetingUrl)}
                 className={`w-full h-[42px] truncate pl-[14px] pr-[98px] rounded-[12px] text-sm ${meetingUrlError ? "border-destructive" : ""}`}
@@ -2991,7 +2992,7 @@ function RecordingPill() {
               }
             </Button>
             {/* Stop */}
-            <Button variant="ghost" size="icon"
+            <Button variant="ghost" size="icon" data-tour="recording-stop"
               onClick={stopInstantRecording}
               className="flex items-center justify-center size-[28px] rounded-full transition-colors shrink-0 bg-destructive/10 hover:bg-destructive/20"
               title="Stop recording"
@@ -3261,7 +3262,7 @@ function AllModals() {
   const { openModal, setOpenModal } = useTranscriptionModals();
   const close = () => setOpenModal(null);
   useEffect(() => {
-    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "upload-open") setOpenModal("upload"); if (t === "upload-close" || t === "close-all") setOpenModal(null); };
+    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "upload-open") setOpenModal("upload"); if (t === "record-open") setOpenModal("record"); if (t === "link-open") setOpenModal("link"); if (t === "meeting-open") setOpenModal("meeting"); if (t === "upload-close" || t === "record-close" || t === "link-close" || t === "meeting-close" || t === "close-all") setOpenModal(null); };
     window.addEventListener("ttt-tour", on);
     return () => window.removeEventListener("ttt-tour", on);
   }, [setOpenModal]);
