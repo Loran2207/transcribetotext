@@ -885,6 +885,27 @@ Desktop (fine pointer) stays pixel-identical. When a taller tab or button would 
 
 **Phone text selection sends no mouseup.** Read the selection on `selectionchange` once the handles rest (350ms), only under `(hover: none)`, and ignore it while a field or a label sheet has the focus (record page `useEffect` around `selectionchange`).
 
+### 7q. One surface, two hosts: a hook owns the behaviour
+
+When the same transcript is shown in two places (the full live window and the half-width docked panel beside a call), the marking behaviour lives in one hook and both hosts render from it, so a highlight made in either shows in both and goes with the note when the call ends.
+```tsx
+export type LiveMarking = ReturnType<typeof useLiveMarking>;
+export function useLiveMarking() {
+  const notesApi = useAnnotations("live", blocks);   // the same "live" store in both hosts
+  const labelsApi = useLabels("live");
+  ...
+  return { notesApi, labelsApi, coarse, pendingMark, mark, notesFor, segmentRef, manageOpen, setManageOpen, counts };
+}
+
+// full window
+const marking = useLiveMarking();
+<LiveTranscriptBody marking={marking} />
+// docked panel (desktop/split-notetaker.tsx)
+const marking = useLiveMarking();
+<LiveTranscriptBody compact marking={marking} />
+```
+File: `transcription-detail-page.tsx` (`useLiveMarking`, `LiveTranscriptBody`). The body takes `marking` as a prop rather than calling the hook itself, so the host that also draws the Labels dialog and the label bar shares one state with the paragraphs. A sentence still being said takes its label once it is written down (`pendingMark`), in both hosts.
+
 ---
 
 ## 8. FILE STRUCTURE
