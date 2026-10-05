@@ -594,9 +594,22 @@ export function TranscriptionModalsProvider({
       "Good. Next topic is the onboarding numbers from last week.",
       "Activation went up four points after the new first steps card.",
     ];
+    /* ttt_demo_live_stop = "<lines>" or "<lines>.<words>": the feed falls silent after that many
+       finished lines (and that many words of the next one left mid-sentence), so a screen of
+       the live note can be captured in a state that does not move */
+    /* read on every tick, so a capture can move the stop forward between its steps */
+    const limit = () => {
+      try {
+        const raw = window.localStorage.getItem("ttt_demo_live_stop");
+        if (raw) { const [l, w] = raw.split("."); return { line: Number(l), word: Number(w ?? 0) }; }
+      } catch { /* demo flag only */ }
+      return { line: Infinity, word: 0 };
+    };
     let line = 0; let word = 0;
     const tick = () => {
       if (recordingPhaseRef.current !== "recording") return;
+      const stop = limit();
+      if (line > stop.line || (line === stop.line && (stop.word === 0 || word >= stop.word))) return;
       const words = lines[line % lines.length].split(" ");
       word += 1;
       if (word < words.length) { setLiveTranscriptInterim(words.slice(0, word).join(" ")); return; }

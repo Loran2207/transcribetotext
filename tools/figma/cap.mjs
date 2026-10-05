@@ -96,6 +96,10 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   if (op === "enter") continue;
   if (op === "click") await p.click(arg);
   else if (op === "wait") await p.waitForTimeout(+arg);
+  /* waitfor=<sel>: a state that arrives on its own clock (live words) is waited for, not timed */
+  else if (op === "waitfor") await p.locator(arg).first().waitFor({ state: "visible", timeout: 30000 });
+  /* tryclick=<sel>: a control that some widths or shells do not show is clicked when it is there */
+  else if (op === "tryclick") { const el = p.locator(arg).filter({ visible: true }).first(); if (await el.count()) await el.click(); }
   else if (op === "store") { const [k, v] = arg.split("|"); await p.evaluate(([k, v]) => { localStorage.setItem(k, v); dispatchEvent(new Event("ttt-banner-hidden")); }, [k, v]); await p.waitForTimeout(600); }
   else if (op === "fill") { const [sel, text] = arg.split("|"); await p.fill(sel, text); }
   else if (op === "hover") await p.hover(arg);
