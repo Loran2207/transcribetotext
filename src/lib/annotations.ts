@@ -229,6 +229,20 @@ export function saveAnnotations(record: string, value: Annotations) {
   }
 }
 
+/* A recording starts with nothing marked: whatever an abandoned live note left behind goes. */
+export function clearAnnotations(record: string) {
+  try { window.localStorage.removeItem(KEY + record); } catch { /* nothing to clear */ }
+}
+
+/* The marks made while the call was live follow it into the finished note. The
+   live segments keep their ids when the note is written, so the anchors hold. */
+export function moveAnnotations(from: string, to: string) {
+  const moved = loadAnnotations(from);
+  if (!moved) return;
+  if (moved.highlights.length || moved.threads.length) saveAnnotations(to, moved);
+  clearAnnotations(from);
+}
+
 /* ttt_demo_annotations=empty opens the record with nothing marked yet, for the
    first-use state. */
 export function demoStartsEmpty() {

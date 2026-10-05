@@ -356,12 +356,20 @@ export function HighlightButton({
   onOpenChange,
   side,
   shortcut,
+  label,
+  tip: tipText,
+  short = false,
 }: {
   labels: LabelsApi;
   sheet: boolean;
   onHighlight: (labelId: string) => void;
   onManage?: () => void;
   variant: "bar" | "icon" | "player";
+  /* the live recording bar says Mark, not Highlight: it is about what was just said, not about words on the page */
+  label?: string;
+  tip?: string;
+  /* the word is dropped below lg, not only on a phone: the recording bar has Pause, Stop and the microphone to fit beside it */
+  short?: boolean;
   /* the label of the highlight this button already holds (a highlighted block) */
   current?: Label;
   onRemove?: () => void;
@@ -379,9 +387,9 @@ export function HighlightButton({
     current && "bg-muted text-foreground hover:bg-muted",
   );
   const arrow = <Icon icon={ArrowDown01Icon} className="size-3 opacity-70" strokeWidth={2.2} />;
-  const tip = variant === "icon"
+  const tip = tipText ?? (variant === "icon"
     ? current ? `Highlighted as ${current.name}` : "Highlight block"
-    : `Highlight${shortcut ? `  (${shortcut})` : ""}`;
+    : `${label ?? "Highlight"}${shortcut ? `  (${shortcut})` : ""}`);
   return (
     <span className="inline-flex items-center" data-highlight-button={variant}>
       <LabelPicker
@@ -401,7 +409,7 @@ export function HighlightButton({
           <Button variant="ghost" size="sm" aria-label={variant === "icon" ? tip : "Highlight"} aria-pressed={variant === "icon" ? Boolean(current) : undefined} className={cls}>
             <Icon icon={HighlighterIcon} className={cn(variant === "icon" ? "size-[15px]" : "size-[14px]", current && INK[current.color])} strokeWidth={1.8} />
             {variant === "bar" && <>Highlight{arrow}</>}
-            {variant === "player" && <><span className="max-sm:hidden">Highlight</span>{arrow}</>}
+            {variant === "player" && <><span className={short ? "max-lg:hidden" : "max-sm:hidden"}>{label ?? "Highlight"}</span>{arrow}</>}
           </Button>
         }
       />

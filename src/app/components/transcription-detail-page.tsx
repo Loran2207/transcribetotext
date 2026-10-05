@@ -8,9 +8,9 @@ import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotations";
-import { coversBlock, mergesWith, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
+import { coversBlock, mergesWith, moveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
 import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, clampToColumn, edgeLine, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
-import { HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
+import { DOT, HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
 import { focusOrigin } from "./focus-origin";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
@@ -1048,7 +1048,9 @@ function SummaryErrorState({ onRegenerate }: { onRegenerate: () => void }) {
   );
 }
 
-function SummaryTab({ summaryText, template, highlight = "" }: { summaryText: string; template?: Template | null; highlight?: string }) {
+type SummaryHighlight = { id: string; label: Label; time: string; words: string };
+
+function SummaryTab({ summaryText, template, highlight = "", highlights = [] }: { summaryText: string; template?: Template | null; highlight?: string; highlights?: SummaryHighlight[] }) {
   /* a search term lights up in place; the text itself never moves */
   const q = highlight.trim();
   const hl = (t: string): React.ReactNode => {
@@ -1066,6 +1068,22 @@ function SummaryTab({ summaryText, template, highlight = "" }: { summaryText: st
 
   return (
     <div className="px-4 py-6 lg:px-8">
+      {highlights.length > 0 && (
+        /* what the person marked comes first and shapes the summary: that is what a highlight is for */
+        <section className="mb-6 rounded-[14px] border border-border bg-muted/20 px-4 py-3" data-summary-highlights="">
+          <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground"><Icon icon={HighlighterIcon} className="size-[15px] text-muted-foreground" strokeWidth={1.8} />From your highlights</p>
+          <p className="mt-0.5 text-[12px] text-muted-foreground">The summary is written with these first.</p>
+          <ul className="mt-2.5 space-y-1.5">
+            {highlights.map((h) => (
+              <li key={h.id} className="flex items-start gap-2 text-[13px] leading-[19px] text-foreground/90">
+                <span className={`mt-[6px] size-[7px] shrink-0 rounded-full ${DOT[h.label.color]}`} />
+                <span className="shrink-0 tabular-nums text-muted-foreground">{h.time}</span>
+                <span className="min-w-0"><span className="text-muted-foreground">{h.label.name}: </span>{h.words}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <div className="prose-custom max-w-none">
         {summaryText.split("\n").map((line, i) => {
           if (line.startsWith("## ")) {
@@ -2002,9 +2020,12 @@ export function LiveRecordingBar({
   caption = true,
   warning,
   join,
+  mark,
 }: {
   /* the linked meeting, offered above the bar: one tap to join it, a cross to put it away */
   join?: { label: string; source: "zoom" | "google-meet" | "teams"; onJoin: () => void; onDismiss: () => void };
+  /* Mark what was just said: the Highlight button with the labels, beside Pause */
+  mark?: React.ReactNode;
   isPaused: boolean;
   /* after the note is written the bar only offers Resume; nothing new to generate yet */
   showGenerate?: boolean;
@@ -2070,6 +2091,7 @@ export function LiveRecordingBar({
         </div>
 
         <div className="order-3 md:order-2 flex items-center justify-center gap-2">
+          {mark}
           <Button
             variant="pill-outline"
             className={`h-9 rounded-full gap-1.5 ${generate ? "px-4" : "px-3"}`}
@@ -2092,7 +2114,7 @@ export function LiveRecordingBar({
           )}
         </div>
 
-        {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? (compact ? "flex gap-2" : "flex gap-2 md:max-w-[560px]") : "md:min-w-[260px] md:max-w-[320px]"}`}>
+        {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full ${generate ? (compact ? "md:w-auto flex gap-2" : "md:w-auto flex gap-2 md:max-w-[560px]") : "min-w-0 md:max-w-[320px]"}`}>
           {/* one shape everywhere: the gear and the warning are icons, only the microphone keeps its name (Kirill, 14.09) */}
           {generate && <RecordingOptions compact />}
           {generate && warning?.sys && (
@@ -3074,10 +3096,14 @@ export function TranscriptionDetailPage() {
   /* the shared copy of a record keeps its own notes in the demo, seeded as the owner's */
   const recordKey = sharedOwner ? `${recordId}:shared` : recordId;
   const seedOwner = useMemo(() => (sharedOwner ? { name: sharedOwner.name, color: sharedOwner.ink, initial: sharedOwner.name.charAt(0) } : undefined), [sharedOwner]);
+  /* while the call is live the notes sit on the live segments; the finished note keeps the same ids */
   const noteBlocks = useMemo(
-    () => displaySegments.map((seg) => ({ id: seg.id, text: texts[seg.id] ?? seg.text, timestamp: seg.timestamp })),
-    [displaySegments, texts],
+    () => (isLiveRecordingDetail ? liveDetailSegments.map((seg) => ({ id: seg.id, text: seg.text, timestamp: seg.timestamp })) : displaySegments.map((seg) => ({ id: seg.id, text: texts[seg.id] ?? seg.text, timestamp: seg.timestamp }))),
+    [displaySegments, texts, isLiveRecordingDetail, liveDetailSegments],
   );
+  /* the marks made during the call come along into the note that was just written */
+  const movedLiveNotes = useRef(false);
+  if (!movedLiveNotes.current && !isLiveRecordingRoute && routeState?.fromRecordingStop && id) { movedLiveNotes.current = true; moveAnnotations("live", recordKey); }
   const notesApi = useAnnotations(recordKey, noteBlocks, seedOwner);
   const labelsApi = useLabels(recordId);
   const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
@@ -3098,7 +3124,9 @@ export function TranscriptionDetailPage() {
   /* Play all: the highlights back to back, one after another */
   const [reel, setReel] = useState<{ ids: string[]; index: number } | null>(null);
   /* which Highlight list is open from the keyboard (H): over the selected words, or on the player */
-  const [highlightMenu, setHighlightMenu] = useState<"pill" | "player" | null>(null);
+  const [highlightMenu, setHighlightMenu] = useState<"pill" | "player" | "live" | null>(null);
+  /* Mark pressed while a sentence was still being said: it is marked whole the moment it is written down */
+  const [liveMark, setLiveMark] = useState<{ segmentId: number; labelId: string } | null>(null);
   useEffect(() => { if (!selectionPill) setHighlightMenu((m) => (m === "pill" ? null : m)); }, [selectionPill]);
   const [onlyHighlights, setOnlyHighlights] = useState(false);
   useEffect(() => {
@@ -3145,6 +3173,17 @@ export function TranscriptionDetailPage() {
   const savedTextsRef = useRef(initialTexts);
 
   const originalTextsRef = useRef(initialTexts);
+  /* the page stays mounted from the live call into the note it becomes: when the
+     transcript underneath changes, the edit history starts again from the new text */
+  const textsKey = contentSegments.map((sg) => `${sg.id}:${sg.text.length}`).join("|");
+  const lastTextsKey = useRef(textsKey);
+  useEffect(() => {
+    if (lastTextsKey.current === textsKey) return;
+    lastTextsKey.current = textsKey;
+    savedTextsRef.current = initialTexts;
+    originalTextsRef.current = initialTexts;
+    reset(initialTexts);
+  }, [textsKey, initialTexts, reset]);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
 
@@ -3819,7 +3858,10 @@ export function TranscriptionDetailPage() {
     }
   }
   // Highlights and comments
-  const blockText = (segmentId: number) => texts[segmentId] ?? displaySegments.find((sg) => sg.id === segmentId)?.text ?? "";
+  /* the live text cannot be edited, so the edits map does not apply to it */
+  const blockText = (segmentId: number) => isLiveRecordingDetail
+    ? liveDetailSegments.find((sg) => sg.id === segmentId)?.text ?? ""
+    : texts[segmentId] ?? displaySegments.find((sg) => sg.id === segmentId)?.text ?? "";
   const blockTimestamp = (segmentId: number) => displaySegments.find((sg) => sg.id === segmentId)?.timestamp ?? "0:00";
   const blockSpeaker = (segmentId: number) => (isSingleSpeaker ? undefined : displaySegments.find((sg) => sg.id === segmentId)?.speaker.name);
 
@@ -3912,6 +3954,42 @@ export function TranscriptionDetailPage() {
     if (isPlayerPlaying) handlePlayerPlayPause();
     commentOnRange(a);
   }
+  /* Mark during the call (Otter marks the last transcribed piece; Fireflies bookmarks the
+     moment): a sentence still being said is marked whole once it is written down, otherwise
+     the last sentence that was. Same labels as everywhere else, Undo in the toast. */
+  function flashHighlight(id: string) {
+    setNoteFocus({ kind: "highlight", id });
+    window.setTimeout(() => setNoteFocus((cur) => (cur?.id === id ? null : cur)), 1800);
+  }
+  function markLive(labelId: string) {
+    const label = labelsApi.labelOf(labelId);
+    if (liveTranscriptInterim.trim().length > 0) {
+      setLiveMark({ segmentId: liveTranscriptSegments.length + 1, labelId });
+      return;
+    }
+    const last = liveTranscriptSegments[liveTranscriptSegments.length - 1];
+    if (!last) { toast("Nothing has been said yet"); return; }
+    const parts = splitSentences(last.text);
+    const r = snapRange(last.text, Math.max(0, last.text.length - (parts[parts.length - 1]?.length ?? last.text.length)), last.text.length);
+    if (r.end <= r.start) return;
+    const id = notesApi.addHighlight({ segmentId: last.id, ...r }, labelId);
+    flashHighlight(id);
+    segmentRefs.current[last.id]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    toastUndo(`${label.name} at ${last.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+  }
+  useEffect(() => {
+    if (!liveMark) return;
+    const seg = liveTranscriptSegments.find((s) => s.id === liveMark.segmentId);
+    if (!seg) return;
+    const r = snapRange(seg.text, 0, seg.text.length);
+    setLiveMark(null);
+    if (r.end <= r.start) return;
+    const id = notesApi.addHighlight({ segmentId: seg.id, ...r }, liveMark.labelId);
+    flashHighlight(id);
+    toastUndo(`${labelsApi.labelOf(liveMark.labelId).name} at ${seg.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveMark, liveTranscriptSegments]);
+  useEffect(() => { if (!isLiveRecordingDetail) setLiveMark(null); }, [isLiveRecordingDetail]);
   function playAll(ids: string[]) {
     const list = ids.map((id) => notesApi.highlights.find((h) => h.id === id)).filter((h): h is Highlight => Boolean(h));
     const first = list[0] ? rangeSeconds(list[0]) : null;
@@ -3967,12 +4045,16 @@ export function TranscriptionDetailPage() {
     if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
     const target = e.target as HTMLElement | null;
     if (target?.closest?.("input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]")) return;
-    if (activeTab !== "transcript" || editMode || composer || isJobTranscribing) return;
     const k = e.key.toLowerCase();
+    /* during the call H marks what was just said; C has nothing to comment on yet */
+    if (isLiveRecordingDetail) { if (k === "h" && !composer) { e.preventDefault(); setHighlightMenu(selectionPill ? "pill" : "live"); } return; }
+    if (activeTab !== "transcript" || editMode || composer || isJobTranscribing) return;
     if (k === "h") { e.preventDefault(); setHighlightMenu(selectionPill ? "pill" : "player"); }
     else if (k === "c") { e.preventDefault(); if (selectionPill) handleSelectionComment(); else commentNow(); }
   };
   const labelCounts = notesApi.highlights.reduce<Record<string, number>>((acc, h) => { const id = labelsApi.labelOf(h.labelId).id; acc[id] = (acc[id] ?? 0) + 1; return acc; }, {});
+  /* the marked lines, in transcript order, for the top of the summary */
+  const summaryHighlights: SummaryHighlight[] = notesApi.highlights.map((h) => ({ id: h.id, label: labelsApi.labelOf(h.labelId), time: displaySegments.find((sg) => sg.id === h.segmentId)?.timestamp ?? "", words: blockText(h.segmentId).slice(h.start, h.end).trim() }));
   /* Highlights only: a check like Speakers and Timestamps, first in the row,
      because it filters the words rather than changing how they look */
   const onlyHighlightsCheck = notesApi.highlights.length > 0 ? (
@@ -4340,6 +4422,44 @@ export function TranscriptionDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [desktopShell, routeState?.fromRecordingStop, templates.length, isJobTranscribing]);
 
+  /* the selection pill, the comment field, the mark bar, the labels dialog and the thread
+     sheet: the same layers over a live call and over a finished note */
+  const noteLayers = (
+    <>
+      {/* Text selection highlight pill */}
+      {selectionPill && !editMode && !composer && (
+        <SelectionHighlightPill
+          position={{ x: (coarsePointer && (!selectionPill.low || selectionPill.flip)) || selectionPill.flip ? selectionPill.xBelow : selectionPill.x, y: selectionPill.y, bottom: selectionPill.bottom }}
+          below={(coarsePointer && (!selectionPill.low || selectionPill.flip)) || selectionPill.flip}
+          onPress={() => { pillPressRef.current = Date.now(); }}
+          onHighlight={handleSelectionHighlight}
+          onComment={handleSelectionComment}
+          labels={labelsApi}
+          sheet={coarsePointer}
+          onManageLabels={manageLabels && (() => { openManageLabels(pillBack(selectionPill, "[data-highlight-button] button")); window.getSelection()?.removeAllRanges(); setSelectionPill(null); })}
+          menuOpen={highlightMenu === "pill"}
+          onMenuOpenChange={(o) => setHighlightMenu(o ? "pill" : null)}
+          speaker={isSingleSpeaker || !isOwner || isLiveRecordingDetail ? undefined : (() => {
+            const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId); if (!seg) return undefined;
+            /* the note appears only when part of the block stays where it is (Kirill 23.09) */
+            const cut = snapToWords(seg.text, selectionPill.start, selectionPill.end);
+            const rest = cut.start > 0 || cut.end < seg.text.trim().length;
+            const note = rest ? `Only the selected words move. The rest stays with ${seg.speaker.name}.` : undefined;
+            const onPreview = (id: string | null) => { const sp = id ? resolved.managed.find((x) => x.id === id) : undefined; setSplitPreview(sp && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
+            return { current: seg.speaker, speakers: resolved.managed, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut, onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, onAddSpeaker: speakersPanelActions.onAdd };
+          })()}
+        />
+      )}
+      {composer && (
+        <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={cancelComposer} onOutside={() => { dialogOrigin.current = null; }}
+          /* the field leaves the page when it closes: it is open while it is there */
+          onCloseAutoFocus={closedFocus(() => !!document.querySelector("[data-comment-composer]"))} />
+      )}
+      {markBar && <MarkBar rect={markBar.rect} line={markBar.line ?? undefined} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
+      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} onCloseAutoFocus={closedFocus(() => manageLabelsOpen)} counts={labelCounts} elsewhere={labelsElsewhere} touch={coarsePointer} />
+      {threadSheet && sheetThreads.length > 0 && <ThreadSheet threads={sheetThreads} v={notesView} onClose={() => setThreadSheet(null)} />}
+    </>
+  );
   if (isLiveRecordingDetail) {
     const isPaused = recordingPhase === "paused";
     const hasTranscript = liveTranscriptSegments.length > 0 || liveTranscriptInterim.trim().length > 0;
@@ -4473,6 +4593,7 @@ export function TranscriptionDetailPage() {
                   isPlaybackActive={!isPaused && index === liveDetailSegments.length - 1}
                   hideSpeaker={!transcriptView.speakers}
                   hideTimecodes={!transcriptView.timestamps}
+                  notes={notesFor(segment)}
                   segmentRef={(el) => { segmentRefs.current[segment.id] = el; }}
                 />
               ))}
@@ -4481,13 +4602,17 @@ export function TranscriptionDetailPage() {
                 <div className="mx-[-8px] rounded-xl bg-primary/5 px-2 py-3 ring-1 ring-primary/20">
                   <div className="grid grid-cols-[minmax(160px,220px)_1fr] gap-4 max-md:grid-cols-1">
                     <div className="min-w-0 pt-1">
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                         <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">Y</div>
                         <span className="truncate text-sm font-medium text-foreground">You (speaking...)</span>
+                        {liveMark && (
+                          /* the label waits under the name until the sentence is written down */
+                          <LabelChip label={labelsApi.labelOf(liveMark.labelId)} className="basis-full shrink-0 self-start" />
+                        )}
                       </div>
                     </div>
                     <div className="relative min-w-0 pl-5">
-                      <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-primary/65" />
+                      <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-full ${liveMark ? DOT[labelsApi.labelOf(liveMark.labelId).color] : "bg-primary/65"}`} />
                       <p className="mt-1 text-sm leading-relaxed text-foreground/85">
                         {liveTranscriptInterim}
                         <span className="ml-1 inline-block h-4 w-[2px] translate-y-[2px] animate-pulse bg-primary" />
@@ -4507,6 +4632,7 @@ export function TranscriptionDetailPage() {
             elapsedSeconds={recordingElapsed}
             onPauseResume={isPaused ? resumeInstantRecording : pauseInstantRecording}
             onStop={stopInstantRecording}
+            mark={<HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" label="Mark" short tip="Mark what was just said  (H)" open={highlightMenu === "live"} onOpenChange={(o) => setHighlightMenu(o ? "live" : null)} onHighlight={markLive} onManage={manageLabels} />}
             generate={desktopShell}
             warning={desktopShell && permDemo && (sysIsAPermission || permDemo === "1") ? {
               title: permDemo === "1" ? (sysIsAPermission ? `Microphone and the call's sound aren't allowed on ${machine}` : `Microphone isn't allowed on ${machine}`) : `Call sound isn't allowed on ${machine}`,
@@ -4533,6 +4659,7 @@ export function TranscriptionDetailPage() {
           </div>
         )}
       </div>
+      {noteLayers}
       </>
     );
   }
@@ -5009,6 +5136,13 @@ export function TranscriptionDetailPage() {
                 <p className="text-[13px] text-muted-foreground leading-relaxed mt-1.5 max-w-[360px]">
                   {sharedOwner ? `When ${sharedOwner.name} adds one, it shows here.` : "Pick a template and we will turn this transcript into a structured summary."}
                 </p>
+                {!sharedOwner && notesApi.highlights.length > 0 && (
+                  /* the marks are not lost on the way: they are what the summary starts from */
+                  <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground" data-summary-highlights-note="">
+                    <Icon icon={HighlighterIcon} className="size-[14px]" strokeWidth={1.8} />
+                    {notesApi.highlights.length === 1 ? "Your highlight goes in first." : `Your ${notesApi.highlights.length} highlights go in first.`}
+                  </p>
+                )}
                 {!sharedOwner && (
                   <Button className="rounded-full h-9 px-5 text-[13px] font-medium mt-5" onClick={() => setTemplatePickerOpen(true)}>
                     Apply template
@@ -5016,7 +5150,7 @@ export function TranscriptionDetailPage() {
                 )}
               </div>
             ) : (
-              <SummaryTab summaryText={contentSummary} template={activeTemplate} highlight={summaryQuery} />
+              <SummaryTab summaryText={contentSummary} template={activeTemplate} highlight={summaryQuery} highlights={summaryHighlights} />
             )}
           </TabsContent>
           {(activeTranslationMeta || translationTranscriptStatus === "loading" || translationTranscriptStatus === "error") && !isJobTranscribing ? (
@@ -5064,7 +5198,7 @@ export function TranscriptionDetailPage() {
               ) : translationSummaryStatus === "error" ? (
                 <TranslationErrorState onRetry={() => { void handleTranslate(); }} />
               ) : (
-                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} highlight={summaryQuery} />
+                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} highlight={summaryQuery} highlights={summaryHighlights} />
               )}
             </TabsContent>
           ) : null}
@@ -5262,38 +5396,7 @@ export function TranscriptionDetailPage() {
         />
       )}
 
-      {/* Text selection highlight pill */}
-      {selectionPill && !editMode && !composer && (
-        <SelectionHighlightPill
-          position={{ x: (coarsePointer && (!selectionPill.low || selectionPill.flip)) || selectionPill.flip ? selectionPill.xBelow : selectionPill.x, y: selectionPill.y, bottom: selectionPill.bottom }}
-          below={(coarsePointer && (!selectionPill.low || selectionPill.flip)) || selectionPill.flip}
-          onPress={() => { pillPressRef.current = Date.now(); }}
-          onHighlight={handleSelectionHighlight}
-          onComment={handleSelectionComment}
-          labels={labelsApi}
-          sheet={coarsePointer}
-          onManageLabels={manageLabels && (() => { openManageLabels(pillBack(selectionPill, "[data-highlight-button] button")); window.getSelection()?.removeAllRanges(); setSelectionPill(null); })}
-          menuOpen={highlightMenu === "pill"}
-          onMenuOpenChange={(o) => setHighlightMenu(o ? "pill" : null)}
-          speaker={isSingleSpeaker || !isOwner ? undefined : (() => {
-            const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId); if (!seg) return undefined;
-            /* the note appears only when part of the block stays where it is (Kirill 23.09) */
-            const cut = snapToWords(seg.text, selectionPill.start, selectionPill.end);
-            const rest = cut.start > 0 || cut.end < seg.text.trim().length;
-            const note = rest ? `Only the selected words move. The rest stays with ${seg.speaker.name}.` : undefined;
-            const onPreview = (id: string | null) => { const sp = id ? resolved.managed.find((x) => x.id === id) : undefined; setSplitPreview(sp && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
-            return { current: seg.speaker, speakers: resolved.managed, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut, onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, onAddSpeaker: speakersPanelActions.onAdd };
-          })()}
-        />
-      )}
-      {composer && (
-        <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={cancelComposer} onOutside={() => { dialogOrigin.current = null; }}
-          /* the field leaves the page when it closes: it is open while it is there */
-          onCloseAutoFocus={closedFocus(() => !!document.querySelector("[data-comment-composer]"))} />
-      )}
-      {markBar && <MarkBar rect={markBar.rect} line={markBar.line ?? undefined} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
-      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} onCloseAutoFocus={closedFocus(() => manageLabelsOpen)} counts={labelCounts} elsewhere={labelsElsewhere} touch={coarsePointer} />
-      {threadSheet && sheetThreads.length > 0 && <ThreadSheet threads={sheetThreads} v={notesView} onClose={() => setThreadSheet(null)} />}
+      {noteLayers}
     </div>
   );
 }

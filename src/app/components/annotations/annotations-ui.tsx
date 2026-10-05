@@ -1019,7 +1019,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
   const list = active === "all" ? all : all.filter((h) => v.labels.labelOf(h.labelId).id === active);
   const playingId = v.reel ? v.reel.ids[v.reel.index] : null;
   if (all.length === 0) {
-    return <Empty icon={HighlighterIcon} title="No highlights yet" line="Select words in the transcript, or highlight what is playing from the player." />;
+    return <Empty icon={HighlighterIcon} title="No highlights yet" line="Select words in the transcript, or highlight what is playing from the player. Highlights lead the summary and go with the record when you share it." />;
   }
   const copyAll = () => {
     const body = list

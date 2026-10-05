@@ -353,6 +353,7 @@ export function ShareDialog({
             stacked={isPhone}
             error={linkError}
             onCopy={handleCopyLink}
+            notes={!isFolder}
           />
         )}
 
@@ -569,12 +570,14 @@ function InviteField({
 /* ------------------------------------------------------------------ */
 
 function LinkField({
-  url, stacked, error, onCopy,
+  url, stacked, error, onCopy, notes = false,
 }: {
   url: string;
   stacked: boolean;
   error: boolean;
   onCopy: () => void;
+  /* a record carries its highlights and comments to whoever gets the link; a folder has none of its own */
+  notes?: boolean;
 }) {
   const { t } = useLanguage();
 
@@ -611,6 +614,11 @@ function LinkField({
       <p className="pl-1 text-[12px] text-muted-foreground">
         {t("share.linkCaption")}
       </p>
+      {notes && (
+        <p className="pl-1 text-[12px] text-muted-foreground">
+          {t("share.notesTravel")}
+        </p>
+      )}
     </div>
   );
 }

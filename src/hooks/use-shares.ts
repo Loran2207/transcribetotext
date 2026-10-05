@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
+import { supabaseMisconfigured } from '@/lib/supabase';
 import {
   type Share,
   type ShareLink,
@@ -93,6 +94,8 @@ export function useShares(
 
   const enableLinkSharing = useCallback(
     async (): Promise<ShareLink | null> => {
+      /* the demo has no backend to mint a link: the dialog shows its own sample link, no error to raise */
+      if (supabaseMisconfigured) return null;
       try {
         const link = await getOrCreateShareLink(resourceType, resourceId);
         setShareLink(link);
