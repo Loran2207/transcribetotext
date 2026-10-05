@@ -8,7 +8,7 @@ import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotations";
-import { coversBlock, mergesWith, moveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
+import { DEFAULT_LABEL_ID, countLabelsElsewhere, coveringMark, coversBlock, loadAnnotations, mergesWith, moveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
 import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, clampToColumn, edgeLine, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
 import { DOT, HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
 import { focusOrigin } from "./focus-origin";
@@ -744,6 +744,8 @@ type SegmentNotes = {
   sheet: boolean;
   onManageLabels?: () => void;
   colorOf: (highlightId: string) => LabelColor;
+  /* what the colour means, for the tooltip on the words: the label, and whose it is when not yours */
+  titleOf: (highlightId: string) => string;
   /* absent while the call is still running: comments wait for the finished note */
   onCommentBlock?: (rect: DOMRect) => void;
   onOpenComments: () => void;
@@ -859,7 +861,7 @@ function TranscriptSegment({
           <button
             type="button"
             onClick={() => onSeekTimecode(segment.timestamp)}
-            className={`inline-flex items-center gap-1 text-xs tabular-nums transition-colors hover:text-primary ${
+            className={`inline-flex items-center gap-1 text-xs tabular-nums transition-colors hover:text-primary [@media(pointer:coarse)]:-my-2.5 [@media(pointer:coarse)]:py-2.5 ${
               isPlaybackActive
                 ? "font-semibold text-primary"
                 : isPlayed
@@ -902,7 +904,7 @@ function TranscriptSegment({
             }`}
           >
             {notes && !selectionMark ? (
-              <AnnotatedText text={segmentText} highlights={notes.highlights} threads={notes.threads} focus={notes.focus} pending={notes.pending} onMark={notes.onMark} colorOf={notes.colorOf} playback={isPlaybackActive && activeSentence != null ? playbackRange(segmentText, activeSentence, activeWord) : undefined} />
+              <AnnotatedText text={segmentText} highlights={notes.highlights} threads={notes.threads} focus={notes.focus} pending={notes.pending} onMark={notes.onMark} colorOf={notes.colorOf} titleOf={notes.titleOf} playback={isPlaybackActive && activeSentence != null ? playbackRange(segmentText, activeSentence, activeWord) : undefined} />
             ) : isPlaybackActive && activeSentence !== null && activeSentence !== undefined ? (
               splitSentences(segmentText).map((part, i) => {
                 // Already said: dimmed, so the eye lands on the live line.
@@ -1074,15 +1076,24 @@ function SummaryTab({ summaryText, template, highlight = "", highlights = [] }: 
         <section className="mb-6 rounded-[14px] border border-border bg-muted/20 px-4 py-3" data-summary-highlights="">
           <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground"><Icon icon={HighlighterIcon} className="size-[15px] text-muted-foreground" strokeWidth={1.8} />From your highlights</p>
           <p className="mt-0.5 text-[12px] text-muted-foreground">The summary is written with these first.</p>
-          <ul className="mt-2.5 space-y-1.5">
-            {highlights.map((h) => (
-              <li key={h.id} className="flex items-start gap-2 text-[13px] leading-[19px] text-foreground/90">
-                <span className={`mt-[6px] size-[7px] shrink-0 rounded-full ${DOT[h.label.color]}`} />
-                <span className="shrink-0 tabular-nums text-muted-foreground">{h.time}</span>
-                <span className="min-w-0"><span className="text-muted-foreground">{h.label.name}: </span>{h.words}</span>
-              </li>
-            ))}
-          </ul>
+          {/* grouped by label, so the labels do visible work: every Decision together, every To-do together */}
+          {Array.from(highlights.reduce((m, h) => m.set(h.label.id, [...(m.get(h.label.id) ?? []), h]), new Map<string, SummaryHighlight[]>()).values()).map((group) => (
+            <div key={group[0].label.id} className="mt-2.5" data-summary-label={group[0].label.id}>
+              <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+                <span className={`size-[7px] shrink-0 rounded-full ${DOT[group[0].label.color]}`} />
+                {group[0].label.name}
+                <span className="font-normal tabular-nums text-muted-foreground">{group.length}</span>
+              </p>
+              <ul className="mt-1 space-y-1">
+                {group.map((h) => (
+                  <li key={h.id} className="flex items-start gap-2 pl-[13px] text-[13px] leading-[19px] text-foreground/90">
+                    <span className="shrink-0 tabular-nums text-muted-foreground">{h.time}</span>
+                    <span className="min-w-0">{h.words}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </section>
       )}
       <div className="prose-custom max-w-none">
@@ -1564,8 +1575,9 @@ export function useLiveMarking() {
   }, []);
   const textOf = (segmentId: number) => liveTranscriptSegments.find((s) => s.id === segmentId)?.text ?? "";
   const mark = (labelId: string) => {
-    if (liveTranscriptInterim.trim().length > 0) { setPendingMark({ segmentId: liveTranscriptSegments.length + 1, labelId }); return; }
     const last = liveTranscriptSegments[liveTranscriptSegments.length - 1];
+    /* a sentence that has only just begun is not what was meant: the one before it is */
+    if (liveTranscriptInterim.trim().length > 0 && (!last || liveTranscriptInterim.trim().split(/\s+/).length >= 4)) { setPendingMark({ segmentId: liveTranscriptSegments.length + 1, labelId }); return; }
     if (!last) { toast("Nothing has been said yet"); return; }
     const parts = splitSentences(last.text);
     const r = snapRange(last.text, Math.max(0, last.text.length - (parts[parts.length - 1]?.length ?? last.text.length)), last.text.length);
@@ -1608,6 +1620,7 @@ export function useLiveMarking() {
       sheet: coarse,
       onManageLabels: () => setManageOpen(true),
       colorOf,
+      titleOf: (id) => labelsApi.labelOf(notesApi.highlights.find((h) => h.id === id)?.labelId).name,
       onOpenComments: () => {},
       onCopy: () => { const t = textOf(seg.id); if (t) { navigator.clipboard.writeText(t); toast("Text copied"); } },
     };
@@ -3191,19 +3204,7 @@ export function TranscriptionDetailPage() {
   const labelsApi = useLabels(recordId);
   const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
   /* how many highlights each label carries in the other recordings you have notes in */
-  const labelsElsewhere = useMemo(() => {
-    const out: Record<string, number> = {};
-    if (!manageLabelsOpen) return out;
-    try {
-      for (let i = 0; i < window.localStorage.length; i++) {
-        const k = window.localStorage.key(i);
-        if (!k?.startsWith("ttt_annotations_v2:") || k.slice(19).split(":")[0] === recordId) continue;
-        const d = JSON.parse(window.localStorage.getItem(k) ?? "null") as { highlights?: Highlight[] } | null;
-        for (const h of d?.highlights ?? []) { const lid = h.labelId ?? "key"; out[lid] = (out[lid] ?? 0) + 1; }
-      }
-    } catch { /* nothing stored */ }
-    return out;
-  }, [manageLabelsOpen, recordId]);
+  const labelsElsewhere = useMemo(() => (manageLabelsOpen ? countLabelsElsewhere(recordId) : {}), [manageLabelsOpen, recordId]);
   /* Play all: the highlights back to back, one after another */
   const [reel, setReel] = useState<{ ids: string[]; index: number } | null>(null);
   /* which Highlight list is open from the keyboard (H): over the selected words, or on the player */
@@ -3223,6 +3224,14 @@ export function TranscriptionDetailPage() {
     return () => window.removeEventListener("keydown", on);
   }, []);
   const [panelTab, setPanelTab] = useState<PanelTab>(readPanelTab);
+  /* the note written after Stop opens on the marks that came along from the call: the same page
+     stays mounted from the live route, so this is a step, not a starting value */
+  const openedOnMarks = useRef<string | null>(null);
+  useEffect(() => {
+    if (isLiveRecordingRoute || !routeState?.fromRecordingStop || !id || openedOnMarks.current === id) return;
+    openedOnMarks.current = id;
+    if ((loadAnnotations(recordKey)?.highlights.length ?? 0) > 0) setPanelTab("highlights");
+  }, [isLiveRecordingRoute, routeState?.fromRecordingStop, id, recordKey]);
   const [noteFocus, setNoteFocus] = useState<Focus | null>(null);
   /* returnTo: the tab the field was opened from when it had to switch to the words (no side panel) */
   const [composer, setComposer] = useState<{ anchor: Anchor; quote: string; timestamp: string; rect: { left: number; top: number; width: number; height: number }; returnTo?: string } | null>(null);
@@ -4023,13 +4032,19 @@ export function TranscriptionDetailPage() {
   function highlightNow(labelId: string) {
     const a = currentSentence();
     if (!a) return;
-    const taken = notesApi.highlights.filter((h) => mergesWith(h, a, labelId));
+    const label = labelsApi.labelOf(labelId);
+    const covering = coveringMark(notesApi.highlights, a);
+    if (covering && (covering.labelId ?? DEFAULT_LABEL_ID) === labelId) { flashHighlight(covering.id); toast(`Already marked as ${label.name}`); return; }
+    const taken = covering ? [] : notesApi.highlights.filter((h) => mergesWith(h, a, labelId));
     const id = notesApi.addHighlight(a, labelId);
     setNoteFocus({ kind: "highlight", id });
     window.setTimeout(() => setNoteFocus((cur) => (cur?.id === id ? null : cur)), 1800);
     if (!isPlayerPlaying) segmentRefs.current[a.segmentId]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     const said = rangeSeconds(a);
-    toastUndo(`${labelsApi.labelOf(labelId).name} at ${clock(said ? said.start : effectiveCurrentSeconds)}`, () => { notesApi.removeHighlight(id); taken.forEach((h) => notesApi.restoreHighlight(h)); }, HighlighterIcon);
+    const undo = covering
+      ? () => notesApi.setLabel(covering.id, covering.labelId ?? DEFAULT_LABEL_ID)
+      : () => { notesApi.removeHighlight(id); taken.forEach((h) => notesApi.restoreHighlight(h)); };
+    toastUndo(`${label.name} at ${clock(said ? said.start : effectiveCurrentSeconds)}`, undo, HighlighterIcon);
   }
   function commentNow() {
     const a = currentSentence();
@@ -4046,11 +4061,12 @@ export function TranscriptionDetailPage() {
   }
   function markLive(labelId: string) {
     const label = labelsApi.labelOf(labelId);
-    if (liveTranscriptInterim.trim().length > 0) {
+    const last = liveTranscriptSegments[liveTranscriptSegments.length - 1];
+    /* a sentence that has only just begun is not what was meant: the one before it is */
+    if (liveTranscriptInterim.trim().length > 0 && (!last || liveTranscriptInterim.trim().split(/\s+/).length >= 4)) {
       setLiveMark({ segmentId: liveTranscriptSegments.length + 1, labelId });
       return;
     }
-    const last = liveTranscriptSegments[liveTranscriptSegments.length - 1];
     if (!last) { toast("Nothing has been said yet"); return; }
     const parts = splitSentences(last.text);
     const r = snapRange(last.text, Math.max(0, last.text.length - (parts[parts.length - 1]?.length ?? last.text.length)), last.text.length);
@@ -4111,7 +4127,7 @@ export function TranscriptionDetailPage() {
     </Button>
   ) : (
     <span className="flex items-center gap-1.5">
-      <HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" open={highlightMenu === "player"} onOpenChange={(o) => setHighlightMenu(o ? "player" : null)} onHighlight={(id) => highlightNow(id)} onManage={manageLabels} />
+      <HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" heading="Mark the current sentence" open={highlightMenu === "player"} onOpenChange={(o) => setHighlightMenu(o ? "player" : null)} onHighlight={(id) => highlightNow(id)} onManage={manageLabels} />
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="pill-outline" size="sm" aria-label="Comment on this moment" className="h-8 gap-1.5 pl-2.5 pr-3 text-xs font-medium max-md:hidden [@media(pointer:coarse)]:h-9" onClick={commentNow}>
@@ -4137,7 +4153,7 @@ export function TranscriptionDetailPage() {
   };
   const labelCounts = notesApi.highlights.reduce<Record<string, number>>((acc, h) => { const id = labelsApi.labelOf(h.labelId).id; acc[id] = (acc[id] ?? 0) + 1; return acc; }, {});
   /* the marked lines, in transcript order, for the top of the summary */
-  const summaryHighlights: SummaryHighlight[] = notesApi.highlights.map((h) => ({ id: h.id, label: labelsApi.labelOf(h.labelId), time: displaySegments.find((sg) => sg.id === h.segmentId)?.timestamp ?? "", words: blockText(h.segmentId).slice(h.start, h.end).trim() }));
+  const summaryHighlights: SummaryHighlight[] = notesApi.highlights.map((h) => ({ id: h.id, label: labelsApi.labelOf(h.labelId), time: (() => { const r = rangeSeconds(h); return r ? clock(r.start) : displaySegments.find((sg) => sg.id === h.segmentId)?.timestamp ?? ""; })(), words: blockText(h.segmentId).slice(h.start, h.end).trim() }));
   /* Highlights only: a check like Speakers and Timestamps, first in the row,
      because it filters the words rather than changing how they look */
   const onlyHighlightsCheck = notesApi.highlights.length > 0 ? (
@@ -4325,6 +4341,7 @@ export function TranscriptionDetailPage() {
       sheet: coarsePointer,
       onManageLabels: manageLabels,
       colorOf,
+      titleOf: (id) => { const h = notesApi.highlights.find((x) => x.id === id); const name = labelsApi.labelOf(h?.labelId).name; return h && !h.by.you ? `${name} · by ${h.by.name.split(" ")[0]}` : name; },
       onCommentBlock: (rect) => startComment({ segmentId: seg.id, start: 0, end: len }, { left: rect.left, top: rect.top, width: rect.width, height: rect.height }),
       onOpenComments: () => openBlockComments(seg.id),
       onCopy: () => { setRevealedBlock(null); copySegmentText(seg.id); },
@@ -4715,7 +4732,7 @@ export function TranscriptionDetailPage() {
             elapsedSeconds={recordingElapsed}
             onPauseResume={isPaused ? resumeInstantRecording : pauseInstantRecording}
             onStop={stopInstantRecording}
-            mark={<HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" label="Mark" short tip="Mark what was just said  (H)" open={highlightMenu === "live"} onOpenChange={(o) => setHighlightMenu(o ? "live" : null)} onHighlight={markLive} onManage={manageLabels} />}
+            mark={<HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" label="Mark" short tip="Mark what was just said  (H)" heading="Mark what was just said" open={highlightMenu === "live"} onOpenChange={(o) => setHighlightMenu(o ? "live" : null)} onHighlight={markLive} onManage={manageLabels} />}
             generate={desktopShell}
             warning={desktopShell && permDemo && (sysIsAPermission || permDemo === "1") ? {
               title: permDemo === "1" ? (sysIsAPermission ? `Microphone and the call's sound aren't allowed on ${machine}` : `Microphone isn't allowed on ${machine}`) : `Call sound isn't allowed on ${machine}`,
@@ -5466,7 +5483,7 @@ export function TranscriptionDetailPage() {
             <Icon icon={Comment01Icon} className="size-5 text-primary/70" strokeWidth={1.7} />
           </span>
           <p className="mt-3 text-[13px] font-medium text-foreground">Comments and highlights</p>
-          <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">You can comment and highlight once the transcript is ready.</p>
+          <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">{notesApi.highlights.length > 0 ? `Your ${notesApi.highlights.length === 1 ? "mark" : `${notesApi.highlights.length} marks`} from the call ${notesApi.highlights.length === 1 ? "is" : "are"} kept. ` : ""}You can comment and highlight once the transcript is ready.</p>
         </div>
       ) : (
         <RightPanel

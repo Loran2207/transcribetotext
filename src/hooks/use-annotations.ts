@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   YOU,
@@ -10,6 +10,7 @@ import {
   saveLabels,
   saveLastLabel,
   mergesWith,
+  coveringMark,
   saveAnnotations,
   seedAnnotations,
   type Anchor,
@@ -63,6 +64,12 @@ export function useAnnotations(record: string, blocks: BlockText[], owner?: Pers
   /* merge: false for a whole-block highlight, which sits over the marks inside
      it and must give them back when it is taken off */
   const addHighlight = useCallback((a: Anchor, labelId: string = DEFAULT_LABEL_ID, merge = true) => {
+    /* the same words marked again get the new label instead of a second mark on top */
+    const covering = merge ? coveringMark(data.highlights, a) : undefined;
+    if (covering) {
+      set((d) => ({ ...d, highlights: d.highlights.map((h) => (h.id === covering.id ? { ...h, labelId } : h)) }));
+      return covering.id;
+    }
     const id = `h-${Date.now()}`;
     set((d) => {
       const mine = merge ? d.highlights.filter((h) => mergesWith(h, a, labelId)) : [];
@@ -72,7 +79,7 @@ export function useAnnotations(record: string, blocks: BlockText[], owner?: Pers
       return { ...d, highlights: [...rest, { id, segmentId: a.segmentId, start, end, by: YOU, at: Date.now(), labelId, ...(merge ? {} : { block: true }) }] };
     });
     return id;
-  }, [set]);
+  }, [set, data.highlights]);
 
   const setLabel = useCallback((highlightId: string, labelId: string) => {
     set((d) => ({ ...d, highlights: d.highlights.map((h) => (h.id === highlightId ? { ...h, labelId } : h)) }));
@@ -181,13 +188,17 @@ export function useLabels(record: string) {
 
   const labels = useMemo(() => all.filter((l) => !l.record || l.record === record), [all, record]);
   const byId = useMemo(() => new Map(labels.map((l) => [l.id, l])), [labels]);
-  const labelOf = useCallback((id?: string) => byId.get(id ?? "") ?? labels[0], [byId, labels]);
+  /* a label added a moment ago is known before React has re-rendered the list (the menu picks it at once) */
+  const fresh = useRef<Label[]>([]);
+  const labelOf = useCallback((id?: string) => byId.get(id ?? "") ?? fresh.current.find((l) => l.id === id) ?? labels[0], [byId, labels]);
   const current = byId.get(lastId) ?? labels[0];
 
   const pick = useCallback((id: string) => { setLastId(id); saveLastLabel(id); }, []);
   const add = useCallback((name: string, color: LabelColor, onlyHere = false) => {
     const id = `l-${Date.now()}`;
-    setAll((list) => [...list, onlyHere ? { id, name, color, record } : { id, name, color }]);
+    const label: Label = onlyHere ? { id, name, color, record } : { id, name, color };
+    fresh.current = [...fresh.current, label];
+    setAll((list) => [...list, label]);
     return id;
   }, [record]);
   const update = useCallback((id: string, patch: Partial<Omit<Label, "id" | "record">>) => {

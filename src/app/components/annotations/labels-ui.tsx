@@ -202,6 +202,7 @@ export function LabelPicker({
   align = "start",
   side = "bottom",
   title = "Label",
+  heading,
 }: {
   labels: LabelsApi;
   currentId?: string;
@@ -209,6 +210,8 @@ export function LabelPicker({
   trigger: ReactElement;
   tip?: string;
   onPick: (id: string) => void;
+  /* what picking a label will do, over the desktop list */
+  heading?: string;
   onRemove?: () => void;
   onManage?: () => void;
   open?: boolean;
@@ -312,6 +315,7 @@ export function LabelPicker({
     <DropdownMenu open={open} onOpenChange={setOpen}>
       {button}
       <DropdownMenuContent data-label-menu="" align={align} side={side} className="w-60" onEscapeKeyDown={escape} onMouseDown={(e) => { if (!(e.target as HTMLElement).closest("input")) e.preventDefault(); }}>
+        {heading && <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground">{heading}</p>}
         <div className="max-h-[min(320px,45vh)] overflow-y-auto overscroll-contain">
         {labels.labels.map((l) => (
           <DropdownMenuItem key={l.id} onSelect={() => onPick(l.id)} className="gap-2.5">
@@ -359,6 +363,7 @@ export function HighlightButton({
   label,
   tip: tipText,
   short = false,
+  heading,
 }: {
   labels: LabelsApi;
   sheet: boolean;
@@ -378,6 +383,8 @@ export function HighlightButton({
   /* where the list opens: away from the words it is about */
   side?: "top" | "bottom";
   shortcut?: string;
+  /* what the pick does: the sheet title on touch, a small heading over the desktop list */
+  heading?: string;
 }) {
   const cls = cn(
     "rounded-full text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground",
@@ -387,8 +394,10 @@ export function HighlightButton({
     current && "bg-muted text-foreground hover:bg-muted",
   );
   const arrow = <Icon icon={ArrowDown01Icon} className="size-3 opacity-70" strokeWidth={2.2} />;
+  /* said over the list: what the pick will do */
+  const head = variant === "icon" ? (current ? "Change the label" : "Highlight the paragraph") : variant === "bar" ? "Highlight the selected words" : undefined;
   const tip = tipText ?? (variant === "icon"
-    ? current ? `Highlighted as ${current.name}` : "Highlight block"
+    ? current ? `Highlighted as ${current.name}` : "Highlight the paragraph"
     : `${label ?? "Highlight"}${shortcut ? `  (${shortcut})` : ""}`);
   return (
     <span className="inline-flex items-center" data-highlight-button={variant}>
@@ -397,7 +406,8 @@ export function HighlightButton({
         currentId={current?.id}
         sheet={sheet}
         tip={sheet ? undefined : tip}
-        title="Label"
+        title={heading ?? head ?? "Label"}
+        heading={heading ?? head}
         side={side ?? (variant === "player" ? "top" : "bottom")}
         align={variant === "icon" ? "end" : "start"}
         open={open}
@@ -552,7 +562,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, onCloseAutoFocu
         ) : (
           <>
             <span className="min-w-0 flex-1 truncate px-2 text-[14px] text-foreground">{l.name}</span>
-            <span className="shrink-0 pr-1 text-[12px] tabular-nums text-muted-foreground">{counts[l.id] ? (counts[l.id] === 1 ? "1 highlight" : `${counts[l.id]} highlights`) : "No highlights"}</span>
+            <span className="shrink-0 pr-1 text-[12px] tabular-nums text-muted-foreground">{used(l) ? (used(l) === 1 ? "1 highlight" : `${used(l)} highlights`) : "No highlights"}</span>
             <button type="button" aria-label={`Rename ${l.name}`} onClick={() => startRename(l)} className={tool}>
               <PencilIcon className="size-[15px]" />
             </button>
@@ -664,6 +674,7 @@ export function ManageLabelsDialog({ labels, open, onOpenChange, onCloseAutoFocu
           <DialogTitle className="text-[17px]">Labels</DialogTitle>
           <button type="button" onClick={() => close(false)} aria-label="Close" className="-mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground [@media(pointer:coarse)]:size-9"><Icon icon={Cancel01Icon} size={16} /></button>
         </DialogHeader>
+        <p className="shrink-0 px-5 pb-2 text-[12px] leading-relaxed text-muted-foreground">Labels sort your highlights in the list, the summary and the export.</p>
         {body}
         {footer}
       </DialogContent>
@@ -688,7 +699,7 @@ export function PlayerMarkers({ markers, onSeek }: { markers: PlayerMarker[]; on
               type="button"
               aria-label={m.title}
               onClick={() => onSeek(m.seconds)}
-              className="group/mark pointer-events-auto absolute flex h-5 w-3 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+              className="group/mark pointer-events-auto absolute flex h-5 w-3 -translate-x-1/2 -translate-y-1/2 items-center justify-center after:absolute after:inset-0 after:content-[''] [@media(pointer:coarse)]:after:-inset-x-3 [@media(pointer:coarse)]:after:-inset-y-2"
               style={{ left: `${Math.max(0.5, Math.min(99.5, m.at))}%` }}
             >
               <span className={cn("rounded-full ring-[1.5px] ring-background transition-transform group-hover/mark:scale-150", m.kind === "highlight" ? cn("h-2.5 w-[3px]", m.label ? DOT[m.label.color] : "bg-amber-400") : "size-[7px] bg-primary")} />

@@ -160,6 +160,7 @@ export function AnnotatedText({
   pending,
   onMark,
   colorOf,
+  titleOf,
   playback,
 }: {
   text: string;
@@ -169,6 +170,7 @@ export function AnnotatedText({
   pending?: { start: number; end: number };
   onMark?: (run: Run, rect: DOMRect, lines: DOMRect[]) => void;
   colorOf: (highlightId: string) => LabelColor;
+  titleOf?: (highlightId: string) => string;
   /* the block being played: what was said dims, the sentence and the word being
      said are marked, on top of the notes rather than instead of them */
   playback?: { start: number; end: number; word?: { start: number; end: number } };
@@ -199,6 +201,7 @@ export function AnnotatedText({
           <span
             key={i}
             data-hl={hl ? r.highlights.join(" ") : undefined}
+            title={hl && titleOf ? titleOf(r.highlights[r.highlights.length - 1]) : undefined}
             data-th={th.length ? th.join(" ") : undefined}
             onClick={(e) => {
               if (!onMark || isPending) return;
@@ -293,7 +296,7 @@ export function BlockActions({
         <HighlightButton labels={labels} sheet={sheet} variant="icon" current={current} onHighlight={onHighlight} onRemove={onRemoveHighlight} onManage={onManageLabels} />
         {onComment && (
           <Tip label="Comment">
-            <Button variant="ghost" size="icon" aria-label="Comment on block" className={btn} onClick={onComment}>
+            <Button variant="ghost" size="icon" aria-label="Comment on the paragraph" className={btn} onClick={onComment}>
               <Icon icon={CommentAdd01Icon} className={icon} strokeWidth={1.8} />
             </Button>
           </Tip>

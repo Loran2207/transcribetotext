@@ -170,6 +170,26 @@ export function mergesWith(h: Highlight, a: Anchor, labelId: string) {
   return h.segmentId === a.segmentId && h.by.you && !h.block && (h.labelId ?? DEFAULT_LABEL_ID) === labelId && overlaps(h, a);
 }
 
+/* Your own highlight that already covers these very words (the sentence at the
+   playhead marked a second time): a new label changes it, the same label is a no-op. */
+export function coveringMark(highlights: Highlight[], a: Anchor) {
+  return highlights.find((h) => h.segmentId === a.segmentId && h.by.you && !h.block && h.start <= a.start && h.end >= a.end);
+}
+
+/* How many highlights each label carries in the other recordings you have notes in. */
+export function countLabelsElsewhere(record: string) {
+  const out: Record<string, number> = {};
+  try {
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const k = window.localStorage.key(i);
+      if (!k?.startsWith(KEY) || k.slice(KEY.length).split(":")[0] === record) continue;
+      const d = JSON.parse(window.localStorage.getItem(k) ?? "null") as { highlights?: Highlight[] } | null;
+      for (const h of d?.highlights ?? []) { const lid = h.labelId ?? DEFAULT_LABEL_ID; out[lid] = (out[lid] ?? 0) + 1; }
+    }
+  } catch { /* nothing stored */ }
+  return out;
+}
+
 export function timeAgo(at: number, now = Date.now()) {
   const d = Math.max(0, now - at);
   if (d < MIN) return "now";
