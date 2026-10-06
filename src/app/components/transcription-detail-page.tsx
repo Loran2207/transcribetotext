@@ -8,7 +8,7 @@ import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotations";
-import { DEFAULT_LABEL_ID, HIDDEN, SIMPLE_HIGHLIGHTS, countLabelsElsewhere, coveringMark, coversBlock, loadAnnotations, mergesWith, moveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
+import { DEFAULT_LABEL_ID, HIDDEN, SIMPLE_HIGHLIGHTS, countLabelsElsewhere, coveringMark, coversBlock, loadAnnotations, mergesWith, moveAnnotations, saveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
 import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, clampToColumn, deleteThreadWithUndo, edgeLine, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
 import { DOT, HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
 import { focusOrigin } from "./focus-origin";
@@ -3200,7 +3200,12 @@ export function TranscriptionDetailPage() {
   );
   /* the marks made during the call come along into the note that was just written */
   const movedLiveNotes = useRef(false);
-  if (!movedLiveNotes.current && !isLiveRecordingRoute && routeState?.fromRecordingStop && id) { movedLiveNotes.current = true; moveAnnotations("live", recordKey); }
+  if (!movedLiveNotes.current && !isLiveRecordingRoute && routeState?.fromRecordingStop && id) {
+    movedLiveNotes.current = true;
+    moveAnnotations("live", recordKey);
+    /* nothing marked during the call: the record starts empty instead of taking the sample record's seed */
+    if (HIDDEN.liveRecordSeed && !loadAnnotations(recordKey)) saveAnnotations(recordKey, { highlights: [], threads: [] });
+  }
   const notesApi = useAnnotations(recordKey, noteBlocks, seedOwner);
   const labelsApi = useLabels(recordId);
   const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
@@ -4148,7 +4153,7 @@ export function TranscriptionDetailPage() {
     if (target?.closest?.("input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]")) return;
     const k = e.key.toLowerCase();
     /* during the call H marks what was just said; C has nothing to comment on yet */
-    if (isLiveRecordingDetail) { if (k === "h" && !composer) { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill) handleSelectionHighlight(DEFAULT_LABEL_ID); else if (!HIDDEN.liveMark) markLive(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "live"); } return; }
+    if (isLiveRecordingDetail) { if (k === "h" && !composer) { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill && !HIDDEN.liveSelection) handleSelectionHighlight(DEFAULT_LABEL_ID); else if (!HIDDEN.liveMark) markLive(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "live"); } return; }
     if (activeTab !== "transcript" || editMode || composer || isJobTranscribing) return;
     if (k === "h") { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill) handleSelectionHighlight(DEFAULT_LABEL_ID); else if (!HIDDEN.playerMarkButtons) highlightNow(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "player"); }
     else if (k === "c") { e.preventDefault(); if (selectionPill) handleSelectionComment(); else if (!HIDDEN.playerMarkButtons) commentNow(); }
@@ -4532,7 +4537,7 @@ export function TranscriptionDetailPage() {
   const noteLayers = (
     <>
       {/* Text selection highlight pill */}
-      {selectionPill && !editMode && !composer && (
+      {selectionPill && !editMode && !composer && !(HIDDEN.liveSelection && isLiveRecordingDetail) && (
         <SelectionHighlightPill
           position={{ x: (coarsePointer && (!selectionPill.low || selectionPill.flip)) || selectionPill.flip ? selectionPill.xBelow : selectionPill.x, y: selectionPill.y, bottom: selectionPill.bottom }}
           below={(coarsePointer && (!selectionPill.low || selectionPill.flip)) || selectionPill.flip}

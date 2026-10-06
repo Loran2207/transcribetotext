@@ -48,6 +48,7 @@ import {
   type ShareMode,
 } from "@/lib/share-demo";
 import { toastAccessRemoved } from "./app-toast";
+import { HIDDEN } from "@/lib/annotations";
 
 interface ShareDialogProps {
   open: boolean;
@@ -614,7 +615,7 @@ function LinkField({
       <p className="pl-1 text-[12px] text-muted-foreground">
         {t("share.linkCaption")}
       </p>
-      {notes && (
+      {notes && !HIDDEN.shareNote && (
         <p className="pl-1 text-[12px] text-muted-foreground">
           {t("share.notesTravel")}
         </p>

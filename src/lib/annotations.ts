@@ -55,6 +55,14 @@ export const HIDDEN = {
   summaryFromHighlights: true,
   /* Highlights and Comments as files in the export dialog */
   exportNotes: true,
+  /* the Highlight / Comment bar over words selected during the call (Kirill, 06.10:
+     nothing about highlights or comments while the recording runs) */
+  liveSelection: true,
+  /* "Highlights and comments go with it." under the share link */
+  shareNote: true,
+  /* a record that comes out of a live recording starts with nothing marked; the
+     demo seed is for the sample record only */
+  liveRecordSeed: true,
 } as const;
 
 /* block: a whole-block highlight from the block bar; marks inside it stay their own */
