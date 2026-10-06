@@ -9,6 +9,7 @@ import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/n
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotations";
 import { DEFAULT_LABEL_ID, HIDDEN, SIMPLE_HIGHLIGHTS, countLabelsElsewhere, coveringMark, coversBlock, loadAnnotations, mergesWith, moveAnnotations, saveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
+import { ScrollRow } from "./scroll-row";
 import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, clampToColumn, deleteThreadWithUndo, edgeLine, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
 import { DOT, HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
 import { focusOrigin } from "./focus-origin";
@@ -4983,8 +4984,9 @@ export function TranscriptionDetailPage() {
         <UpgradeGateModal open={limitedModalOpen} onOpenChange={setLimitedModalOpen} variant="done" />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden max-md:[@media(pointer:coarse)]:mt-1.5">
-          <div className="flex items-end justify-between gap-4 border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto max-md:[mask-image:linear-gradient(to_right,black_calc(100%_-_32px),transparent)]">
-            <TabsList variant="line" className="border-b-0 max-lg:shrink-0 max-md:[@media(pointer:coarse)]:*:pt-2.5 md:max-lg:[@media(pointer:coarse)]:*:pt-0.5">
+          <div className="flex items-end justify-between gap-4 border-b border-border px-4 lg:px-8">
+            <ScrollRow activeKey={activeTab}>
+            <TabsList variant="line" className="border-b-0 shrink-0 max-md:[@media(pointer:coarse)]:*:pt-2.5 md:max-lg:[@media(pointer:coarse)]:*:pt-0.5">
               {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
@@ -5008,9 +5010,10 @@ export function TranscriptionDetailPage() {
                 </>
               ) : null}
             </TabsList>
+            </ScrollRow>
 
             {/* Right side of tab row: context-dependent */}
-            <div className="mb-1 flex items-center gap-2 max-md:hidden md:max-lg:mb-2">
+            <div className="mb-1 flex shrink-0 items-center gap-2 max-md:hidden md:max-lg:mb-2">
               <div className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
                 <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing}>
                   <SelectTrigger size="sm" className="h-8 w-[168px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
