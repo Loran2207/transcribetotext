@@ -453,8 +453,12 @@ function useMentions(text: string, setText: (t: string) => void, place: "up" | "
     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setQuery(null); return true; }
     return false;
   };
+  /* the list reads as a pick list, not a hover: the product popover look, a heading that says
+     what the pick does (Kirill, 06.10: a lone grey row looked like a hover), the Enter hint on
+     the row a key press would take, and the same edges as the field */
   const list = options.length ? (
-    <div data-mention-list="" className={cn(place === "inline" ? "-mx-2 mt-1.5" : place === "above" ? "-mx-2 mb-1.5" : "absolute left-0 z-30 w-60 rounded-xl border border-border bg-popover p-1 shadow-md", place === "up" && "bottom-full mb-1.5", place === "down" && "top-full mt-1.5")}>
+    <div data-mention-list="" className={cn("rounded-[12px] border border-border bg-popover p-1 shadow-sm", place === "inline" && "mt-1.5", place === "above" && "mb-1.5", (place === "up" || place === "down") && "absolute left-0 z-30 w-60", place === "up" && "bottom-full mb-1.5", place === "down" && "top-full mt-1.5")}>
+      <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">People on this record</p>
       {options.map((p, i) => (
         <button
           key={p.name}
@@ -463,7 +467,8 @@ function useMentions(text: string, setText: (t: string) => void, place: "up" | "
           className={cn("flex h-9 w-full items-center gap-2.5 rounded-lg px-2 text-left text-[13px] text-foreground", i === active ? "bg-muted" : "hover:bg-muted/60")}
         >
           <PersonDot person={p} size={22} />
-          {p.name}
+          <span className="flex-1 truncate">{p.name}</span>
+          {i === active && <kbd className="hidden rounded border border-border bg-background px-1.5 py-0.5 font-sans text-[11px] text-muted-foreground [@media(pointer:fine)]:inline-block">Enter</kbd>}
         </button>
       ))}
     </div>
