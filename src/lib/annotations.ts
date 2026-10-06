@@ -37,9 +37,10 @@ export const DEFAULT_LABEL_ID = "key";
 
 /* Simple highlights (the client, 06.10): one kind of highlight, nothing to pick
    or manage. Every highlight is this label; the label menus, the filter chips,
-   the Labels dialog and the grouping in the summary stay out of sight. The full
-   label system is kept on the `comments` branch to come back to. */
-export const SIMPLE_HIGHLIGHTS = true;
+   the Labels dialog and the grouping in the summary stay out of sight on
+   highlights-simple. On highlights-full the switch is off: the label menus,
+   chips, dialog and grouping render together with every other held-back surface. */
+export const SIMPLE_HIGHLIGHTS = false;
 export const SIMPLE_LABEL: Label = { id: DEFAULT_LABEL_ID, name: "Highlight", color: "yellow" };
 
 /* Full branch (highlights-full): every switch is off, so everything hidden on
