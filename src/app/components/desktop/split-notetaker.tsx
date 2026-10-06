@@ -11,7 +11,7 @@ import { ShareDialog } from "../share-dialog";
 import { useTemplates } from "@/hooks/use-templates";
 import { TemplateLibraryDialog } from "../template-library-dialog";
 import { useShell } from "./shell";
-import { countLabelsElsewhere } from "@/lib/annotations";
+import { SIMPLE_HIGHLIGHTS, countLabelsElsewhere } from "@/lib/annotations";
 import { SourceIcon } from "../source-icons";
 
 const DEMO_PAD: PadLine[] = [
@@ -100,13 +100,13 @@ export function SplitNotetaker() {
           )}
         </div>
       </Tabs>
-      <ManageLabelsDialog labels={marking.labelsApi} open={marking.manageOpen} onOpenChange={marking.setManageOpen} onCloseAutoFocus={backToMark} counts={marking.counts} elsewhere={elsewhere} touch={marking.coarse} />
+      {!SIMPLE_HIGHLIGHTS && <ManageLabelsDialog labels={marking.labelsApi} open={marking.manageOpen} onOpenChange={marking.setManageOpen} onCloseAutoFocus={backToMark} counts={marking.counts} elsewhere={elsewhere} touch={marking.coarse} />}
       <LiveRecordingBar
         isPaused={recordingPhase === "paused"}
         elapsedSeconds={elapsed}
         onPauseResume={() => { if (recordingPhase === "paused") void resumeInstantRecording(); else pauseInstantRecording(); }}
         onStop={() => {}}
-        mark={<HighlightButton labels={marking.labelsApi} sheet={marking.coarse} variant="player" label="Mark" short tip="Mark what was just said  (H)" heading="Mark what was just said" open={markOpen} onOpenChange={setMarkOpen} onHighlight={marking.mark} onManage={() => marking.setManageOpen(true)} />}
+        mark={<HighlightButton labels={marking.labelsApi} sheet={marking.coarse} variant="player" label="Mark" short tip="Mark what was just said  (H)" heading="Mark what was just said" open={markOpen} onOpenChange={setMarkOpen} onHighlight={marking.mark} onManage={SIMPLE_HIGHLIGHTS ? undefined : () => marking.setManageOpen(true)} />}
         generate
         showGenerate={false}
         caption={false}

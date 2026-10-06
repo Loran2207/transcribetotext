@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   YOU,
   DEFAULT_LABEL_ID,
+  SIMPLE_HIGHLIGHTS,
+  SIMPLE_LABEL,
   demoStartsEmpty,
   loadAnnotations,
   loadLabels,
@@ -230,7 +232,14 @@ export function useLabels(record: string) {
     });
   }, [record]);
 
+  if (SIMPLE_HIGHLIGHTS) return SIMPLE_API;
   return { labels, labelOf, current, pick, add, update, setOnlyHere, remove, restore };
 }
+
+/* every highlight is the one label; nothing can be added, changed or removed */
+const SIMPLE_API = {
+  labels: [SIMPLE_LABEL], labelOf: () => SIMPLE_LABEL, current: SIMPLE_LABEL,
+  pick: () => {}, add: () => SIMPLE_LABEL.id, update: () => {}, setOnlyHere: () => {}, remove: () => {}, restore: () => {},
+};
 
 export type LabelsApi = ReturnType<typeof useLabels>;

@@ -8,7 +8,7 @@ import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotations";
-import { DEFAULT_LABEL_ID, countLabelsElsewhere, coveringMark, coversBlock, loadAnnotations, mergesWith, moveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
+import { DEFAULT_LABEL_ID, SIMPLE_HIGHLIGHTS, countLabelsElsewhere, coveringMark, coversBlock, loadAnnotations, mergesWith, moveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
 import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, clampToColumn, edgeLine, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
 import { DOT, HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
 import { focusOrigin } from "./focus-origin";
@@ -1079,14 +1079,14 @@ function SummaryTab({ summaryText, template, highlight = "", highlights = [] }: 
           {/* grouped by label, so the labels do visible work: every Decision together, every To-do together */}
           {Array.from(highlights.reduce((m, h) => m.set(h.label.id, [...(m.get(h.label.id) ?? []), h]), new Map<string, SummaryHighlight[]>()).values()).map((group) => (
             <div key={group[0].label.id} className="mt-2.5" data-summary-label={group[0].label.id}>
-              <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+              {!SIMPLE_HIGHLIGHTS && <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
                 <span className={`size-[7px] shrink-0 rounded-full ${DOT[group[0].label.color]}`} />
                 {group[0].label.name}
                 <span className="font-normal tabular-nums text-muted-foreground">{group.length}</span>
-              </p>
+              </p>}
               <ul className="mt-1 space-y-1">
                 {group.map((h) => (
-                  <li key={h.id} className="flex items-start gap-2 pl-[13px] text-[13px] leading-[19px] text-foreground/90">
+                  <li key={h.id} className={`flex items-start gap-2 ${SIMPLE_HIGHLIGHTS ? "" : "pl-[13px]"} text-[13px] leading-[19px] text-foreground/90`}>
                     <span className="shrink-0 tabular-nums text-muted-foreground">{h.time}</span>
                     <span className="min-w-0">{h.words}</span>
                   </li>
@@ -1585,7 +1585,7 @@ export function useLiveMarking() {
     const id = notesApi.addHighlight({ segmentId: last.id, ...r }, labelId);
     flash(id);
     refs.current[last.id]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    toastUndo(`${labelsApi.labelOf(labelId).name} at ${last.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+    toastUndo(`${SIMPLE_HIGHLIGHTS ? "Marked" : labelsApi.labelOf(labelId).name} at ${last.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
   };
   useEffect(() => {
     if (!pendingMark) return;
@@ -1596,7 +1596,7 @@ export function useLiveMarking() {
     if (r.end <= r.start) return;
     const id = notesApi.addHighlight({ segmentId: seg.id, ...r }, pendingMark.labelId);
     flash(id);
-    toastUndo(`${labelsApi.labelOf(pendingMark.labelId).name} at ${seg.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+    toastUndo(`${SIMPLE_HIGHLIGHTS ? "Marked" : labelsApi.labelOf(pendingMark.labelId).name} at ${seg.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingMark, liveTranscriptSegments]);
   const colorOf = (highlightId: string): LabelColor => labelsApi.labelOf(notesApi.highlights.find((h) => h.id === highlightId)?.labelId).color;
@@ -3959,7 +3959,7 @@ export function TranscriptionDetailPage() {
 
   /* labels belong to the workspace: only the record's owner manages them */
   const openManageLabels = (back?: BarBack) => { rememberOrigin(back); setManageLabelsOpen(true); };
-  const manageLabels = isOwner ? () => openManageLabels() : undefined;
+  const manageLabels = isOwner && !SIMPLE_HIGHLIGHTS ? () => openManageLabels() : undefined;
   /* the selected words and their bar come back, the way they were */
   const pillBack = (pill: NonNullable<typeof selectionPill>, button: string): BarBack => () => {
     setSelectionPill(pill);
@@ -4034,7 +4034,7 @@ export function TranscriptionDetailPage() {
     if (!a) return;
     const label = labelsApi.labelOf(labelId);
     const covering = coveringMark(notesApi.highlights, a);
-    if (covering && (covering.labelId ?? DEFAULT_LABEL_ID) === labelId) { flashHighlight(covering.id); toast(`Already marked as ${label.name}`); return; }
+    if (covering && (covering.labelId ?? DEFAULT_LABEL_ID) === labelId) { flashHighlight(covering.id); toast(SIMPLE_HIGHLIGHTS ? "Already highlighted" : `Already marked as ${label.name}`); return; }
     const taken = covering ? [] : notesApi.highlights.filter((h) => mergesWith(h, a, labelId));
     const id = notesApi.addHighlight(a, labelId);
     setNoteFocus({ kind: "highlight", id });
@@ -4044,7 +4044,7 @@ export function TranscriptionDetailPage() {
     const undo = covering
       ? () => notesApi.setLabel(covering.id, covering.labelId ?? DEFAULT_LABEL_ID)
       : () => { notesApi.removeHighlight(id); taken.forEach((h) => notesApi.restoreHighlight(h)); };
-    toastUndo(`${label.name} at ${clock(said ? said.start : effectiveCurrentSeconds)}`, undo, HighlighterIcon);
+    toastUndo(`${SIMPLE_HIGHLIGHTS ? "Highlighted" : label.name} at ${clock(said ? said.start : effectiveCurrentSeconds)}`, undo, HighlighterIcon);
   }
   function commentNow() {
     const a = currentSentence();
@@ -4074,7 +4074,7 @@ export function TranscriptionDetailPage() {
     const id = notesApi.addHighlight({ segmentId: last.id, ...r }, labelId);
     flashHighlight(id);
     segmentRefs.current[last.id]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    toastUndo(`${label.name} at ${last.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+    toastUndo(`${SIMPLE_HIGHLIGHTS ? "Marked" : label.name} at ${last.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
   }
   useEffect(() => {
     if (!liveMark) return;
@@ -4085,7 +4085,7 @@ export function TranscriptionDetailPage() {
     if (r.end <= r.start) return;
     const id = notesApi.addHighlight({ segmentId: seg.id, ...r }, liveMark.labelId);
     flashHighlight(id);
-    toastUndo(`${labelsApi.labelOf(liveMark.labelId).name} at ${seg.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+    toastUndo(`${SIMPLE_HIGHLIGHTS ? "Marked" : labelsApi.labelOf(liveMark.labelId).name} at ${seg.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveMark, liveTranscriptSegments]);
   useEffect(() => { if (!isLiveRecordingDetail) setLiveMark(null); }, [isLiveRecordingDetail]);
@@ -4110,7 +4110,7 @@ export function TranscriptionDetailPage() {
       if (!r) return null;
       const label = labelsApi.labelOf(h.labelId);
       const words = blockText(h.segmentId).slice(h.start, h.end);
-      return { id: h.id, kind: "highlight" as const, label, seconds: r.start, at: (r.start / effectiveDurationSeconds) * 100, title: `${clock(r.start)} · ${label.name}: ${words.length > 70 ? words.slice(0, 70) + "..." : words}` };
+      return { id: h.id, kind: "highlight" as const, label, seconds: r.start, at: (r.start / effectiveDurationSeconds) * 100, title: `${clock(r.start)}${SIMPLE_HIGHLIGHTS ? "" : ` · ${label.name}`}: ${words.length > 70 ? words.slice(0, 70) + "..." : words}` };
     }),
     ...notesApi.threads.filter((t) => !t.resolved).map((t) => {
       const r = rangeSeconds(t);
@@ -4146,9 +4146,9 @@ export function TranscriptionDetailPage() {
     if (target?.closest?.("input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]")) return;
     const k = e.key.toLowerCase();
     /* during the call H marks what was just said; C has nothing to comment on yet */
-    if (isLiveRecordingDetail) { if (k === "h" && !composer) { e.preventDefault(); setHighlightMenu(selectionPill ? "pill" : "live"); } return; }
+    if (isLiveRecordingDetail) { if (k === "h" && !composer) { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill) handleSelectionHighlight(DEFAULT_LABEL_ID); else markLive(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "live"); } return; }
     if (activeTab !== "transcript" || editMode || composer || isJobTranscribing) return;
-    if (k === "h") { e.preventDefault(); setHighlightMenu(selectionPill ? "pill" : "player"); }
+    if (k === "h") { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill) handleSelectionHighlight(DEFAULT_LABEL_ID); else highlightNow(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "player"); }
     else if (k === "c") { e.preventDefault(); if (selectionPill) handleSelectionComment(); else commentNow(); }
   };
   const labelCounts = notesApi.highlights.reduce<Record<string, number>>((acc, h) => { const id = labelsApi.labelOf(h.labelId).id; acc[id] = (acc[id] ?? 0) + 1; return acc; }, {});
@@ -4268,7 +4268,7 @@ export function TranscriptionDetailPage() {
     setMarkBar({ segmentId: segId, run, rect: { left: rect.left, top: rect.top, width: rect.width, bottom: rect.bottom }, line: edgeLine(lines, below), below });
   }
   function markBarLead() {
-    if (!markBar) return undefined;
+    if (!markBar || SIMPLE_HIGHLIGHTS) return undefined;
     const h = notesApi.highlights.find((x) => x.id === markBar.run.highlights[markBar.run.highlights.length - 1]);
     if (!h) return undefined;
     const label = labelsApi.labelOf(h.labelId);
@@ -4354,7 +4354,7 @@ export function TranscriptionDetailPage() {
       lines.push("Highlights", "----------");
       for (const h of notesApi.highlights) {
         const who = blockSpeaker(h.segmentId);
-        lines.push(`[${timeOf(h)}]${who ? ` ${who}` : ""} · ${labelsApi.labelOf(h.labelId).name}`, `"${blockText(h.segmentId).slice(h.start, h.end)}"`, "");
+        lines.push(`[${timeOf(h)}]${who ? ` ${who}` : ""}${SIMPLE_HIGHLIGHTS ? "" : ` · ${labelsApi.labelOf(h.labelId).name}`}`, `"${blockText(h.segmentId).slice(h.start, h.end)}"`, "");
       }
     }
     if (notesApi.threads.length) {
@@ -4556,7 +4556,7 @@ export function TranscriptionDetailPage() {
           onCloseAutoFocus={closedFocus(() => !!document.querySelector("[data-comment-composer]"))} />
       )}
       {markBar && <MarkBar rect={markBar.rect} line={markBar.line ?? undefined} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
-      <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} onCloseAutoFocus={closedFocus(() => manageLabelsOpen)} counts={labelCounts} elsewhere={labelsElsewhere} touch={coarsePointer} />
+      {!SIMPLE_HIGHLIGHTS && <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} onCloseAutoFocus={closedFocus(() => manageLabelsOpen)} counts={labelCounts} elsewhere={labelsElsewhere} touch={coarsePointer} />}
       {threadSheet && sheetThreads.length > 0 && <ThreadSheet threads={sheetThreads} v={notesView} onClose={() => setThreadSheet(null)} />}
     </>
   );

@@ -35,6 +35,13 @@ export const DEFAULT_LABELS: Label[] = [
 
 export const DEFAULT_LABEL_ID = "key";
 
+/* Simple highlights (the client, 06.10): one kind of highlight, nothing to pick
+   or manage. Every highlight is this label; the label menus, the filter chips,
+   the Labels dialog and the grouping in the summary stay out of sight. The full
+   label system is kept on the `comments` branch to come back to. */
+export const SIMPLE_HIGHLIGHTS = true;
+export const SIMPLE_LABEL: Label = { id: DEFAULT_LABEL_ID, name: "Highlight", color: "yellow" };
+
 /* block: a whole-block highlight from the block bar; marks inside it stay their own */
 export type Highlight = Anchor & { id: string; by: Person; at: number; labelId?: string; block?: boolean };
 

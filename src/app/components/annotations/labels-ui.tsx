@@ -33,7 +33,7 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/app/components/ui/utils";
 import type { LabelsApi } from "@/hooks/use-annotations";
-import { DEFAULT_LABELS, LABEL_COLORS, LABEL_PICKER, type Label, type LabelColor } from "@/lib/annotations";
+import { DEFAULT_LABELS, LABEL_COLORS, LABEL_PICKER, SIMPLE_HIGHLIGHTS, SIMPLE_LABEL, type Label, type LabelColor } from "@/lib/annotations";
 import { NameField, PencilIcon } from "@/app/components/speaker-picker";
 
 /* A label's colour in each place it shows: the wash on the words, the mark on
@@ -388,9 +388,9 @@ export function HighlightButton({
 }) {
   const cls = cn(
     "rounded-full text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground",
-    variant === "bar" && "h-7 gap-1.5 pl-2.5 pr-2 text-xs text-foreground [@media(pointer:coarse)]:h-9",
+    variant === "bar" && cn("h-7 gap-1.5 text-xs text-foreground [@media(pointer:coarse)]:h-9", SIMPLE_HIGHLIGHTS ? "px-2.5" : "pl-2.5 pr-2"),
     variant === "icon" && "size-7 [@media(pointer:coarse)]:size-9",
-    variant === "player" && "h-8 gap-1.5 border border-border bg-background pl-2.5 pr-2 text-xs font-medium text-foreground hover:border-muted-foreground/40 max-sm:px-2 [@media(pointer:coarse)]:h-9",
+    variant === "player" && cn("h-8 gap-1.5 border border-border bg-background text-xs font-medium text-foreground hover:border-muted-foreground/40 max-sm:px-2 [@media(pointer:coarse)]:h-9", SIMPLE_HIGHLIGHTS ? "px-3" : "pl-2.5 pr-2"),
     current && "bg-muted text-foreground hover:bg-muted",
   );
   const arrow = <Icon icon={ArrowDown01Icon} className="size-3 opacity-70" strokeWidth={2.2} />;
@@ -399,6 +399,28 @@ export function HighlightButton({
   const tip = tipText ?? (variant === "icon"
     ? current ? `Highlighted as ${current.name}` : "Highlight the paragraph"
     : `${label ?? "Highlight"}${shortcut ? `  (${shortcut})` : ""}`);
+  if (SIMPLE_HIGHLIGHTS) {
+    /* one tap marks; on a highlighted block the same tap takes the highlight off */
+    const simpleTip = tipText ?? (variant === "icon" ? (current ? "Remove highlight" : "Highlight the paragraph") : `${label ?? "Highlight"}${shortcut ? `  (${shortcut})` : ""}`);
+    const press = () => { if (current) onRemove?.(); else onHighlight(SIMPLE_LABEL.id); };
+    const button = (
+      <Button variant="ghost" size="sm" aria-label={variant === "icon" ? simpleTip : (label ?? "Highlight")} aria-pressed={variant === "icon" ? Boolean(current) : undefined} className={cls} onClick={press}>
+        <Icon icon={HighlighterIcon} className={cn(variant === "icon" ? "size-[15px]" : "size-[14px]", current && INK[current.color])} strokeWidth={1.8} />
+        {variant === "bar" && <>Highlight</>}
+        {variant === "player" && <span className={short ? "max-lg:hidden" : "max-sm:hidden"}>{label ?? "Highlight"}</span>}
+      </Button>
+    );
+    return (
+      <span className="inline-flex items-center" data-highlight-button={variant}>
+        {sheet ? button : (
+          <Tooltip>
+            <TooltipTrigger asChild>{button}</TooltipTrigger>
+            <TooltipContent side="top">{simpleTip}</TooltipContent>
+          </Tooltip>
+        )}
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center" data-highlight-button={variant}>
       <LabelPicker

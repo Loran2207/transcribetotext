@@ -33,6 +33,7 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/app/components/ui/utils";
 import type { AnnotationsApi, LabelsApi } from "@/hooks/use-annotations";
+import { SIMPLE_HIGHLIGHTS } from "@/lib/annotations";
 import { HighlightButton, LabelChip, LabelIcon, LabelPicker, WASH, WASH_ON, labelTile } from "./labels-ui";
 import {
   TEAM,
@@ -975,8 +976,9 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
         )}
       </div>
       <p className="text-[13px] leading-[20px] text-foreground">{text}</p>
+      {(!SIMPLE_HIGHLIGHTS || !h.by.you || linked.length > 0) && (
       <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
-        {editable ? (
+        {SIMPLE_HIGHLIGHTS ? null : editable ? (
           <LabelPicker
             labels={v.labels}
             currentId={label.id}
@@ -1006,6 +1008,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
           );
         })()}
       </div>
+      )}
     </div>
   );
 }
@@ -1031,7 +1034,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
     const body = list
       .map((h) => {
         const who = v.speakerOf(h.segmentId);
-        return `${v.timeOf(h)}${who ? ` ${who}` : ""} · ${v.labels.labelOf(h.labelId).name}\n"${v.textOf(h.segmentId).slice(h.start, h.end)}"`;
+        return `${v.timeOf(h)}${who ? ` ${who}` : ""}${SIMPLE_HIGHLIGHTS ? "" : ` · ${v.labels.labelOf(h.labelId).name}`}\n"${v.textOf(h.segmentId).slice(h.start, h.end)}"`;
       })
       .join("\n\n");
     void navigator.clipboard?.writeText(`Highlights: ${title}\n\n${body}`);
@@ -1058,7 +1061,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
           <Icon icon={Copy01Icon} className="size-[14px]" strokeWidth={1.8} />{active === "all" ? "Copy all" : "Copy"}
         </Button>
       </div>
-      {used.length > 1 && (
+      {!SIMPLE_HIGHLIGHTS && used.length > 1 && (
         <div data-label-filter="" role="group" aria-label="Filter by label" className="mt-2 flex flex-wrap gap-1.5 px-3">
           <button type="button" aria-pressed={active === "all"} className={chip(active === "all")} onClick={() => setFilter("all")}>
             All<span className={cn("tabular-nums", active === "all" ? "opacity-60" : "text-muted-foreground")}>{all.length}</span>
