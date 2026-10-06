@@ -34,9 +34,11 @@ function paintSelection(el, text) {
           let html = "", open = false;
           L.words.forEach((wd, i) => {
             const on = wd.a >= s0 && wd.b <= s1;
-            if (on && !open) { html += '<span style="background:rgba(37,99,235,0.2);border-radius:2px">'; open = true; }
+            /* the space at either edge of the selection stays outside the wash */
             if (!on && open) { html += "</span>"; open = false; }
-            html += esc(wd.w) + (i < L.words.length - 1 ? " " : "");
+            if (i > 0) html += " ";
+            if (on && !open) { html += '<span style="background:rgba(37,99,235,0.2);border-radius:2px">'; open = true; }
+            html += esc(wd.w);
           });
           if (open) html += "</span>";
           return `<div>${html}</div>`;
@@ -79,6 +81,8 @@ await p.addInitScript(() => {
   };
 });
 if (process.env.SEED) await p.addInitScript((seed) => localStorage.setItem("ttt-desktop", seed), process.env.SEED);
+/* LS={"key":"value",...}: flags that must be in place before the first mount (a demo account state read at login) */
+if (process.env.LS) await p.addInitScript((ls) => { for (const [k, v] of Object.entries(JSON.parse(ls))) localStorage.setItem(k, v); }, process.env.LS);
 /* the demo session lives in React state, so every capture signs in first and
    then walks client-side; the shell and os flags ride on the login address */
 const [path, query = ""] = route.split("?");
@@ -95,7 +99,15 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   if (op === "enter") continue;
   if (op === "click") await p.click(arg);
   else if (op === "wait") await p.waitForTimeout(+arg);
+  /* waitfor=<sel>: a state that arrives on its own clock (live words) is waited for, not timed */
+  else if (op === "waitfor") await p.locator(arg).first().waitFor({ state: "visible", timeout: 30000 });
+  /* tryclick=<sel>: a control that some widths or shells do not show is clicked when it is there */
+  else if (op === "tryclick") { const el = p.locator(arg).filter({ visible: true }).first(); if (await el.count()) await el.click(); }
   else if (op === "store") { const [k, v] = arg.split("|"); await p.evaluate(([k, v]) => { localStorage.setItem(k, v); dispatchEvent(new Event("ttt-banner-hidden")); }, [k, v]); await p.waitForTimeout(600); }
+  /* unstore=<key>: a flag taken away again (a demo loader that must not re-run) */
+  else if (op === "unstore") await p.evaluate((k) => localStorage.removeItem(k), arg);
+  /* event=<name>|<detail>: a window CustomEvent the app listens for (a step credited) */
+  else if (op === "event") { const [name, detail] = arg.split("|"); await p.evaluate(([n, d]) => dispatchEvent(new CustomEvent(n, { detail: d })), [name, detail]); }
   else if (op === "fill") { const [sel, text] = arg.split("|"); await p.fill(sel, text); }
   else if (op === "hover") await p.hover(arg);
   /* focus=<sel>: a tooltip opened by focus stays open after the pointer leaves */
@@ -147,6 +159,53 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
     await p.evaluate(([sid, text, paintSrc]) => { const el = document.querySelector(`[data-segment-id='${sid}'] p`); if (el) new Function("return " + paintSrc)()(el, text); }, [sid, text, paintSelection.toString()]);
     await p.waitForTimeout(200);
   }
+  /* lines=<sel>: every matching paragraph is redrawn one block per browser line, and each
+     run of marked words (a highlight wash, a comment underline) becomes a span inside its
+     line with its computed look inlined. The converter turns a span that wraps across
+     lines into one box over the whole paragraph; per line it keeps the wash on the words.
+     The copy replaces a hidden original, so React keeps its own nodes. */
+  else if (op === "lines") {
+    await p.evaluate((sel) => {
+      const KEEP = ["background-color", "border-radius", "text-decoration-line", "text-decoration-color", "text-decoration-thickness", "text-underline-offset", "color", "font-weight", "padding-left", "padding-right"];
+      const esc = (t) => t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+      for (const el of document.querySelectorAll(sel)) {
+        if (!el.offsetParent || !el.querySelector("span") || el.querySelector("[data-selection-pill], :scope > div")) continue;
+        const tokens = [];
+        const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; let gap = false;
+        while ((n = tw.nextNode())) {
+          const owner = n.parentElement === el ? null : n.parentElement;
+          const re = /(\s+)|(\S+)/g; let m;
+          while ((m = re.exec(n.textContent))) {
+            if (m[1]) { gap = true; continue; }
+            const r = document.createRange(); r.setStart(n, m.index); r.setEnd(n, m.index + m[2].length);
+            tokens.push({ t: m[2], owner, gap: gap && tokens.length > 0, top: Math.round(r.getBoundingClientRect().top) });
+            gap = false;
+          }
+        }
+        const lines = []; for (const tk of tokens) { const L = lines[lines.length - 1]; if (L && Math.abs(L.top - tk.top) < 4) L.tokens.push(tk); else lines.push({ top: tk.top, tokens: [tk] }); }
+        const styleOf = (o) => { const cs = getComputedStyle(o); return KEEP.map((k) => `${k}:${cs.getPropertyValue(k)}`).join(";"); };
+        const html = lines.map((L) => {
+          let out = "", cur = null;
+          L.tokens.forEach((tk, i) => {
+            /* a no-break space: Figma drops a plain one at the end of a text layer */
+            const space = i > 0 && tk.gap ? "&nbsp;" : "";
+            if (tk.owner !== cur) {
+              if (cur) out += "</span>";
+              out += space;
+              if (tk.owner) out += `<span style="${styleOf(tk.owner)}">`;
+              cur = tk.owner;
+              out += esc(tk.t);
+            } else out += space + esc(tk.t);
+          });
+          if (cur) out += "</span>";
+          return `<div>${out}</div>`;
+        }).join("");
+        const copy = el.cloneNode(false); copy.innerHTML = html; copy.removeAttribute("data-transcript-line");
+        el.style.display = "none"; el.after(copy);
+      }
+    }, arg);
+    await p.waitForTimeout(200);
+  }
   /* anchor=<sel>: a fixed layer (a toast) re-homed into the page flow at its viewport spot,
      so the converter keeps it where the eye sees it */
   else if (op === "anchor") {
@@ -159,6 +218,9 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
     }, arg);
     await p.waitForTimeout(200);
   }
+  /* press=<sel>: a pointerdown on the element and nothing else (the phone selection bar
+     must not take its own redraw for the selection going away) */
+  else if (op === "press") await p.$eval(arg, (el) => el.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true })));
   /* nav=<path>: walk to another route inside the app, the router way */
   /* reload: the page again at the same URL, so flags stored a moment ago are read at mount */
   else if (op === "reload") { await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(1200); }
@@ -167,7 +229,7 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   else if (op === "scrollx") { const [sel, px] = arg.split("|"); await p.$eval(sel, (el, x) => { el.scrollLeft = x; }, +px); }
   await p.waitForTimeout(350);
 }
-await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important}" });
+await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important} [data-vaul-drawer]{transform:none!important;animation:none!important} [data-vaul-drawer]::after{content:none!important;display:none!important}" });
 if (!(process.env.STEPS || "").includes("drag=")) await p.mouse.move(2, 2);
 /* enter=<sel> (a late step): React's onMouseEnter fired after the pointer has left, so a
    state that lives in JS (a hover preview) is held for the frame the way force= holds :hover */
@@ -191,7 +253,9 @@ if (process.env.SHOT) {
   /* the guided tour's dim is a 9999px box-shadow that the Figma capture drops: note the lit
      box beside the still, so the dim can be rebuilt in Figma as a boolean around it */
   const light = await p.evaluate(() => { const el = document.querySelector("[data-onboarding-tour] .ring-2"); if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, handoff: !!document.querySelector("[data-onboarding-tour][data-handoff]") }; });
-  if (light) writeFileSync(process.env.SHOT.replace(/\.png$/, ".light.json"), JSON.stringify(light)); await Promise.race([b.close().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]); process.exit(0); }
+  if (light) writeFileSync(process.env.SHOT.replace(/\.png$/, ".light.json"), JSON.stringify(light));
+  await Promise.race([b.close().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]); process.exit(0);
+}
 console.log("hoisted", JSON.stringify(await p.evaluate(HOIST)));
 const src = await p.evaluate(async (u) => (await fetch(u)).text(), CAP);
 await p.evaluate(src);
