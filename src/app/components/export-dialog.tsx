@@ -19,6 +19,7 @@ import { toastExported } from "./app-toast";
 import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon, PencilEdit02Icon } from "@hugeicons/core-free-icons";
 import { usePlan } from "./use-plan";
 import { LANGUAGES } from "./language-context";
+import { HIDDEN } from "@/lib/annotations";
 import {
   runExportPlan, transformForExport, DEFAULT_EXPORT_OPTIONS, FORMAT_META,
   type ExportableRecord, type ExportFormat, type ExportContentOptions, type ExportFilePlan, type ExportManifest,
@@ -271,7 +272,7 @@ export function ExportDialog({ open, onClose, onCloseAutoFocus, records, availab
     setItems(records);
     setActiveId(records[0]?.id ?? "");
     const start = format && !(FORMAT_CHOICES.find((c) => c.format === format)?.pro && plan === "free") ? format : DEFAULT_SETTINGS.format;
-    setShared(full ? { ...DEFAULT_SETTINGS, format: start, includeSummary: true, includeAudio: true, includeTranslation: true, includeHighlights: true, includeComments: true } : { ...DEFAULT_SETTINGS, format: start });
+    setShared(full ? { ...DEFAULT_SETTINGS, format: start, includeSummary: true, includeAudio: true, includeTranslation: true, includeHighlights: !HIDDEN.exportNotes, includeComments: !HIDDEN.exportNotes } : { ...DEFAULT_SETTINGS, format: start });
     setExportName(records.length > 1 ? `transcripts-${records.length}` : "");
     setNameTouched(false); setPreviewKind("transcript");
     setAddOpen(false); setMoreOpen(full); setProgress(0); setManifest(null);
@@ -461,18 +462,19 @@ export function ExportDialog({ open, onClose, onCloseAutoFocus, records, availab
         <p className={shared.includeSummary ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>Exports the AI summary as a separate .txt file.</p>
       </SectionRow>
 
-      {/* One switch, one file. A record with none of them says so in place of the switch working. */}
-      <SectionRow title="Highlights" enabled={shared.includeHighlights} disabled={noHighlights} onToggle={(v) => toggleFile("highlights", "includeHighlights", v)}>
+      {/* One switch, one file. A record with none of them says so in place of the switch working.
+          Hidden for the first release (the client, 06.10): the files come back when highlights are used. */}
+      {!HIDDEN.exportNotes && <SectionRow title="Highlights" enabled={shared.includeHighlights} disabled={noHighlights} onToggle={(v) => toggleFile("highlights", "includeHighlights", v)}>
         <p className={noHighlights || shared.includeHighlights ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>
           {noHighlights ? (multi ? "No highlights on these records yet." : "No highlights on this record yet.") : "Every highlight with its time and speaker, as a separate .txt file."}
         </p>
-      </SectionRow>
+      </SectionRow>}
 
-      <SectionRow title="Comments" enabled={shared.includeComments} disabled={noComments} onToggle={(v) => toggleFile("comments", "includeComments", v)}>
+      {!HIDDEN.exportNotes && <SectionRow title="Comments" enabled={shared.includeComments} disabled={noComments} onToggle={(v) => toggleFile("comments", "includeComments", v)}>
         <p className={noComments || shared.includeComments ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>
           {noComments ? (multi ? "No comments on these records yet." : "No comments on this record yet.") : "Every comment thread with its replies, as a separate .txt file."}
         </p>
-      </SectionRow>
+      </SectionRow>}
 
       <SectionRow title="Translation" enabled={shared.includeTranslation} onToggle={(v) => toggleFile("translation", "includeTranslation", v)}>
         <div className={shared.includeTranslation ? "mt-[12px] flex flex-col gap-[10px]" : "hidden"}>

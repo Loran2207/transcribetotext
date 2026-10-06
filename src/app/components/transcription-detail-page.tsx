@@ -8,8 +8,8 @@ import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
 import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotations";
-import { DEFAULT_LABEL_ID, SIMPLE_HIGHLIGHTS, countLabelsElsewhere, coveringMark, coversBlock, loadAnnotations, mergesWith, moveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
-import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, clampToColumn, edgeLine, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
+import { DEFAULT_LABEL_ID, HIDDEN, SIMPLE_HIGHLIGHTS, countLabelsElsewhere, coveringMark, coversBlock, loadAnnotations, mergesWith, moveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
+import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, clampToColumn, deleteThreadWithUndo, edgeLine, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
 import { DOT, HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
 import { focusOrigin } from "./focus-origin";
 import { Button } from "./ui/button";
@@ -4126,7 +4126,7 @@ export function TranscriptionDetailPage() {
       <span className="max-sm:hidden">Stop ·</span>
       <span className="tabular-nums text-muted-foreground">{reel.index + 1} of {reel.ids.length}</span>
     </Button>
-  ) : (
+  ) : HIDDEN.playerMarkButtons ? null : (
     <span className="flex items-center gap-1.5">
       <HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" heading="Mark the current sentence" open={highlightMenu === "player"} onOpenChange={(o) => setHighlightMenu(o ? "player" : null)} onHighlight={(id) => highlightNow(id)} onManage={manageLabels} />
       <Tooltip>
@@ -4148,10 +4148,10 @@ export function TranscriptionDetailPage() {
     if (target?.closest?.("input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]")) return;
     const k = e.key.toLowerCase();
     /* during the call H marks what was just said; C has nothing to comment on yet */
-    if (isLiveRecordingDetail) { if (k === "h" && !composer) { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill) handleSelectionHighlight(DEFAULT_LABEL_ID); else markLive(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "live"); } return; }
+    if (isLiveRecordingDetail) { if (k === "h" && !composer) { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill) handleSelectionHighlight(DEFAULT_LABEL_ID); else if (!HIDDEN.liveMark) markLive(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "live"); } return; }
     if (activeTab !== "transcript" || editMode || composer || isJobTranscribing) return;
-    if (k === "h") { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill) handleSelectionHighlight(DEFAULT_LABEL_ID); else highlightNow(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "player"); }
-    else if (k === "c") { e.preventDefault(); if (selectionPill) handleSelectionComment(); else commentNow(); }
+    if (k === "h") { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill) handleSelectionHighlight(DEFAULT_LABEL_ID); else if (!HIDDEN.playerMarkButtons) highlightNow(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "player"); }
+    else if (k === "c") { e.preventDefault(); if (selectionPill) handleSelectionComment(); else if (!HIDDEN.playerMarkButtons) commentNow(); }
   };
   const labelCounts = notesApi.highlights.reduce<Record<string, number>>((acc, h) => { const id = labelsApi.labelOf(h.labelId).id; acc[id] = (acc[id] ?? 0) + 1; return acc; }, {});
   /* the marked lines, in transcript order, for the top of the summary */
@@ -4303,13 +4303,18 @@ export function TranscriptionDetailPage() {
     const text = blockText(h.segmentId).slice(h.start, h.end);
     const r = markBar.rect;
     const thread = markBar.run.threads[0];
+    /* a highlight and a comment are two things on the same words (the client, 06.10): each has its own
+       Remove, worded, so nothing is taken away that was not meant. On the phone the two verbs keep their
+       words and Comment / Copy give theirs up, or the bar would not fit the screen */
     const actions: BarAction[] = [
       thread
-        ? { key: "open", label: "Open comment", icon: Comment01Icon, onClick: () => openThread(thread) }
-        : { key: "comment", label: "Comment", icon: CommentAdd01Icon, onClick: () => startComment(h, { left: r.left, top: r.top, width: r.width, height: r.bottom - r.top }, undefined, markBarBack(markBar, "[data-bar-action=comment]")) },
-      { key: "copy", label: "Copy", icon: Copy01Icon, onClick: () => { void navigator.clipboard?.writeText(text); toast("Text copied"); } },
+        ? { key: "open", label: "Open comment", icon: Comment01Icon, short: true, onClick: () => openThread(thread) }
+        : { key: "comment", label: "Comment", icon: CommentAdd01Icon, short: true, onClick: () => startComment(h, { left: r.left, top: r.top, width: r.width, height: r.bottom - r.top }, undefined, markBarBack(markBar, "[data-bar-action=comment]")) },
+      { key: "copy", label: "Copy", icon: Copy01Icon, short: true, onClick: () => { void navigator.clipboard?.writeText(text); toast("Text copied"); } },
     ];
-    if (h.by.you || isOwner) actions.push({ key: "remove", label: "Remove", icon: Delete02Icon, danger: true, onClick: () => removeHighlightWithUndo(notesApi, h.id) });
+    if (h.by.you || isOwner) actions.push({ key: "remove", label: "Remove highlight", icon: Delete02Icon, danger: true, onClick: () => removeHighlightWithUndo(notesApi, h.id) });
+    const threadBy = thread ? notesApi.threads.find((t) => t.id === thread)?.by : undefined;
+    if (thread && threadBy && (threadBy.you || isOwner)) actions.push({ key: "remove-comment", label: "Remove comment", icon: Delete02Icon, danger: true, onClick: () => deleteThreadWithUndo(notesApi, thread) });
     return actions;
   }
   /* A tap on a block's text: on touch it shows that block's bar (there is no
@@ -4732,7 +4737,7 @@ export function TranscriptionDetailPage() {
             elapsedSeconds={recordingElapsed}
             onPauseResume={isPaused ? resumeInstantRecording : pauseInstantRecording}
             onStop={stopInstantRecording}
-            mark={<HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" label="Mark" short tip="Mark what was just said  (H)" heading="Mark what was just said" open={highlightMenu === "live"} onOpenChange={(o) => setHighlightMenu(o ? "live" : null)} onHighlight={markLive} onManage={manageLabels} />}
+            mark={HIDDEN.liveMark ? undefined : <HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" label="Mark" short tip="Mark what was just said  (H)" heading="Mark what was just said" open={highlightMenu === "live"} onOpenChange={(o) => setHighlightMenu(o ? "live" : null)} onHighlight={markLive} onManage={manageLabels} />}
             generate={desktopShell}
             warning={desktopShell && permDemo && (sysIsAPermission || permDemo === "1") ? {
               title: permDemo === "1" ? (sysIsAPermission ? `Microphone and the call's sound aren't allowed on ${machine}` : `Microphone isn't allowed on ${machine}`) : `Call sound isn't allowed on ${machine}`,
@@ -5236,7 +5241,7 @@ export function TranscriptionDetailPage() {
                 <p className="text-[13px] text-muted-foreground leading-relaxed mt-1.5 max-w-[360px]">
                   {sharedOwner ? `When ${sharedOwner.name} adds one, it shows here.` : "Pick a template and we will turn this transcript into a structured summary."}
                 </p>
-                {!sharedOwner && notesApi.highlights.length > 0 && (
+                {!sharedOwner && !HIDDEN.summaryFromHighlights && notesApi.highlights.length > 0 && (
                   /* the marks are not lost on the way: they are what the summary starts from */
                   <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground" data-summary-highlights-note="">
                     <Icon icon={HighlighterIcon} className="size-[14px]" strokeWidth={1.8} />
@@ -5250,7 +5255,7 @@ export function TranscriptionDetailPage() {
                 )}
               </div>
             ) : (
-              <SummaryTab summaryText={contentSummary} template={activeTemplate} highlight={summaryQuery} highlights={summaryHighlights} />
+              <SummaryTab summaryText={contentSummary} template={activeTemplate} highlight={summaryQuery} highlights={HIDDEN.summaryFromHighlights ? [] : summaryHighlights} />
             )}
           </TabsContent>
           {(activeTranslationMeta || translationTranscriptStatus === "loading" || translationTranscriptStatus === "error") && !isJobTranscribing ? (
@@ -5298,7 +5303,7 @@ export function TranscriptionDetailPage() {
               ) : translationSummaryStatus === "error" ? (
                 <TranslationErrorState onRetry={() => { void handleTranslate(); }} />
               ) : (
-                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} highlight={summaryQuery} highlights={summaryHighlights} />
+                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} highlight={summaryQuery} highlights={HIDDEN.summaryFromHighlights ? [] : summaryHighlights} />
               )}
             </TabsContent>
           ) : null}

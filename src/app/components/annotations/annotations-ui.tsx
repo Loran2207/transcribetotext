@@ -33,7 +33,7 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/app/components/ui/utils";
 import type { AnnotationsApi, LabelsApi } from "@/hooks/use-annotations";
-import { SIMPLE_HIGHLIGHTS } from "@/lib/annotations";
+import { HIDDEN, SIMPLE_HIGHLIGHTS } from "@/lib/annotations";
 import { HighlightButton, LabelChip, LabelIcon, LabelPicker, WASH, WASH_HOVER, WASH_ON, labelTile } from "./labels-ui";
 import {
   TEAM,
@@ -101,7 +101,7 @@ export function removeHighlightWithUndo(api: AnnotationsApi, id: string) {
   if (removed) toastUndo("Highlight removed", () => api.restoreHighlight(removed));
 }
 
-function deleteThreadWithUndo(api: AnnotationsApi, id: string) {
+export function deleteThreadWithUndo(api: AnnotationsApi, id: string) {
   const removed = api.deleteThread(id);
   if (removed) toastUndo(removed.replies.length > 0 ? "Thread deleted" : "Comment deleted", () => api.restoreThread(removed));
 }
@@ -319,7 +319,8 @@ export function BlockActions({
   );
 }
 
-export type BarAction = { key: string; label: string; icon: unknown; onClick: () => void; danger?: boolean };
+/* short: the icon says it alone on the phone, the word returns from sm up */
+export type BarAction = { key: string; label: string; icon: unknown; onClick: () => void; danger?: boolean; short?: boolean };
 
 /* The first or the last line of a passage: a bar above the words starts
    where they start on that line, not at the edge of the whole block */
@@ -403,11 +404,13 @@ export function MarkBar({
           data-bar-action={a.key}
           size="sm"
           variant="ghost"
-          className={cn("h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground [@media(pointer:coarse)]:h-9", a.danger && "hover:text-destructive")}
+          aria-label={a.label}
+          title={a.short ? a.label : undefined}
+          className={cn("h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground [@media(pointer:coarse)]:h-9", a.danger && "hover:text-destructive", a.short && "max-sm:px-2")}
           onClick={() => { a.onClick(); onClose(); }}
         >
           <Icon icon={a.icon} className="size-[14px]" strokeWidth={1.8} />
-          {a.label}
+          <span className={a.short ? "max-sm:hidden" : undefined}>{a.label}</span>
         </Button>
       ))}
     </div>,
@@ -753,7 +756,7 @@ function Entry({
                 </Button>
                 <ActionSheet open={menu} onOpenChange={setMenu} mark={<PersonDot person={person} size={24} />} title={person.you ? (reply ? "Your reply" : "Your comment") : `${person.name.split(" ")[0]}'s ${reply ? "reply" : "comment"}`} kind={text.length > 60 ? text.slice(0, 60) + "..." : text}>
                   {onEdit && <ActionSheetItem icon={PencilEdit02Icon} label="Edit" onClick={() => { setMenu(false); setEditing(true); window.setTimeout(focusEdit, 360); }} />}
-                  {onDelete && <ActionSheetItem icon={Delete02Icon} label="Delete" destructive onClick={() => { setMenu(false); onDelete(); }} />}
+                  {onDelete && <ActionSheetItem icon={Delete02Icon} label={reply ? "Delete reply" : "Delete comment"} destructive onClick={() => { setMenu(false); onDelete(); }} />}
                 </ActionSheet>
               </>
             )}
@@ -764,7 +767,7 @@ function Entry({
                     <Icon icon={MoreHorizontal} className="size-[16px]" strokeWidth={2} />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36" onCloseAutoFocus={(e) => { if (wantsEdit.current) { wantsEdit.current = false; e.preventDefault(); focusEdit(); } }}>
+                <DropdownMenuContent align="end" className="w-44" onCloseAutoFocus={(e) => { if (wantsEdit.current) { wantsEdit.current = false; e.preventDefault(); focusEdit(); } }}>
                   {onEdit && (
                     <DropdownMenuItem onSelect={(e) => { e.preventDefault(); wantsEdit.current = true; setMenu(false); setEditing(true); }}>
                       <Icon icon={PencilEdit02Icon} className="size-4" strokeWidth={1.8} />Edit
@@ -772,7 +775,7 @@ function Entry({
                   )}
                   {onDelete && (
                     <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-                      <Icon icon={Delete02Icon} className="size-4" strokeWidth={1.8} />Delete
+                      <Icon icon={Delete02Icon} className="size-4" strokeWidth={1.8} />{reply ? "Delete reply" : "Delete comment"}
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
@@ -830,7 +833,7 @@ export function ThreadCard({ t, v, inSheet = false, onDone }: { t: Thread; v: No
       className={cn(
         "group/card rounded-xl transition-colors",
         inSheet ? "py-1" : "cursor-pointer px-3 py-2.5",
-        !inSheet && (focused ? "bg-muted/60" : "hover:bg-muted/50"),
+        !inSheet && (focused ? "bg-primary/[0.07] ring-1 ring-inset ring-primary/25" : "hover:bg-muted/50"),
       )}
     >
       {t.resolved && (
@@ -938,7 +941,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
       /* the action sheet is a portal: a tap on its scrim bubbles here through React, and must not go to the words */
       onClick={(e) => { if (e.currentTarget.contains(e.target as Node) && !(e.target as HTMLElement).closest("button")) v.goTo(h, { kind: "highlight", id: h.id }); }}
       onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) v.goTo(h, { kind: "highlight", id: h.id }); }}
-      className={cn("group/hl cursor-pointer rounded-xl px-3 py-2 transition-colors hover:bg-muted/50", (focused || playing) && "bg-muted/60 hover:bg-muted/60")}
+      className={cn("group/hl cursor-pointer rounded-xl px-3 py-2 transition-colors hover:bg-muted/50", (focused || playing) && "bg-primary/[0.07] ring-1 ring-inset ring-primary/25 hover:bg-primary/[0.07]")}
     >
       <div className="flex h-7 items-center gap-1.5 text-[12px] text-muted-foreground">
         <TimeChip timestamp={timestamp} onSeek={v.seek} />
@@ -1055,7 +1058,7 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
             <Icon icon={StopIcon} className="size-[13px]" strokeWidth={2} />Stop
             <span className="tabular-nums text-muted-foreground">· {v.reel.index + 1} of {v.reel.ids.length}</span>
           </Button>
-        ) : (
+        ) : HIDDEN.playAll ? <span /> : (
           <Button variant="ghost" size="sm" data-list-play="" className="h-7 gap-1.5 rounded-full px-2 text-xs font-medium text-primary hover:text-primary [@media(pointer:coarse)]:h-9" onClick={() => v.playAll(list.map((h) => h.id))}>
             <Icon icon={PlayIcon} className="size-[13px]" strokeWidth={2} />{active === "all" ? "Play all" : "Play"}
           </Button>

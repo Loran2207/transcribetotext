@@ -42,6 +42,21 @@ export const DEFAULT_LABEL_ID = "key";
 export const SIMPLE_HIGHLIGHTS = true;
 export const SIMPLE_LABEL: Label = { id: DEFAULT_LABEL_ID, name: "Highlight", color: "yellow" };
 
+/* Hidden for the first release (the client, 06.10 call): the code stays, the
+   controls do not render. Each switch names one surface. */
+export const HIDDEN = {
+  /* Highlight and Comment beside the time on the player bar, and their H / C keys on the player */
+  playerMarkButtons: true,
+  /* Play all / Play in the Highlights list, with the Stop reel */
+  playAll: true,
+  /* Mark what was just said, in the recording bar, and H during the call */
+  liveMark: true,
+  /* "From your highlights" at the top of the summary */
+  summaryFromHighlights: true,
+  /* Highlights and Comments as files in the export dialog */
+  exportNotes: true,
+} as const;
+
 /* block: a whole-block highlight from the block bar; marks inside it stay their own */
 export type Highlight = Anchor & { id: string; by: Person; at: number; labelId?: string; block?: boolean };
 
