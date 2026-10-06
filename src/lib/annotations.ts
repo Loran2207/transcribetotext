@@ -42,27 +42,27 @@ export const DEFAULT_LABEL_ID = "key";
 export const SIMPLE_HIGHLIGHTS = true;
 export const SIMPLE_LABEL: Label = { id: DEFAULT_LABEL_ID, name: "Highlight", color: "yellow" };
 
-/* Hidden for the first release (the client, 06.10 call): the code stays, the
-   controls do not render. Each switch names one surface. */
+/* Full branch (highlights-full): every switch is off, so everything hidden on
+   highlights-simple for the first release renders here. Each switch names one surface. */
 export const HIDDEN = {
   /* Highlight and Comment beside the time on the player bar, and their H / C keys on the player */
-  playerMarkButtons: true,
+  playerMarkButtons: false,
   /* Play all / Play in the Highlights list, with the Stop reel */
-  playAll: true,
+  playAll: false,
   /* Mark what was just said, in the recording bar, and H during the call */
-  liveMark: true,
+  liveMark: false,
   /* "From your highlights" at the top of the summary */
-  summaryFromHighlights: true,
+  summaryFromHighlights: false,
   /* Highlights and Comments as files in the export dialog */
-  exportNotes: true,
+  exportNotes: false,
   /* the Highlight / Comment bar over words selected during the call (Kirill, 06.10:
      nothing about highlights or comments while the recording runs) */
-  liveSelection: true,
+  liveSelection: false,
   /* "Highlights and comments go with it." under the share link */
-  shareNote: true,
+  shareNote: false,
   /* a record that comes out of a live recording starts with nothing marked; the
      demo seed is for the sample record only */
-  liveRecordSeed: true,
+  liveRecordSeed: false,
 } as const;
 
 /* block: a whole-block highlight from the block bar; marks inside it stay their own */
