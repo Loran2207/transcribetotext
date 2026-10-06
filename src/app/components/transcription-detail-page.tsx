@@ -1370,7 +1370,8 @@ function useCoarsePointer() {
 }
 
 function TabCount({ n }: { n: number }) {
-  return n > 0 ? <span className="ml-1.5 font-medium tabular-nums text-muted-foreground">{n}</span> : null;
+  /* the count takes the tab's blue when the tab is the open one (Kirill, 07.10) */
+  return n > 0 ? <span className="ml-1.5 font-medium tabular-nums text-muted-foreground in-data-[state=active]:text-primary">{n}</span> : null;
 }
 
 function RightPanel({
@@ -1407,7 +1408,7 @@ function RightPanel({
           <TabsTrigger value="outline" variant="line" className="text-[13px] font-semibold">Outline</TabsTrigger>
         </TabsList>
         <TabsContent value="comments" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-          <CommentsList v={notes} />
+          <CommentsList v={notes} title={recordTitle} />
         </TabsContent>
         <TabsContent value="highlights" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
           <HighlightsList v={notes} title={recordTitle} />
@@ -5117,7 +5118,7 @@ export function TranscriptionDetailPage() {
             <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-muted-foreground">Auto-generated chapters and a jump-to-section outline are on the way.</p>
           </TabsContent>
           <TabsContent value="comments" className="xl:hidden flex flex-1 flex-col overflow-auto">
-            <CommentsList v={notesView} />
+            <CommentsList v={notesView} title={title} />
           </TabsContent>
           <TabsContent value="highlights" className="xl:hidden flex flex-1 flex-col overflow-auto">
             <HighlightsList v={notesView} title={title} />
