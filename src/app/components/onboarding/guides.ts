@@ -14,11 +14,15 @@
 export type TourTarget = { page: "dashboard" | "records" | "calendar" | "templates" | "shared" | "academy" | "settings" } | { path: string };
 
 export type TourStep = {
+  /* "a|b": the first visible wins (a phone stand-in for a web control);
+     "a+b": both lit as one box (the edit bar together with the text being edited) */
   anchor: string;
   title: string;
   body: string;
   /* the words on a phone, where the control lives somewhere else (a sheet, the More menu) */
   phoneBody?: string;
+  /* a title that says "click" gets its "tap" twin on a phone */
+  phoneTitle?: string;
   /* the words below 1024px, where the right panel is gone and a top bar button stands in */
   compactBody?: string;
   go: TourTarget;
@@ -102,9 +106,9 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     steps: [
       OPEN_RECORD_FIRST,
       PAGE_RECORD,
-      { anchor: "record-title", go: RECORD, side: "bottom", title: "The title is yours", body: "Click it to rename. Underneath: who made it, the folder, the speakers, the source and the length." },
+      { anchor: "record-title", go: RECORD, side: "bottom", title: "The title is yours", body: "Click it to rename. Underneath: who made it, the folder, the speakers, the source and the length.", phoneBody: "Tap it to rename. Underneath: who made it, the folder, the speakers, the source and the length." },
       { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Transcript and Summary", body: "Transcript is every word, as it was said. Summary is the notes. We start on the transcript.", trigger: "tab-transcript" },
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Click a timecode", body: "The player jumps to that moment. While it plays, the words follow the voice." },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Click a timecode", phoneTitle: "Tap a timecode", body: "The player jumps to that moment. While it plays, the words follow the voice." },
       { anchor: "record-transport|record-play", go: RECORD, side: "top", title: "Play, back, forward", body: "Play starts where you are. The arrows step back or forward five seconds when you missed a word." },
       { anchor: "record-speed|record-transport", go: RECORD, side: "top", title: "Set the pace", body: "Half speed for a fast talker, double speed for a long call." },
       { anchor: "record-view-toggles|record-tabs", go: RECORD, side: "bottom", title: "Hide the names", body: "I switched Speakers off: the text reads as one clean block. Switch it back any time.", trigger: "view-speakers-off" },
@@ -131,7 +135,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     steps: [
       OPEN_RECORD_AGAIN,
       { anchor: "record-edit|record-tabs", go: RECORD, side: "bottom", title: "Edit transcript", body: "A name, a term, a word the model misheard. Next turns the text into editing.", trigger: "edit-close" },
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Click straight into the text", body: "Every block is a field now. I put the cursor in the first one: type to fix it, like in any document.", trigger: "edit-focus" },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Click straight into the text", phoneTitle: "Tap straight into the text", body: "Every block is a field now. I put the cursor in the first one: type to fix it, like in any document.", trigger: "edit-focus" },
       { anchor: "record-edit-bar|record-tabs", go: RECORD, side: "bottom", title: "Undo, reset, save", body: "Undo steps back one change. Reset to original brings back what the model wrote. Save keeps it for everyone you share with.", trigger: "edit-open" },
       { anchor: "record-edit|record-tabs", go: RECORD, side: "bottom", title: "Nothing is lost", body: "Timecodes and speakers stay where they are. I leave editing now without saving.", trigger: "edit-close" },
     ],
@@ -143,8 +147,8 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     steps: [
       OPEN_RECORD_AGAIN,
       { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Three voices, one unnamed", body: "The app heard three people. Speaker 2 still needs a name. Next opens the list.", trigger: "speakers-close" },
-      { anchor: "speakers-panel", go: RECORD, side: "right", title: "Rename, add, remove", body: "Click a name to rename it. Remove a voice and its blocks go to someone else.", trigger: "speakers-open" },
-      { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Wrong name on one block?", body: "Click the name on that block and pick who really said it.", trigger: "speakers-close" },
+      { anchor: "speakers-panel", go: RECORD, side: "right", title: "Rename, add, remove", body: "Click a name to rename it. Remove a voice and its blocks go to someone else.", phoneBody: "Tap a name to rename it. Remove a voice and its blocks go to someone else.", trigger: "speakers-open" },
+      { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Wrong name on one block?", body: "Click the name on that block and pick who really said it.", phoneBody: "Tap the name on that block and pick who really said it.", trigger: "speakers-close" },
       { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Two people in one block?", body: "Select the other person's words and pick their name. Only those words move." },
     ],
   },
@@ -171,7 +175,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       { anchor: "record-export|record-tabs", go: RECORD, side: "bottom", title: "Export", body: "Everything about this recording, as files. Next opens the options.", trigger: "export-close" },
       { anchor: "export-row-transcript|export-dialog", go: RECORD, side: "right", title: "Transcript", body: "PDF, Word, plain text or subtitles. Choose whether speaker names and timestamps go in.", trigger: "export-open" },
       { anchor: "export-row-summary|export-dialog", go: RECORD, side: "right", title: "Summary, translation, audio", body: "Each one is a switch. Turn on what you need, the rest stays out.", trigger: "export-open" },
-      { anchor: "export-go|export-dialog", go: RECORD, side: "top", title: "One click", body: "Several files come as one zip. I close this for you now.", trigger: "export-open" },
+      { anchor: "export-go|export-dialog", go: RECORD, side: "top", title: "One click", phoneTitle: "One tap", body: "Several files come as one zip. I close this for you now.", trigger: "export-open" },
     ],
   },
   {
@@ -221,7 +225,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     steps: [
       { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Searches what was said, not only the titles. Ctrl K opens it from anywhere.", quickFind: { open: false, query: "" } },
       { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A name, a topic, a phrase. I typed one for you.", quickFind: { open: true, query: "record" } },
-      { anchor: "quick-find-results", go: HOME, side: "bottom", title: "Every match, with its moment", body: "Each result is a recording where those words were said. Click one to open it right there.", quickFind: { open: true } },
+      { anchor: "quick-find-results", go: HOME, side: "bottom", title: "Every match, with its moment", body: "Each result is a recording where those words were said. Click one to open it right there.", phoneBody: "Each result is a recording where those words were said. Tap one to open it right there.", quickFind: { open: true } },
       { anchor: "quick-find-filters", go: HOME, side: "bottom", title: "Narrow it down", body: "By folder, source, who recorded it or when.", quickFind: { open: true } },
     ],
   },
@@ -352,19 +356,19 @@ const OPEN_RECORD_FOR_STEP: TourStep = { anchor: "record-row-welcome|home-record
 export const STEP_TOURS: Guide[] = [
   { ...STEP_META, id: "step-way-file", forStep: "way-file", title: "Upload a file", seconds: 15, steps: [
     { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Audio and video files", body: "This card takes any recording from your computer. Next opens it.", trigger: "upload-close" },
-    { anchor: "upload-drop", go: HOME, side: "right", title: "Drop a file here", body: "Or click to choose one, then press Start transcription. The step is done the moment the upload starts.", trigger: "upload-open", handoff: true },
+    { anchor: "upload-dialog|upload-drop", go: HOME, side: "right", title: "Drop a file here", body: "Or click to choose one, then press Start transcription. The step is done the moment the upload starts.", phoneBody: "Or tap to choose one, then press Start transcription. The step is done the moment the upload starts.", trigger: "upload-open", handoff: true },
   ] },
   { ...STEP_META, id: "step-way-voice", forStep: "way-voice", title: "Try Instant speech", seconds: 15, steps: [
     { anchor: "home-card-record|add-fab", go: HOME, side: "bottom", title: "Instant speech", body: "Talk, and the words appear as you speak. Next opens it.", trigger: "record-close" },
-    { anchor: "recording-stop|record-start", go: HOME, side: "right", title: "Say a few words", body: "Press Start recording and talk for a few seconds. Press the red Stop and the step is done.", trigger: "record-open", handoff: true },
+    { anchor: "recording-stop|speech-dialog|record-start", go: HOME, side: "right", title: "Say a few words", body: "Press Start recording and talk for a few seconds. Press the red Stop and the step is done.", trigger: "record-open", handoff: true },
   ] },
   { ...STEP_META, id: "step-way-meeting", forStep: "way-meeting", title: "Send the recorder to a call", seconds: 15, steps: [
     { anchor: "home-card-meeting|add-fab", go: HOME, side: "bottom", title: "Meeting Recorder", body: "A bot joins a Zoom, Meet or Teams call and writes the notes. Next opens it.", trigger: "meeting-close" },
-    { anchor: "meeting-url", go: HOME, side: "right", title: "Paste the invite link", body: "Copy it from the calendar invite, paste it here and press Transcribe now. The step is done when the recorder is on its way.", trigger: "meeting-open", handoff: true },
+    { anchor: "meeting-dialog|meeting-url", go: HOME, side: "right", title: "Paste the invite link", body: "Copy it from the calendar invite, paste it here and press Transcribe now. The step is done when the recorder is on its way.", trigger: "meeting-open", handoff: true },
   ] },
   { ...STEP_META, id: "step-way-link", forStep: "way-link", title: "Transcribe a link", seconds: 15, steps: [
     { anchor: "home-card-link|add-fab", go: HOME, side: "bottom", title: "Transcribe from URL", body: "YouTube, Google Drive, Dropbox and more. Next opens it.", trigger: "link-close" },
-    { anchor: "link-url", go: HOME, side: "right", title: "Paste a link", body: "Any public video or audio link, then press Start transcription. The step is done the moment it starts.", trigger: "link-open", handoff: true },
+    { anchor: "link-dialog|link-url", go: HOME, side: "right", title: "Paste a link", body: "Any public video or audio link, then press Start transcription. The step is done the moment it starts.", trigger: "link-open", handoff: true },
   ] },
   { ...STEP_META, id: "step-calendar", forStep: "calendar", title: "Connect your calendar", seconds: 15, steps: [
     { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Your calendar lives here. Next takes you there." },
@@ -376,7 +380,7 @@ export const STEP_TOURS: Guide[] = [
   ] },
   { ...STEP_META, id: "step-edit", forStep: "edit", title: "Edit the transcript", seconds: 15, steps: [
     OPEN_RECORD_FOR_STEP,
-    { anchor: "record-edit-bar|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "At 1:02 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.", phoneBody: "At 1:02 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.", trigger: "tab-transcript", handoff: true },
+    { anchor: "record-edit-bar+record-transcript-body|record-more-edit|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "At 1:02 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.", phoneBody: "At 1:02 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.", trigger: "tab-transcript", handoff: true },
   ] },
   { ...STEP_META, id: "step-folders", forStep: "folders", title: "Create a folder", seconds: 15, steps: [
     { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Folders live here. Next opens a new one." },

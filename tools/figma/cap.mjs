@@ -13,6 +13,7 @@
  * html-to-design capture script running inside the page, which serialises the
  * DOM with its fonts and pictures and posts it to the capture endpoint. */
 import { chromium } from "playwright";
+import { writeFileSync } from "node:fs";
 import { HOIST } from "./hoist.mjs";
 
 /* browser-side: rebuild a paragraph as one block per browser line with the picked words in a span,
@@ -185,7 +186,12 @@ await p.evaluate((t) => { document.title = t; }, name);
    printed after it paints over it. Re-seat the overlays first; nothing moves
    on screen, and the document finally says what the screen shows. */
 /* SHOT=<png path>: a still of the same frozen page instead of a Figma capture, for review */
-if (process.env.SHOT) { await p.screenshot({ path: process.env.SHOT }); console.log("shot", process.env.SHOT); await Promise.race([b.close().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]); process.exit(0); }
+if (process.env.SHOT) {
+  await p.screenshot({ path: process.env.SHOT }); console.log("shot", process.env.SHOT);
+  /* the guided tour's dim is a 9999px box-shadow that the Figma capture drops: note the lit
+     box beside the still, so the dim can be rebuilt in Figma as a boolean around it */
+  const light = await p.evaluate(() => { const el = document.querySelector("[data-onboarding-tour] .ring-2"); if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, handoff: !!document.querySelector("[data-onboarding-tour][data-handoff]") }; });
+  if (light) writeFileSync(process.env.SHOT.replace(/\.png$/, ".light.json"), JSON.stringify(light)); await Promise.race([b.close().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]); process.exit(0); }
 console.log("hoisted", JSON.stringify(await p.evaluate(HOIST)));
 const src = await p.evaluate(async (u) => (await fetch(u)).text(), CAP);
 await p.evaluate(src);

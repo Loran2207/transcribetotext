@@ -64,7 +64,7 @@ export function ActionSheet({
 }
 
 export function ActionSheetItem({
-  icon, label, onClick, destructive = false, iconClassName, iconFill,
+  icon, label, onClick, destructive = false, iconClassName, iconFill, tour,
 }: {
   icon: React.ComponentProps<typeof Icon>["icon"];
   label: string;
@@ -73,10 +73,13 @@ export function ActionSheetItem({
   /** For the one row whose glyph carries its own state - the star. */
   iconClassName?: string;
   iconFill?: string;
+  /** The guided tour lights this row when it stands in for a web control. */
+  tour?: string;
 }) {
   return (
     <button
       type="button"
+      data-tour={tour}
       onClick={onClick}
       className={
         "flex items-center gap-[13px] h-[50px] px-[12px] rounded-[12px] text-left transition-colors " +

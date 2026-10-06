@@ -1799,9 +1799,11 @@ function UpgradePrompt({ open, onClose }: { open: boolean; onClose: () => void }
 
 // ── Modal shell ────────────────────────────────────────────
 
-function ModalShell({ title, subtitle, onClose, onBackdropClick, children, width = 500 }: {
+function ModalShell({ title, subtitle, onClose, onBackdropClick, children, width = 500, tour }: {
   title: string; subtitle?: string; onClose: () => void; onBackdropClick: () => void;
   children: React.ReactNode; width?: number;
+  /* the guided tour lights the whole dialog while the person fills it in */
+  tour?: string;
 }) {
   useEffect(() => {
     function h(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
@@ -1812,7 +1814,7 @@ function ModalShell({ title, subtitle, onClose, onBackdropClick, children, width
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 md:items-center md:p-4">
       <div className="ttt-dim absolute inset-0 bg-[rgba(15,23,42,0.55)] backdrop-blur-[3px]" onClick={onBackdropClick} />
-      <div className="ttt-modal-rise ttt-modal-sheet ttt-modal relative flex flex-col overflow-hidden bg-popover w-full max-h-[90vh] rounded-t-[24px] rounded-b-none pb-[env(safe-area-inset-bottom)] md:w-[min(var(--modal-w),calc(100vw_-_32px))] md:max-h-[calc(100vh_-_40px)] md:rounded-[20px] md:pb-0"
+      <div data-tour={tour} className="ttt-modal-rise ttt-modal-sheet ttt-modal relative flex flex-col overflow-hidden bg-popover w-full max-h-[90vh] rounded-t-[24px] rounded-b-none pb-[env(safe-area-inset-bottom)] md:w-[min(var(--modal-w),calc(100vw_-_32px))] md:max-h-[calc(100vh_-_40px)] md:rounded-[20px] md:pb-0"
         style={{ "--modal-w": `${width}px`, boxShadow: "0 32px 72px rgba(0,0,0,0.2), 0 4px 16px rgba(0,0,0,0.06)" } as React.CSSProperties}>
         {/* Header */}
         <div className="flex items-center justify-between px-[22px] pt-[18px] pb-[16px] shrink-0">
@@ -1987,6 +1989,7 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
   return (
     <>
       <ModalShell
+        tour="speech-dialog"
         title="Instant speech"
         subtitle={onDesktop ? "Your voice only, typed as you speak. For a call, use Record a call" : "Select recognition settings before recording"}
         onClose={onClose}
@@ -2135,6 +2138,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   return (
     <>
       <ModalShell
+        tour="upload-dialog"
         title="Audio & video files"
         subtitle="Upload audio or video files for transcription"
         onClose={handleClose}
@@ -2424,7 +2428,7 @@ function TranscribeLinkModal({ open, onClose }: { open: boolean; onClose: () => 
 
   return (
     <>
-      <ModalShell title="Transcribe from URL" subtitle="YouTube, Instagram, Dropbox, Google Drive and more" onClose={handleClose} onBackdropClick={handleClose}>
+      <ModalShell tour="link-dialog" title="Transcribe from URL" subtitle="YouTube, Instagram, Dropbox, Google Drive and more" onClose={handleClose} onBackdropClick={handleClose}>
         <div className="px-[22px] py-[20px] flex flex-col gap-[18px]">
           <div>
             <SectionLabel>Paste a URL</SectionLabel>
@@ -2621,6 +2625,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   return (
     <>
       <ModalShell
+        tour="meeting-dialog"
         title={desktopShell ? "Record a call" : "Record meeting"}
         subtitle={method === "bot" ? "A bot joins the meeting and transcribes it for you" : desktopShell ? "Recorded right here, without a bot in the meeting" : "Record without a bot, with the desktop app"}
         onClose={handleClose}

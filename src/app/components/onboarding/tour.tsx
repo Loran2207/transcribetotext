@@ -34,22 +34,37 @@ const MIN_CARD_W = 244;
 type Rect = { top: number; left: number; width: number; height: number };
 type Side = "top" | "bottom" | "left" | "right";
 const SIDES: Side[] = ["bottom", "top", "right", "left"];
+/* the dark around the light; the same shape in both so motion can ease between them */
+const DIM = "0 0 0 9999px rgba(15, 23, 42, 0.55)";
+const DIM_HANDOFF = "0 0 0 9999px rgba(15, 23, 42, 0.4)";
 const OPPOSITE: Record<Side, Side> = { top: "bottom", bottom: "top", left: "right", right: "left" };
 
 /* "a|b": the first visible anchor wins, so a phone layout without the web
-   control can light its own stand-in (the menu button, the "+" button). */
-function findAnchor(names: string): HTMLElement | null {
-  for (const name of names.split("|")) {
-    const all = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`));
-    const hit = all.find((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; });
-    if (hit) return hit;
+   control can light its own stand-in (the menu button, the "+" button).
+   "a+b": one light around both, when the first is visible (the edit bar
+   together with the text being edited); a missing second part is skipped. */
+function visibleAnchor(name: string): HTMLElement | null {
+  const all = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour="${name}"]`));
+  return all.find((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; }) ?? null;
+}
+function findAnchor(names: string): HTMLElement[] | null {
+  for (const alt of names.split("|")) {
+    const parts = alt.split("+");
+    const first = visibleAnchor(parts[0]);
+    if (!first) continue;
+    const rest = parts.slice(1).map(visibleAnchor).filter((el): el is HTMLElement => !!el);
+    return [first, ...rest];
   }
   return null;
 }
 
-function measure(el: HTMLElement): Rect {
-  const r = el.getBoundingClientRect();
-  return { top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 };
+function measure(els: HTMLElement[]): Rect {
+  let top = Infinity, left = Infinity, right = -Infinity, bottom = -Infinity;
+  for (const el of els) {
+    const r = el.getBoundingClientRect();
+    top = Math.min(top, r.top); left = Math.min(left, r.left); right = Math.max(right, r.right); bottom = Math.max(bottom, r.bottom);
+  }
+  return { top: top - PAD, left: left - PAD, width: right - left + PAD * 2, height: bottom - top + PAD * 2 };
 }
 
 /* A short burst from the bottom of the screen; the whole-guide one is wider and longer. */
@@ -126,7 +141,7 @@ export function OnboardingTour() {
       if (cancelled) return;
       const el = findAnchor(anchorName);
       if (el) {
-        el.scrollIntoView({ block: "center", inline: "nearest", behavior: reduce ? "auto" : "smooth" });
+        el[0].scrollIntoView({ block: "center", inline: "nearest", behavior: reduce ? "auto" : "smooth" });
         /* measure after the scroll settles; the page may have re-rendered the
            anchor meanwhile, so look it up again and retry on an empty box */
         let settles = 0;
@@ -212,11 +227,20 @@ export function OnboardingTour() {
   /* a "page-*" anchor is the whole content area: the card floats inside it, near the top, no arrow */
   const pageWide = !!(rect && !phone && (anchorName?.startsWith("page-") || (rect.width > window.innerWidth * 0.5 && rect.height > window.innerHeight * 0.7)));
   if (pageWide && rect) {
-    /* the lit page may be taller than the window: keep the card inside the visible part */
-    const top = Math.max(24, rect.top + 24);
     const left = Math.round(Math.max(12, Math.min(window.innerWidth - CARD_W - 12, rect.left + Math.min(rect.width, window.innerWidth - rect.left) / 2 - CARD_W / 2)));
-    cardStyle = { top: Math.min(top, window.innerHeight - 220), left };
-    arrow = "top";
+    const est = cardRef.current?.offsetHeight ?? 200;
+    if (rect.top >= est) {
+      /* room above the lit area (the edit bar with the text under it on a tablet): the card
+         sits over the header rather than on the words being edited; a few pixels of its
+         foot may rest on the light's own padding */
+      cardStyle = { top: Math.max(8, rect.top - GAP - est), left };
+      arrow = "bottom";
+    } else {
+      /* the lit page may be taller than the window: keep the card inside the visible part */
+      const top = Math.max(24, rect.top + 24);
+      cardStyle = { top: Math.min(top, window.innerHeight - 220), left };
+      arrow = "top";
+    }
   }
   /* review 05.10: the card never sits on the control it points at. The preferred
      side first, then the opposite one, then the other two; when no side has room
@@ -277,11 +301,13 @@ export function OnboardingTour() {
             key="light"
             className="absolute pointer-events-none rounded-[14px] ring-2 ring-primary/70"
             initial={reduce ? false : { opacity: 0 }}
-            animate={{ opacity: 1, top: rect.top, left: rect.left, width: rect.width, height: rect.height }}
+            animate={{ opacity: 1, top: rect.top, left: rect.left, width: rect.width, height: rect.height, boxShadow: handoff ? DIM_HANDOFF : DIM }}
             transition={spring}
-            style={{ borderRadius: RADIUS, boxShadow: handoff ? "0 0 0 2px var(--primary)" : "0 0 0 9999px rgba(15, 23, 42, 0.55)" }}
+            style={{ borderRadius: RADIUS, boxShadow: handoff ? DIM_HANDOFF : DIM }}
           />
         )}
+        {/* handed over, the page is live: the dark stays, lighter, and lets clicks through
+            (the light and its shadow take no pointer events); the change is eased, not a jump */}
         {!rect && !handoff && (
           <motion.div key="dark" className="absolute inset-0 pointer-events-none" style={{ background: "rgba(15, 23, 42, 0.55)" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
         )}
@@ -306,7 +332,7 @@ export function OnboardingTour() {
         key={tour.guide.id}
         ref={cardRef}
         role="dialog"
-        aria-label={step.title}
+        aria-label={(phone && step.phoneTitle) || step.title}
         data-tour-card=""
         className={cn(
           "pointer-events-auto absolute flex flex-col gap-2 rounded-[16px] border border-border bg-popover p-4 text-popover-foreground shadow-[var(--elevation-md)]",
@@ -343,7 +369,7 @@ export function OnboardingTour() {
             <Icon icon={Cancel01Icon} size={14} />
           </button>
         </div>
-        <p className="text-[15px] font-semibold leading-[20px] text-foreground">{step.title}</p>
+        <p className="text-[15px] font-semibold leading-[20px] text-foreground">{(phone && step.phoneTitle) || step.title}</p>
         <p className="text-[13px] leading-[19px] text-foreground/80">{missing ? (handoff ? "This part is not on the screen right now. Close me and press the step again." : "This part is not on the screen right now. Skip ahead.") : (phone && step.phoneBody) || (compact && step.compactBody) || step.body}</p>
         <div className="mt-1 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1">

@@ -4863,7 +4863,7 @@ export function TranscriptionDetailPage() {
             <ActionSheetItem icon={Share} label="Share" onClick={() => { setMoreSheetOpen(false); setShareDialogOpen(true); }} />
           )}
           {!sharedOwner && (
-            <ActionSheetItem icon={Edit} label="Edit transcript" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }} />
+            <ActionSheetItem icon={Edit} label="Edit transcript" tour="record-more-edit" onClick={() => { setMoreSheetOpen(false); if (activeTab !== "transcript") setActiveTab("transcript"); handleToggleEdit(); }} />
           )}
           <ActionSheetItem icon={Link} label="Copy link" onClick={() => { copyTranscriptLink(); setMoreSheetOpen(false); }} />
           {/* Regenerating and deleting change the owner's copy, so a reader of
