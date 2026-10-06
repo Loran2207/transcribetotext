@@ -1469,7 +1469,7 @@ function MediaPlayer({
   }
 
   return (
-    <div data-player-bar="" className="shrink-0 border-t border-border bg-background px-4 py-3 lg:px-6">
+    <div data-player-bar="" className="shrink-0 border-t border-border bg-background px-3 py-3 sm:px-4 lg:px-6">
       <div className="relative mb-3">
         <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="[&_[data-slot=slider-thumb]]:relative [&_[data-slot=slider-thumb]]:z-10 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
         {markers && onSeekSeconds && <PlayerMarkers markers={markers} onSeek={onSeekSeconds} />}
@@ -1480,7 +1480,7 @@ function MediaPlayer({
           now sits with the total time on the right. The side columns are equal
           fractions, so Play stays centred whatever the label does. */}
       <div className="grid grid-cols-[1fr_auto_1fr] items-center">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
           <span className="min-w-[34px] text-xs tabular-nums text-muted-foreground sm:min-w-[50px]">{formatTime(currentSeconds)}</span>
           {leading}
         </div>
@@ -1490,12 +1490,13 @@ function MediaPlayer({
           </Button>
           <Button
             onClick={onPlayPause}
-            aria-label={isPlaying ? "Pause" : undefined}
-            className={`rounded-full gap-1.5 transition-all ${isPlaying ? "h-9 w-9 px-0" : "h-9 px-4"} bg-primary text-primary-foreground hover:bg-primary/90`}
+            aria-label={isPlaying ? "Pause" : "Play"}
+            /* the phone shows the arrow alone (the word would cost the room for Highlight and Comment beside the time) */
+            className={`rounded-full gap-1.5 transition-all ${isPlaying ? "h-9 w-9 px-0" : "h-9 px-4 max-md:w-9 max-md:gap-0 max-md:px-0"} bg-primary text-primary-foreground hover:bg-primary/90`}
           >
             {isPlaying
               ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-              : <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg><span className="text-[13px] font-semibold">Play</span></>
+              : <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg><span className="text-[13px] font-semibold max-md:hidden">Play</span></>
             }
           </Button>
           <Button variant="outline" size="icon" className="size-8 rounded-full border-border [@media(pointer:coarse)]:size-9" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])} title="Forward 5s">
@@ -4130,9 +4131,10 @@ export function TranscriptionDetailPage() {
       <HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" heading="Mark the current sentence" open={highlightMenu === "player"} onOpenChange={(o) => setHighlightMenu(o ? "player" : null)} onHighlight={(id) => highlightNow(id)} onManage={manageLabels} />
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="pill-outline" size="sm" aria-label="Comment on this moment" className="h-8 gap-1.5 pl-2.5 pr-3 text-xs font-medium max-md:hidden [@media(pointer:coarse)]:h-9" onClick={commentNow}>
+          {/* the phone keeps it as an icon beside Highlight: the pair reads the same on every width */}
+          <Button variant="pill-outline" size="sm" aria-label="Comment on this moment" className="h-8 gap-1.5 pl-2.5 pr-3 text-xs font-medium max-md:relative max-md:size-8 max-md:justify-center max-md:gap-0 max-md:p-0 max-md:after:absolute max-md:after:-inset-0.5 [@media(pointer:coarse)]:h-9 max-md:[@media(pointer:coarse)]:h-8" onClick={commentNow}>
             <Icon icon={CommentAdd01Icon} className="size-[14px]" strokeWidth={1.8} />
-            Comment
+            <span className="max-md:hidden">Comment</span>
           </Button>
         </TooltipTrigger>
         <TooltipContent side="top">Comment on this moment  (C)</TooltipContent>
