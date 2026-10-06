@@ -10,6 +10,9 @@ import { Icon } from "@/app/components/ui/icon";
 export function ScrollRow({ children, className = "", activeKey, label = "tabs" }: { children: ReactNode; className?: string; activeKey?: string; label?: string }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [edges, setEdges] = useState({ left: false, right: false });
+  /* the arrows sit on the centre of the tab labels, not of the row: a tab carries its
+     underline below the label, so the row's own centre is a few pixels too low */
+  const [arrowTop, setArrowTop] = useState<number | null>(null);
 
   const measure = useCallback(() => {
     const el = ref.current;
@@ -17,6 +20,13 @@ export function ScrollRow({ children, className = "", activeKey, label = "tabs" 
     const left = el.scrollLeft > 2;
     const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
     setEdges((cur) => (cur.left === left && cur.right === right ? cur : { left, right }));
+    const tab = el.querySelector<HTMLElement>("[role=tab]");
+    if (tab) {
+      const cs = getComputedStyle(tab);
+      const pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+      const top = tab.getBoundingClientRect().top - el.getBoundingClientRect().top + pt + (tab.offsetHeight - pt - pb) / 2;
+      setArrowTop((cur) => (cur !== null && Math.abs(cur - top) < 0.5 ? cur : Math.round(top)));
+    }
   }, []);
 
   /* the chosen item comes into view past the fade, with a little of its neighbour showing */
@@ -51,7 +61,9 @@ export function ScrollRow({ children, className = "", activeKey, label = "tabs" 
     el.scrollTo({ left: el.scrollLeft + dir * Math.round(el.clientWidth * 0.6), behavior: "smooth" });
   };
 
-  const arrow = "absolute top-1/2 z-10 flex size-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition-opacity hover:bg-muted [@media(pointer:coarse)]:size-8";
+  /* 24px drawn, a 36px hit area on touch (CLAUDE.md 7p), no size change between pointers */
+  const arrow = "absolute top-1/2 z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition-colors hover:bg-muted [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-1.5";
+  const arrowStyle = arrowTop !== null ? { top: arrowTop } : undefined;
   const fade = "pointer-events-none absolute inset-y-0 z-[5] w-12 from-background to-transparent";
 
   return (
@@ -62,16 +74,16 @@ export function ScrollRow({ children, className = "", activeKey, label = "tabs" 
       {edges.left && (
         <>
           <div className={fade + " left-0 bg-gradient-to-r"} />
-          <button type="button" data-scroll-row-arrow="left" aria-label={`Scroll ${label} left`} onClick={() => page(-1)} className={arrow + " left-0"}>
-            <Icon icon={ArrowLeft01Icon} size={14} />
+          <button type="button" data-scroll-row-arrow="left" aria-label={`Scroll ${label} left`} onClick={() => page(-1)} className={arrow + " left-0"} style={arrowStyle}>
+            <Icon icon={ArrowLeft01Icon} size={12} />
           </button>
         </>
       )}
       {edges.right && (
         <>
           <div className={fade + " right-0 bg-gradient-to-l"} />
-          <button type="button" data-scroll-row-arrow="right" aria-label={`Scroll ${label} right`} onClick={() => page(1)} className={arrow + " right-0"}>
-            <Icon icon={ArrowRight01Icon} size={14} />
+          <button type="button" data-scroll-row-arrow="right" aria-label={`Scroll ${label} right`} onClick={() => page(1)} className={arrow + " right-0"} style={arrowStyle}>
+            <Icon icon={ArrowRight01Icon} size={12} />
           </button>
         </>
       )}

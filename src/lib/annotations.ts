@@ -59,7 +59,8 @@ export const HIDDEN = {
   /* the Highlight / Comment bar over words selected during the call (Kirill, 06.10:
      nothing about highlights or comments while the recording runs) */
   liveSelection: false,
-  /* "Highlights and comments go with it." under the share link */
+  /* "Highlights and comments go with it." under the share link: stays, the share
+     carries them and the client kept the line (call of 06.10) */
   shareNote: false,
   /* a record that comes out of a live recording starts with nothing marked; the
      demo seed is for the sample record only */
