@@ -927,7 +927,9 @@ export function CommentsList({ v, title }: { v: NotesView; title: string }) {
       .map((t) => [`${v.timeOf(t)} "${t.quote}"${t.resolved ? " (resolved)" : ""}`, `${t.by.name}: ${t.text}`, ...t.replies.map((r) => `${r.by.name}: ${r.text}`)].join("\n"))
       .join("\n\n");
     void navigator.clipboard?.writeText(`Comments: ${title}\n\n${body}`);
-    toast(v.api.threads.length === 1 ? "Comment copied" : `${v.api.threads.length} comments copied`);
+    /* the toast counts what went to the clipboard: every comment and reply, resolved ones too */
+    const n = v.api.threads.reduce((sum, t) => sum + 1 + t.replies.length, 0);
+    toast(n === 1 ? "Comment copied" : `${n} comments copied`);
   };
   return (
     <div className="flex flex-col px-2 pb-3 pt-2">
