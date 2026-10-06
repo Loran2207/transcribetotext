@@ -824,7 +824,7 @@ export function ThreadCard({ t, v, inSheet = false, onDone }: { t: Thread; v: No
     <div
       data-thread-card={t.id}
       onClick={(e) => {
-        if (inSheet || (e.target as HTMLElement).closest("button, textarea, a, [role=menuitem]")) return;
+        if (inSheet || !e.currentTarget.contains(e.target as Node) || (e.target as HTMLElement).closest("button, textarea, a, [role=menuitem]")) return;
         v.goTo(t, { kind: "thread", id: t.id });
       }}
       className={cn(
@@ -935,7 +935,8 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
       data-highlight-item={h.id}
       role="button"
       tabIndex={0}
-      onClick={(e) => { if (!(e.target as HTMLElement).closest("button")) v.goTo(h, { kind: "highlight", id: h.id }); }}
+      /* the action sheet is a portal: a tap on its scrim bubbles here through React, and must not go to the words */
+      onClick={(e) => { if (e.currentTarget.contains(e.target as Node) && !(e.target as HTMLElement).closest("button")) v.goTo(h, { kind: "highlight", id: h.id }); }}
       onKeyDown={(e) => { if (e.key === "Enter" && e.target === e.currentTarget) v.goTo(h, { kind: "highlight", id: h.id }); }}
       className={cn("group/hl cursor-pointer rounded-xl px-3 py-2 transition-colors hover:bg-muted/50", (focused || playing) && "bg-muted/60 hover:bg-muted/60")}
     >

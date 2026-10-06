@@ -5057,7 +5057,7 @@ export function TranscriptionDetailPage() {
                 {activeTab === "summary" && <TemplateSelectorButton
                   activeTemplateId={activeTemplateId}
                   templates={templates}
-                  open={templatePickerOpen}
+                  open={templatePickerOpen && !belowMd}
                   onOpenChange={setTemplatePickerOpen}
                   onSelect={handleTemplateSelect}
                   onNavigateToTemplates={() => navigate("/")}
