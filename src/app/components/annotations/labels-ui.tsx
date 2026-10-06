@@ -410,7 +410,9 @@ export function HighlightButton({
     "rounded-full text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground",
     variant === "bar" && cn("h-7 gap-1.5 text-xs text-foreground [@media(pointer:coarse)]:h-9", SIMPLE_HIGHLIGHTS ? "px-2.5" : "pl-2.5 pr-2"),
     variant === "icon" && "size-7 [@media(pointer:coarse)]:size-9",
-    variant === "player" && cn("h-8 gap-1.5 border border-border bg-background text-xs font-medium text-foreground hover:border-muted-foreground/40 max-sm:px-2 [@media(pointer:coarse)]:h-9", SIMPLE_HIGHLIGHTS ? "px-3 max-md:relative max-md:size-8 max-md:justify-center max-md:gap-0 max-md:px-0 max-md:after:absolute max-md:after:-inset-0.5 max-md:[@media(pointer:coarse)]:h-8" : "pl-2.5 pr-2"),
+    variant === "player" && cn("h-8 gap-1.5 border border-border bg-background text-xs font-medium text-foreground hover:border-muted-foreground/40 max-sm:px-2 [@media(pointer:coarse)]:h-9", SIMPLE_HIGHLIGHTS ? "px-3" : "pl-2.5 pr-2",
+      /* the record player on a phone: a 32px circle with a 36px hit area, the same as Comment beside it; the recording bar (short) keeps its own size */
+      SIMPLE_HIGHLIGHTS && !short && "max-md:relative max-md:size-8 max-md:justify-center max-md:gap-0 max-md:px-0 max-md:after:absolute max-md:after:-inset-0.5 max-md:[@media(pointer:coarse)]:h-8"),
     current && "bg-muted text-foreground hover:bg-muted",
   );
   const arrow = <Icon icon={ArrowDown01Icon} className="size-3 opacity-70" strokeWidth={2.2} />;
@@ -430,6 +432,7 @@ export function HighlightButton({
         {variant === "player" && <span className={short ? "max-lg:hidden" : "max-md:hidden"}>{label ?? "Highlight"}</span>}
       </Button>
     );
+    /* (sm..md used to show the word; the Comment button beside it drops its word below md, so both change together) */
     return (
       <span className="inline-flex items-center" data-highlight-button={variant}>
         {sheet ? button : (
