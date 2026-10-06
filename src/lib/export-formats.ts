@@ -552,11 +552,17 @@ export function transformForExport(record: ExportableRecord, opts: ExportContent
 }
 
 /* Highlights and comments of a record, as the record page last wrote them
-   (prototype: the page keeps the text in this browser; a backend would serve it). */
-export function buildNotesTxt(record: ExportableRecord): string {
-  let notes = "";
-  try { notes = window.localStorage.getItem(`ttt_notes_txt:${record.id}`) ?? ""; } catch { notes = ""; }
-  return [record.title, record.metadata?.date ?? "", "", notes.trim() || "No highlights or comments yet."].join("\n");
+   (prototype: the page keeps the text in this browser; a backend would serve it).
+   null: the page has not written this record yet, so nothing is known about it. */
+export type NotesKind = "highlights" | "comments";
+export function notesText(kind: NotesKind, recordId: string): string | null {
+  try { return window.localStorage.getItem(`ttt_notes_${kind}:${recordId}`); } catch { return null; }
+}
+export const NOTES_EMPTY: Record<NotesKind, string> = { highlights: "No highlights yet.", comments: "No comments yet." };
+export function buildNotesTxt(kind: NotesKind, record: ExportableRecord): string {
+  const notes = (notesText(kind, record.id) ?? "").trim();
+  const heading = kind === "highlights" ? "Highlights" : "Comments";
+  return [record.title, record.metadata?.date ?? "", "", heading, "-".repeat(heading.length), notes || NOTES_EMPTY[kind]].join("\n");
 }
 
 /** Plain-text summary file for a record. */
@@ -689,8 +695,10 @@ export interface ExportFilePlan {
   includeSummary: boolean;
   includeAudio?: boolean;
   includeTranslation?: boolean;
-  /** Highlights (with labels) and comment threads as a separate .txt */
-  includeNotes?: boolean;
+  /** Every highlight with its time and speaker, as a separate .txt */
+  includeHighlights?: boolean;
+  /** Every comment thread with its replies, as a separate .txt */
+  includeComments?: boolean;
   /** Target language code for the translated transcript (e.g. "es") */
   translationLanguage?: string;
   options: ExportContentOptions;
@@ -713,7 +721,8 @@ async function buildPlanEntries(plan: ExportFilePlan): Promise<ZipEntry[]> {
     }
   }
   if (plan.includeSummary) out.push({ name: `${base}-summary.txt`, data: enc.encode(buildSummaryTxt(rec)) });
-  if (plan.includeNotes) out.push({ name: `${base}-highlights-and-comments.txt`, data: enc.encode(buildNotesTxt(rec)) });
+  if (plan.includeHighlights) out.push({ name: `${base}-highlights.txt`, data: enc.encode(buildNotesTxt("highlights", rec)) });
+  if (plan.includeComments) out.push({ name: `${base}-comments.txt`, data: enc.encode(buildNotesTxt("comments", rec)) });
   if (plan.includeTranslation) {
     // Prototype: mock records carry no real translation - export the transcript under the target-language name
     const lang = plan.translationLanguage ?? "es";
@@ -739,7 +748,7 @@ export async function runExportPlan(
   zipName?: string,
   opts?: { zip?: boolean }
 ): Promise<ExportManifest> {
-  const active = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio || p.includeTranslation || p.includeNotes);
+  const active = plans.filter((p) => p.includeTranscript || p.includeSummary || p.includeAudio || p.includeTranslation || p.includeHighlights || p.includeComments);
   if (!active.length) throw new Error("Nothing selected to export");
   const entries: ZipEntry[] = [];
   for (const plan of active) entries.push(...await buildPlanEntries(plan));

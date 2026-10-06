@@ -4347,25 +4347,23 @@ export function TranscriptionDetailPage() {
       onCopy: () => { setRevealedBlock(null); copySegmentText(seg.id); },
     };
   };
-  /* the export's "Highlights and comments" file reads this text */
+  /* the export's Highlights and Comments files read these two texts */
   useEffect(() => {
-    const lines: string[] = [];
-    if (notesApi.highlights.length) {
-      lines.push("Highlights", "----------");
-      for (const h of notesApi.highlights) {
-        const who = blockSpeaker(h.segmentId);
-        lines.push(`[${timeOf(h)}]${who ? ` ${who}` : ""}${SIMPLE_HIGHLIGHTS ? "" : ` · ${labelsApi.labelOf(h.labelId).name}`}`, `"${blockText(h.segmentId).slice(h.start, h.end)}"`, "");
-      }
+    const hl: string[] = [];
+    for (const h of notesApi.highlights) {
+      const who = blockSpeaker(h.segmentId);
+      hl.push(`[${timeOf(h)}]${who ? ` ${who}` : ""}${SIMPLE_HIGHLIGHTS ? "" : ` · ${labelsApi.labelOf(h.labelId).name}`}`, `"${blockText(h.segmentId).slice(h.start, h.end)}"`, "");
     }
-    if (notesApi.threads.length) {
-      lines.push("Comments", "--------");
-      for (const t of notesApi.threads) {
-        lines.push(`[${timeOf(t)}] "${t.quote}"${t.resolved ? " (resolved)" : ""}`, `  ${t.by.name}: ${t.text}`);
-        for (const r of t.replies) lines.push(`  ${r.by.name}: ${r.text}`);
-        lines.push("");
-      }
+    const cm: string[] = [];
+    for (const t of notesApi.threads) {
+      cm.push(`[${timeOf(t)}] "${t.quote}"${t.resolved ? " (resolved)" : ""}`, `  ${t.by.name}: ${t.text}`);
+      for (const r of t.replies) cm.push(`  ${r.by.name}: ${r.text}`);
+      cm.push("");
     }
-    try { window.localStorage.setItem(`ttt_notes_txt:${recordId}`, lines.join("\n")); } catch { /* this visit only */ }
+    try {
+      window.localStorage.setItem(`ttt_notes_highlights:${recordId}`, hl.join("\n"));
+      window.localStorage.setItem(`ttt_notes_comments:${recordId}`, cm.join("\n"));
+    } catch { /* this visit only */ }
   }, [notesApi.highlights, notesApi.threads, labelsApi.labels, recordId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const notesView: NotesView = {

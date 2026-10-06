@@ -76,6 +76,26 @@ export const WASH_ON: Record<LabelColor, string> = {
   blue: "bg-blue-300",
   pink: "bg-pink-300",
 };
+/* Under the pointer the wash deepens a step toward its focused shade, so the
+   words read as something you can click before you do. */
+export const WASH_HOVER: Record<LabelColor, string> = {
+  amber: "hover:bg-amber-300/80",
+  sky: "hover:bg-sky-300/80",
+  emerald: "hover:bg-emerald-300/80",
+  violet: "hover:bg-violet-300/80",
+  rose: "hover:bg-rose-300/80",
+  slate: "hover:bg-slate-300/90",
+  orange: "hover:bg-orange-300/80",
+  lime: "hover:bg-lime-300/80",
+  cyan: "hover:bg-cyan-300/80",
+  fuchsia: "hover:bg-fuchsia-300/80",
+  indigo: "hover:bg-indigo-300/80",
+  teal: "hover:bg-teal-300/80",
+  red: "hover:bg-red-300/80",
+  yellow: "hover:bg-yellow-300/80",
+  blue: "hover:bg-blue-300/80",
+  pink: "hover:bg-pink-300/80",
+};
 export const DOT: Record<LabelColor, string> = {
   amber: "bg-amber-400",
   sky: "bg-sky-500",

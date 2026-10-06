@@ -34,7 +34,7 @@ import {
 import { cn } from "@/app/components/ui/utils";
 import type { AnnotationsApi, LabelsApi } from "@/hooks/use-annotations";
 import { SIMPLE_HIGHLIGHTS } from "@/lib/annotations";
-import { HighlightButton, LabelChip, LabelIcon, LabelPicker, WASH, WASH_ON, labelTile } from "./labels-ui";
+import { HighlightButton, LabelChip, LabelIcon, LabelPicker, WASH, WASH_HOVER, WASH_ON, labelTile } from "./labels-ui";
 import {
   TEAM,
   coversBlock,
@@ -212,9 +212,11 @@ export function AnnotatedText({
               onMark({ ...r, threads: th }, e.currentTarget.getBoundingClientRect(), Array.from(e.currentTarget.getClientRects()));
             }}
             className={cn(
-              hl && cn(HIGHLIGHT_SHAPE, WASH[color]),
+              hl && cn(HIGHLIGHT_SHAPE, WASH[color], onMark && !isPending && WASH_HOVER[color]),
               hlFocused && WASH_ON[color],
               th.length > 0 && "underline decoration-primary/50 decoration-[1.5px] underline-offset-[4px]",
+              /* a thread you can open: the pointer firms the underline the way reading it does */
+              th.length > 0 && onMark && !isPending && "hover:decoration-primary",
               /* the thread being read, and the words a new comment is being written on: a firmer
                  underline, no fill that could pass for a highlight; a highlight keeps its colour */
               thFocused && "decoration-primary decoration-2",
