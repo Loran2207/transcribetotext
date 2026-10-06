@@ -192,7 +192,8 @@ export function AnnotatedText({
         const inSentence = r.threads.includes("__said");
         const inWord = r.threads.includes("__word");
         const said = playback ? r.end <= playback.start : false;
-        const sound = cn(said && "text-foreground/45", inSentence && "text-primary", inWord && (hl ? "font-medium" : "rounded-[3px] bg-primary-wash py-[2px]"));
+        /* the sentence being played sits on a soft blue wash and the word on the deeper one; a highlight keeps its own colour and gets weight instead */
+        const sound = cn(said && "text-foreground/45", inSentence && cn("text-primary py-[2px]", !hl && "bg-primary-wash-soft"), inWord && (hl ? "font-medium" : "bg-primary-wash"));
         if (!hl && th.length === 0 && !isPending) return <span key={i} className={sound || undefined}>{r.text}</span>;
         const thFocused = focus?.kind === "thread" && th.includes(focus.id);
         const hlFocused = focus?.kind === "highlight" && r.highlights.includes(focus.id);

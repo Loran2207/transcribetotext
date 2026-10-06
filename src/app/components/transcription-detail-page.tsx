@@ -215,7 +215,9 @@ function splitWords(text: string): string[] {
    Solid token, not an opacity modifier - those compile to color-mix() and the
    capture drops them. Nothing changes the font weight, for the same reason
    padding is avoided. */
-const ACTIVE_SENTENCE = "bg-transparent text-primary";
+/* Kirill (06.10): the sentence being played is lit light blue, not left grey; the
+   word carries the deeper wash on top of it. */
+const ACTIVE_SENTENCE = "bg-primary-wash-soft py-[2px] text-primary [box-decoration-break:clone]";
 
 /* where the sentence and the word being said sit in the block, as character ranges */
 function playbackRange(text: string, sentence: number, word: number | null | undefined) {
@@ -931,7 +933,7 @@ function TranscriptSegment({
                   }
                   if (cut >= 0) {
                     return (
-                      <span key={i} className="text-primary">
+                      <span key={i} className={ACTIVE_SENTENCE}>
                         {parts.slice(0, cut).join("")}
                         <mark className={ACTIVE_WORD}>{parts[cut]}</mark>
                         {parts.slice(cut + 1).join("")}
