@@ -455,10 +455,11 @@ function useMentions(text: string, setText: (t: string) => void, place: "up" | "
   };
   /* the list reads as a pick list, not a hover: the product popover look, a heading that says
      what the pick does (Kirill, 06.10: a lone grey row looked like a hover), the Enter hint on
-     the row a key press would take, and the same edges as the field */
+     the row a key press would take, and the same edges as the field. The heading is a quiet
+     sentence, the way Notion and Linear head their @ lists; never capitals (Kirill, 07.10) */
   const list = options.length ? (
     <div data-mention-list="" className={cn("rounded-[12px] border border-border bg-popover p-1 shadow-sm", place === "inline" && "mt-1.5", place === "above" && "mb-1.5", (place === "up" || place === "down") && "absolute left-0 z-30 w-60", place === "up" && "bottom-full mb-1.5", place === "down" && "top-full mt-1.5")}>
-      <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">People on this record</p>
+      <p className="px-2 pb-1 pt-1.5 text-[12px] text-muted-foreground">People on this record</p>
       {options.map((p, i) => (
         <button
           key={p.name}
@@ -916,14 +917,29 @@ function useRevealFocused(focus: Focus | null, attr: string) {
   }, [focus, attr]);
 }
 
-export function CommentsList({ v }: { v: NotesView }) {
+export function CommentsList({ v, title }: { v: NotesView; title: string }) {
   useRevealFocused(v.focus?.kind === "thread" ? v.focus : null, "data-thread-card");
   if (v.api.threads.length === 0) {
     return <Empty icon={Comment01Icon} title="No comments yet" line="Select words in the transcript, then choose Comment." />;
   }
+  const copyAll = () => {
+    const body = v.api.threads
+      .map((t) => [`${v.timeOf(t)} "${t.quote}"${t.resolved ? " (resolved)" : ""}`, `${t.by.name}: ${t.text}`, ...t.replies.map((r) => `${r.by.name}: ${r.text}`)].join("\n"))
+      .join("\n\n");
+    void navigator.clipboard?.writeText(`Comments: ${title}\n\n${body}`);
+    toast(v.api.threads.length === 1 ? "Comment copied" : `${v.api.threads.length} comments copied`);
+  };
   return (
-    <div className="flex flex-col gap-2 px-2 py-2">
-      {v.api.threads.map((t) => <ThreadCard key={t.id} t={t} v={v} />)}
+    <div className="flex flex-col px-2 pb-3 pt-2">
+      {/* the same Copy all, in the same place as in Highlights (Kirill, 07.10) */}
+      <div className="flex items-center gap-2 px-1">
+        <Button variant="ghost" size="sm" data-list-copy="" className="h-7 gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-9" onClick={copyAll}>
+          <Icon icon={Copy01Icon} className="size-[14px]" strokeWidth={1.8} />Copy all
+        </Button>
+      </div>
+      <div className="mt-1 flex flex-col gap-2">
+        {v.api.threads.map((t) => <ThreadCard key={t.id} t={t} v={v} />)}
+      </div>
     </div>
   );
 }
@@ -1010,7 +1026,7 @@ function HighlightItem({ h, v, playing }: { h: Highlight; v: NotesView; playing:
           <LabelChip label={label} />
         )}
         {!h.by.you && <span className="min-w-0 truncate">by {h.by.name.split(" ")[0]}</span>}
-        {linked.length > 0 && (() => {
+        {!HIDDEN.highlightCommentCount && linked.length > 0 && (() => {
           const n = linked.reduce((sum, t) => sum + 1 + t.replies.length, 0);
           return (
             <button type="button" className="inline-flex shrink-0 items-center gap-1 font-medium text-primary hover:underline [@media(pointer:coarse)]:-my-2.5 [@media(pointer:coarse)]:py-2.5" onClick={() => v.openThread(linked[0].id)}>
@@ -1058,20 +1074,21 @@ export function HighlightsList({ v, title }: { v: NotesView; title: string }) {
   );
   return (
     <div className="flex flex-col px-2 pb-3 pt-2">
-      <div className="flex items-center justify-between gap-2 px-1">
+      {/* Copy all leads, on the left, in the same place as in Comments, so it does not jump between tabs (Kirill, 07.10) */}
+      <div className="flex items-center gap-2 px-1">
+        <Button variant="ghost" size="sm" data-list-copy="" className="h-7 gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-9" onClick={copyAll}>
+          <Icon icon={Copy01Icon} className="size-[14px]" strokeWidth={1.8} />{active === "all" ? "Copy all" : "Copy"}
+        </Button>
         {v.reel ? (
           <Button variant="pill-outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs font-medium [@media(pointer:coarse)]:h-9" onClick={v.stopReel}>
             <Icon icon={StopIcon} className="size-[13px]" strokeWidth={2} />Stop
             <span className="tabular-nums text-muted-foreground">· {v.reel.index + 1} of {v.reel.ids.length}</span>
           </Button>
-        ) : HIDDEN.playAll ? <span /> : (
+        ) : HIDDEN.playAll ? null : (
           <Button variant="ghost" size="sm" data-list-play="" className="h-7 gap-1.5 rounded-full px-2 text-xs font-medium text-primary hover:text-primary [@media(pointer:coarse)]:h-9" onClick={() => v.playAll(list.map((h) => h.id))}>
             <Icon icon={PlayIcon} className="size-[13px]" strokeWidth={2} />{active === "all" ? "Play all" : "Play"}
           </Button>
         )}
-        <Button variant="ghost" size="sm" data-list-copy="" className="h-7 gap-1.5 rounded-full px-2 text-xs text-muted-foreground hover:text-foreground [@media(pointer:coarse)]:h-9" onClick={copyAll}>
-          <Icon icon={Copy01Icon} className="size-[14px]" strokeWidth={1.8} />{active === "all" ? "Copy all" : "Copy"}
-        </Button>
       </div>
       {!SIMPLE_HIGHLIGHTS && used.length > 1 && (
         <div data-label-filter="" role="group" aria-label="Filter by label" className="mt-2 flex flex-wrap gap-1.5 px-3">

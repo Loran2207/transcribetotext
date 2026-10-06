@@ -62,6 +62,9 @@ export const HIDDEN = {
   /* "Highlights and comments go with it." under the share link: stays, the share
      carries them and the client kept the line (call of 06.10) */
   shareNote: false,
+  /* "N comments" under a highlight in the Highlights list (Kirill, 07.10: no comment
+     counts under each highlight, that was dropped) */
+  highlightCommentCount: true,
   /* a record that comes out of a live recording starts with nothing marked; the
      demo seed is for the sample record only */
   liveRecordSeed: false,
