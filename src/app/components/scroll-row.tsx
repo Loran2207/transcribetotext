@@ -61,7 +61,7 @@ export function ScrollRow({ children, className = "", activeKey, label = "tabs" 
     el.scrollTo({ left: el.scrollLeft + dir * Math.round(el.clientWidth * 0.6), behavior: "smooth" });
   };
 
-  /* 24px drawn, a 36px hit area on touch (CLAUDE.md 7p), no size change between pointers */
+  /* 24px drawn, a 36px hit area on touch (the project's touch-target rule), no size change between pointers */
   const arrow = "absolute top-1/2 z-10 flex size-6 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-sm transition-colors hover:bg-muted [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-1.5";
   const arrowStyle = arrowTop !== null ? { top: arrowTop } : undefined;
   const fade = "pointer-events-none absolute inset-y-0 z-[5] w-12 from-background to-transparent";
