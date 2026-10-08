@@ -28,8 +28,10 @@ const CARD_W = 300;
 const MIA_W = 240;
 const MIA_H = 360;
 const GAP = 14;
-/* the narrowest the card gets when it must squeeze beside a control */
-const MIN_CARD_W = 244;
+/* the narrowest the card gets when it must squeeze beside a control: a 500px
+   dialog centred in a 1024px window leaves about 230px beside it after the gaps,
+   the 526px meeting dialog about 210px */
+const MIN_CARD_W = 200;
 
 type Rect = { top: number; left: number; width: number; height: number };
 type Side = "top" | "bottom" | "left" | "right";
@@ -284,10 +286,13 @@ export function OnboardingTour() {
      handed over, it goes to the top whenever it fits above the control, because the
      bottom of a phone is where a sheet keeps its Start or Save button. A whole
      page lit stays at the bottom: its title and tabs, which the card talks
-     about, are at the top */
+     about, are at the top. A lit bottom sheet that has grown too tall for the
+     card to fit above it (the meeting sheet after a link is pasted) still takes
+     the card at the top: over its title, never over its Transcribe now */
   const phoneCardH = cardRef.current?.offsetHeight ?? 190;
   const phonePage = !!(rect && (anchorName?.startsWith("page-") || rect.height > window.innerHeight * 0.7));
-  const phoneTop = !!(phone && rect && (handoff ? rect.top >= phoneCardH + 24 : !phonePage && rect.top + rect.height > window.innerHeight - 240));
+  const phoneSheet = !!(rect && rect.top > 0 && rect.top + rect.height >= window.innerHeight - 4);
+  const phoneTop = !!(phone && rect && (handoff ? rect.top >= phoneCardH + 24 || phoneSheet : !phonePage && rect.top + rect.height > window.innerHeight - 240));
 
   const spring = reduce ? { duration: 0 } : { type: "spring" as const, stiffness: 320, damping: 30 };
 
