@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { motion, useReducedMotion } from "motion/react";
 import { Mail, LogOut } from "@hugeicons/core-free-icons";
 import { Button } from "@/app/components/ui/button";
@@ -29,6 +29,10 @@ export function clearDemoLock() {
 export function AccountLockedPage() {
   const { user, signOut } = useAuth();
   const email = user?.email ?? "";
+  /* two pictures to choose from, as on the 404: the glossy padlock (a), or the
+     glossy shield with a keyhole that says "kept safe" rather than "shut out" (b, ?v=b) */
+  const [params] = useSearchParams();
+  const heroB = params.get("v") === "b";
   const prefersReducedMotion = useReducedMotion();
   const animProps = (delay: number) =>
     prefersReducedMotion
@@ -59,19 +63,19 @@ export function AccountLockedPage() {
         </header>
 
         <main className="flex flex-1 flex-col items-center justify-center px-6 pb-24 text-center" data-account-locked>
-          <motion.div {...animProps(0)} className="relative mb-2 flex size-[200px] items-center justify-center md:size-[240px]">
+          <motion.div {...animProps(0)} className="relative mb-2 flex size-[200px] items-center justify-center md:size-[260px]">
             <div className="absolute inset-6 rounded-full bg-primary/10 blur-3xl" />
-            <img src="/images/locked-padlock.png" alt="" className="relative size-full object-contain" />
+            <img src={heroB ? "/images/locked-shield.png" : "/images/locked-padlock.png"} alt="" className="relative size-full object-contain" />
           </motion.div>
 
-          <motion.h1 {...animProps(0.06)} className="mt-2 text-[22px] font-semibold text-foreground md:text-[26px]">
+          <motion.h1 {...animProps(0.06)} className="mt-4 text-[22px] font-semibold text-foreground md:text-[26px]">
             Your account is temporarily locked
           </motion.h1>
-          <motion.p {...animProps(0.1)} className="mt-2 max-w-[420px] text-[15px] leading-relaxed text-muted-foreground">
+          <motion.p {...animProps(0.1)} className="mt-2 max-w-[380px] text-[15px] leading-relaxed text-muted-foreground">
             We noticed unusual activity on {email ? <span className="font-medium text-foreground">{email}</span> : "this account"} and paused it as a precaution.
             Nothing was deleted: your recordings and notes are kept.
           </motion.p>
-          <motion.p {...animProps(0.14)} className="mt-3 max-w-[420px] text-[15px] leading-relaxed text-muted-foreground">
+          <motion.p {...animProps(0.14)} className="mt-3 max-w-[380px] text-[15px] leading-relaxed text-muted-foreground">
             To unlock it, write to support. A person checks the account and replies to your email.
           </motion.p>
 
