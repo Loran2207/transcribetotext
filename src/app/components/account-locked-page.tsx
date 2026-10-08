@@ -31,10 +31,11 @@ export function AccountLockedPage() {
   const email = user?.email ?? "";
   /* three pictures to choose from, as on the 404: the glossy padlock (a), the
      glossy shield with a keyhole that says "kept safe" rather than "shut out"
-     (b, ?v=b), or the glossy key that points at the way out (c, ?v=c) */
+     (b, ?v=b), or a small matte scene in the style of the plan dialogs' folder: a
+     closed blue door with a blank sign and an envelope on the mat (c, ?v=c) */
   const [params] = useSearchParams();
   const v = params.get("v");
-  const hero = v === "b" ? "/images/locked-shield.png" : v === "c" ? "/images/locked-key.png" : "/images/locked-padlock.png";
+  const hero = v === "b" ? "/images/locked-shield.png" : v === "c" ? "/images/locked-door.png" : "/images/locked-padlock.png";
   const prefersReducedMotion = useReducedMotion();
   const animProps = (delay: number) =>
     prefersReducedMotion
