@@ -29,10 +29,12 @@ export function clearDemoLock() {
 export function AccountLockedPage() {
   const { user, signOut } = useAuth();
   const email = user?.email ?? "";
-  /* two pictures to choose from, as on the 404: the glossy padlock (a), or the
-     glossy shield with a keyhole that says "kept safe" rather than "shut out" (b, ?v=b) */
+  /* three pictures to choose from, as on the 404: the glossy padlock (a), the
+     glossy shield with a keyhole that says "kept safe" rather than "shut out"
+     (b, ?v=b), or the glossy key that points at the way out (c, ?v=c) */
   const [params] = useSearchParams();
-  const heroB = params.get("v") === "b";
+  const v = params.get("v");
+  const hero = v === "b" ? "/images/locked-shield.png" : v === "c" ? "/images/locked-key.png" : "/images/locked-padlock.png";
   const prefersReducedMotion = useReducedMotion();
   const animProps = (delay: number) =>
     prefersReducedMotion
@@ -65,7 +67,7 @@ export function AccountLockedPage() {
         <main className="flex flex-1 flex-col items-center justify-center px-6 pb-24 text-center" data-account-locked>
           <motion.div {...animProps(0)} className="relative mb-2 flex size-[200px] items-center justify-center md:size-[260px]">
             <div className="absolute inset-6 rounded-full bg-primary/10 blur-3xl" />
-            <img src={heroB ? "/images/locked-shield.png" : "/images/locked-padlock.png"} alt="" className="relative size-full object-contain" />
+            <img src={hero} alt="" className="relative size-full object-contain" />
           </motion.div>
 
           <motion.h1 {...animProps(0.06)} className="mt-4 text-[22px] font-semibold text-foreground md:text-[26px]">
