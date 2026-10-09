@@ -2,6 +2,7 @@ import { File01Icon, Mic, Video01Icon, Link01Icon } from "@hugeicons/core-free-i
 import { Icon } from "./ui/icon";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
+import { useAccountLock } from "./account-lock";
 
 /* Each tile gets its own soft-tinted icon chip, echoing the palette of the
    illustrated desktop cards (purple files, blue speech, amber meeting, rose
@@ -18,6 +19,7 @@ const ACTIONS = [
 export function DashboardActionsMobile() {
   const { t } = useLanguage();
   const { setOpenModal } = useTranscriptionModals();
+  const locked = useAccountLock();
 
   return (
     <div className="grid grid-cols-2 gap-[10px] mt-[18px] md:hidden">
@@ -25,7 +27,8 @@ export function DashboardActionsMobile() {
         <button
           key={key}
           onClick={() => setOpenModal(modal)}
-          className="flex items-center gap-[12px] h-[64px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left"
+          aria-disabled={locked || undefined}
+          className={"flex items-center gap-[12px] h-[64px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left" + (locked ? " grayscale opacity-45" : "")}
         >
           <span className="flex items-center justify-center size-[36px] rounded-full shrink-0" style={{ backgroundColor: tint, color: fg }}>
             <Icon icon={icon} className="size-[18px]" strokeWidth={1.9} />

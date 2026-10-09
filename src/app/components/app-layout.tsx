@@ -19,6 +19,7 @@ import { SidebarProvider, SidebarInset } from "./ui/sidebar";
 import { DesktopWindowFrame, useShell } from "./desktop/shell";
 import { DemoSwitcher } from "./desktop/demo-switcher";
 import { DesktopNotice } from "./desktop/desktop-notice";
+import { AccountLockedBanner } from "./account-lock";
 
 export function AppLayout() {
   const [activePage, setActivePage] = useState("dashboard");
@@ -67,7 +68,9 @@ export function AppLayout() {
         <SidebarInset className="overflow-hidden bg-sidebar">
           <TopBar onNavigate={handleNavigate} />
           <MobileTopBar onNavigate={handleNavigate} />
-          <main className="flex flex-1 overflow-hidden rounded-tl-[32px] bg-background">
+          <main className="flex flex-col flex-1 min-h-0 overflow-hidden rounded-tl-[32px] bg-background">
+            <AccountLockedBanner onNavigate={handleNavigate} />
+            <div className="flex flex-1 min-h-0 overflow-hidden">
             {isSubRoute ? (
               <Outlet />
             ) : (
@@ -85,6 +88,7 @@ export function AppLayout() {
                 )}
               </>
             )}
+            </div>
           </main>
           <BottomNav />
           <InnerScreenBottomBar />

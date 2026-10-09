@@ -17,6 +17,7 @@ import {
 } from "./ui/dropdown-menu";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
+import { useAccountLock, toastLocked } from "./account-lock";
 import { FAB_RIGHT, ADD_FAB_SIZE, ADD_FAB_BOTTOM } from "./mobile-fab-layout";
 import { useInnerScreen } from "./inner-screen";
 import { useFabHidden } from "./fab-visibility";
@@ -56,6 +57,7 @@ export function BottomNav() {
   const inner = useInnerScreen();
   const fabHidden = useFabHidden();
   const compact = useCompactViewport();
+  const locked = useAccountLock();
 
   const { pathname } = useLocation();
   const onDetailPage = pathname.startsWith("/transcriptions/");
@@ -67,12 +69,18 @@ export function BottomNav() {
     <button
       aria-label="New transcription"
       data-mobile-fab="add"
-      className={`fixed z-[45] flex items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition-all motion-reduce:transition-none motion-reduce:active:scale-100 ${fabHidden ? "opacity-0 translate-y-3 pointer-events-none" : "opacity-100"}`}
+      aria-disabled={locked || undefined}
+      onClick={locked ? () => toastLocked() : undefined}
+      className={`fixed z-[45] flex items-center justify-center rounded-full bg-primary text-primary-foreground active:scale-95 transition-all motion-reduce:transition-none motion-reduce:active:scale-100 ${fabHidden ? "opacity-0 translate-y-3 pointer-events-none" : locked ? "opacity-45 grayscale" : "opacity-100"}`}
       style={{ right: FAB_RIGHT, bottom: ADD_FAB_BOTTOM, width: ADD_FAB_SIZE, height: ADD_FAB_SIZE, boxShadow: "0 10px 24px -6px rgba(37,99,235,0.5), 0 3px 8px -3px rgba(37,99,235,0.4)" }}
     >
       <Icon icon={Plus} className="size-[26px]" strokeWidth={2} />
     </button>
   );
+
+  /* Locked: the button stays, greyed, and a press explains instead of
+     offering four paths that would each end in the same refusal. */
+  if (locked) return fab;
 
   /* From md up the four paths hang off the button, right-aligned to it and
      opening upwards, so the choice appears where the finger already is. */

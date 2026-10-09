@@ -16,6 +16,7 @@ import { DashboardInsights } from "./dashboard-insights";
 import { ScrollFade } from "./scroll-fade";
 import { UpgradeBanner } from "./upgrade-banner";
 import { usePlan } from "./use-plan";
+import { useAccountLock } from "./account-lock";
 import { PromoCard } from "./right-panel";
 
 /* ═══════════════════════════════════════════
@@ -366,6 +367,11 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
   const greeting = useGreeting();
   const { setOpenModal, openUploadWithFiles } = useTranscriptionModals();
   const plan = usePlan();
+  /* While the account is locked the four cards stay where they are, greyed and
+     still pressable: the press gives the one toast instead of a modal, so the
+     person learns why from the card itself rather than from a missing card. */
+  const locked = useAccountLock();
+  const lockedCardClass = locked ? " grayscale opacity-45 cursor-not-allowed" : " cursor-pointer";
   const [dragOver, setDragOver] = useState(false);
   const dragCounterRef = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -438,7 +444,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           {/* Tablet: the four illustrated cards in a 2x2 grid (no kbd) */}
           <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[16px]">
             {cards.map(({ card, key, modal }) => (
-              <div key={key} className="relative cursor-pointer" onClick={() => setOpenModal(modal)}>
+              <div key={key} className={"relative" + lockedCardClass} aria-disabled={locked || undefined} onClick={() => setOpenModal(modal)}>
                 {card}
               </div>
             ))}
@@ -447,7 +453,8 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
             {cards.map(({ card, key, modal }) => (
               <div
                 key={key}
-                className="relative flex-1 min-w-0 group cursor-pointer"
+                className={"relative flex-1 min-w-0 group" + lockedCardClass}
+                aria-disabled={locked || undefined}
                 onClick={() => {
                   if (modal === "record") {
                     setOpenModal("record");
@@ -457,10 +464,10 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
                 }}
               >
                 {card}
-                <kbd className="absolute top-[10px] right-[10px] flex items-center gap-[3px] rounded-[4px] px-[6px] h-[20px] pointer-events-none z-10 bg-background border border-black/[0.08] text-muted-foreground font-medium leading-none" style={{ fontSize: "11px", boxShadow: "0 1px 2px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.05)" }}>
+                {!locked && <kbd className="absolute top-[10px] right-[10px] flex items-center gap-[3px] rounded-[4px] px-[6px] h-[20px] pointer-events-none z-10 bg-background border border-black/[0.08] text-muted-foreground font-medium leading-none" style={{ fontSize: "11px", boxShadow: "0 1px 2px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.05)" }}>
                   <span>&#x2318;</span>
                   <span>{key}</span>
-                </kbd>
+                </kbd>}
               </div>
             ))}
           </motion.div>

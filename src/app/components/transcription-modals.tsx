@@ -1,3 +1,4 @@
+import { readDemoLock, toastLocked } from "./account-lock";
 import {
   useState, useRef, useEffect, useMemo,
   createContext, useContext,
@@ -249,7 +250,16 @@ export function TranscriptionModalsProvider({
 }: { children: React.ReactNode; userPlan?: UserPlan }) {
   const { assignToFolder } = useFolders();
   const { templates } = useTemplates();
-  const [openModal, setOpenModal] = useState<ModalType>(null);
+  const [openModal, setOpenModalState] = useState<ModalType>(null);
+  /* Every way of adding something new passes through here: the four cards,
+     the phone tiles, the plus button, a dropped file, a keyboard shortcut, the
+     folder menu. While the account is locked none of them opens; the same
+     toast says what is paused and where the way out is. Closing (null) is
+     always allowed. */
+  function setOpenModal(m: ModalType) {
+    if (m !== null && readDemoLock()) { toastLocked(); return; }
+    setOpenModalState(m);
+  }
   const [jobs, setJobs] = useState<TranscriptionJob[]>(demoSeedJobs);
   const jobsRef = useRef<TranscriptionJob[]>([]);
   const announcedRef = useRef<Set<string>>(new Set());
@@ -437,6 +447,7 @@ export function TranscriptionModalsProvider({
   const preloadedFilesRef = useRef<File[]>([]);
 
   function openUploadWithFiles(files: File[]) {
+    if (readDemoLock()) { toastLocked(); return; }
     preloadedFilesRef.current = files;
     setOpenModal("upload");
   }
