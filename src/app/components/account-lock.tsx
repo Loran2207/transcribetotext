@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Alert02Icon, Mail } from "@hugeicons/core-free-icons";
 import { Button } from "@/app/components/ui/button";
@@ -70,6 +71,8 @@ export function toastLocked(email = "") {
 export function AccountLockedBanner({ onNavigate }: { onNavigate: (page: string) => void }) {
   const locked = useAccountLock();
   const { user } = useAuth();
+  const [params] = useSearchParams();
+  const variant = params.get("v");
   if (!locked) return null;
   const email = user?.email ?? "";
 
@@ -77,6 +80,48 @@ export function AccountLockedBanner({ onNavigate }: { onNavigate: (page: string)
     try { window.localStorage.setItem("ttt_demo_settings_section", "plan"); } catch { /* demo only */ }
     onNavigate("settings");
   };
+
+  /* two renderings to choose from, as with the pictures before: the red tinted
+     strip (a), or a quieter white card with the product's matte still life and
+     red kept for the one word and the one button (b, ?v=b) */
+  if (variant === "b") {
+    return (
+      <div
+        data-account-locked-banner
+        role="alert"
+        className="mx-[16px] mt-[16px] md:mx-[24px] md:mt-[20px] lg:mx-[32px] lg:mt-[24px] flex items-center gap-[12px] md:gap-[16px] rounded-[16px] border border-border bg-card pl-[12px] pr-[14px] py-[12px] md:pl-[14px] shadow-[var(--elevation-sm)]"
+      >
+        <img src="/images/lock-badge.png" alt="" className="shrink-0 size-[56px] md:size-[72px] object-contain" />
+        <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
+          <p className="flex items-center gap-[8px] text-[15px] font-semibold leading-[20px] tracking-[-0.2px] text-foreground">
+            <span className="size-[8px] rounded-full bg-destructive shrink-0" />
+            Your account is locked
+          </p>
+          <p className="text-[13px] leading-[18px] text-muted-foreground">
+            <span className="hidden md:inline">
+              Unusual activity{email ? <> on <span className="font-medium text-foreground">{email}</span></> : null}. Your records and plan are still here; adding new files is paused until support unlocks the account.
+            </span>
+            <span className="md:hidden">Adding files is paused. Records and plan stay available.</span>
+          </p>
+          <div className="flex items-center gap-[6px] mt-[8px] md:hidden">
+            <Button asChild variant="destructive" className="h-[34px] px-[14px] text-[13px]">
+              <a href={supportMailto(email)}>Write to support</a>
+            </Button>
+            <Button variant="ghost" onClick={openPlan} className="h-[34px] px-[12px] text-[13px]">Manage plan</Button>
+          </div>
+        </div>
+        <div className="hidden md:flex items-center gap-[6px] shrink-0">
+          <Button asChild variant="destructive" className="h-[36px] px-[16px] text-[13px]">
+            <a href={supportMailto(email)}>
+              <Icon icon={Mail} className="size-[16px]" strokeWidth={2} />
+              Write to support
+            </a>
+          </Button>
+          <Button variant="ghost" onClick={openPlan} className="h-[36px] px-[14px] text-[13px]">Manage plan</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
