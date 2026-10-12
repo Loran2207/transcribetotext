@@ -249,3 +249,9 @@ html[data-desk="1"] .ttt-recording-pill { display: none; }
 /* the recording capsule's sound bars: each bar breathes on its own beat */
 @keyframes ttt-bar { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
 .ttt-bar { transform-origin: center; animation: ttt-bar 0.9s ease-in-out infinite; }
+
+/* A toast that brings its own card (ToastCard) is the toast: Sonner's default
+   box around it read as a card inside a card. The card carries the elevation. */
+li[data-sonner-toast]:has([data-toast-card]) { background: transparent; border: 0; box-shadow: none; padding: 0; }
+li[data-sonner-toast] [data-toast-card] { width: 100%; }
+li[data-sonner-toast][data-front="true"] [data-toast-card] { box-shadow: 0 10px 30px -12px rgba(16,24,40,0.085), 0 3px 10px -6px rgba(16,24,40,0.04); }

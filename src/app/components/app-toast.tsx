@@ -45,6 +45,7 @@ export function ToastCard({
   const t = TONE[tone];
   return (
     <div
+      data-toast-card=""
       /* The width belongs to the card, not to the list around it: a toast with a
          short line is still a toast, and one that sizes itself to its content
          makes a stack of them look ragged.
