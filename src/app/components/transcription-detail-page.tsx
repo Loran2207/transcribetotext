@@ -53,6 +53,7 @@ import { useCalendarAccounts, PROVIDER_NAMES } from "./calendar-accounts";
 import { TemplateSheet, LanguageSheet } from "./result-picker-sheets";
 import { templateEmoji } from "@/lib/template-meta";
 import { Icon } from "./ui/icon";
+import { Textarea } from "./ui/textarea";
 import { LottieStage } from "./checkout-loader/lottie-stage";
 import { Skeleton } from "./ui/skeleton";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
@@ -3236,6 +3237,10 @@ export function TranscriptionDetailPage() {
     return () => window.removeEventListener("keydown", on);
   }, []);
   const [panelTab, setPanelTab] = useState<PanelTab>(readPanelTab);
+  /* a meeting the bot recorded keeps its Notes tab after the call: the notes written during it stay with the record */
+  const meetingNotesKey = selectedJob?.kind === "meeting" ? "ttt_live_notes:" + selectedJob.id : null;
+  const [meetingNotes, setMeetingNotes] = useState(() => { try { return meetingNotesKey ? window.localStorage.getItem(meetingNotesKey) ?? "" : ""; } catch { return ""; } });
+  useEffect(() => { if (!meetingNotesKey) return; try { window.localStorage.setItem(meetingNotesKey, meetingNotes); } catch { /* ignore */ } }, [meetingNotes, meetingNotesKey]);
   /* the note written after Stop opens on the marks that came along from the call: the same page
      stays mounted from the live route, so this is a step, not a starting value */
   const openedOnMarks = useRef<string | null>(null);
@@ -5000,6 +5005,7 @@ export function TranscriptionDetailPage() {
             <ScrollRow activeKey={activeTab}>
             <TabsList variant="line" className="border-b-0 shrink-0 max-md:[@media(pointer:coarse)]:*:pt-2.5 md:max-lg:[@media(pointer:coarse)]:*:pt-0.5">
               {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
+              {meetingNotesKey && <TabsTrigger value="meeting-notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Notes</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
               {!isJobTranscribing && <TabsTrigger value="comments" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Comments<TabCount n={notesApi.threads.filter((t) => !t.resolved).reduce((sum, t) => sum + 1 + t.replies.length, 0)} /></TabsTrigger>}
@@ -5142,6 +5148,13 @@ export function TranscriptionDetailPage() {
                   onTemplate={(tid) => { if (tid === "all") setPadLibraryOpen(true); else insertTemplate(tid); }}
                   hint="Your own notes from the call. Nothing here is rewritten."
                 />
+              </div>
+            </TabsContent>
+          )}
+          {meetingNotesKey && (
+            <TabsContent value="meeting-notes" className="flex-1 overflow-auto">
+              <div className="mx-auto flex min-h-full w-full max-w-[980px] flex-col px-4 py-6 lg:px-8">
+                <Textarea value={meetingNotes} onChange={(e) => setMeetingNotes(e.target.value)} placeholder="Your notes from the meeting. They went into the summary together with the transcript." className="min-h-[320px] flex-1 resize-none border-0 bg-transparent px-0 text-[15px] leading-[26px] shadow-none focus-visible:ring-0" />
               </div>
             </TabsContent>
           )}
@@ -5502,24 +5515,15 @@ export function TranscriptionDetailPage() {
       </div>
 
       {/* Right panel */}
-      {isJobTranscribing ? (
-        <div className="relative hidden shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center xl:flex" style={{ width: rightPanelWidth }}>
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/5">
-            <Icon icon={Comment01Icon} className="size-5 text-primary/70" strokeWidth={1.7} />
-          </span>
-          <p className="mt-3 text-[13px] font-medium text-foreground">Comments and highlights</p>
-          <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">{notesApi.highlights.length > 0 ? `Your ${notesApi.highlights.length === 1 ? "mark" : `${notesApi.highlights.length} marks`} from the call ${notesApi.highlights.length === 1 ? "is" : "are"} kept. ` : ""}You can comment and highlight once the transcript is ready.</p>
-        </div>
-      ) : (
-        <RightPanel
-          notes={notesView}
-          tab={panelTab}
-          onTabChange={setPanelTab}
-          recordTitle={title}
-          width={rightPanelWidth}
-          onResizeStart={() => setIsRightPanelResizing(true)}
-        />
-      )}
+      {/* the same panel as a finished note: a highlight or a comment made during the call is already here */}
+      <RightPanel
+        notes={notesView}
+        tab={panelTab}
+        onTabChange={setPanelTab}
+        recordTitle={title}
+        width={rightPanelWidth}
+        onResizeStart={() => setIsRightPanelResizing(true)}
+      />
 
       {noteLayers}
     </div>

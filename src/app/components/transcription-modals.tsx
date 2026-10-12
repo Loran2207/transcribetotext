@@ -139,8 +139,8 @@ export const ERROR_LABELS: Record<string, string> = {
   corrupt: "File appears to be corrupted",
   too_long: "Exceeds 5-hour limit",
   bot_failed: "Couldn't join the meeting",
-  bot_denied: "The host didn't admit the bot",
-  bot_timeout: "Nobody admitted the bot in 5 minutes",
+  bot_denied: "The host didn't let the bot in",
+  bot_timeout: "Nobody let the bot in",
   network: "Network error - upload failed",
 };
 

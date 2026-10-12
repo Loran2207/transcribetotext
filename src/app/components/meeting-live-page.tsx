@@ -76,7 +76,7 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Stop recording this meeting?</AlertDialogTitle>
             <AlertDialogDescription>
-              {botName} leaves the call. Everything said so far is kept and written up as the transcript.
+              {botName} leaves the call. What was said so far becomes the transcript.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -132,7 +132,7 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   autoFocus
-                  placeholder={isError ? "Nothing was recorded. Your notes stay here if you send the bot again." : "Your notes during the meeting. They go into the summary together with the transcript."}
+                  placeholder={isError ? "Your notes stay here if you send the bot again." : "Your notes during the meeting. They go into the summary together with the transcript."}
                   className="min-h-[320px] flex-1 resize-none border-0 bg-transparent px-0 text-[15px] leading-[26px] shadow-none focus-visible:ring-0"
                 />
               </div>
@@ -209,8 +209,8 @@ function DoorCard({ phase, botName, platform, source, waited, onJoin, onCancel }
         <h3 className="mt-4 text-[17px] font-semibold text-foreground">{waiting ? "Waiting at the door" : "Joining the meeting"}</h3>
         <p className="mx-auto mt-1.5 max-w-[400px] text-balance text-[13.5px] leading-relaxed text-muted-foreground">
           {waiting
-            ? `The host needs to let ${botName} in. It knocks for up to 5 minutes.`
-            : `${botName} is opening the ${platform} link. This takes a few seconds.`}
+            ? `The host needs to let ${botName} in.`
+            : `${botName} is opening the ${platform} link.`}
         </p>
         {waiting && (
           <div className="mx-auto mt-5 w-full max-w-[320px]">
@@ -245,8 +245,8 @@ function NotAdmittedCard({ errorType, botName, platform, source, onResend, onJoi
   const timeout = errorType === "bot_timeout";
   const title = timeout ? "Nobody let the bot in" : "The host didn't let the bot in";
   const body = timeout
-    ? `${botName} knocked for 5 minutes and nobody answered, so it left. Nothing was recorded.`
-    : `${botName} asked to join and the host turned it down. Nothing was recorded.`;
+    ? `${botName} knocked for 5 minutes and left.`
+    : "Nothing was recorded.";
   return (
     <div className="flex justify-center px-2 py-10 lg:py-16" data-door="error">
       <div className="w-full max-w-[520px] px-6 py-4 text-center">
@@ -255,7 +255,7 @@ function NotAdmittedCard({ errorType, botName, platform, source, onResend, onJoi
       </span>
       <h3 className="mt-4 text-[17px] font-semibold text-foreground">{title}</h3>
       <p className="mx-auto mt-1.5 max-w-[400px] text-balance text-[13.5px] leading-relaxed text-muted-foreground">
-        {body} Press Send the bot again while the meeting is on, or join {platform} yourself and let it in when it knocks.
+        {body} Send it again, or join {platform} and let it in.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
         <Button onClick={onResend} className="h-9 gap-1.5 rounded-full px-4 text-[13px] font-medium">
@@ -367,7 +367,7 @@ function LiveSummaryTab({ error }: { error: boolean }) {
         {error ? "No summary without a recording" : "The summary is written when the meeting ends"}
       </h3>
       <p className="mt-1.5 max-w-[380px] text-balance text-[13px] leading-relaxed text-muted-foreground">
-        {error ? "Send the bot again from the Transcript tab." : "Pick a template now, or leave it to the first one. Your notes are used too."}
+        {error ? "Send the bot again from the Transcript tab." : "Pick a template now or keep the first one."}
       </p>
       {!error && (
         <div className="mt-5">
