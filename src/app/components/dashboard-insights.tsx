@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { ChevronRight } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { DesktopAppCard, useDesktopBannerHidden, useBannerVariant } from "./desktop/desktop-app-banner";
-import { useShell } from "./desktop/shell";
+import { useShell, useWideScreen } from "./desktop/shell";
 import { useLanguage } from "./language-context";
 import { usePlan } from "./use-plan";
 import { UpgradeBanner } from "./upgrade-banner";
@@ -126,14 +126,16 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   const { desktop: desktopShell } = useShell();
   const { hidden: appCardHidden } = useDesktopBannerHidden();
   const bannerVariant = useBannerVariant();
-  const appCardHere = !desktopShell && !appCardHidden && bannerVariant !== "home";
+  /* on a computer the app card follows the panel's rule: the navigation's block already tells the story */
+  const wide = useWideScreen();
+  const appCardHere = !desktopShell && !appCardHidden && (wide ? bannerVariant === "panel" : bannerVariant !== "home");
   const promoSlides = appCardHere ? ["promo", "banner"] : ["banner", "promo"];
   const promoCarousel = (
     <div>
       <div ref={promoRef} onScroll={onPromoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[16px]" style={{ scrollbarWidth: "none" }}>
         {promoSlides.map((key) => (
           <div key={key} className="snap-center shrink-0 w-full flex items-stretch [&>*]:w-full">
-            {key === "banner" ? <UpgradeBanner bare /> : appCardHere ? <DesktopAppCard mobile /> : <PromoCard />}
+            {key === "banner" ? <UpgradeBanner bare /> : appCardHere ? <DesktopAppCard mobile={!wide} /> : <PromoCard />}
           </div>
         ))}
       </div>
@@ -159,7 +161,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
   );
 
   return (
-    <div className="lg:hidden flex flex-col gap-[16px]">
+    <div className="xl:hidden flex flex-col gap-[16px]">
       {plan === "free" ? (
         <>
           {eventsCard}

@@ -1,6 +1,5 @@
 import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon, Mic01Icon } from "@hugeicons/core-free-icons";
 import { useShell } from "./desktop/shell";
-import { SidebarAppPlaque } from "./desktop/desktop-app-banner";
 
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -376,8 +375,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
 
       {/* ═══════════ Footer ═══════════ */}
       <SidebarFooter>
-        {/* the web tells about the desktop app here; the daily-quota plaque is gone (Kirill, 15.09) */}
-        <SidebarAppPlaque />
+        {/* no plaque above the footer: the desktop-app card left the navigation (Kirill, 07.10); the daily-quota plaque went earlier (15.09) */}
         <SidebarSeparator />
         <SidebarMenu>
           <SidebarMenuItem>
