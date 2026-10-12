@@ -109,7 +109,7 @@ type MeetingsTab = "upcoming" | "past" | "settings";
 
 export function CalendarPage() {
   const { t } = useLanguage();
-  const { setOpenModal } = useTranscriptionModals();
+  const { setOpenModal, jobs } = useTranscriptionModals();
 
   const {
     accounts,
@@ -121,10 +121,28 @@ export function CalendarPage() {
   const isDisconnected = accounts.length === 0 || isConnectDemoState();
   const showEmptyDemo = isEmptyDemoState();
 
-  const meetings = useMemo(
-    () => (isDisconnected || showEmptyDemo ? [] : ALL_MOCK_MEETINGS),
-    [isDisconnected, showEmptyDemo],
-  );
+  /* A meeting the bot is recording right now is a meeting today, whether it
+     came from the calendar or from Record a meeting (Kirill, 12.10; Andrei
+     sees calendar events and uploads as two things, Artem decides). A job
+     linked to a calendar meeting marks that card; one without a link gets a
+     card of its own under Today. */
+  const liveJobs = useMemo(() => jobs.filter((j) => j.kind === "meeting" && (j.status === "connecting" || j.status === "recording")), [jobs]);
+  const meetings = useMemo(() => {
+    if (isDisconnected || showEmptyDemo) return [];
+    const linked = new Map(liveJobs.filter((j) => j.meetingId).map((j) => [j.meetingId as string, j]));
+    const base = ALL_MOCK_MEETINGS.map((m) => {
+      const job = linked.get(m.id);
+      return job ? { ...m, isLive: true, liveJobId: job.id, liveStatus: job.status as "connecting" | "recording" } : m;
+    });
+    const adHoc = liveJobs.filter((j) => !j.meetingId).map((j) => {
+      const started = new Date(j.startedAt ?? j.createdAt);
+      const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      const end = new Date(started.getTime() + 60 * 60000);
+      const platform = (j.source === "zoom" || j.source === "teams" || j.source === "google-meet") ? j.source : "google-meet";
+      return { id: `job:${j.id}`, date: TODAY_ISO, startTime: hhmm(started), endTime: hhmm(end), title: j.name, platform, organizerEmail: "", autoJoin: false, language: "en" as LangCode, attendees: [], videoLink: j.meetingUrl, isLive: true, liveJobId: j.id, liveStatus: j.status as "connecting" | "recording" };
+    });
+    return [...base, ...adHoc];
+  }, [isDisconnected, showEmptyDemo, liveJobs]);
 
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(TODAY));
   const [selectedDate, setSelectedDate] = useState<string>(TODAY_ISO);

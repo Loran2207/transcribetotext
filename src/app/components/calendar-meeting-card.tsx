@@ -14,6 +14,7 @@ import {
 import { cn } from "@/app/components/ui/utils";
 import { SourceIcon } from "./source-icons";
 import { LANGUAGES, useLanguage, type LangCode } from "./language-context";
+import { useTranscriptionModals } from "./transcription-modals";
 import {
   type CalendarMeeting,
   type CalendarPlatform,
@@ -61,9 +62,18 @@ export function CalendarMeetingCard({
 }: CalendarMeetingCardProps) {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const { addJob, guardFreeLimit } = useTranscriptionModals();
   const [hovered, setHovered] = useState(false);
 
   const isLive = !isPast && !!meeting.isLive;
+  /* the bot's page for this meeting: open it when there is one, or send the
+     bot and open it (the page shows the door first) */
+  const openLive = () => {
+    if (meeting.liveJobId) { navigate(`/transcriptions/${meeting.liveJobId}`); return; }
+    if (guardFreeLimit()) return;
+    const id = addJob(meeting.title, "video", { kind: "meeting", source: meeting.platform, meetingId: meeting.id, meetingUrl: meeting.videoLink, botName: "TranscribeToText Bot", lang: "English" });
+    navigate(`/transcriptions/${id}`);
+  };
   const transcriptUrl = TRANSCRIPT_MAP[meeting.id];
   const hasTranscript = isPast && !!transcriptUrl;
   const recordingError = isPast ? RECORDING_ERROR_MAP[meeting.id] : undefined;
@@ -101,10 +111,17 @@ export function CalendarMeetingCard({
               {meeting.title}
             </h4>
             {isLive && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 text-destructive px-2.5 py-[3px] text-[11px] font-semibold shrink-0">
-                <span className="size-1.5 rounded-full bg-destructive animate-pulse" />
-                Recording
-              </span>
+              meeting.liveStatus === "connecting" ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 text-primary px-2.5 py-[3px] text-[11px] font-semibold shrink-0">
+                  <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                  Bot joining
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 text-destructive px-2.5 py-[3px] text-[11px] font-semibold shrink-0">
+                  <span className="size-1.5 rounded-full bg-destructive animate-pulse" />
+                  Recording
+                </span>
+              )
             )}
           </div>
 
@@ -150,16 +167,28 @@ export function CalendarMeetingCard({
 
         {/* Right side: status + actions */}
         <div className="flex items-center gap-3 shrink-0 max-lg:w-full max-lg:justify-between max-lg:border-t max-lg:border-border/60 max-lg:pt-2.5">
-          {/* Live: join the ongoing meeting */}
-          {isLive && meeting.videoLink && (
-            <Button
-              variant="default"
-              size="sm"
-              className="h-7 px-3.5 text-[12px] rounded-full"
-              onClick={() => window.open(meeting.videoLink, "_blank", "noopener,noreferrer")}
-            >
-              {t("calendar.joinMeeting")}
-            </Button>
+          {/* Live: the transcript being written is the thing to open; the call itself is second */}
+          {isLive && (
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="default"
+                size="sm"
+                className="h-7 px-3.5 text-[12px] rounded-full"
+                onClick={openLive}
+              >
+                {meeting.liveStatus === "connecting" ? "Open" : "Open live transcript"}
+              </Button>
+              {meeting.videoLink && (
+                <Button
+                  variant="pill-outline"
+                  size="sm"
+                  className="h-7 px-3.5 text-[12px] rounded-full"
+                  onClick={() => window.open(meeting.videoLink, "_blank", "noopener,noreferrer")}
+                >
+                  {t("calendar.joinMeeting")}
+                </Button>
+              )}
+            </div>
           )}
 
           {/* Past: completed with a recording */}
@@ -200,6 +229,7 @@ export function CalendarMeetingCard({
                 size="sm"
                 className="h-7 px-3.5 text-[12px] rounded-full"
                 tabIndex={isNextMeeting || hovered ? 0 : -1}
+                onClick={openLive}
               >
                 {t("calendar.startRecord")}
               </Button>

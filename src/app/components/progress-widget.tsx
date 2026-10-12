@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertCircle,
+  ArrowRight01Icon,
   Loading03Icon,
   RefreshIcon,
   Trash,
@@ -32,7 +33,7 @@ import {
 import { router } from "../routes";
 // Live bindings: only read while rendering, so the cycle with the provider
 // module resolves before anything here runs.
-import { ERROR_LABELS, type TranscriptionJob } from "./transcription-modals";
+import { ERROR_LABELS, BOT_ERRORS, type TranscriptionJob } from "./transcription-modals";
 
 /* The queue that does not belong in My Records.
    Two tabs and nothing else: what is still running, and what broke. Finished
@@ -166,11 +167,13 @@ function JobRow({
   onRemove,
   onRetry,
   onReconnect,
+  onOpen,
 }: {
   job: TranscriptionJob;
   onRemove: (job: TranscriptionJob) => void;
   onRetry: (id: string) => void;
   onReconnect: (id: string) => void;
+  onOpen: (job: TranscriptionJob) => void;
 }) {
   const failed = job.status === "error";
   const pct = progressOf(job);
@@ -179,11 +182,21 @@ function JobRow({
     ? (job.errorType ? ERROR_LABELS[job.errorType] ?? "Upload failed" : "Upload failed")
     : "";
   const canRetry = failed && job.errorType !== "no_audio";
-  const isBotFailure = failed && job.errorType === "bot_failed";
+  const isBotFailure = failed && BOT_ERRORS.includes(job.errorType);
+  /* a meeting the bot is in has a page of its own (the door, then the words):
+     the row is the way there, the hook Kirill asked for on 12.10 */
+  const opensLive = job.kind === "meeting" && (job.status === "connecting" || job.status === "recording" || isBotFailure);
 
   return (
     <div className="group/row border-b border-border last:border-b-0">
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div
+        className={"flex items-center gap-3 px-4 py-3" + (opensLive ? " cursor-pointer transition-colors hover:bg-muted/40" : "")}
+        onClick={opensLive ? () => onOpen(job) : undefined}
+        role={opensLive ? "button" : undefined}
+        tabIndex={opensLive ? 0 : undefined}
+        onKeyDown={opensLive ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(job); } } : undefined}
+        title={opensLive ? (failed ? "Open the meeting page" : "Open the live transcript") : undefined}
+      >
         <JobIcon job={job} />
 
         <div className="min-w-0 flex-1">
@@ -227,16 +240,19 @@ function JobRow({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => (isBotFailure ? onReconnect(job.id) : onRetry(job.id))}
+                onClick={(e) => { e.stopPropagation(); if (isBotFailure) { onReconnect(job.id); onOpen(job); } else onRetry(job.id); }}
                 className="h-8 gap-1.5 px-3 text-[12.5px] font-medium text-primary hover:bg-primary/8"
               >
                 <Icon icon={RefreshIcon} className="size-[13px]" strokeWidth={1.9} />
-                {isBotFailure ? "Reconnect" : "Retry"}
+                {isBotFailure ? "Send again" : "Retry"}
               </Button>
             )}
           </div>
         ) : (
           <div className="flex shrink-0 items-center gap-2 max-sm:hidden">
+            {opensLive && job.status === "recording" && (
+              <span className="relative flex size-[7px]"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive/70" /><span className="relative inline-flex size-[7px] rounded-full bg-destructive" /></span>
+            )}
             <span className="text-[12.5px] font-medium text-foreground">
               {STATUS_LABEL[job.status] ?? job.status}
             </span>
@@ -245,13 +261,16 @@ function JobRow({
                 {pct}%
               </span>
             )}
+            {opensLive && (
+              <Icon icon={ArrowRight01Icon} className="size-[14px] text-muted-foreground/70 transition-colors group-hover/row:text-foreground" strokeWidth={2} />
+            )}
           </div>
         )}
 
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => onRemove(job)}
+          onClick={(e) => { e.stopPropagation(); onRemove(job); }}
           aria-label={"Delete " + job.name}
           title="Delete"
           className="size-7 shrink-0 text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover/row:text-muted-foreground"
@@ -568,6 +587,7 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
                 onRemove={requestRemove}
                 onRetry={onRetry}
                 onReconnect={onReconnect}
+                onOpen={(j) => { setExpanded(false); void router.navigate(`/transcriptions/${j.id}`); }}
               />
             ))
           )}

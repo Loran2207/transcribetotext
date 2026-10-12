@@ -50,6 +50,8 @@ import { Icon } from "./ui/icon";
 import { LottieStage } from "./checkout-loader/lottie-stage";
 import { Skeleton } from "./ui/skeleton";
 import { useTranscriptionModals, type TranscriptionJob } from "./transcription-modals";
+import { BOT_ERRORS } from "./transcription-modals";
+import { MeetingLivePage } from "./meeting-live-page";
 import { useTemplates } from "@/hooks/use-templates";
 import type { Template } from "@/lib/templates";
 import { ShareDialog } from "./share-dialog";
@@ -110,7 +112,7 @@ function EditableLine({ value, onChange }: { value: string; onChange?: (next: st
 // Types
 // ════════════════════════════════════════════════════════════
 
-interface Speaker {
+export interface Speaker {
   id: string;
   name: string;
   color: string;
@@ -120,7 +122,7 @@ interface Speaker {
   you?: boolean;
 }
 
-interface Segment {
+export interface Segment {
   id: number;
   speaker: Speaker;
   timestamp: string;
@@ -778,7 +780,7 @@ function SpeakerLabel({
   );
 }
 
-function TranscriptSegment({
+export function TranscriptSegment({
   segment,
   nextTimestamp,
   isEditing,
@@ -3912,6 +3914,13 @@ export function TranscriptionDetailPage() {
     runGeneration(chosen);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [desktopShell, routeState?.fromRecordingStop, templates.length, isJobTranscribing]);
+
+  /* a meeting the bot records lives on its own page until the full transcript
+     is written: the door, the words as they come, then the draft while the full
+     pass runs; a bot that was not let in says so and offers the way out */
+  if (selectedJob && selectedJob.kind === "meeting" && selectedJob.status !== "done" && (selectedJob.status !== "error" || BOT_ERRORS.includes(selectedJob.errorType))) {
+    return <MeetingLivePage job={selectedJob} />;
+  }
 
   if (isLiveRecordingDetail) {
     const isPaused = recordingPhase === "paused";

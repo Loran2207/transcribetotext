@@ -28,6 +28,7 @@ import type { Template } from "@/lib/templates";
 import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
 import { router } from "../routes";
+import { LIVE_SCRIPT, LIVE_SCRIPT_END_SECONDS, type LiveSegment } from "@/lib/live-meeting-demo";
 import { useShell, useWideScreen } from "./desktop/shell";
 import { DesktopAppCard } from "./desktop/desktop-app-banner";
 import { motion } from "motion/react";
@@ -56,7 +57,7 @@ export interface TranscriptionJob {
   transcriptionProgress?: number;
   status: "uploading" | "connecting" | "recording" | "processing" | "transcribing" | "done" | "error";
   fileType: "audio" | "video";
-  errorType?: "no_audio" | "corrupt" | "too_long" | "network" | "bot_failed";
+  errorType?: "no_audio" | "corrupt" | "too_long" | "network" | "bot_failed" | "bot_denied" | "bot_timeout";
   noAudioDetected?: boolean;
   lang?: string;
   langBilingual?: string[];
@@ -68,6 +69,15 @@ export interface TranscriptionJob {
   kind?: "meeting";
   mediaUrl?: string;
   livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
+  /* a meeting the bot records: where it is in the door, when the recording
+     started, and the lines heard so far (the live page draws them as they come) */
+  botPhase?: "joining" | "waiting";
+  botName?: string;
+  meetingUrl?: string;
+  meetingId?: string;
+  startedAt?: string;
+  endedAt?: string;
+  liveSegments?: LiveSegment[];
 }
 
 /* ttt_demo_jobs seeds the widget so its states can be captured:
@@ -76,7 +86,8 @@ export interface TranscriptionJob {
 function demoSeedJobs(): TranscriptionJob[] {
   let flag = "";
   try { flag = window.localStorage.getItem("ttt_demo_jobs") || ""; } catch { /* ignore */ }
-  if (!flag) return [];
+  const live = demoLiveJob(readLiveDemoFlag());
+  if (!flag) return live ?? [];
   const now = Date.now();
   const ago = (min: number) => new Date(now - min * 60000).toISOString();
   const inProgress: TranscriptionJob[] = [
@@ -91,6 +102,7 @@ function demoSeedJobs(): TranscriptionJob[] {
     { id: "f2", name: "Quarterly review.mov", createdAt: ago(190), progress: 0, status: "error", errorType: "too_long", fileType: "video", lang: "English" },
     { id: "f3", name: "Partner sync", createdAt: ago(320), progress: 0, status: "error", errorType: "bot_failed", fileType: "video", kind: "meeting", source: "teams", lang: "English" },
   ];
+  if (flag === "live") return [...inProgress.slice(0, 2), ...demoLiveJob("recording")!];
   if (flag === "progress") return inProgress;
   if (flag === "uniform") {
     return inProgress.slice(0, 3).map((job, i) => ({
@@ -126,8 +138,51 @@ export const ERROR_LABELS: Record<string, string> = {
   corrupt: "File appears to be corrupted",
   too_long: "Exceeds 5-hour limit",
   bot_failed: "Couldn't join the meeting",
+  bot_denied: "The host didn't admit the bot",
+  bot_timeout: "Nobody admitted the bot in 5 minutes",
   network: "Network error - upload failed",
 };
+
+export const BOT_ERRORS: ReadonlyArray<TranscriptionJob["errorType"]> = ["bot_failed", "bot_denied", "bot_timeout"];
+
+/* ttt_demo_live seeds one bot meeting at a fixed point so the live page can be
+   captured still: joining | waiting | recording_empty | recording | processing |
+   denied | timeout. The job is "live-demo", linked to the calendar's live
+   meeting, and carries no timers. */
+export const LIVE_DEMO_JOB_ID = "live-demo";
+export function readLiveDemoFlag(): string {
+  try { return window.localStorage.getItem("ttt_demo_live") || ""; } catch { return ""; }
+}
+function demoLiveJob(flag: string): TranscriptionJob[] | null {
+  if (!flag) return null;
+  const now = Date.now();
+  const base: TranscriptionJob = {
+    id: LIVE_DEMO_JOB_ID,
+    name: "Weekly product sync - Q2 roadmap",
+    createdAt: new Date(now - 6 * 60000).toISOString(),
+    progress: 0,
+    status: "connecting",
+    fileType: "video",
+    kind: "meeting",
+    source: "google-meet",
+    lang: "English",
+    botName: "TranscribeToText Bot",
+    meetingUrl: "https://meet.google.com/qwe-rtyu-iop",
+    meetingId: "m_live",
+    liveSegments: [],
+  };
+  const heard = (n: number, elapsed: number) => ({ startedAt: new Date(now - elapsed * 1000).toISOString(), liveSegments: LIVE_SCRIPT.slice(0, n) });
+  switch (flag) {
+    case "joining": return [{ ...base, botPhase: "joining" }];
+    case "waiting": return [{ ...base, botPhase: "waiting", startedAt: new Date(now - 42 * 1000).toISOString() }];
+    case "recording_empty": return [{ ...base, status: "recording", ...heard(0, 3) }];
+    case "recording": return [{ ...base, status: "recording", ...heard(6, 58) }];
+    case "processing": return [{ ...base, status: "processing", progress: 62, transcriptionProgress: 62, uploadProgress: 100, duration: "58 min", ...heard(LIVE_SCRIPT.length, 3480), endedAt: new Date(now - 40 * 1000).toISOString() }];
+    case "denied": return [{ ...base, status: "error", errorType: "bot_denied" }];
+    case "timeout": return [{ ...base, status: "error", errorType: "bot_timeout" }];
+    default: return null;
+  }
+}
 
 type RecordingPhase = "idle" | "recording" | "paused" | "review";
 
@@ -188,6 +243,9 @@ type TranscriptionJobOptions = {
   livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
   noAudioDetected?: boolean;
   kind?: "meeting";
+  botName?: string;
+  meetingUrl?: string;
+  meetingId?: string;
 };
 
 type InstantRecordingSubmitOptions = Pick<
@@ -203,6 +261,8 @@ interface CtxValue {
   addJob: (name: string, fileType: "audio" | "video", opts?: TranscriptionJobOptions) => string;
   retryJob: (id: string) => void;
   reconnectBot: (id: string) => void;
+  stopMeetingBot: (id: string) => void;
+  cancelMeetingBot: (id: string) => void;
   removeJob: (id: string) => void;
   clearFailedJobs: () => void;
   meetingCounterRef: React.MutableRefObject<number>;
@@ -961,22 +1021,55 @@ export function TranscriptionModalsProvider({
     simulateJob(id);
   }
 
+  /* The meeting is over, either by itself or because the person pressed Stop:
+     the lines heard live become the draft, and the file goes through the same
+     upload and transcription as any other, because the full pass is better
+     than the live one (Andrei, 12.10). */
+  function endMeetingBot(id: string) {
+    const cur = jobsRef.current.find(j => j.id === id);
+    if (!cur || cur.status !== "recording") return;
+    const preview = (cur.liveSegments ?? []).map((s) => ({ id: s.id, timestamp: s.timestamp, text: s.text }));
+    const started = cur.startedAt ? new Date(cur.startedAt).getTime() : Date.now();
+    setJobs(prev => prev.map(j => j.id === id ? { ...j, status: "uploading", uploadProgress: 0, progress: 0, endedAt: new Date().toISOString(), duration: fmtDuration(Math.round((Date.now() - started) / 1000)), livePreviewSegments: preview } : j));
+    simulateJob(id);
+  }
+
   function simulateMeetingJob(id: string) {
-    // Meeting-bot lifecycle: connecting -> recording -> (upload + transcription) -> done
-    setJobs(prev => prev.map(j => j.id === id ? { ...j, status: "connecting", progress: 0, uploadProgress: 0, transcriptionProgress: 0, errorType: undefined } : j));
+    /* Meeting-bot lifecycle: joining the link -> waiting at the door ->
+       recording, one line at a time as the script says it -> the meeting ends
+       -> (upload + transcription) -> done */
+    setJobs(prev => prev.map(j => j.id === id ? { ...j, status: "connecting", botPhase: "joining", progress: 0, uploadProgress: 0, transcriptionProgress: 0, errorType: undefined, liveSegments: [], startedAt: undefined, endedAt: undefined } : j));
+    const still = (status: TranscriptionJob["status"]) => { const cur = jobsRef.current.find(j => j.id === id); return cur ? cur.status === status : false; };
     setTimeout(() => {
-      setJobs(prev => prev.map(j => j.id === id && j.status === "connecting" ? { ...j, status: "recording" } : j));
+      if (!still("connecting")) return;
+      setJobs(prev => prev.map(j => j.id === id ? { ...j, botPhase: "waiting", startedAt: new Date().toISOString() } : j));
       setTimeout(() => {
-        const cur = jobsRef.current.find(j => j.id === id);
-        if (!cur || cur.status !== "recording") return;
-        setJobs(prev => prev.map(j => j.id === id ? { ...j, status: "uploading", uploadProgress: 0, progress: 0 } : j));
-        simulateJob(id);
-      }, 2600);
-    }, 1700);
+        if (!still("connecting")) return;
+        const startedAt = new Date().toISOString();
+        setJobs(prev => prev.map(j => j.id === id ? { ...j, status: "recording", botPhase: undefined, startedAt, liveSegments: [] } : j));
+        for (const line of LIVE_SCRIPT) {
+          setTimeout(() => {
+            if (!still("recording")) return;
+            setJobs(prev => prev.map(j => j.id === id ? { ...j, liveSegments: [...(j.liveSegments ?? []), line] } : j));
+          }, line.at * 1000);
+        }
+        setTimeout(() => endMeetingBot(id), LIVE_SCRIPT_END_SECONDS * 1000);
+      }, 3600);
+    }, 2400);
   }
 
   function reconnectBot(id: string) {
     simulateMeetingJob(id);
+  }
+
+  /* Stop: the bot leaves the call and what was heard is written up. */
+  function stopMeetingBot(id: string) {
+    endMeetingBot(id);
+  }
+
+  /* Cancel while the bot is still at the door: nothing was recorded, nothing to keep. */
+  function cancelMeetingBot(id: string) {
+    setJobs((prev) => prev.filter((job) => job.id !== id));
   }
 
   function removeJob(id: string) {
@@ -988,7 +1081,7 @@ export function TranscriptionModalsProvider({
   }
 
   return (
-    <Ctx.Provider value={{ openModal, setOpenModal, jobs, templates, addJob, retryJob, reconnectBot, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId, guardFreeLimit }}>
+    <Ctx.Provider value={{ openModal, setOpenModal, jobs, templates, addJob, retryJob, reconnectBot, stopMeetingBot, cancelMeetingBot, removeJob, clearFailedJobs, meetingCounterRef, userPlan, recordingPhase, recordingElapsed, audioUrl, startInstantRecording, pauseInstantRecording, resumeInstantRecording, stopInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone, liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingDetailOpen, setRecordingDetailOpen, cancelInstantRecording, submitInstantRecording, openUploadWithFiles, consumePreloadedFiles, setDefaultFolderId, consumeDefaultFolderId, guardFreeLimit }}>
       {children}
       <AllModals />
       <UpgradeGateModal open={freeGateOpen} onOpenChange={setFreeGateOpen} variant="limit" />
@@ -2598,16 +2691,21 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   function handleSubmit() {
     if (!isValidUrl(meetingUrl)) { validateMeetingUrl(meetingUrl); return; }
     if (guardFreeLimit()) return;
-    addJob(meetingName || "Meeting", "video", {
+    const id = addJob(meetingName || "Meeting", "video", {
       lang: mode === "mono" ? langId : undefined,
       langBilingual: mode === "bi" ? (langBilingual.length ? langBilingual : ["auto"]) : undefined,
       translationLang: realTimeTranslation ? realTimeTranslationLang : undefined,
       folderId: selectedFolderId ?? undefined,
       source: detectMeetingSource(meetingUrl),
       kind: "meeting",
+      botName: botName || "TranscribeToText Bot",
+      meetingUrl,
       ...selectedTemplateJobFields(templates, selectedTemplateId),
     });
     handleClose();
+    /* the bot is on its way: the page opens now, with the door and then the
+       words, so nobody has to find it in the queue (Aleh, 12.10) */
+    void router.navigate(`/transcriptions/${id}`);
   }
 
   if (!open) return null;

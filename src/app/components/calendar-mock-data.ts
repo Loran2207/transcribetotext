@@ -27,6 +27,9 @@ export interface CalendarMeeting {
   videoLink?: string;
   /** Meeting is happening right now and being recorded */
   isLive?: boolean;
+  /** the bot's recording of this meeting, when one is running: its page is the way in */
+  liveJobId?: string;
+  liveStatus?: "connecting" | "recording";
 }
 
 export interface DayGroup {
