@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAccountLock, toastLocked, LOCKED_CLASS } from "./account-lock";
 import { Mic, Globe, ChevronRight } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -27,6 +28,7 @@ export const TODAY_STR = "03/16";
 
 export function MeetingItem({ meeting }: { meeting: Meeting }) {
   const { t } = useLanguage();
+  const locked = useAccountLock();
   const [hovered, setHovered] = useState(false);
   return (
     <div
@@ -40,7 +42,7 @@ export function MeetingItem({ meeting }: { meeting: Meeting }) {
           <span className="text-foreground" style={{ fontWeight: 500, fontSize: "12px" }}>{meeting.time}</span>
         </div>
         <div className="flex items-center gap-[5px] ml-[22px]">
-          <div className="w-[26px] h-[14px] rounded-full relative cursor-pointer bg-muted">
+          <div className={"w-[26px] h-[14px] rounded-full relative bg-muted " + (locked ? LOCKED_CLASS : "cursor-pointer")} aria-disabled={locked || undefined} onClick={locked ? () => toastLocked("meetings") : undefined}>
             <div className="size-[10px] rounded-full bg-background absolute left-[2px] top-[2px] shadow-sm" />
           </div>
           <span className="text-muted-foreground" style={{ fontWeight: 400, fontSize: "10px" }}>{t("panel.autoJoin")}</span>

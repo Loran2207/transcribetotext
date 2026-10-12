@@ -51,10 +51,12 @@ function supportMailto(email: string) {
 }
 
 /* What a locked control would have done, in the words of its own label. */
-export type LockedWhat = "files" | "templates" | "translation";
+export type LockedWhat = "files" | "recording" | "meetings" | "templates" | "translation";
 
 const PAUSED: Record<LockedWhat, string> = {
   files: "Adding files is paused",
+  recording: "Recording is paused",
+  meetings: "Meeting recording is paused",
   templates: "Templates are paused",
   translation: "Translation is paused",
 };

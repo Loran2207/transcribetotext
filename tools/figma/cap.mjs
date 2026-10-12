@@ -175,6 +175,11 @@ for (const step of (process.env.STEPS || "").split(";").filter((x) => x.startsWi
   await p.$eval(sel, (el) => el.dispatchEvent(new MouseEvent("mouseover", { bubbles: true, relatedTarget: null })));
   await p.waitForTimeout(250);
 }
+/* rehover=<sel> (a late step): the pointer goes back onto the element after the
+   clearing move, so a tooltip that opens on pointer movement is open for the frame */
+for (const step of (process.env.STEPS || "").split(";").filter((x) => x.startsWith("rehover="))) {
+  await p.hover(step.slice(8)); await p.waitForTimeout(600);
+}
 await p.evaluate(async () => { await Promise.all([400,500,600,700,800].map((wt) => document.fonts.load(wt + " 16px Inter"))); await document.fonts.ready; });
 await p.waitForTimeout(700);
 const shell = await p.evaluate(() => ({ mounted: !!document.getElementById("root")?.children.length, overlay: document.querySelectorAll("vite-error-overlay").length }));

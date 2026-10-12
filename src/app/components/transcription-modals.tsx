@@ -708,6 +708,7 @@ export function TranscriptionModalsProvider({
   }
 
   async function startInstantRecording(opts?: InstantRecordingSubmitOptions) {
+    if (readDemoLock()) { toastLocked("recording"); return false; }
     try {
       const stream = await getAudioStreamForDevice(selectedMicrophoneId || undefined);
       instantRecordingOptionsRef.current = opts;

@@ -13,6 +13,7 @@ import {
 } from "@/app/components/ui/select";
 import { cn } from "@/app/components/ui/utils";
 import { SourceIcon } from "./source-icons";
+import { useAccountLock, toastLocked, LockedTooltip, LOCKED_CLASS } from "./account-lock";
 import { LANGUAGES, useLanguage, type LangCode } from "./language-context";
 import {
   type CalendarMeeting,
@@ -59,6 +60,7 @@ export function CalendarMeetingCard({
   onLanguageChange,
   index,
 }: CalendarMeetingCardProps) {
+  const locked = useAccountLock();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [hovered, setHovered] = useState(false);
@@ -219,14 +221,17 @@ export function CalendarMeetingCard({
 
           {/* Upcoming: auto-record toggle */}
           {!isPast && !isLive && (
-            <div className="flex items-center gap-2">
+            <LockedTooltip what="meetings" locked={locked}>
+            <div className={"flex items-center gap-2" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined} onClick={locked ? () => toastLocked("meetings") : undefined}>
               <span className="text-[12px] text-muted-foreground">Auto-record</span>
               <Switch
-                checked={autoJoin}
+                checked={locked ? false : autoJoin}
                 onCheckedChange={onAutoJoinChange}
+                disabled={locked}
                 aria-label={autoJoin ? t("calendar.autoRecordOn") : t("calendar.autoRecordOff")}
               />
             </div>
+            </LockedTooltip>
           )}
         </div>
       </div>

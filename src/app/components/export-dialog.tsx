@@ -18,6 +18,7 @@ import { Icon } from "@/app/components/ui/icon";
 import { toastExported } from "./app-toast";
 import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, ArrowUp01Icon, Download01Icon, Tick02Icon, Add01Icon, Cancel01Icon, PencilEdit02Icon } from "@hugeicons/core-free-icons";
 import { usePlan } from "./use-plan";
+import { useAccountLock, toastLocked } from "./account-lock";
 import { LANGUAGES } from "./language-context";
 import {
   runExportPlan, transformForExport, DEFAULT_EXPORT_OPTIONS, FORMAT_META,
@@ -200,6 +201,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   open: boolean; onClose: () => void; records: ExportableRecord[]; availableRecords?: ExportableRecord[];
 }) {
   const plan = usePlan();
+  /* a translation made for the export is paid work; while the account is
+     locked the section stays, switched off and explained */
+  const locked = useAccountLock();
 
   const [phase, setPhase] = useState<Phase>("form");
   const [items, setItems] = useState<ExportableRecord[]>(records);
@@ -282,11 +286,11 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   const zipFileName = `${safeName(exportName || `transcripts-${items.length}`)}.zip`;
 
   const plans: ExportFilePlan[] = useMemo(
-    () => items.map((r) => ({ record: r, format: shared.format, includeTranscript: shared.includeTranscript, includeSummary: shared.includeSummary, includeAudio: shared.includeAudio, includeTranslation: shared.includeTranslation, translationLanguage: shared.translationLanguage, options: shared.options })),
+    () => items.map((r) => ({ record: r, format: shared.format, includeTranscript: shared.includeTranscript, includeSummary: shared.includeSummary, includeAudio: shared.includeAudio, includeTranslation: shared.includeTranslation && !locked, translationLanguage: shared.translationLanguage, options: shared.options })),
     [items, shared]
   );
-  const nothingSelected = items.length === 0 || (!shared.includeTranscript && !shared.includeSummary && !shared.includeAudio && !shared.includeTranslation);
-  const fileCount = nothingSelected ? 0 : items.length * ((shared.includeTranscript ? 1 : 0) + (shared.includeSummary ? 1 : 0) + (shared.includeAudio ? 1 : 0) + (shared.includeTranslation ? 1 : 0));
+  const nothingSelected = items.length === 0 || (!shared.includeTranscript && !shared.includeSummary && !shared.includeAudio && !(shared.includeTranslation && !locked));
+  const fileCount = nothingSelected ? 0 : items.length * ((shared.includeTranscript ? 1 : 0) + (shared.includeSummary ? 1 : 0) + (shared.includeAudio ? 1 : 0) + (shared.includeTranslation && !locked ? 1 : 0));
 
   const footerSummary = useMemo(() => {
     if (nothingSelected) return "Nothing selected";
@@ -399,8 +403,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         <p className={shared.includeSummary ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>Exports the AI summary as a separate .txt file.</p>
       </SectionRow>
 
-      <SectionRow title="Translation" enabled={shared.includeTranslation} onToggle={(v) => patchShared({ includeTranslation: v })}>
-        <div className={shared.includeTranslation ? "mt-[12px] flex flex-col gap-[10px]" : "hidden"}>
+      <SectionRow title="Translation" enabled={locked ? false : shared.includeTranslation} onToggle={(v) => { if (locked) { toastLocked("translation"); return; } patchShared({ includeTranslation: v }); }} disabled={locked}>
+        {locked && <p data-export-translation-locked className="mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground">Translation is paused while your account is locked. Write to support to unlock it.</p>}
+        <div className={shared.includeTranslation && !locked ? "mt-[12px] flex flex-col gap-[10px]" : "hidden"}>
           <div className="flex items-center justify-between">
             <span className="text-[13px] text-muted-foreground">Translate to</span>
             <Select value={shared.translationLanguage} onValueChange={(v) => patchShared({ translationLanguage: v })}>

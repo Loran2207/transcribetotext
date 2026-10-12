@@ -2492,7 +2492,7 @@ function PageHeader({
                 </DropdownMenuItem>
               ) : (
                 <>
-                  <DropdownMenuItem className="gap-2" onClick={onRegenerateSummary}>
+                  <DropdownMenuItem className={"gap-2" + (locked ? " opacity-45" : "")} onClick={onRegenerateSummary}>
                     <Icon icon={Zap} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                     Regenerate summary
                   </DropdownMenuItem>
@@ -4802,7 +4802,7 @@ export function TranscriptionDetailPage() {
             currentTimeSeconds={effectiveCurrentSeconds}
             durationSeconds={effectiveDurationSeconds}
             trailing={desktopShell ? (
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full border-border px-3 text-[13px] font-medium" onClick={() => { void continueRecording(); }} title="Record more into this note">
+              <Button variant="outline" size="sm" aria-disabled={locked || undefined} className={"h-8 gap-1.5 rounded-full border-border px-3 text-[13px] font-medium" + (locked ? " " + LOCKED_CLASS : "")} onClick={() => { void continueRecording(); }} title={locked ? undefined : "Record more into this note"}>
                 <Icon icon={Mic01Icon} className="size-[14px]" strokeWidth={2} />
                 Resume recording
               </Button>

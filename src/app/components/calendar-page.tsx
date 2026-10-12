@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from "react";
+import { useAccountLock, readDemoLock, toastLocked, LockedTooltip, LOCKED_CLASS } from "./account-lock";
 import { motion, useReducedMotion } from "motion/react";
 import {
   ChevronLeft,
@@ -204,7 +205,9 @@ export function CalendarPage() {
     }, 50);
   }, []);
 
+  const locked = useAccountLock();
   const handleAutoJoinToggle = useCallback((meetingId: string, checked: boolean) => {
+    if (readDemoLock()) { toastLocked("meetings"); return; }
     setAutoJoinStates((prev) => ({ ...prev, [meetingId]: checked }));
   }, []);
 
@@ -213,6 +216,7 @@ export function CalendarPage() {
   }, []);
 
   const handleAutoRecordModeChange = useCallback((mode: AutoRecordMode) => {
+    if (readDemoLock()) { toastLocked("meetings"); return; }
     setAutoRecordMode(mode);
     saveAutoRecordMode(mode);
   }, []);
@@ -270,13 +274,16 @@ export function CalendarPage() {
           <h1 className="text-foreground font-bold text-[20px] leading-[26px] tracking-[-0.3px] lg:text-[28px] lg:leading-[33.6px] lg:tracking-[-0.56px]">
             Meetings
           </h1>
+          <LockedTooltip what="meetings" locked={locked}>
           <Button
-            className="rounded-full h-9 px-4 text-[13px] font-medium"
+            aria-disabled={locked || undefined}
+            className={"rounded-full h-9 px-4 text-[13px] font-medium" + (locked ? " " + LOCKED_CLASS : "")}
             onClick={() => setOpenModal("meeting")}
           >
             <span className="lg:hidden">Record</span>
             <span className="max-lg:hidden">Record a meeting</span>
           </Button>
+          </LockedTooltip>
         </div>
         <CalendarConnectScreen connecting={connecting} onConnect={connectAccount} />
       </div>
@@ -311,13 +318,16 @@ export function CalendarPage() {
               </Button>
             </motion.div>
 
+            <LockedTooltip what="meetings" locked={locked}>
             <Button
-              className="rounded-full h-9 px-4 text-[13px] font-medium"
+              aria-disabled={locked || undefined}
+              className={"rounded-full h-9 px-4 text-[13px] font-medium" + (locked ? " " + LOCKED_CLASS : "")}
               onClick={() => setOpenModal("meeting")}
             >
               <span className="lg:hidden">Record</span>
               <span className="max-lg:hidden">Record a meeting</span>
             </Button>
+            </LockedTooltip>
           </div>
         </div>
 
@@ -392,17 +402,18 @@ export function CalendarPage() {
             <>
               {/* Auto-record bar - full content width, upcoming only */}
               {activeTab === "upcoming" && (
-                <div className="md:hidden mt-4 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+                <div className={"md:hidden mt-4 flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined} onClick={locked ? () => toastLocked("meetings") : undefined}>
                   <Icon icon={FlashIcon} size={14} className="text-primary shrink-0" />
                   <span className="text-[13px] font-medium text-foreground shrink-0">Auto-record</span>
-                  <Select value={autoRecordMode} onValueChange={(v) => handleAutoRecordModeChange(v as AutoRecordMode)}>
+                  <Select value={autoRecordMode} onValueChange={(v) => handleAutoRecordModeChange(v as AutoRecordMode)} disabled={locked}>
                     <SelectTrigger className="h-8 flex-1 min-w-0 rounded-lg text-[13px] border-0 bg-muted/50"><SelectValue /></SelectTrigger>
                     <SelectContent>{AUTO_RECORD_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.barLabel}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               )}
               {activeTab === "upcoming" && (
-                <div className="max-md:hidden mt-4 flex items-center rounded-xl border border-border bg-card px-4 py-2.5">
+                <LockedTooltip what="meetings" locked={locked}>
+                <div className={"max-md:hidden mt-4 flex items-center rounded-xl border border-border bg-card px-4 py-2.5" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined} onClick={locked ? () => toastLocked("meetings") : undefined}>
                   <div className="flex items-center gap-1.5 text-[13px] font-medium text-foreground shrink-0 pr-3">
                     <Icon icon={FlashIcon} size={14} className="text-primary" />
                     Auto-record:
@@ -410,6 +421,7 @@ export function CalendarPage() {
                   <RadioGroup
                     value={autoRecordMode}
                     onValueChange={(v) => handleAutoRecordModeChange(v as AutoRecordMode)}
+                    disabled={locked}
                     className="flex items-center gap-0 flex-1 min-w-0"
                   >
                     {AUTO_RECORD_OPTIONS.map((o, idx) => (
@@ -443,6 +455,7 @@ export function CalendarPage() {
                     ))}
                   </RadioGroup>
                 </div>
+                </LockedTooltip>
               )}
 
               {/* Meeting list - scrollable */}
