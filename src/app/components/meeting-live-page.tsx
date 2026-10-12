@@ -132,10 +132,9 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   autoFocus
-                  placeholder="Write notes"
+                  placeholder={isError ? "Nothing was recorded. Your notes stay here if you send the bot again." : "Your notes during the meeting. They go into the summary together with the transcript."}
                   className="min-h-[320px] flex-1 resize-none border-0 bg-transparent px-0 text-[15px] leading-[26px] shadow-none focus-visible:ring-0"
                 />
-                <p className="mt-3 text-[12.5px] text-muted-foreground">{isError ? "Nothing was recorded. Your notes stay here if you send the bot again." : "Your notes during the meeting. They go into the summary together with the transcript."}</p>
               </div>
             ) : tab === "summary" ? (
               <LiveSummaryTab error={isError} />
@@ -208,7 +207,7 @@ function DoorCard({ phase, botName, platform, source, waited, onJoin, onCancel }
           </span>
         </span>
         <h3 className="mt-4 text-[17px] font-semibold text-foreground">{waiting ? "Waiting at the door" : "Joining the meeting"}</h3>
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+        <p className="mx-auto mt-1.5 max-w-[400px] text-balance text-[13.5px] leading-relaxed text-muted-foreground">
           {waiting
             ? `The host needs to let ${botName} in. It knocks for up to 5 minutes.`
             : `${botName} is opening the ${platform} link. This takes a few seconds.`}
@@ -255,7 +254,7 @@ function NotAdmittedCard({ errorType, botName, platform, source, onResend, onJoi
         <Icon icon={Alert02Icon} className="size-[22px] text-destructive" strokeWidth={1.8} />
       </span>
       <h3 className="mt-4 text-[17px] font-semibold text-foreground">{title}</h3>
-      <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+      <p className="mx-auto mt-1.5 max-w-[400px] text-balance text-[13.5px] leading-relaxed text-muted-foreground">
         {body} Press Send the bot again while the meeting is on, or join {platform} yourself and let it in when it knocks.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
@@ -367,7 +366,7 @@ function LiveSummaryTab({ error }: { error: boolean }) {
       <h3 className="text-[16px] font-semibold text-foreground">
         {error ? "No summary without a recording" : "The summary is written when the meeting ends"}
       </h3>
-      <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">
+      <p className="mt-1.5 max-w-[380px] text-balance text-[13px] leading-relaxed text-muted-foreground">
         {error ? "Send the bot again from the Transcript tab." : "Pick a template now, or leave it to the first one. Your notes are used too."}
       </p>
       {!error && (

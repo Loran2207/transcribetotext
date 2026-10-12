@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertCircle,
-  ArrowRight01Icon,
+  ArrowUpRight01Icon,
   Loading03Icon,
   RefreshIcon,
   Trash,
@@ -209,7 +209,8 @@ function JobRow({
               errorLabel
             ) : (
               <>
-                <span>{(STATUS_LABEL[job.status] ?? job.status) + (pct !== null ? " " + pct + "%" : "")}</span>
+                {opensLive && job.status === "recording" && <span className="relative flex size-[7px]"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive/70" /><span className="relative inline-flex size-[7px] rounded-full bg-destructive" /></span>}
+                <span className={opensLive && job.status === "recording" ? "text-destructive" : undefined}>{(STATUS_LABEL[job.status] ?? job.status) + (pct !== null ? " " + pct + "%" : "")}</span>
                 <span>·</span>
                 <span>{whenLabel(job.createdAt)}</span>
                 <span>·</span>
@@ -220,7 +221,7 @@ function JobRow({
           {opensLive && !failed && (
             <span className="mt-1.5 flex items-center gap-1 sm:hidden">
               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onOpen(job); }} className="h-7 px-2 text-[12px] font-medium text-primary hover:bg-primary/8">Open transcript</Button>
-              {job.meetingUrl && <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); window.open(job.meetingUrl, "_blank", "noopener,noreferrer"); }} className="h-7 px-2 text-[12px] font-medium text-foreground">Join call</Button>}
+              {job.meetingUrl && <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); window.open(job.meetingUrl, "_blank", "noopener,noreferrer"); }} className="h-7 gap-1 px-2 text-[12px] font-medium text-foreground">Join call<Icon icon={ArrowUpRight01Icon} className="size-[12px] text-muted-foreground" strokeWidth={2} /></Button>}
             </span>
           )}
           <p className="mt-0.5 hidden items-center gap-[6px] truncate text-[11.5px] text-muted-foreground sm:flex">
@@ -232,6 +233,15 @@ function JobRow({
                 <span>·</span>
                 <LangCell lang={job.lang} />
                 {job.duration ? (<><span>·</span><span>{job.duration}</span></>) : null}
+                {opensLive && (
+                  <>
+                    <span>·</span>
+                    <span className={"flex items-center gap-[5px]" + (job.status === "recording" ? " text-destructive" : "")}>
+                      {job.status === "recording" && <span className="relative flex size-[7px]"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive/70" /><span className="relative inline-flex size-[7px] rounded-full bg-destructive" /></span>}
+                      {STATUS_LABEL[job.status] ?? job.status}
+                    </span>
+                  </>
+                )}
               </>
             )}
           </p>
@@ -256,12 +266,11 @@ function JobRow({
           </div>
         ) : (
           <div className="flex shrink-0 items-center gap-2 max-sm:hidden">
-            {opensLive && job.status === "recording" && (
-              <span className="relative flex size-[7px]"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive/70" /><span className="relative inline-flex size-[7px] rounded-full bg-destructive" /></span>
+            {!opensLive && (
+              <span className="text-[12.5px] font-medium text-foreground">
+                {STATUS_LABEL[job.status] ?? job.status}
+              </span>
             )}
-            <span className="text-[12.5px] font-medium text-foreground">
-              {STATUS_LABEL[job.status] ?? job.status}
-            </span>
             {pct !== null && (
               <span className="w-[34px] text-right text-[12.5px] tabular-nums text-muted-foreground">
                 {pct}%
@@ -275,7 +284,7 @@ function JobRow({
                 {job.meetingUrl && (
                   <Button variant="ghost" size="sm" title={"Join the call"} onClick={(e) => { e.stopPropagation(); window.open(job.meetingUrl, "_blank", "noopener,noreferrer"); }} className="h-8 gap-1.5 px-2.5 text-[12.5px] font-medium text-foreground">
                     Join call
-                    <Icon icon={ArrowRight01Icon} className="size-[12px] -rotate-45 text-muted-foreground" strokeWidth={2} />
+                    <Icon icon={ArrowUpRight01Icon} className="size-[13px] text-muted-foreground" strokeWidth={2} />
                   </Button>
                 )}
               </span>
