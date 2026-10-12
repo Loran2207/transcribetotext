@@ -4610,7 +4610,7 @@ export function TranscriptionDetailPage() {
                 </div>
                 <WaitsFor hint="Translation is available once the call has ended" className="max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1">
                   <Select disabled>
-                    <SelectTrigger size="sm" className="h-8 w-[190px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0"><SelectValue placeholder="Translate to..." /></SelectTrigger>
+                    <SelectTrigger size="sm" className={"h-8 w-[190px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0" + (locked ? " pointer-events-none" : "")}><SelectValue placeholder="Translate to..." /></SelectTrigger>
                   </Select>
                 </WaitsFor>
                 {/* the window docks beside the call: notes on one half, the meeting on the other */}
@@ -5041,7 +5041,7 @@ export function TranscriptionDetailPage() {
               <LockedTooltip what="translation" locked={locked} className={"lg:hidden " + (sharedOwner ? "hidden" : "inline-flex")}>
               <div className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex") + (locked ? " " + LOCKED_CLASS : "")} onClick={locked ? () => toastLocked("translation") : undefined}>
                 <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing || locked}>
-                  <SelectTrigger size="sm" className="h-8 w-[168px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
+                  <SelectTrigger size="sm" className={"h-8 w-[168px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0" + (locked ? " pointer-events-none" : "")}>
                     <SelectValue placeholder="Translate to..." />
                   </SelectTrigger>
                   <SelectContent align="end">
