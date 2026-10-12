@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { readDemoLock, toastLocked } from "./account-lock";
 import { useNavigate } from "react-router";
 import { Search } from "@hugeicons/core-free-icons";
 import { Icon } from "@/app/components/ui/icon";
@@ -45,6 +46,7 @@ export function ApplyTemplateDialog({ open, onOpenChange, template }: ApplyTempl
 
   const handleApply = () => {
     if (!selectedId) return;
+    if (readDemoLock()) { toastLocked("templates"); onOpenChange(false); return; }
     onOpenChange(false);
     navigate(`/transcriptions/${selectedId}`, { state: { applyTemplateId: template.id } });
   };

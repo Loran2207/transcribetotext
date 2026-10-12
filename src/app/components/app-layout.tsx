@@ -69,7 +69,7 @@ export function AppLayout() {
           <TopBar onNavigate={handleNavigate} />
           <MobileTopBar onNavigate={handleNavigate} />
           <main className="flex flex-col flex-1 min-h-0 overflow-hidden rounded-tl-[32px] bg-background">
-            <AccountLockedBanner onNavigate={handleNavigate} />
+            <AccountLockedBanner />
             <div className="flex flex-1 min-h-0 overflow-hidden">
             {isSubRoute ? (
               <Outlet />

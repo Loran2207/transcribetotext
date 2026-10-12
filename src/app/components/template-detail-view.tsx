@@ -23,6 +23,7 @@ import type { Template } from "@/lib/templates";
 import { templateEmoji, categorize, hueForCategory, type CategoryId } from "@/lib/template-meta";
 import { getTemplateSample } from "@/lib/template-samples";
 import { TranscriptRow } from "./transcript-row";
+import { useAccountLock, readDemoLock, toastLocked, LockedTooltip, LOCKED_CLASS } from "./account-lock";
 
 /* View-only template detail page (first iteration: no editing).
    Header: title + compact actions top-right (Edit with a Soon badge, star,
@@ -73,6 +74,7 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   const plan = usePlan();
   const navigate = useNavigate();
   const isFree = plan === "free";
+  const locked = useAccountLock();
 
   const hue = hueForCategory(categorize(template));
   const emoji = templateEmoji(template.name);
@@ -100,9 +102,9 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
   ];
 
   const [applyOpen, setApplyOpen] = useState(() => {
-    try { return import.meta.env.DEV && localStorage.getItem("ttt_demo_apply") === "open"; } catch { return false; }
+    try { return import.meta.env.DEV && localStorage.getItem("ttt_demo_apply") === "open" && !readDemoLock(); } catch { return false; }
   });
-  const handleApply = () => setApplyOpen(true);
+  const handleApply = () => { if (locked) { toastLocked("templates"); return; } setApplyOpen(true); };
 
   const handleStar = () => {
     const next = new Set(loadStarred());
@@ -188,7 +190,11 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
                 />
               </svg>
             </Button>
-            {isFree ? (
+            {locked ? (
+              <LockedTooltip what="templates" locked className="max-md:hidden">
+                <Button className={"rounded-full h-9 px-5 text-[13px] font-medium max-md:hidden " + LOCKED_CLASS} aria-disabled onClick={handleApply}>Apply template</Button>
+              </LockedTooltip>
+            ) : isFree ? (
               <Popover>
                 <PopoverTrigger asChild>
                   <Button className="rounded-full h-9 px-5 text-[13px] font-medium max-md:hidden">Apply template</Button>
@@ -385,7 +391,11 @@ export function TemplateDetailView({ template, onBack }: TemplateDetailViewProps
         <Button variant="pill-outline" className="size-[46px] p-0 shrink-0" onClick={handleStar} aria-label={isStarred ? "Remove from starred" : "Add to starred"}>
           <svg width={17} height={17} fill="none" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.333l1.787 3.62 3.996.584-2.891 2.818.682 3.978L8 10.517l-3.574 1.816.682-3.978L2.217 5.537l3.996-.584L8 1.333z" stroke={isStarred ? "#F59E0B" : "currentColor"} fill={isStarred ? "#F59E0B" : "none"} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </Button>
-      {isFree ? (
+      {locked ? (
+        <LockedTooltip what="templates" locked className="flex flex-1">
+          <Button className={"flex-1 h-[46px] rounded-full text-[14px] font-semibold " + LOCKED_CLASS} aria-disabled onClick={handleApply}>Apply template</Button>
+        </LockedTooltip>
+      ) : isFree ? (
         <Popover>
           <PopoverTrigger asChild>
             <Button className="flex-1 h-[46px] rounded-full text-[14px] font-semibold">Apply template</Button>

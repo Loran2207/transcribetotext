@@ -257,7 +257,7 @@ export function TranscriptionModalsProvider({
      toast says what is paused and where the way out is. Closing (null) is
      always allowed. */
   function setOpenModal(m: ModalType) {
-    if (m !== null && readDemoLock()) { toastLocked(); return; }
+    if (m !== null && readDemoLock()) { toastLocked("files"); return; }
     setOpenModalState(m);
   }
   const [jobs, setJobs] = useState<TranscriptionJob[]>(demoSeedJobs);
@@ -447,7 +447,7 @@ export function TranscriptionModalsProvider({
   const preloadedFilesRef = useRef<File[]>([]);
 
   function openUploadWithFiles(files: File[]) {
-    if (readDemoLock()) { toastLocked(); return; }
+    if (readDemoLock()) { toastLocked("files"); return; }
     preloadedFilesRef.current = files;
     setOpenModal("upload");
   }

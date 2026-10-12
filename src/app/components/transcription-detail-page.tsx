@@ -41,6 +41,7 @@ import { ActionSheet, ActionSheetItem } from "./action-sheet";
 import { records, type RecordRow } from "./records-table";
 import { TemplatePicker } from "./template-picker";
 import { TemplateLibraryDialog } from "./template-library-dialog";
+import { useAccountLock, toastLocked, LockedTooltip, LOCKED_CLASS } from "./account-lock";
 import { meetings as calendarMeetings } from "./todays-events";
 import { ProviderLogo } from "./calendar-connect";
 import { useCalendarAccounts, PROVIDER_NAMES } from "./calendar-accounts";
@@ -2268,6 +2269,7 @@ interface PageHeaderProps {
   onTranslateTo: (code: string) => void;
   activeTranslationLang: string | null;
   translationDisabled: boolean;
+  locked: boolean;
 }
 
 function PageHeader({
@@ -2298,6 +2300,7 @@ function PageHeader({
   onTranslateTo,
   activeTranslationLang,
   translationDisabled,
+  locked,
 }: PageHeaderProps) {
   const [editingTitle, setEditingTitle] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -2327,9 +2330,11 @@ function PageHeader({
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           {!sharedOwner && <span className="max-md:hidden"><SharedUsersAvatars shares={shares} /></span>}
           {!hasSummary && !sharedOwner && (
-            <Button className="order-first flex items-center gap-[6px] h-9 px-[14px] transition-colors cursor-pointer max-md:hidden" onClick={onSetTemplate}>
+            <LockedTooltip what="templates" locked={locked} className="order-first inline-flex max-md:hidden">
+            <Button className={"order-first flex items-center gap-[6px] h-9 px-[14px] transition-colors max-md:hidden " + (locked ? LOCKED_CLASS : "cursor-pointer")} aria-disabled={locked || undefined} onClick={onSetTemplate}>
               <span className="font-medium text-[13px]">Apply template</span>
             </Button>
+            </LockedTooltip>
           )}
           {/* 1. The first entry point in the spec, and it was the one missing:
               the result page carried a Share handler with nothing to press. It
@@ -2445,7 +2450,7 @@ function PageHeader({
                   Copy summary
                 </DropdownMenuItem>
               ) : (
-                <DropdownMenuItem className="gap-2 max-md:hidden lg:hidden" onClick={onSetTemplate}>
+                <DropdownMenuItem className={"gap-2 max-md:hidden lg:hidden" + (locked ? " opacity-45" : "")} onClick={onSetTemplate}>
                   Apply template
                 </DropdownMenuItem>
               )}
@@ -2464,7 +2469,7 @@ function PageHeader({
                     <DropdownMenuItem
                       key={language.code}
                       className="gap-2"
-                      disabled={translationDisabled}
+                      disabled={translationDisabled || locked}
                       onClick={() => onTranslateTo(language.code)}
                     >
                       <span>{language.flag}</span>
@@ -2734,7 +2739,13 @@ export function TranscriptionDetailPage() {
   const [permDemo, setPermDemo] = useState<string | null>(() => (permFlag === "1" || permFlag === "mic" ? permFlag : null));
   useEffect(() => { setPermDemo(permFlag === "1" || permFlag === "mic" ? permFlag : null); }, [permFlag]);
   const [summaryStage, setSummaryStage] = useState("");
-  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [templatePickerOpen, setTemplatePickerOpenState] = useState(false);
+  /* while the account is locked the picker never opens: the press explains */
+  const locked = useAccountLock();
+  const setTemplatePickerOpen = (open: boolean) => {
+    if (open && locked) { toastLocked("templates"); return; }
+    setTemplatePickerOpenState(open);
+  };
   const [langSheetOpen, setLangSheetOpen] = useState(false);
   const [belowLg, setBelowLg] = useState(false);
   const [belowMd, setBelowMd] = useState(false);
@@ -2772,6 +2783,7 @@ export function TranscriptionDetailPage() {
     const selected = templates.find((t) => t.id === tid);
     if (!selected) return;
     appliedFromRouteRef.current = true;
+    if (locked) { toastLocked("templates"); navigate(location.pathname, { replace: true, state: null }); return; }
     setActiveTemplateId(tid);
     setActiveTab("summary");
     setIsSummaryLoading(true);
@@ -3591,6 +3603,7 @@ export function TranscriptionDetailPage() {
   }
 
   async function handleTranslate(langOverride?: string) {
+    if (locked) { toastLocked("translation"); return; }
     const targetLang = langOverride ?? selectedTranslationLang;
     if (!targetLang || isTranslationLoading || isJobTranscribing) return;
     if (!langOverride && !canApplyTranslation) return;
@@ -3742,6 +3755,7 @@ export function TranscriptionDetailPage() {
   }
 
   function regenerateSummary() {
+    if (locked) { toastLocked("templates"); return; }
     setSummaryError(false);
     setActiveTab("summary");
     setIsSummaryLoading(true);
@@ -4140,6 +4154,7 @@ export function TranscriptionDetailPage() {
       setActiveTemplateId(null);
       return;
     }
+    if (locked) { toastLocked("templates"); return; }
     setActiveTemplateId(id);
     const selected = templates.find((t) => t.id === id);
     if (selected) runGeneration(selected);
@@ -4155,9 +4170,11 @@ export function TranscriptionDetailPage() {
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-muted-foreground"><path d="M6 9l6 6 6-6" /></svg>
     </Button>
   ) : (
-    <Button onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] text-[14px] font-semibold">
+    <LockedTooltip what="templates" locked={locked} className="flex flex-1 min-w-0">
+    <Button onClick={() => setTemplatePickerOpen(true)} aria-disabled={locked || undefined} className={"flex-1 min-w-0 h-[46px] text-[14px] font-semibold" + (locked ? " " + LOCKED_CLASS : "")}>
       Apply template
     </Button>
+    </LockedTooltip>
   );
 
   return (
@@ -4217,11 +4234,12 @@ export function TranscriptionDetailPage() {
               <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Next note" disabled={recIdx < 0 || recIdx >= records.length - 1} onClick={() => navigate(`/transcriptions/${records[recIdx + 1].id}`)}><Icon icon={ArrowRight01Icon} className="size-[16px]" strokeWidth={2} /></Button>
             </div>
           )}
-          <div className={"max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
+          <LockedTooltip what="translation" locked={locked} className={"max-lg:hidden " + (sharedOwner ? "hidden" : "inline-flex")}>
+          <div className={"max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex") + (locked ? " " + LOCKED_CLASS : "")}>
             <Select
               value={selectedTranslationLang || undefined}
               onValueChange={setSelectedTranslationLang}
-              disabled={isTranslationLoading || isJobTranscribing}
+              disabled={isTranslationLoading || isJobTranscribing || locked}
             >
               <SelectTrigger size="sm" className="h-8 w-[190px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
                 <SelectValue placeholder="Translate to..." />
@@ -4259,6 +4277,7 @@ export function TranscriptionDetailPage() {
               </Button>
             </div>
           </div>
+          </LockedTooltip>
           {desktopShell && <span className="max-lg:hidden"><Tooltip><TooltipTrigger asChild><Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" aria-label="Side by side with the call" onClick={() => { window.sessionStorage.setItem("ttt_demo_desk", "split"); navigate("/desk"); }}><Icon icon={LayoutRightIcon} className="size-4" strokeWidth={1.9} /></Button></TooltipTrigger><TooltipContent>Side by side with the call</TooltipContent></Tooltip></span>}
         </div>
 
@@ -4304,12 +4323,13 @@ export function TranscriptionDetailPage() {
           onTranslateTo={(code) => { void handleTranslate(code); }}
           activeTranslationLang={activeTranslationLang}
           translationDisabled={isTranslationLoading || isJobTranscribing}
+          locked={locked}
         />
         {/* Translating somebody else's record is not one of the things a reader
             may do - the spec hides it, and the desktop row already did. */}
         {!isJobTranscribing && !sharedOwner && (
           <div className="md:hidden flex items-center gap-2 px-4 pt-3">
-            <Button variant="pill-outline" onClick={() => setLangSheetOpen(true)} disabled={isTranslationLoading || isJobTranscribing} className="flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0">
+            <Button variant="pill-outline" data-translate-pill onClick={() => { if (locked) { toastLocked("translation"); return; } setLangSheetOpen(true); }} disabled={isTranslationLoading || isJobTranscribing} aria-disabled={locked || undefined} className={"flex-1 h-9 gap-1.5 px-3 justify-between text-[13px] font-medium min-w-0" + (locked ? " " + LOCKED_CLASS : "")}>
               <span className="flex items-center gap-1.5 min-w-0">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="size-[14px] text-muted-foreground shrink-0"><circle cx="12" cy="12" r="9" /><path d="M3 12h18" /><path d="M12 3a15 15 0 0 1 0 18" /><path d="M12 3a15 15 0 0 0 0 18" /></svg>
                 <span className="truncate">{activeTranslationMeta ? activeTranslationMeta.flag + " " + activeTranslationMeta.short : "Translate"}</span>
@@ -4358,8 +4378,9 @@ export function TranscriptionDetailPage() {
 
             {/* Right side of tab row: context-dependent */}
             <div className="mb-1 flex items-center gap-2 max-md:hidden md:max-lg:mb-2">
-              <div className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
-                <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing}>
+              <LockedTooltip what="translation" locked={locked} className={"lg:hidden " + (sharedOwner ? "hidden" : "inline-flex")}>
+              <div className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex") + (locked ? " " + LOCKED_CLASS : "")}>
+                <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing || locked}>
                   <SelectTrigger size="sm" className="h-8 w-[168px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
                     <SelectValue placeholder="Translate to..." />
                   </SelectTrigger>
@@ -4377,6 +4398,7 @@ export function TranscriptionDetailPage() {
                   </Button>
                 </div>
               </div>
+              </LockedTooltip>
               {isJobTranscribing ? null : activeTab === "transcript" ? (
                 editMode ? (
                   <>
@@ -4592,9 +4614,11 @@ export function TranscriptionDetailPage() {
                 <p className="text-[13px] text-muted-foreground leading-relaxed mt-1.5 max-w-[360px]">
                   Pick a template and we will turn this transcript into a structured summary.
                 </p>
-                <Button className="rounded-full h-9 px-5 text-[13px] font-medium mt-5" onClick={() => setTemplatePickerOpen(true)}>
+                <LockedTooltip what="templates" locked={locked} className="inline-flex mt-5">
+                <Button className={"rounded-full h-9 px-5 text-[13px] font-medium mt-5" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined} onClick={() => setTemplatePickerOpen(true)}>
                   Apply template
                 </Button>
+                </LockedTooltip>
               </div>
             ) : (
               <SummaryTab summaryText={contentSummary} template={activeTemplate} highlight={summaryQuery} />

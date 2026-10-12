@@ -17,7 +17,7 @@ import {
 } from "./ui/dropdown-menu";
 import { useLanguage } from "./language-context";
 import { useTranscriptionModals } from "./transcription-modals";
-import { useAccountLock, toastLocked } from "./account-lock";
+import { useAccountLock, toastLocked, LockedTooltip } from "./account-lock";
 import { FAB_RIGHT, ADD_FAB_SIZE, ADD_FAB_BOTTOM } from "./mobile-fab-layout";
 import { useInnerScreen } from "./inner-screen";
 import { useFabHidden } from "./fab-visibility";
@@ -80,7 +80,7 @@ export function BottomNav() {
 
   /* Locked: the button stays, greyed, and a press explains instead of
      offering four paths that would each end in the same refusal. */
-  if (locked) return fab;
+  if (locked) return <LockedTooltip what="files" locked className="contents">{fab}</LockedTooltip>;
 
   /* From md up the four paths hang off the button, right-aligned to it and
      opening upwards, so the choice appears where the finger already is. */

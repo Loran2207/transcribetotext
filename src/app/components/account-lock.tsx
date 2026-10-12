@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Alert02Icon, Mail } from "@hugeicons/core-free-icons";
 import { Button } from "@/app/components/ui/button";
 import { Icon } from "@/app/components/ui/icon";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/app/components/ui/tooltip";
 import { ToastCard } from "./app-toast";
 import { useAuth } from "./auth-context";
 
@@ -11,9 +11,12 @@ import { useAuth } from "./auth-context";
    signed-in account. The real verdict will come from the backend once the team
    decides what counts as suspicious; this file is the state the app shows.
 
-   A locked account is not shut out. The person still reads their records and
-   still reaches the plan, so a running subscription can be cancelled. What
-   stops is adding anything new: upload, recording, meeting bot, link. */
+   A locked account is not shut out: the person still reads their records.
+   What stops is everything that costs the company money: adding files
+   (upload, recording, meeting bot, link), applying templates, translating.
+   Every such control stays where it is, greyed, with a tooltip that says why
+   on hover and the same words as a toast on a press. The one way out is
+   support. */
 const LOCK_FLAG = "ttt_demo_locked";
 const SUPPORT = "support@transcribetotext.ai";
 
@@ -47,16 +50,26 @@ function supportMailto(email: string) {
   return `mailto:${SUPPORT}?subject=${subject}&body=${body}`;
 }
 
-/* The one message a blocked action gives, wherever it was tried from: the
-   cards, the phone tiles, the plus button, a dropped file, a keyboard shortcut.
-   It names what is paused and hands over the way out. */
-export function toastLocked(email = "") {
+/* What a locked control would have done, in the words of its own label. */
+export type LockedWhat = "files" | "templates" | "translation";
+
+const PAUSED: Record<LockedWhat, string> = {
+  files: "Adding files is paused",
+  templates: "Templates are paused",
+  translation: "Translation is paused",
+};
+
+export const LOCKED_REASON = "Your account is locked. Write to support to unlock it.";
+
+/* The one message a blocked action gives, wherever it was tried from. It names
+   what is paused and hands over the way out. */
+export function toastLocked(what: LockedWhat = "files", email = "") {
   toast.custom(
     (id) => (
       <ToastCard
         tone="error"
-        title="Adding files is paused"
-        meta="Your account is locked. Write to support to unlock it."
+        title={PAUSED[what]}
+        meta={LOCKED_REASON}
         action={{ label: "Write to support", onClick: () => { toast.dismiss(id); window.location.href = supportMailto(email); } }}
       />
     ),
@@ -64,64 +77,32 @@ export function toastLocked(email = "") {
   );
 }
 
+/* Hover explanation for a greyed control. Wraps the trigger in a span so the
+   tooltip still opens when the control itself is disabled. Does nothing while
+   the account is not locked. */
+export function LockedTooltip({ what, locked, children }: { what: LockedWhat; locked: boolean; children: ReactNode; className?: string }) {
+  if (!locked) return <>{children}</>;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="bottom" className="max-w-[240px] text-center">
+        {PAUSED[what]}. {LOCKED_REASON}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/* The classes a locked control wears: still in place, visibly inactive. */
+export const LOCKED_CLASS = "grayscale opacity-45 cursor-not-allowed";
+
 /* Sits at the top of the content area on every page while the lock holds. Not
    dismissible: it is the state, not a notice. One line says what happened and
-   what still works; the two buttons are the two things a locked person needs,
-   the way out and the way to their subscription. */
-export function AccountLockedBanner({ onNavigate }: { onNavigate: (page: string) => void }) {
+   what still works; the one button is the one way out. */
+export function AccountLockedBanner() {
   const locked = useAccountLock();
   const { user } = useAuth();
-  const [params] = useSearchParams();
-  const variant = params.get("v");
   if (!locked) return null;
   const email = user?.email ?? "";
-
-  const openPlan = () => {
-    try { window.localStorage.setItem("ttt_demo_settings_section", "plan"); } catch { /* demo only */ }
-    onNavigate("settings");
-  };
-
-  /* two renderings to choose from, as with the pictures before: the red tinted
-     strip (a), or a quieter white card with the product's matte still life and
-     red kept for the one word and the one button (b, ?v=b) */
-  if (variant === "b") {
-    return (
-      <div
-        data-account-locked-banner
-        role="alert"
-        className="mx-[16px] mt-[16px] md:mx-[24px] md:mt-[20px] lg:mx-[32px] lg:mt-[24px] flex items-center gap-[12px] md:gap-[16px] rounded-[16px] border border-border bg-card pl-[12px] pr-[14px] py-[12px] md:pl-[14px] shadow-[var(--elevation-sm)]"
-      >
-        <img src="/images/lock-badge.png" alt="" className="shrink-0 size-[56px] md:size-[72px] object-contain" />
-        <div className="flex-1 min-w-0 flex flex-col gap-[3px]">
-          <p className="flex items-center gap-[8px] text-[15px] font-semibold leading-[20px] tracking-[-0.2px] text-foreground">
-            <span className="size-[8px] rounded-full bg-destructive shrink-0" />
-            Your account is locked
-          </p>
-          <p className="text-[13px] leading-[18px] text-muted-foreground">
-            <span className="hidden md:inline">
-              Unusual activity{email ? <> on <span className="font-medium text-foreground">{email}</span></> : null}. Your records and plan are still here; adding new files is paused until support unlocks the account.
-            </span>
-            <span className="md:hidden">Adding files is paused. Records and plan stay available.</span>
-          </p>
-          <div className="flex items-center gap-[6px] mt-[8px] md:hidden">
-            <Button asChild variant="destructive" className="h-[34px] px-[14px] text-[13px]">
-              <a href={supportMailto(email)}>Write to support</a>
-            </Button>
-            <Button variant="ghost" onClick={openPlan} className="h-[34px] px-[12px] text-[13px]">Manage plan</Button>
-          </div>
-        </div>
-        <div className="hidden md:flex items-center gap-[6px] shrink-0">
-          <Button asChild variant="destructive" className="h-[36px] px-[16px] text-[13px]">
-            <a href={supportMailto(email)}>
-              <Icon icon={Mail} className="size-[16px]" strokeWidth={2} />
-              Write to support
-            </a>
-          </Button>
-          <Button variant="ghost" onClick={openPlan} className="h-[36px] px-[14px] text-[13px]">Manage plan</Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -136,20 +117,17 @@ export function AccountLockedBanner({ onNavigate }: { onNavigate: (page: string)
         <p className="text-[15px] font-semibold leading-[20px] tracking-[-0.2px]">Your account is locked</p>
         <p className="text-[13px] leading-[18px] text-destructive/85">
           <span className="hidden md:inline">
-            We noticed unusual activity{email ? <> on <span className="font-medium text-destructive">{email}</span></> : null}. You can still read your records and manage your plan. Adding new files is paused until support unlocks the account.
+            We noticed unusual activity{email ? <> on <span className="font-medium text-destructive">{email}</span></> : null}. You can still read your records. Adding files, templates and translation are paused until support unlocks the account.
           </span>
-          <span className="md:hidden">Adding files is paused. Your records and plan stay available.</span>
+          <span className="md:hidden">Adding files, templates and translation are paused. Your records stay available.</span>
         </p>
       </div>
-      <div className="flex items-center gap-[6px] shrink-0">
+      <div className="flex items-center shrink-0">
         <Button asChild variant="destructive" className="h-[36px] px-[16px] text-[13px]">
           <a href={supportMailto(email)}>
             <Icon icon={Mail} className="size-[16px]" strokeWidth={2} />
             Write to support
           </a>
-        </Button>
-        <Button variant="ghost" onClick={openPlan} className="h-[36px] px-[14px] text-[13px] text-destructive hover:text-destructive hover:bg-destructive/10">
-          Manage plan
         </Button>
       </div>
     </div>

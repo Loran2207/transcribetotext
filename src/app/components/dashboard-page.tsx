@@ -16,7 +16,7 @@ import { DashboardInsights } from "./dashboard-insights";
 import { ScrollFade } from "./scroll-fade";
 import { UpgradeBanner } from "./upgrade-banner";
 import { usePlan } from "./use-plan";
-import { useAccountLock } from "./account-lock";
+import { useAccountLock, LockedTooltip } from "./account-lock";
 import { PromoCard } from "./right-panel";
 
 /* ═══════════════════════════════════════════
@@ -444,15 +444,17 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
           {/* Tablet: the four illustrated cards in a 2x2 grid (no kbd) */}
           <div className="hidden md:grid lg:hidden grid-cols-2 gap-[12px] mt-[16px]">
             {cards.map(({ card, key, modal }) => (
-              <div key={key} className={"relative" + lockedCardClass} aria-disabled={locked || undefined} onClick={() => setOpenModal(modal)}>
+              <LockedTooltip key={key} what="files" locked={locked} className="contents">
+              <div className={"relative" + lockedCardClass} aria-disabled={locked || undefined} onClick={() => setOpenModal(modal)}>
                 {card}
               </div>
+              </LockedTooltip>
             ))}
           </div>
           <motion.div className="hidden lg:flex gap-[12px] mt-[34px]" {...fadeUp(0.48, 50)}>
             {cards.map(({ card, key, modal }) => (
+              <LockedTooltip key={key} what="files" locked={locked} className="contents">
               <div
-                key={key}
                 className={"relative flex-1 min-w-0 group" + lockedCardClass}
                 aria-disabled={locked || undefined}
                 onClick={() => {
@@ -469,6 +471,7 @@ export function DashboardPage({ onNavigate, onOpenFolder }: { onNavigate?: (page
                   <span>{key}</span>
                 </kbd>}
               </div>
+              </LockedTooltip>
             ))}
           </motion.div>
           
