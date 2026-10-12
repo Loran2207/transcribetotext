@@ -439,6 +439,7 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
     return createPortal(
       <>
         <div
+          data-queue-fab=""
           className={"fixed " + layer}
           style={{ right: HISTORY_FAB_RIGHT, bottom: HISTORY_FAB_BOTTOM }}
         >

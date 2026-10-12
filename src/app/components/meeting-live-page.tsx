@@ -11,7 +11,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "./ui/alert-dialog";
 import { SourceIcon, getSourceLabel, type SourceType } from "./source-icons";
-import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
+import { Textarea } from "./ui/textarea";
 import { TemplatePicker } from "./template-picker";
 import { useTemplates } from "@/hooks/use-templates";
 import { templateEmoji } from "@/lib/template-meta";
@@ -40,8 +40,10 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
   const { stopMeetingBot, cancelMeetingBot, reconnectBot } = useTranscriptionModals();
   const [tab, setTab] = useState<LiveTab>("transcript");
   const [stopOpen, setStopOpen] = useState(false);
-  const [pad, setPad] = useState<PadLine[]>(() => loadPad(job.id));
-  useEffect(() => { savePad(job.id, pad); }, [pad, job.id]);
+  /* notes are a plain field: typed during the call, kept per meeting, used by the summary. No slash menu, no formatting (Kirill, 12.10) */
+  const notesKey = "ttt_live_notes:" + job.id;
+  const [notes, setNotes] = useState<string>(() => { try { return window.localStorage.getItem(notesKey) ?? ""; } catch { return ""; } });
+  useEffect(() => { try { window.localStorage.setItem(notesKey, notes); } catch { /* ignore */ } }, [notes, notesKey]);
 
   const isConnecting = job.status === "connecting";
   const isRecording = job.status === "recording";
@@ -126,14 +128,14 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
           <div className="flex-1 overflow-auto">
             {tab === "notes" ? (
               <div className="mx-auto flex min-h-full w-full max-w-[980px] flex-col px-4 py-6 lg:px-8">
-                <NotesPad
-                  lines={pad}
-                  onChange={setPad}
-                  templates={[]}
-                  onTemplate={() => {}}
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
                   autoFocus
-                  hint={isError ? "Nothing was recorded. Your notes stay here if you send the bot again." : "Your notes during the meeting. They go into the summary together with the transcript."}
+                  placeholder="Write notes"
+                  className="min-h-[320px] flex-1 resize-none border-0 bg-transparent px-0 text-[15px] leading-[26px] shadow-none focus-visible:ring-0"
                 />
+                <p className="mt-3 text-[12.5px] text-muted-foreground">{isError ? "Nothing was recorded. Your notes stay here if you send the bot again." : "Your notes during the meeting. They go into the summary together with the transcript."}</p>
               </div>
             ) : tab === "summary" ? (
               <LiveSummaryTab error={isError} />
@@ -196,7 +198,7 @@ function DoorCard({ phase, botName, platform, source, waited, onJoin, onCancel }
   const left = Math.max(0, BOT_LOBBY_LIMIT_SECONDS - waited);
   return (
     <div className="flex justify-center px-2 py-10 lg:py-16" data-door={phase}>
-      <div className="w-full max-w-[520px] rounded-[16px] border border-border bg-card px-6 py-7 text-center">
+      <div className="w-full max-w-[520px] px-6 py-4 text-center">
         <span className="relative mx-auto flex size-[64px] items-center justify-center">
           {/* two rings leave the mark, the way a call rings: something is happening, without claiming a number */}
           <span aria-hidden className="ttt-ring absolute inset-0 rounded-full border-2 border-primary/40" />
@@ -248,7 +250,7 @@ function NotAdmittedCard({ errorType, botName, platform, source, onResend, onJoi
     : `${botName} asked to join and the host turned it down. Nothing was recorded.`;
   return (
     <div className="flex justify-center px-2 py-10 lg:py-16" data-door="error">
-      <div className="w-full max-w-[520px] rounded-[16px] border border-border bg-card px-6 py-7 text-center">
+      <div className="w-full max-w-[520px] px-6 py-4 text-center">
       <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10">
         <Icon icon={Alert02Icon} className="size-[22px] text-destructive" strokeWidth={1.8} />
       </span>
