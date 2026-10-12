@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAccountLock, LOCKED_CLASS } from "./account-lock";
 import { createPortal } from "react-dom";
 import { useFolders, type FolderItem } from "./folder-context";
 import { useLanguage } from "./language-context";
@@ -276,6 +277,7 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
   // Demo: ttt_demo_records=loading -> skeleton the folder cards too (matches the table skeleton)
   const demoRecordsLoading = typeof window !== "undefined" && window.localStorage.getItem("ttt_demo_records") === "loading";
   const { setOpenModal, openUploadWithFiles, setDefaultFolderId } = useTranscriptionModals();
+  const locked = useAccountLock();
 
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [deletingFolderId, setDeletingFolderId] = useState<string | null>(null);
@@ -514,7 +516,8 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="pill-outline"
-                  className="max-lg:hidden flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer"
+                  className={"max-lg:hidden flex items-center gap-[7px] h-9 px-[16px] shrink-0 transition-colors cursor-pointer" + (locked ? " " + LOCKED_CLASS : "")}
+                  aria-disabled={locked || undefined}
                 >
                   <Icon icon={CloudUpload} className="size-[15px] text-foreground" strokeWidth={1.5} />
                   <span className="font-medium text-[13px] text-foreground">Upload</span>
@@ -522,19 +525,19 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" sideOffset={6} className="w-[200px]">
-                <DropdownMenuItem className="gap-2" onClick={() => openModalInFolder("upload")}>
+                <DropdownMenuItem className={"gap-2" + (locked ? " opacity-45" : "")} aria-disabled={locked || undefined} onClick={() => openModalInFolder("upload")}>
                   <Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   Audio & video files
                 </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2" onClick={() => openModalInFolder("record")}>
+                <DropdownMenuItem className={"gap-2" + (locked ? " opacity-45" : "")} aria-disabled={locked || undefined} onClick={() => openModalInFolder("record")}>
                   <Icon icon={Microphone} className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   Instant speech
                 </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2" onClick={() => openModalInFolder("link")}>
+                <DropdownMenuItem className={"gap-2" + (locked ? " opacity-45" : "")} aria-disabled={locked || undefined} onClick={() => openModalInFolder("link")}>
                   <Icon icon={Link} className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   Transcribe from link
                 </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2" onClick={() => openModalInFolder("meeting")}>
+                <DropdownMenuItem className={"gap-2" + (locked ? " opacity-45" : "")} aria-disabled={locked || undefined} onClick={() => openModalInFolder("meeting")}>
                   <Icon icon={Video} className="size-4 text-muted-foreground" strokeWidth={1.5} />
                   Record meeting
                 </DropdownMenuItem>
@@ -788,25 +791,25 @@ export function MyRecordsPage({ initialFolderId, onFolderConsumed }: { initialFo
             <DrawerTitle style={{ fontSize: 18, fontWeight: 600 }}>Add file to folder</DrawerTitle>
           </div>
           <div className="px-[18px] pb-[24px] flex flex-col gap-[8px]">
-            <button key="upload" onClick={() => { setFolderAddOpen(false); openModalInFolder("upload"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+            <button key="upload" onClick={() => { setFolderAddOpen(false); openModalInFolder("upload"); }} className={"flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined}>
               <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#ECEAFE", color: "#7C3AED" }}>
                 <Icon icon={Upload} className="size-[20px]" strokeWidth={1.9} />
               </span>
               <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Audio & video files</span>
             </button>
-            <button key="record" onClick={() => { setFolderAddOpen(false); openModalInFolder("record"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+            <button key="record" onClick={() => { setFolderAddOpen(false); openModalInFolder("record"); }} className={"flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined}>
               <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#E3F0FE", color: "#2563EB" }}>
                 <Icon icon={Microphone} className="size-[20px]" strokeWidth={1.9} />
               </span>
               <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Instant speech</span>
             </button>
-            <button key="meeting" onClick={() => { setFolderAddOpen(false); openModalInFolder("meeting"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+            <button key="meeting" onClick={() => { setFolderAddOpen(false); openModalInFolder("meeting"); }} className={"flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined}>
               <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#FFF1DC", color: "#D97706" }}>
                 <Icon icon={Video} className="size-[20px]" strokeWidth={1.9} />
               </span>
               <span className="min-w-0 truncate text-foreground" style={{ fontWeight: 500, fontSize: 14 }}>Meeting recorder</span>
             </button>
-            <button key="link" onClick={() => { setFolderAddOpen(false); openModalInFolder("link"); }} className="flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left">
+            <button key="link" onClick={() => { setFolderAddOpen(false); openModalInFolder("link"); }} className={"flex items-center gap-[14px] h-[56px] px-[14px] rounded-[16px] bg-muted active:bg-muted/70 transition-colors text-left" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined}>
               <span className="flex items-center justify-center size-[40px] rounded-full shrink-0" style={{ backgroundColor: "#FEECEB", color: "#EF4444" }}>
                 <Icon icon={Link} className="size-[20px]" strokeWidth={1.9} />
               </span>

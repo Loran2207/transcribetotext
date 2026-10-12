@@ -1,12 +1,18 @@
-import { useState, useRef, useCallback, useEffect, useMemo, type ReactNode } from "react";
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
-import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon } from "@hugeicons/core-free-icons";
+import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon, Comment01Icon, CommentAdd01Icon, HighlighterIcon, Copy01Icon, Delete02Icon, StopIcon, ArrowUp02Icon, ArrowDown02Icon } from "@hugeicons/core-free-icons";
 import { useShell, useDemo } from "./desktop/shell";
 import { NotesPad, loadPad, savePad, padToText, type PadLine } from "./desktop/notes-pad";
 import { readSharedRecordOwner } from "@/lib/share-demo";
+import { useAnnotations, useLabels, type LabelsApi } from "@/hooks/use-annotations";
+import { DEFAULT_LABEL_ID, HIDDEN, SIMPLE_HIGHLIGHTS, countLabelsElsewhere, coveringMark, coversBlock, loadAnnotations, mergesWith, moveAnnotations, saveAnnotations, snapRange, type Anchor, type Highlight, type Label, type LabelColor, type Run, type Thread } from "@/lib/annotations";
+import { ScrollRow } from "./scroll-row";
+import { AnnotatedText, BlockActions, MarkBar, CommentComposer, CommentsList, HighlightsList, ThreadSheet, clampToColumn, deleteThreadWithUndo, edgeLine, removeHighlightWithUndo, toastUndo, type BarAction, type Focus, type NotesView } from "./annotations/annotations-ui";
+import { DOT, HighlightButton, LabelChip, LabelPicker, ManageLabelsDialog, PlayerMarkers, type PlayerMarker } from "./annotations/labels-ui";
+import { focusOrigin } from "./focus-origin";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, RemoveSpeakerDialog, SpeakersChip, PencilIcon, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
@@ -130,26 +136,6 @@ interface Segment {
   preview?: boolean;
 }
 
-interface Comment {
-  id: string;
-  segmentId: number;
-  quote: string;
-  timestamp: string;
-  author: string;
-  avatarColor: string;
-  avatarInitial: string;
-  text: string;
-  createdAt: string;
-  replies: {
-    id: string;
-    author: string;
-    avatarColor: string;
-    avatarInitial: string;
-    text: string;
-    createdAt: string;
-  }[];
-}
-
 interface OutlineSection {
   id: string;
   title: string;
@@ -230,7 +216,27 @@ function splitWords(text: string): string[] {
    Solid token, not an opacity modifier - those compile to color-mix() and the
    capture drops them. Nothing changes the font weight, for the same reason
    padding is avoided. */
-const ACTIVE_SENTENCE = "bg-transparent text-primary";
+/* Kirill (06.10): the sentence being played is lit light blue, not left grey; the
+   word carries the deeper wash on top of it. */
+const ACTIVE_SENTENCE = "bg-primary-wash-soft py-[2px] text-primary [box-decoration-break:clone]";
+
+/* where the sentence and the word being said sit in the block, as character ranges */
+function playbackRange(text: string, sentence: number, word: number | null | undefined) {
+  const parts = splitSentences(text);
+  const idx = Math.min(sentence, parts.length - 1);
+  let start = 0;
+  for (let i = 0; i < idx; i++) start += parts[i].length;
+  const end = start + (parts[idx]?.length ?? 0);
+  if (word == null) return { start, end };
+  let at = start;
+  let seen = -1;
+  for (const token of splitWords(parts[idx] ?? "")) {
+    if (token !== " ") seen += 1;
+    if (seen === word && token !== " ") return { start, end, word: { start: at, end: at + token.length } };
+    at += token.length;
+  }
+  return { start, end };
+}
 const ACTIVE_WORD = "rounded-[3px] bg-primary-wash py-[2px] text-primary";
 
 function secondsToTimestamp(total: number) {
@@ -400,11 +406,6 @@ const MOCK_OUTLINE: OutlineSection[] = [
   { id: "o5", title: "Wrap-up", timestamp: "4:18", segmentId: 11, bullets: [{ text: "No further concerns raised", segmentId: 11 }] },
 ];
 
-const MOCK_COMMENTS: Comment[] = [
-  { id: "c1", segmentId: 3, quote: "The engineering team has been waiting on those mockups...", timestamp: "0:58", author: "Alex Johnson", avatarColor: "#3b82f6", avatarInitial: "A", text: "We should track this dependency more formally going forward.", createdAt: "2h ago", replies: [{ id: "r1", author: "James Chen", avatarColor: "#10b981", avatarInitial: "J", text: "Agreed - I'll add it to our sprint retro.", createdAt: "1h ago" }] },
-  { id: "c2", segmentId: 9, quote: "40% of users are finding the current notification settings confusing", timestamp: "3:28", author: "Maria Garcia", avatarColor: "#8b5cf6", avatarInitial: "M", text: "This aligns with what we saw in the support tickets last month. Definitely needs attention.", createdAt: "45m ago", replies: [] },
-];
-
 const MOCK_SUMMARY = `## Key Discussion Points
 
 - **Product Roadmap Update**: The team is approximately 80% through the current milestone, with remaining work focused on backend API development and performance optimizations. No current blockers identified.
@@ -568,110 +569,57 @@ function useEditHistory(initial: Record<number, string>) {
   return { texts: present, update, undo, redo, canUndo, canRedo, reset };
 }
 
-// ════════════════════════════════════════════════════════════
-// Segment Actions (shown on hover/focus)
-// ════════════════════════════════════════════════════════════
-
-function SegmentInlineActions({
-  segmentId,
-  isHighlighted,
-  onToggleHighlight,
-  onOpenComment,
-  onShare,
-  onCopyText,
-}: {
-  segmentId: number;
-  isHighlighted: boolean;
-  onToggleHighlight: (id: number) => void;
-  onOpenComment: (id: number) => void;
-  onShare: (id: number) => void;
-  onCopyText: (id: number) => void;
-}) {
-  return (
-    <div
-      className="absolute right-2 top-3 z-20 flex items-center gap-1 rounded-full border border-border/70 bg-background/95 p-1.5 shadow-sm backdrop-blur-[2px] transition-all duration-150 opacity-0 pointer-events-none translate-y-1 group-hover/seg:opacity-100 group-hover/seg:pointer-events-auto group-hover/seg:translate-y-0 group-focus-within/seg:opacity-100 group-focus-within/seg:pointer-events-auto group-focus-within/seg:translate-y-0"
-    >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`size-7 rounded-full ${isHighlighted ? "text-amber-600 hover:text-amber-700" : "text-muted-foreground hover:text-foreground"}`}
-            onClick={() => onToggleHighlight(segmentId)}
-            aria-label={isHighlighted ? "Remove highlight" : "Highlight segment"}
-          >
-            <PenLine className="size-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">{isHighlighted ? "Remove highlight" : "Highlight"}</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 rounded-full text-muted-foreground hover:text-foreground"
-            onClick={() => onOpenComment(segmentId)}
-            aria-label="Add comment"
-          >
-            <MessageSquarePlus className="size-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">Comment</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 rounded-full text-muted-foreground hover:text-foreground"
-            onClick={() => onShare(segmentId)}
-            aria-label="Share segment"
-          >
-            <Share2 className="size-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">Share</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 rounded-full text-muted-foreground hover:text-foreground"
-            onClick={() => onCopyText(segmentId)}
-            aria-label="Copy text"
-          >
-            <CopyLucide className="size-3.5" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">Copy text</TooltipContent>
-      </Tooltip>
-    </div>
-  );
-}
 function SelectionHighlightPill({
   position,
+  below,
   onHighlight,
+  onComment,
+  onPress,
+  labels,
+  onManageLabels,
+  menuOpen,
+  onMenuOpenChange,
+  sheet = false,
   speaker,
 }: {
-  position: { x: number; y: number };
-  onHighlight: () => void;
+  position: { x: number; y: number; bottom: number };
+  /* on touch the phone's own Copy menu sits above the words, so the bar goes under them */
+  below?: boolean;
+  onHighlight: (labelId: string) => void;
+  onComment: () => void;
+  onPress?: () => void;
+  labels: LabelsApi;
+  onManageLabels: () => void;
+  /* H opens the list from the keyboard */
+  menuOpen?: boolean;
+  onMenuOpenChange?: (open: boolean) => void;
+  /* touch: the label choice opens as a sheet */
+  sheet?: boolean;
   /* when the transcript has several voices: the selected words can be handed to another one */
   speaker?: { current: Speaker; speakers: Speaker[]; onPick: (choice: SpeakerChoice) => void; note?: string; onPreview?: (speakerId: string | null) => void; onOpen?: (open: boolean) => void; mark?: { start: number; end: number }; onRename?: (id: string, name: string) => void; onRemove?: (id: string) => void; onAddSpeaker?: (name: string) => void };
 }) {
   const [open, setOpen] = useState(false);
+  const barRef = useRef<HTMLDivElement>(null);
+  const [left, setLeft] = useState(position.x);
+  const [height, setHeight] = useState(38);
+  useLayoutEffect(() => {
+    setLeft(clampToColumn(position.x, barRef.current?.offsetWidth ?? 0));
+  }, [position.x]);
+  useLayoutEffect(() => { setHeight(barRef.current?.offsetHeight ?? 38); }, []);
   /* the same floating bar the block shows on hover (highlight, comment, share, copy): white, a border, a soft shadow */
-  const action = "h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground data-[state=open]:bg-muted/70 data-[state=open]:text-foreground";
+  const action = "h-7 gap-1.5 rounded-full px-2.5 text-xs text-foreground data-[state=open]:bg-muted/70 [@media(pointer:coarse)]:h-9";
   return (
     <div
+      ref={barRef}
       data-selection-pill=""
-      className="fixed z-50 flex items-center gap-0.5 rounded-full border border-border/70 bg-background/95 p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
-      style={{ left: position.x, top: position.y - 40 }}
+      className="fixed z-50 flex items-center gap-0.5 rounded-full border border-border/70 bg-background p-1 shadow-sm backdrop-blur-[2px] animate-in fade-in zoom-in-95 duration-150"
+      style={{ left, top: below ? position.bottom + 10 : position.y - height - 2 }}
       onMouseDown={(e) => { if (!open) e.preventDefault(); }}
+      onPointerDown={onPress}
     >
-      <Button size="sm" variant="ghost" className={action} onMouseDown={(e) => { e.preventDefault(); onHighlight(); }}>
-        <PenLine className="size-3.5" />Highlight
+      <HighlightButton labels={labels} sheet={sheet} variant="bar" side={below ? "bottom" : "top"} shortcut="H" open={menuOpen} onOpenChange={onMenuOpenChange} onHighlight={(id) => onHighlight(id)} onManage={onManageLabels} />
+      <Button size="sm" variant="ghost" data-pill-comment="" className={action} onClick={onComment}>
+        <Icon icon={CommentAdd01Icon} className="size-[14px]" strokeWidth={1.8} />Comment
       </Button>
       {speaker && (
         <>
@@ -682,7 +630,7 @@ function SelectionHighlightPill({
               {speaker.current.avatar
                 ? <img src={speaker.current.avatar} alt="" className="size-5 rounded-full object-cover" />
                 : <span className="inline-flex size-5 items-center justify-center rounded-full text-[9px] font-semibold text-white" style={{ backgroundColor: speaker.current.color }}>{speaker.current.initial}</span>}
-              <span className="max-w-[140px] truncate text-foreground">{speaker.current.name}</span>
+              <span className={(below ? "max-w-[84px]" : "max-w-[140px]") + " truncate text-foreground"}>{speaker.current.name}</span>
               <PencilIcon className="size-[12px] shrink-0 text-muted-foreground" />
             </Button>
           </SpeakerPicker>
@@ -779,6 +727,35 @@ function SpeakerLabel({
   );
 }
 
+type SegmentNotes = {
+  highlights: Highlight[];
+  threads: Thread[];
+  focus: Focus | null;
+  /* a whole-block highlight you may take off (yours, or any on your own record) */
+  blockHighlighted: boolean;
+  blockLabel?: Label;
+  raised?: boolean;
+  /* the words a comment is being written about stay washed while the field has focus */
+  pending?: { start: number; end: number };
+  /* touch: the block's bar shows after a tap, there is no hover */
+  revealed: boolean;
+  quiet: boolean;
+  onMark: (run: Run, rect: DOMRect, lines: DOMRect[]) => void;
+  onTapText: () => void;
+  onHighlightBlock: (labelId: string) => void;
+  onRemoveBlockHighlight: () => void;
+  labels: LabelsApi;
+  sheet: boolean;
+  onManageLabels?: () => void;
+  colorOf: (highlightId: string) => LabelColor;
+  /* what the colour means, for the tooltip on the words: the label, and whose it is when not yours */
+  titleOf: (highlightId: string) => string;
+  /* absent while the call is still running: comments wait for the finished note */
+  onCommentBlock?: (rect: DOMRect) => void;
+  onOpenComments: () => void;
+  onCopy: () => void;
+};
+
 function TranscriptSegment({
   segment,
   nextTimestamp,
@@ -791,19 +768,8 @@ function TranscriptSegment({
   activeSentence,
   activeWord,
   segmentRef,
-  isSegHighlighted,
-  onToggleHighlight,
-  onOpenComment,
-  onShare,
-  onCopyText,
-  inlineComment,
-  onCommentSubmit,
-  onCommentCancel,
-  onCommentChange,
-  commentValue,
-  textHighlights,
+  notes,
   selectionMark,
-  showActions = true,
   hideSpeaker = false,
   hideTimecodes = false,
   onSeekTimecode,
@@ -821,21 +787,11 @@ function TranscriptSegment({
   activeSentence?: number | null;
   activeWord?: number | null;
   segmentRef: (el: HTMLDivElement | null) => void;
-  isSegHighlighted: boolean;
-  onToggleHighlight: (id: number) => void;
-  onOpenComment: (id: number) => void;
-  onShare: (id: number) => void;
-  onCopyText: (id: number) => void;
-  inlineComment: boolean;
-  onCommentSubmit: () => void;
-  onCommentCancel: () => void;
-  onCommentChange: (v: string) => void;
-  commentValue: string;
-  textHighlights: { start: number; end: number }[];
+  /* highlights, comments and the block bar; a block without them (live, translated) is plain text */
+  notes?: SegmentNotes;
   /* the words picked for a speaker change stay washed while the menu is open (the native selection
      collapses when the search field takes focus) */
   selectionMark?: { start: number; end: number };
-  showActions?: boolean;
   hideSpeaker?: boolean;
   hideTimecodes?: boolean;
   onSeekTimecode?: (timestamp: string) => void;
@@ -846,33 +802,19 @@ function TranscriptSegment({
   speakerControl?: SpeakerControl;
 }) {
   const [speakerOpen, setSpeakerOpen] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
   const segmentText = editText ?? segment.text;
   const segmentEndTimestamp = nextTimestamp ?? segment.timestamp;
   const lineTone = highlighted
     ? "bg-primary/35"
-    : isSegHighlighted
-      ? "bg-amber-300/80"
-      : isPlaybackActive
+    : isPlaybackActive
         ? "bg-primary"
         : isPlayed
           ? "bg-border/50"
           : "bg-border/80";
 
-  // Render text with inline highlights
-  function renderText(text: string) {
-    if (textHighlights.length === 0) return text;
-    const sorted = [...textHighlights].sort((a, b) => a.start - b.start);
-    const parts: React.ReactNode[] = [];
-    let cursor = 0;
-    for (let i = 0; i < sorted.length; i++) {
-      const h = sorted[i];
-      if (h.start > cursor) parts.push(text.slice(cursor, h.start));
-      parts.push(<mark key={i} className="bg-yellow-200/60 rounded-sm px-0.5">{text.slice(h.start, h.end)}</mark>);
-      cursor = h.end;
-    }
-    if (cursor < text.length) parts.push(text.slice(cursor));
-    return parts;
-  }
+  const blockHighlighted = Boolean(notes?.blockHighlighted);
+  const openThreads = notes ? notes.threads.filter((t) => !t.resolved).reduce((sum, t) => sum + 1 + t.replies.length, 0) : 0;
 
   return (
     <div
@@ -882,19 +824,26 @@ function TranscriptSegment({
       className={`group/seg relative -mx-2 grid ${hideSpeaker && !segment.preview ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-[minmax(160px,220px)_1fr]"} gap-4 rounded-xl px-2 ${continuation ? "pt-0 pb-4 -mt-1" : "py-4"} transition-colors duration-200 max-lg:gap-2 ${segment.preview ? "ttt-split-preview pointer-events-none my-1 border border-dashed border-primary/50 bg-primary/[0.04] " : ""}${
         highlighted
           ? "bg-primary/8"
-          : isSegHighlighted
-            ? "bg-amber-50"
+          : notes?.revealed
+            ? "bg-muted/45"
             : "hover:bg-muted/45"
       }`}
     >
-      {showActions && !isEditing && (
-        <SegmentInlineActions
-          segmentId={segment.id}
-          isHighlighted={isSegHighlighted}
-          onToggleHighlight={onToggleHighlight}
-          onOpenComment={onOpenComment}
-          onShare={onShare}
-          onCopyText={onCopyText}
+      {notes && !isEditing && !segment.preview && (
+        <BlockActions
+          current={notes.blockLabel}
+          openCount={openThreads}
+          revealed={notes.revealed}
+          quiet={notes.quiet}
+          onHighlight={notes.onHighlightBlock}
+          onRemoveHighlight={notes.onRemoveBlockHighlight}
+          labels={notes.labels}
+          sheet={notes.sheet}
+          onManageLabels={notes.onManageLabels}
+          raised={notes.raised}
+          onComment={notes.onCommentBlock ? () => { const r = textRef.current?.getBoundingClientRect(); if (r) notes.onCommentBlock?.(r); } : undefined}
+          onCopy={notes.onCopy}
+          onOpenComments={notes.onOpenComments}
         />
       )}
 
@@ -916,7 +865,7 @@ function TranscriptSegment({
           <button
             type="button"
             onClick={() => onSeekTimecode(segment.timestamp)}
-            className={`inline-flex items-center gap-1 text-xs tabular-nums transition-colors hover:text-primary ${
+            className={`inline-flex items-center gap-1 text-xs tabular-nums transition-colors hover:text-primary [@media(pointer:coarse)]:-my-2.5 [@media(pointer:coarse)]:py-2.5 ${
               isPlaybackActive
                 ? "font-semibold text-primary"
                 : isPlayed
@@ -947,7 +896,9 @@ function TranscriptSegment({
           <EditableLine value={segmentText} onChange={onEditChange} />
         ) : (
           <p
+            ref={textRef}
             data-transcript-line=""
+            onClick={() => notes?.onTapText()}
             className={`mt-1 cursor-text text-sm leading-relaxed transition-colors selection:bg-primary/20 selection:text-foreground ${
               isPlaybackActive
                 ? "text-foreground"
@@ -956,7 +907,9 @@ function TranscriptSegment({
                   : "text-foreground/85"
             }`}
           >
-            {isPlaybackActive && activeSentence !== null && activeSentence !== undefined ? (
+            {notes && !selectionMark ? (
+              <AnnotatedText text={segmentText} highlights={notes.highlights} threads={notes.threads} focus={notes.focus} pending={notes.pending} onMark={notes.onMark} colorOf={notes.colorOf} titleOf={notes.titleOf} playback={isPlaybackActive && activeSentence != null ? playbackRange(segmentText, activeSentence, activeWord) : undefined} />
+            ) : isPlaybackActive && activeSentence !== null && activeSentence !== undefined ? (
               splitSentences(segmentText).map((part, i) => {
                 // Already said: dimmed, so the eye lands on the live line.
                 if (i < activeSentence) {
@@ -981,7 +934,7 @@ function TranscriptSegment({
                   }
                   if (cut >= 0) {
                     return (
-                      <span key={i} className="text-primary">
+                      <span key={i} className={ACTIVE_SENTENCE}>
                         {parts.slice(0, cut).join("")}
                         <mark className={ACTIVE_WORD}>{parts[cut]}</mark>
                         {parts.slice(cut + 1).join("")}
@@ -1003,31 +956,12 @@ function TranscriptSegment({
                 {segmentText.slice(selectionMark.end)}
               </>
             ) : (
-              renderText(segmentText)
+              segmentText
             )}
           </p>
         )}
         {!hideTimecodes && <span className="mt-2 block text-xs text-muted-foreground tabular-nums max-lg:hidden">{segmentEndTimestamp}</span>}
 
-        {/* Inline comment input */}
-        {inlineComment && (
-          <div className="mt-2 flex gap-2 items-start animate-in fade-in slide-in-from-top-1 duration-200">
-            <input
-              autoFocus
-              className="flex-1 rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
-              placeholder="Add a comment..."
-              value={commentValue}
-              onChange={(e) => onCommentChange(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && commentValue.trim()) onCommentSubmit(); if (e.key === "Escape") onCommentCancel(); }}
-            />
-            <Button size="sm" className="h-8 rounded-full px-3 text-xs" disabled={!commentValue.trim()} onClick={onCommentSubmit}>
-              Post
-            </Button>
-            <Button variant="ghost" size="sm" className="h-8 rounded-full px-2 text-xs text-muted-foreground" onClick={onCommentCancel}>
-              Cancel
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -1121,7 +1055,9 @@ function SummaryErrorState({ onRegenerate }: { onRegenerate: () => void }) {
   );
 }
 
-function SummaryTab({ summaryText, template, highlight = "" }: { summaryText: string; template?: Template | null; highlight?: string }) {
+type SummaryHighlight = { id: string; label: Label; time: string; words: string };
+
+function SummaryTab({ summaryText, template, highlight = "", highlights = [] }: { summaryText: string; template?: Template | null; highlight?: string; highlights?: SummaryHighlight[] }) {
   /* a search term lights up in place; the text itself never moves */
   const q = highlight.trim();
   const hl = (t: string): React.ReactNode => {
@@ -1139,6 +1075,31 @@ function SummaryTab({ summaryText, template, highlight = "" }: { summaryText: st
 
   return (
     <div className="px-4 py-6 lg:px-8">
+      {highlights.length > 0 && (
+        /* what the person marked comes first and shapes the summary: that is what a highlight is for */
+        <section className="mb-6 rounded-[14px] border border-border bg-muted/20 px-4 py-3" data-summary-highlights="">
+          <p className="flex items-center gap-2 text-[13px] font-semibold text-foreground"><Icon icon={HighlighterIcon} className="size-[15px] text-muted-foreground" strokeWidth={1.8} />From your highlights</p>
+          <p className="mt-0.5 text-[12px] text-muted-foreground">The summary is written with these first.</p>
+          {/* grouped by label, so the labels do visible work: every Decision together, every To-do together */}
+          {Array.from(highlights.reduce((m, h) => m.set(h.label.id, [...(m.get(h.label.id) ?? []), h]), new Map<string, SummaryHighlight[]>()).values()).map((group) => (
+            <div key={group[0].label.id} className="mt-2.5" data-summary-label={group[0].label.id}>
+              {!SIMPLE_HIGHLIGHTS && <p className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+                <span className={`size-[7px] shrink-0 rounded-full ${DOT[group[0].label.color]}`} />
+                {group[0].label.name}
+                <span className="font-normal tabular-nums text-muted-foreground">{group.length}</span>
+              </p>}
+              <ul className="mt-1 space-y-1">
+                {group.map((h) => (
+                  <li key={h.id} className={`flex items-start gap-2 ${SIMPLE_HIGHLIGHTS ? "" : "pl-[13px]"} text-[13px] leading-[19px] text-foreground/90`}>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">{h.time}</span>
+                    <span className="min-w-0">{h.words}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      )}
       <div className="prose-custom max-w-none">
         {summaryText.split("\n").map((line, i) => {
           if (line.startsWith("## ")) {
@@ -1328,71 +1289,6 @@ function OutlineTab({ onSeek, onScrollToSegment }: { onSeek: (timestamp: string)
   );
 }
 
-// ════════════════════════════════════════════════════════════
-// Right Panel - Comments Tab
-// ════════════════════════════════════════════════════════════
-
-function CommentsTab({ comments, onSeek, onScrollToSegment }: { comments: Comment[]; onSeek: (timestamp: string) => void; onScrollToSegment: (segmentId: number) => void }) {
-  const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
-
-  if (comments.length === 0) {
-    return (
-      <div className="flex flex-1 items-center justify-center px-6 py-12">
-        <p className="text-center text-sm text-muted-foreground">No comments yet &mdash; select text in the transcript to add one</p>
-      </div>
-    );
-  }
-
-  return (
-    <ScrollArea className="flex-1">
-      <div className="px-4 py-3 space-y-3">
-        {comments.map((comment) => (
-          <div key={comment.id} className="rounded-lg border border-border p-3 space-y-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-auto w-full justify-start rounded-lg border-l-2 border-primary/40 px-2 py-1 text-left text-xs text-muted-foreground line-clamp-2 transition-colors hover:text-foreground whitespace-normal"
-              onClick={() => onScrollToSegment(comment.segmentId)}
-            >
-              {comment.quote}
-            </Button>
-            <Button variant="ghost" size="sm" className="h-6 rounded-full px-1.5 text-[11px] text-muted-foreground hover:text-primary" onClick={() => onSeek(comment.timestamp)}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z" /><path d="M19 10v2a7 7 0 01-14 0v-2" /></svg>
-              {comment.timestamp}
-            </Button>
-            <div className="flex gap-2">
-              <div className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-white" style={{ backgroundColor: comment.avatarColor }}>{comment.avatarInitial}</div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5"><span className="text-xs font-medium text-foreground">{comment.author}</span><span className="text-[10px] text-muted-foreground">{comment.createdAt}</span></div>
-                <p className="text-xs text-foreground/90 mt-0.5">{comment.text}</p>
-              </div>
-            </div>
-            {comment.replies.length > 0 && <div className="text-[10px] text-muted-foreground pl-7">{comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}</div>}
-            {comment.replies.map((reply) => (
-              <div key={reply.id} className="flex gap-2 pl-7">
-                <div className="flex size-5 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold text-white" style={{ backgroundColor: reply.avatarColor }}>{reply.avatarInitial}</div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5"><span className="text-xs font-medium text-foreground">{reply.author}</span><span className="text-[10px] text-muted-foreground">{reply.createdAt}</span></div>
-                  <p className="text-xs text-foreground/90 mt-0.5">{reply.text}</p>
-                </div>
-              </div>
-            ))}
-            <div className="pl-7">
-              <input
-                className="w-full rounded-md border border-border bg-transparent px-2 py-1 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
-                placeholder="Reply..."
-                value={replyInputs[comment.id] ?? ""}
-                onChange={(e) => setReplyInputs((prev) => ({ ...prev, [comment.id]: e.target.value }))}
-                onKeyDown={(e) => { if (e.key === "Enter" && replyInputs[comment.id]?.trim()) { toast("Reply sent"); setReplyInputs((prev) => ({ ...prev, [comment.id]: "" })); } }}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
-    </ScrollArea>
-  );
-}
-
 function VideoPreview({
   video,
   playbackRate,
@@ -1450,38 +1346,53 @@ function VideoPreview({
 // Right Panel Container
 // ════════════════════════════════════════════════════════════
 
+type PanelTab = "comments" | "highlights" | "outline";
+
+function readPanelTab(): PanelTab {
+  try {
+    const v = window.localStorage.getItem("ttt_demo_panel_tab");
+    return v === "highlights" || v === "outline" ? v : "comments";
+  } catch {
+    return "comments";
+  }
+}
+
+/* Touch screens have no hover: the block bar opens on a tap, and the bar over
+   selected words moves under them, clear of the phone's own Copy menu. */
+function useCoarsePointer() {
+  const [coarse, setCoarse] = useState(() => typeof window !== "undefined" && window.matchMedia("(hover: none)").matches);
+  useEffect(() => {
+    const mql = window.matchMedia("(hover: none)");
+    const on = () => setCoarse(mql.matches);
+    mql.addEventListener("change", on);
+    return () => mql.removeEventListener("change", on);
+  }, []);
+  return coarse;
+}
+
+function TabCount({ n }: { n: number }) {
+  /* the count takes the tab's blue when the tab is the open one (Kirill, 07.10) */
+  return n > 0 ? <span className="ml-1.5 font-medium tabular-nums text-muted-foreground in-data-[state=active]:text-primary">{n}</span> : null;
+}
+
 function RightPanel({
-  onSeek,
-  onScrollToSegment,
-  comments,
-  videoPreview,
-  videoPlaybackRate,
-  onVideoElementReady,
-  onVideoPlayStateChange,
-  onVideoTimeChange,
-  onVideoDurationChange,
-  onVideoPlaybackRateChange,
+  notes,
+  tab,
+  onTabChange,
+  recordTitle,
   width,
   onResizeStart,
 }: {
-  onSeek: (timestamp: string) => void;
-  onScrollToSegment: (segmentId: number) => void;
-  comments: Comment[];
-  videoPreview?: VideoPreviewData;
-  videoPlaybackRate: number;
-  onVideoElementReady: (node: HTMLVideoElement | null) => void;
-  onVideoPlayStateChange: (playing: boolean) => void;
-  onVideoTimeChange: (seconds: number) => void;
-  onVideoDurationChange: (seconds: number) => void;
-  onVideoPlaybackRateChange: (rate: number) => void;
+  notes: NotesView;
+  tab: PanelTab;
+  onTabChange: (tab: PanelTab) => void;
+  recordTitle: string;
   width: number;
   onResizeStart: () => void;
 }) {
-  const [panelTab, setPanelTab] = useState<"outline" | "comments">(() => {
-    try { return window.localStorage.getItem("ttt_demo_panel_tab") === "comments" ? "comments" : "outline"; } catch { return "outline"; }
-  });
+  const openCount = notes.api.threads.filter((t) => !t.resolved).reduce((sum, t) => sum + 1 + t.replies.length, 0);
   return (
-    <div className="relative hidden shrink-0 flex-col border-l border-border bg-background lg:flex" style={{ width }}>
+    <div className="relative hidden shrink-0 flex-col border-l border-border bg-background xl:flex" style={{ width }}>
       <button
         type="button"
         aria-label="Resize right panel"
@@ -1491,11 +1402,18 @@ function RightPanel({
           onResizeStart();
         }}
       />
-      <Tabs value={panelTab} onValueChange={(v) => setPanelTab(v === "comments" ? "comments" : "outline")} className="flex flex-1 flex-col gap-0 min-h-0">
-        <TabsList variant="line" className="gap-5 border-b border-border px-4 pt-3 shrink-0">
+      <Tabs value={tab} onValueChange={(v) => onTabChange(v as PanelTab)} className="flex min-h-0 flex-1 flex-col gap-0">
+        <TabsList variant="line" className="shrink-0 gap-5 border-b border-border px-4 pt-3">
+          <TabsTrigger value="comments" variant="line" className="text-[13px] font-semibold">Comments<TabCount n={openCount} /></TabsTrigger>
+          <TabsTrigger value="highlights" variant="line" className="text-[13px] font-semibold">Highlights<TabCount n={notes.api.highlights.length} /></TabsTrigger>
           <TabsTrigger value="outline" variant="line" className="text-[13px] font-semibold">Outline</TabsTrigger>
-          <TabsTrigger value="comments" variant="line" className="text-[13px] font-semibold">Comments</TabsTrigger>
         </TabsList>
+        <TabsContent value="comments" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <CommentsList v={notes} title={recordTitle} />
+        </TabsContent>
+        <TabsContent value="highlights" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+          <HighlightsList v={notes} title={recordTitle} />
+        </TabsContent>
         <TabsContent value="outline" className="flex flex-1 flex-col items-center justify-center px-6 text-center">
           <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="text-primary"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
@@ -1504,16 +1422,6 @@ function RightPanel({
           <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
           <p className="mt-2 max-w-[220px] text-[12px] leading-relaxed text-muted-foreground">
             Auto-generated chapters and a jump-to-section outline are on the way.
-          </p>
-        </TabsContent>
-        <TabsContent value="comments" className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-          <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
-            <MessageSquarePlus className="size-6 text-primary" strokeWidth={1.6} />
-          </div>
-          <h3 className="text-[15px] font-semibold text-foreground">Comments</h3>
-          <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
-          <p className="mt-2 max-w-[220px] text-[12px] leading-relaxed text-muted-foreground">
-            Time-stamped comments and team discussion will live here soon.
           </p>
         </TabsContent>
       </Tabs>
@@ -1536,6 +1444,9 @@ function MediaPlayer({
   currentTimeSeconds,
   durationSeconds,
   trailing,
+  leading,
+  markers,
+  onSeekSeconds,
 }: {
   duration: string;
   progress: number[];
@@ -1548,6 +1459,10 @@ function MediaPlayer({
   durationSeconds: number;
   /* the desktop puts Continue recording here, beside Play: the bar is where the recording lives */
   trailing?: React.ReactNode;
+  /* Highlight and Comment for the moment being played, beside the time */
+  leading?: React.ReactNode;
+  markers?: PlayerMarker[];
+  onSeekSeconds?: (seconds: number) => void;
 }) {
   const totalSeconds = Math.max(1, durationSeconds);
   const currentSeconds = Math.round(Math.max(0, currentTimeSeconds));
@@ -1559,29 +1474,37 @@ function MediaPlayer({
   }
 
   return (
-    <div className="shrink-0 border-t border-border bg-background px-4 py-3 lg:px-6">
-      <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="mb-3 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
+    <div data-player-bar="" className="shrink-0 border-t border-border bg-background px-3 py-3 sm:px-4 lg:px-6">
+      <div className="relative mb-3">
+        <Slider value={progress} onValueChange={onProgressChange} max={100} step={0.1} className="[&_[data-slot=slider-thumb]]:relative [&_[data-slot=slider-thumb]]:z-10 [&_[data-slot=slider-track]]:h-1.5 [&_[data-slot=slider-thumb]]:size-3 [&_[data-slot=slider-thumb]]:border-2" />
+        {markers && onSeekSeconds && <PlayerMarkers markers={markers} onSeek={onSeekSeconds} />}
+      </div>
       {/* Three columns, and Play is the middle one; Resume recording sits in the right column, past it. The speed control used to be
           a fourth element inside the transport group, which had no mirror on the
           left and pushed Play about twenty pixels off the centre of the bar; it
           now sits with the total time on the right. The side columns are equal
           fractions, so Play stays centred whatever the label does. */}
       <div className="grid grid-cols-[1fr_auto_1fr] items-center">
-        <span className="min-w-[50px] text-xs tabular-nums text-muted-foreground">{formatTime(currentSeconds)}</span>
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
+          <span className="min-w-[34px] text-xs tabular-nums text-muted-foreground sm:min-w-[50px]">{formatTime(currentSeconds)}</span>
+          {leading}
+        </div>
         <div className="flex items-center justify-center gap-1.5">
-          <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.max(0, progress[0] - (5 / totalSeconds) * 100))])} title="Back 5s">
+          <Button variant="outline" size="icon" className="size-8 rounded-full border-border [@media(pointer:coarse)]:size-9" onClick={() => onProgressChange([(Math.max(0, progress[0] - (5 / totalSeconds) * 100))])} title="Back 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 19l-7-7 7-7" /><text x="14" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
           <Button
             onClick={onPlayPause}
-            className={`rounded-full gap-1.5 transition-all ${isPlaying ? "h-9 w-9 px-0" : "h-9 px-4"} bg-primary text-primary-foreground hover:bg-primary/90`}
+            aria-label={isPlaying ? "Pause" : "Play"}
+            /* the phone shows the arrow alone (the word would cost the room for Highlight and Comment beside the time) */
+            className={`rounded-full gap-1.5 transition-all ${isPlaying ? "h-9 w-9 px-0" : "h-9 px-4 max-md:w-9 max-md:gap-0 max-md:px-0"} bg-primary text-primary-foreground hover:bg-primary/90`}
           >
             {isPlaying
               ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-              : <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg><span className="text-[13px] font-semibold">Play</span></>
+              : <><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" /></svg><span className="text-[13px] font-semibold max-md:hidden">Play</span></>
             }
           </Button>
-          <Button variant="outline" size="icon" className="size-8 rounded-full border-border" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])} title="Forward 5s">
+          <Button variant="outline" size="icon" className="size-8 rounded-full border-border [@media(pointer:coarse)]:size-9" onClick={() => onProgressChange([(Math.min(100, progress[0] + (5 / totalSeconds) * 100))])} title="Forward 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 5l7 7-7 7" /><text x="2" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
         </div>
@@ -1589,7 +1512,7 @@ function MediaPlayer({
         <div className="flex items-center justify-end gap-2">
           {trailing && <span className="mr-auto pl-4">{trailing}</span>}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border">{speed}x</Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border [@media(pointer:coarse)]:h-9">{speed}x</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
           </DropdownMenu>
           <span className="text-xs tabular-nums text-muted-foreground">{duration}</span>
@@ -1635,8 +1558,86 @@ export function LiveTopControls({ compact = false }: { compact?: boolean }) {
   );
 }
 
+/* Marking during a docked call (the half-width panel beside the meeting): the
+   same labels and the same "live" store as the full window, so a mark made here
+   shows in the full window too and goes with the note when the call ends. The
+   block tools are the finished note's minus Comment: comments wait for the note,
+   the way the summary does. */
+export type LiveMarking = ReturnType<typeof useLiveMarking>;
+export function useLiveMarking() {
+  const { liveTranscriptSegments, liveTranscriptInterim } = useTranscriptionModals();
+  const blocks = useMemo(() => liveTranscriptSegments.map((s) => ({ id: s.id, text: s.text, timestamp: s.timestamp })), [liveTranscriptSegments]);
+  const notesApi = useAnnotations("live", blocks);
+  const labelsApi = useLabels("live");
+  const coarse = useCoarsePointer();
+  /* a sentence still being said takes its label once it is written down */
+  const [pendingMark, setPendingMark] = useState<{ segmentId: number; labelId: string } | null>(null);
+  const [focus, setFocus] = useState<Focus | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
+  const refs = useRef<Record<number, HTMLDivElement | null>>({});
+  const flash = useCallback((id: string) => {
+    setFocus({ kind: "highlight", id });
+    window.setTimeout(() => setFocus((cur) => (cur?.id === id ? null : cur)), 1800);
+  }, []);
+  const textOf = (segmentId: number) => liveTranscriptSegments.find((s) => s.id === segmentId)?.text ?? "";
+  const mark = (labelId: string) => {
+    const last = liveTranscriptSegments[liveTranscriptSegments.length - 1];
+    /* a sentence that has only just begun is not what was meant: the one before it is */
+    if (liveTranscriptInterim.trim().length > 0 && (!last || liveTranscriptInterim.trim().split(/\s+/).length >= 4)) { setPendingMark({ segmentId: liveTranscriptSegments.length + 1, labelId }); return; }
+    if (!last) { toast("Nothing has been said yet"); return; }
+    const parts = splitSentences(last.text);
+    const r = snapRange(last.text, Math.max(0, last.text.length - (parts[parts.length - 1]?.length ?? last.text.length)), last.text.length);
+    if (r.end <= r.start) return;
+    const id = notesApi.addHighlight({ segmentId: last.id, ...r }, labelId);
+    flash(id);
+    refs.current[last.id]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    toastUndo(`${SIMPLE_HIGHLIGHTS ? "Marked" : labelsApi.labelOf(labelId).name} at ${last.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+  };
+  useEffect(() => {
+    if (!pendingMark) return;
+    const seg = liveTranscriptSegments.find((s) => s.id === pendingMark.segmentId);
+    if (!seg) return;
+    const r = snapRange(seg.text, 0, seg.text.length);
+    setPendingMark(null);
+    if (r.end <= r.start) return;
+    const id = notesApi.addHighlight({ segmentId: seg.id, ...r }, pendingMark.labelId);
+    flash(id);
+    toastUndo(`${SIMPLE_HIGHLIGHTS ? "Marked" : labelsApi.labelOf(pendingMark.labelId).name} at ${seg.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingMark, liveTranscriptSegments]);
+  const colorOf = (highlightId: string): LabelColor => labelsApi.labelOf(notesApi.highlights.find((h) => h.id === highlightId)?.labelId).color;
+  const notesFor = (seg: Segment): SegmentNotes => {
+    const len = textOf(seg.id).length;
+    const highlights = notesApi.highlights.filter((h) => h.segmentId === seg.id);
+    const whole = highlights.find((h) => coversBlock(h, len));
+    return {
+      highlights,
+      threads: [],
+      focus,
+      blockHighlighted: Boolean(whole),
+      blockLabel: whole ? labelsApi.labelOf(whole.labelId) : undefined,
+      revealed: false,
+      quiet: false,
+      onMark: () => {},
+      onTapText: () => {},
+      onHighlightBlock: (labelId) => { if (whole) notesApi.setLabel(whole.id, labelId); else notesApi.addHighlight({ segmentId: seg.id, start: 0, end: len }, labelId, false); },
+      onRemoveBlockHighlight: () => { if (whole) removeHighlightWithUndo(notesApi, whole.id); },
+      labels: labelsApi,
+      sheet: coarse,
+      onManageLabels: () => setManageOpen(true),
+      colorOf,
+      titleOf: (id) => labelsApi.labelOf(notesApi.highlights.find((h) => h.id === id)?.labelId).name,
+      onOpenComments: () => {},
+      onCopy: () => { const t = textOf(seg.id); if (t) { navigator.clipboard.writeText(t); toast("Text copied"); } },
+    };
+  };
+  const counts = notesApi.highlights.reduce<Record<string, number>>((acc, h) => { const id = labelsApi.labelOf(h.labelId).id; acc[id] = (acc[id] ?? 0) + 1; return acc; }, {});
+  const segmentRef = (id: number) => (el: HTMLDivElement | null) => { refs.current[id] = el; };
+  return { notesApi, labelsApi, coarse, pendingMark, mark, notesFor, segmentRef, manageOpen, setManageOpen, counts };
+}
+
 /* the live transcript itself: the permission warning, the listening placeholder, every segment, the words still being said */
-export function LiveTranscriptBody({ compact = false }: { compact?: boolean }) {
+export function LiveTranscriptBody({ compact = false, marking }: { compact?: boolean; marking?: LiveMarking }) {
   const { liveTranscriptSegments, liveTranscriptInterim, isLiveTranscriptionSupported, recordingPhase } = useTranscriptionModals();
   const { view } = useTranscriptView();
   const { machine } = useShell();
@@ -1669,14 +1670,19 @@ export function LiveTranscriptBody({ compact = false }: { compact?: boolean }) {
       {segments.map((segment, index) => (
         <TranscriptSegment key={segment.id} segment={segment} nextTimestamp={segments[index + 1]?.timestamp} isEditing={false} highlighted={false}
           isPlaybackActive={!isPaused && index === segments.length - 1} hideSpeaker={!view.speakers} hideTimecodes={!view.timestamps}
-          segmentRef={() => {}} isSegHighlighted={false} onToggleHighlight={() => {}} onOpenComment={() => {}} onShare={() => {}} onCopyText={() => {}}
-          inlineComment={false} onCommentSubmit={() => {}} onCommentCancel={() => {}} onCommentChange={() => {}} commentValue="" textHighlights={[]} showActions={false} />
+          notes={marking?.notesFor(segment)}
+          segmentRef={marking ? marking.segmentRef(segment.id) : () => {}} />
       ))}
       {liveTranscriptInterim.trim().length > 0 && (
         <div className="mx-[-8px] rounded-xl bg-primary/5 px-2 py-3 ring-1 ring-primary/20">
           <div className={`grid gap-4 ${compact ? "grid-cols-1" : "grid-cols-[minmax(160px,220px)_1fr] max-md:grid-cols-1"}`}>
-            <div className="min-w-0 pt-1"><div className="flex items-center gap-2.5"><div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">Y</div><span className="truncate text-sm font-medium text-foreground">You (speaking...)</span></div></div>
-            <div className="relative min-w-0 pl-5"><div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-primary/65" /><p className="mt-1 text-sm leading-relaxed text-foreground/85">{liveTranscriptInterim}<span className="ml-1 inline-block h-4 w-[2px] translate-y-[2px] animate-pulse bg-primary" /></p></div>
+            <div className="min-w-0 pt-1"><div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5"><div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">Y</div><span className="truncate text-sm font-medium text-foreground">You (speaking...)</span>
+              {marking?.pendingMark && (
+                /* the label waits under the name until the sentence is written down */
+                <LabelChip label={marking.labelsApi.labelOf(marking.pendingMark.labelId)} className={compact ? "shrink-0" : "basis-full shrink-0 self-start"} />
+              )}
+            </div></div>
+            <div className="relative min-w-0 pl-5"><div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-full ${marking?.pendingMark ? DOT[marking.labelsApi.labelOf(marking.pendingMark.labelId).color] : "bg-primary/65"}`} /><p className="mt-1 text-sm leading-relaxed text-foreground/85">{liveTranscriptInterim}<span className="ml-1 inline-block h-4 w-[2px] translate-y-[2px] animate-pulse bg-primary" /></p></div>
           </div>
         </div>
       )}
@@ -1778,6 +1784,34 @@ function RecordingOptions({ compact }: { compact: boolean }) {
   );
 }
 
+
+/* A floating bar a dialog put away: brings it back and names the button that takes the focus */
+type BarBack = () => { focus: string; select?: () => void; reveal?: boolean };
+
+/* A bar measures itself before it shows, and its buttons fade in from hidden:
+   until they show they cannot take the focus. Try again on the next frames,
+   a moment at most. */
+function focusWhenShown(el: HTMLElement, frames = 10) {
+  el.focus({ preventScroll: true });
+  if (document.activeElement !== el && frames > 0) window.requestAnimationFrame(() => focusWhenShown(el, frames - 1));
+}
+
+/* Selects a line's characters from start to end again, counted the way the
+   selection bar counts them: through the line's text, whatever wraps it. */
+function selectInLine(line: HTMLElement, start: number, end: number) {
+  const walker = document.createTreeWalker(line, NodeFilter.SHOW_TEXT);
+  const range = document.createRange();
+  let offset = 0, started = false;
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const len = node.textContent?.length ?? 0;
+    if (!started && start <= offset + len) { range.setStart(node, start - offset); started = true; }
+    if (started && end <= offset + len) { range.setEnd(node, end - offset); break; }
+    offset += len;
+  }
+  const sel = window.getSelection();
+  sel?.removeAllRanges();
+  sel?.addRange(range);
+}
 
 /* A folder drawn in its own colour: the glyph the Move menu uses, so a folder
    looks the same wherever it is named. */
@@ -2044,9 +2078,9 @@ export function TranscriptViewChecks() {
   return (
     <div className="flex items-center gap-3">
       {([["speakers", "Speakers"], ["timestamps", "Timestamps"]] as const).map(([k, label]) => (
-        <label key={k} className="flex h-7 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none">
+        <label key={k} className="flex h-7 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none [@media(pointer:coarse)]:h-9">
           <FigmaCheckbox checked={view[k]} onChange={() => toggle(k)} />
-          <span onClick={() => toggle(k)}>{label}</span>
+          <span>{label}</span>
         </label>
       ))}
     </div>
@@ -2088,9 +2122,12 @@ export function LiveRecordingBar({
   caption = true,
   warning,
   join,
+  mark,
 }: {
   /* the linked meeting, offered above the bar: one tap to join it, a cross to put it away */
   join?: { label: string; source: "zoom" | "google-meet" | "teams"; onJoin: () => void; onDismiss: () => void };
+  /* Mark what was just said: the Highlight button with the labels, beside Pause */
+  mark?: React.ReactNode;
   isPaused: boolean;
   /* after the note is written the bar only offers Resume; nothing new to generate yet */
   showGenerate?: boolean;
@@ -2156,6 +2193,7 @@ export function LiveRecordingBar({
         </div>
 
         <div className="order-3 md:order-2 flex items-center justify-center gap-2">
+          {mark}
           <Button
             variant="pill-outline"
             className={`h-9 rounded-full gap-1.5 ${generate ? "px-4" : "px-3"}`}
@@ -2178,7 +2216,7 @@ export function LiveRecordingBar({
           )}
         </div>
 
-        {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full md:w-auto ${generate ? (compact ? "flex gap-2" : "flex gap-2 md:max-w-[560px]") : "md:min-w-[260px] md:max-w-[320px]"}`}>
+        {!showDevices ? <div className="order-2 md:order-3" /> : <div className={`order-2 md:order-3 md:justify-self-end w-full ${generate ? (compact ? "md:w-auto flex gap-2" : "md:w-auto flex gap-2 md:max-w-[560px]") : "min-w-0 md:max-w-[320px]"}`}>
           {/* one shape everywhere: the gear and the warning are icons, only the microphone keeps its name (Kirill, 14.09) */}
           {generate && <RecordingOptions compact />}
           {generate && warning?.sys && (
@@ -2257,7 +2295,7 @@ interface PageHeaderProps {
   /* the end of the meta line: the speakers chip */
   trailing?: React.ReactNode;
   onCreateFolderAndMove: () => void;
-  onExport: () => void;
+  onExport: (format?: ExportFormat) => void;
   onRematchSpeakers: () => void;
   onRegenerateSummary: () => void;
   onSyncTextToAudio: () => void;
@@ -2449,7 +2487,7 @@ function PageHeader({
                   <Icon icon={Copy} className="size-4 text-muted-foreground" strokeWidth={1.6} />
                   Copy summary
                 </DropdownMenuItem>
-              ) : (
+              ) : !sharedOwner && (
                 <DropdownMenuItem className={"gap-2 max-md:hidden lg:hidden" + (locked ? " opacity-45" : "")} onClick={onSetTemplate}>
                   Apply template
                 </DropdownMenuItem>
@@ -2468,8 +2506,9 @@ function PageHeader({
                   {TRANSLATION_LANGUAGES.map((language) => (
                     <DropdownMenuItem
                       key={language.code}
-                      className="gap-2"
-                      disabled={translationDisabled || locked}
+                      className={"gap-2" + (locked ? " opacity-45" : "")}
+                      disabled={translationDisabled}
+                      aria-disabled={locked || undefined}
                       onClick={() => onTranslateTo(language.code)}
                     >
                       <span>{language.flag}</span>
@@ -2507,12 +2546,12 @@ function PageHeader({
           </DropdownMenu>
         </div>
       </div>
-      <div className="flex items-center gap-3 text-xs text-muted-foreground max-lg:flex-wrap">
+      <div className="flex flex-wrap items-center gap-3 whitespace-nowrap text-xs text-muted-foreground [&>*]:shrink-0">
         {/* Whose record this is survives on a phone: it is the first thing a
-            reader needs and it used to be the first thing hidden. On a narrow
-            screen it takes the whole line rather than wrapping mid-sentence. */}
+            reader needs and it used to be the first thing hidden. It takes its
+            own line at every width, so the facts below never wrap mid-word. */}
         {sharedOwner ? (
-          <div className="flex items-center gap-1.5 max-md:w-full">
+          <div className="flex w-full items-center gap-1.5 max-md:whitespace-normal">
             <Avatar className="size-5">
               <AvatarFallback className="text-[10px]" style={{ background: sharedOwner.tint, color: sharedOwner.ink }}>
                 {sharedOwner.name.charAt(0)}
@@ -2528,7 +2567,7 @@ function PageHeader({
           </div>
         )}
         {chips}
-        {trailing && <><span className="text-border max-md:hidden">{"\u2022"}</span><span className="inline-flex items-center gap-2">{trailing}</span></>}
+        {trailing && <><span className={"text-border max-md:hidden" + (sharedOwner && !chips ? " hidden" : "")}>{"\u2022"}</span><span className="inline-flex items-center gap-2">{trailing}</span></>}
         {source && (
           <>
             <span className="text-border max-md:hidden">{"\u2022"}</span>
@@ -2549,8 +2588,10 @@ function PageHeader({
 /* Export as a pill with its formats behind a chevron (the product's own
    header, Artem 10.09: "more active" than a grey icon). Each format opens the
    export sheet with that format in mind. */
-const EXPORT_FORMATS = ["PDF", "Word (DOCX)", "Plain text (TXT)", "Subtitles (SRT)"];
-export function ExportPill({ onExport, disabled = false }: { onExport?: () => void; disabled?: boolean }) {
+const EXPORT_FORMATS: { label: string; format: ExportFormat }[] = [
+  { label: "PDF", format: "pdf" }, { label: "Word (DOCX)", format: "docx" }, { label: "Plain text (TXT)", format: "txt" }, { label: "Subtitles (SRT)", format: "srt" },
+];
+export function ExportPill({ onExport, disabled = false }: { onExport?: (format?: ExportFormat) => void; disabled?: boolean }) {
   const pill = (
     <Button variant="pill-outline" className="flex h-9 items-center gap-[6px] px-[14px]" disabled={disabled} aria-label="Export">
       <Icon icon={Upload} className="size-[14px]" strokeWidth={1.7} />
@@ -2563,7 +2604,7 @@ export function ExportPill({ onExport, disabled = false }: { onExport?: () => vo
     <DropdownMenu>
       <DropdownMenuTrigger asChild>{pill}</DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={6} className="z-[120] w-[190px]">
-        {EXPORT_FORMATS.map((f) => <DropdownMenuItem key={f} className="gap-2" onClick={() => onExport?.()}><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.6} />{f}</DropdownMenuItem>)}
+        {EXPORT_FORMATS.map((f) => <DropdownMenuItem key={f.format} className="gap-2" onClick={() => onExport?.(f.format)}><Icon icon={Upload} className="size-4 text-muted-foreground" strokeWidth={1.6} />{f.label}</DropdownMenuItem>)}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -2728,7 +2769,6 @@ export function TranscriptionDetailPage() {
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoPlaybackRate, setVideoPlaybackRate] = useState(1);
-  const [comments, setComments] = useState<Comment[]>(MOCK_COMMENTS);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
     selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null,
   );
@@ -2749,6 +2789,17 @@ export function TranscriptionDetailPage() {
   const [langSheetOpen, setLangSheetOpen] = useState(false);
   const [belowLg, setBelowLg] = useState(false);
   const [belowMd, setBelowMd] = useState(false);
+  /* Below 1280 a desk with the sidebar open has no room for the right panel:
+     Comments, Highlights and Outline become tabs beside Transcript. */
+  const [noPanel, setNoPanel] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 1279px)");
+    const sync = () => setNoPanel(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(max-width: 1023px)");
@@ -2815,13 +2866,10 @@ export function TranscriptionDetailPage() {
   const canApplyTranslation = showTranslateAction && !isTranslationApplied && !isTranslationLoading && !isJobTranscribing;
 
   // Segment-level state
-  const [segHighlights, setSegHighlights] = useState<Set<number>>(new Set());
-  const [commentSegmentId, setCommentSegmentId] = useState<number | null>(null);
-  const [commentText, setCommentText] = useState("");
-  const [textHighlights, setTextHighlights] = useState<Record<number, { start: number; end: number }[]>>({});
 
   // Text selection highlight pill
-  const [selectionPill, setSelectionPill] = useState<{ x: number; y: number; segmentId: number; start: number; end: number } | null>(null);
+  const [selectionPill, setSelectionPill] = useState<{ x: number; xBelow: number; y: number; bottom: number; flip: boolean; low: boolean; rect: { left: number; top: number; width: number; height: number }; segmentId: number; start: number; end: number } | null>(null);
+  const pillPressRef = useRef(0);
   const [splitPreview, setSplitPreview] = useState<{ segmentId: number; start: number; end: number; speaker: Speaker } | null>(null);
   const [selectionMenuOpen, setSelectionMenuOpen] = useState(false);
 
@@ -3153,9 +3201,104 @@ export function TranscriptionDetailPage() {
   }, [contentSegments, videoDuration]);
 
   const { texts, update, undo, redo, canUndo, canRedo, reset } = useEditHistory(initialTexts);
+
+  /* Highlights and comments (lib/annotations). The blocks, the desk panel and
+     the phone tabs read the same store. On a record shared with you, you can
+     still highlight and comment; you take off only your own notes. */
+  const isOwner = !sharedOwner;
+  const recordId = String(selectedRecord?.id ?? id ?? "demo");
+  /* the shared copy of a record keeps its own notes in the demo, seeded as the owner's */
+  const recordKey = sharedOwner ? `${recordId}:shared` : recordId;
+  const seedOwner = useMemo(() => (sharedOwner ? { name: sharedOwner.name, color: sharedOwner.ink, initial: sharedOwner.name.charAt(0) } : undefined), [sharedOwner]);
+  /* while the call is live the notes sit on the live segments; the finished note keeps the same ids */
+  const noteBlocks = useMemo(
+    () => (isLiveRecordingDetail ? liveDetailSegments.map((seg) => ({ id: seg.id, text: seg.text, timestamp: seg.timestamp })) : displaySegments.map((seg) => ({ id: seg.id, text: texts[seg.id] ?? seg.text, timestamp: seg.timestamp }))),
+    [displaySegments, texts, isLiveRecordingDetail, liveDetailSegments],
+  );
+  /* the marks made during the call come along into the note that was just written */
+  const movedLiveNotes = useRef(false);
+  if (!movedLiveNotes.current && !isLiveRecordingRoute && routeState?.fromRecordingStop && id) {
+    movedLiveNotes.current = true;
+    moveAnnotations("live", recordKey);
+    /* nothing marked during the call: the record starts empty instead of taking the sample record's seed */
+    if (HIDDEN.liveRecordSeed && !loadAnnotations(recordKey)) saveAnnotations(recordKey, { highlights: [], threads: [] });
+  }
+  const notesApi = useAnnotations(recordKey, noteBlocks, seedOwner);
+  const labelsApi = useLabels(recordId);
+  const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
+  /* how many highlights each label carries in the other recordings you have notes in */
+  const labelsElsewhere = useMemo(() => (manageLabelsOpen ? countLabelsElsewhere(recordId) : {}), [manageLabelsOpen, recordId]);
+  /* Play all: the highlights back to back, one after another */
+  const [reel, setReel] = useState<{ ids: string[]; index: number } | null>(null);
+  /* which Highlight list is open from the keyboard (H): over the selected words, or on the player */
+  const [highlightMenu, setHighlightMenu] = useState<"pill" | "player" | "live" | null>(null);
+  /* Mark pressed while a sentence was still being said: it is marked whole the moment it is written down */
+  const [liveMark, setLiveMark] = useState<{ segmentId: number; labelId: string } | null>(null);
+  useEffect(() => { if (!selectionPill) setHighlightMenu((m) => (m === "pill" ? null : m)); }, [selectionPill]);
+  const [onlyHighlights, setOnlyHighlights] = useState(false);
+  useEffect(() => {
+    if (!noPanel && (activeTab === "comments" || activeTab === "highlights" || activeTab === "outline")) setActiveTab("transcript");
+  }, [noPanel, activeTab]);
+  useEffect(() => { if (onlyHighlights && notesApi.highlights.length === 0) setOnlyHighlights(false); }, [onlyHighlights, notesApi.highlights.length]);
+  const shortcutRef = useRef<(e: KeyboardEvent) => void>(() => {});
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => shortcutRef.current(e);
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
+  const [panelTab, setPanelTab] = useState<PanelTab>(readPanelTab);
+  /* the note written after Stop opens on the marks that came along from the call: the same page
+     stays mounted from the live route, so this is a step, not a starting value */
+  const openedOnMarks = useRef<string | null>(null);
+  useEffect(() => {
+    if (isLiveRecordingRoute || !routeState?.fromRecordingStop || !id || openedOnMarks.current === id) return;
+    openedOnMarks.current = id;
+    if ((loadAnnotations(recordKey)?.highlights.length ?? 0) > 0) setPanelTab("highlights");
+  }, [isLiveRecordingRoute, routeState?.fromRecordingStop, id, recordKey]);
+  const [noteFocus, setNoteFocus] = useState<Focus | null>(null);
+  /* returnTo: the tab the field was opened from when it had to switch to the words (no side panel) */
+  const [composer, setComposer] = useState<{ anchor: Anchor; quote: string; timestamp: string; rect: { left: number; top: number; width: number; height: number }; returnTo?: string } | null>(null);
+  const [markBar, setMarkBar] = useState<{ segmentId: number; run: Run; rect: { left: number; top: number; width: number; bottom: number }; line: { left: number; width: number } | null; below: boolean } | null>(null);
+  const [threadSheet, setThreadSheet] = useState<{ segmentId: number } | null>(null);
+  const [revealedBlock, setRevealedBlock] = useState<number | null>(null);
+  const coarsePointer = useCoarsePointer();
+  const closeMarkBar = useCallback(() => setMarkBar(null), []);
+  const sheetThreads = threadSheet ? notesApi.threads.filter((t) => t.segmentId === threadSheet.segmentId) : [];
+  useEffect(() => {
+    if (threadSheet && sheetThreads.length === 0) setThreadSheet(null);
+  }, [threadSheet, sheetThreads.length]);
+  /* Escape lets go of selected words and their bar, once nothing is open over them */
+  useEffect(() => {
+    if (!selectionPill) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      if (document.querySelector("[data-label-menu], [data-label-sheet], [data-manage-labels], [data-comment-composer], [data-slot=popover-content]")) return;
+      window.getSelection()?.removeAllRanges();
+      setSelectionPill(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selectionPill]);
+  useEffect(() => {
+    if (!noteFocus) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setNoteFocus(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [noteFocus]);
   const savedTextsRef = useRef(initialTexts);
 
   const originalTextsRef = useRef(initialTexts);
+  /* the page stays mounted from the live call into the note it becomes: when the
+     transcript underneath changes, the edit history starts again from the new text */
+  const textsKey = contentSegments.map((sg) => `${sg.id}:${sg.text.length}`).join("|");
+  const lastTextsKey = useRef(textsKey);
+  useEffect(() => {
+    if (lastTextsKey.current === textsKey) return;
+    lastTextsKey.current = textsKey;
+    savedTextsRef.current = initialTexts;
+    originalTextsRef.current = initialTexts;
+    reset(initialTexts);
+  }, [textsKey, initialTexts, reset]);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
 
@@ -3261,12 +3404,6 @@ export function TranscriptionDetailPage() {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [editMode, undo, redo]);
-
-  // Scroll to a segment and briefly highlight it
-  function scrollToSegment(segmentId: number) {
-    const el = segmentRefs.current[segmentId];
-    if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); setHighlightedSegment(segmentId); setTimeout(() => setHighlightedSegment(null), 1500); }
-  }
 
   // Seek player
   function seekTo(timestamp: string) {
@@ -3718,12 +3855,42 @@ export function TranscriptionDetailPage() {
     };
   }, [activeTranslationLang, translatedSegments, translatedSummary, translationSummaryStatus, contentSummary, selectedRecord?.language]);
 
+  /* A dialog hands focus back to what opened it when it closes (WAI-ARIA).
+     When that sat on a floating bar the dialog put away, the bar comes back
+     first and its button takes the focus. */
+  const dialogOrigin = useRef<{ el: HTMLElement | null; back?: BarBack } | null>(null);
+  const rememberOrigin = (back?: BarBack) => { dialogOrigin.current = { el: focusOrigin(), back }; };
+  const returnFocus = useCallback((e?: Event) => {
+    const origin = dialogOrigin.current;
+    dialogOrigin.current = null;
+    let bar: ReturnType<BarBack> | undefined;
+    if (origin?.back) flushSync(() => { bar = origin.back?.(); });
+    /* the words are selected once the page has drawn them without the dialog's marks */
+    bar?.select?.();
+    const el = bar ? document.querySelector<HTMLElement>(bar.focus) : origin?.el;
+    if (!el?.isConnected) return;
+    e?.preventDefault();
+    /* a list drawn anew starts at its top: the row comes into view */
+    if (bar?.reveal) el.scrollIntoView({ block: "nearest" });
+    focusWhenShown(el);
+  }, []);
+  /* Only a real close gives the focus back. A turned screen swaps a dialog for
+     a sheet while it stays open, and the page is laid out anew: the words and
+     their bar have moved, so nothing is brought back. */
+  const closedFocus = (stillOpen: () => boolean) => (e: Event) => {
+    if (stillOpen()) dialogOrigin.current = null;
+    else returnFocus(e);
+  };
   const [exportDialogOpen, setExportDialogOpen] = useState(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("export") === "1");
   const [copySheetOpen, setCopySheetOpen] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
-  function exportTranscript() {
+  /* the format picked in the Export menu is the one the export opens with */
+  const [exportFormat, setExportFormat] = useState<ExportFormat | undefined>(undefined);
+  function exportTranscript(format?: ExportFormat) {
+    rememberOrigin();
+    setExportFormat(format);
     setExportDialogOpen(true);
   }
 
@@ -3777,10 +3944,29 @@ export function TranscriptionDetailPage() {
     navigate("/");
   }
 
+  /* Play all: when the playhead passes the end of the highlight being played,
+     it jumps to the next one; after the last it stops. */
+  useEffect(() => {
+    if (!reel) return;
+    const h = notesApi.highlights.find((x) => x.id === reel.ids[reel.index]);
+    const r = h ? rangeSeconds(h) : null;
+    if (!h || !r) { setReel(null); return; }
+    if (effectiveCurrentSeconds < r.end) return;
+    const nh = notesApi.highlights.find((x) => x.id === reel.ids[reel.index + 1]);
+    const nr = nh ? rangeSeconds(nh) : null;
+    if (nh && nr) {
+      setReel({ ids: reel.ids, index: reel.index + 1 });
+      seekToSeconds(nr.start);
+      setNoteFocus({ kind: "highlight", id: nh.id });
+      segmentRefs.current[nh.segmentId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      setReel(null);
+      setNoteFocus(null);
+      if (isPlayerPlaying) handlePlayerPlayPause();
+    }
+  }, [effectiveCurrentSeconds, reel]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Segment actions
-  function toggleHighlight(segId: number) {
-    setSegHighlights((prev) => { const next = new Set(prev); if (next.has(segId)) next.delete(segId); else next.add(segId); return next; });
-  }
   function copySegmentText(segId: number) {
     const text = texts[segId] ?? contentSegments.find((s) => s.id === segId)?.text;
     if (text) {
@@ -3788,81 +3974,512 @@ export function TranscriptionDetailPage() {
       toast("Text copied");
     }
   }
-  function openComment(segId: number) {
-    setCommentSegmentId(segId);
-    setCommentText("");
-  }
-  function submitComment() {
-    if (!commentText.trim() || commentSegmentId === null) return;
-    const segment = contentSegments.find((s) => s.id === commentSegmentId);
-    if (!segment) return;
-    const nextComment: Comment = {
-      id: `c-${Date.now()}`,
-      segmentId: commentSegmentId,
-      quote: (texts[commentSegmentId] ?? segment.text).slice(0, 140),
-      timestamp: segment.timestamp,
-      author: "You",
-      avatarColor: "#64748b",
-      avatarInitial: "Y",
-      text: commentText.trim(),
-      createdAt: "now",
-      replies: [],
+  // Highlights and comments
+  /* the live text cannot be edited, so the edits map does not apply to it */
+  const blockText = (segmentId: number) => isLiveRecordingDetail
+    ? liveDetailSegments.find((sg) => sg.id === segmentId)?.text ?? ""
+    : texts[segmentId] ?? displaySegments.find((sg) => sg.id === segmentId)?.text ?? "";
+  const blockTimestamp = (segmentId: number) => displaySegments.find((sg) => sg.id === segmentId)?.timestamp ?? "0:00";
+  const blockSpeaker = (segmentId: number) => (isSingleSpeaker ? undefined : displaySegments.find((sg) => sg.id === segmentId)?.speaker.name);
+
+  /* labels belong to the workspace: only the record's owner manages them */
+  const openManageLabels = (back?: BarBack) => { rememberOrigin(back); setManageLabelsOpen(true); };
+  const manageLabels = isOwner && !SIMPLE_HIGHLIGHTS ? () => openManageLabels() : undefined;
+  /* the selected words and their bar come back, the way they were */
+  const pillBack = (pill: NonNullable<typeof selectionPill>, button: string): BarBack => () => {
+    setSelectionPill(pill);
+    return {
+      focus: `[data-selection-pill] ${button}`,
+      select: () => {
+        const line = segmentRefs.current[pill.segmentId]?.querySelector<HTMLElement>("[data-transcript-line]");
+        if (line) selectInLine(line, pill.start, pill.end);
+      },
     };
-    setComments((prev) => [nextComment, ...prev]);
-    toast.success("Comment added");
-    setCommentSegmentId(null);
-    setCommentText("");
-  }
-  async function shareSegment(segId: number) {
-    const segment = contentSegments.find((s) => s.id === segId);
-    const text = texts[segId] ?? segment?.text;
-    if (!segment || !text) return;
-
-    const url = `${getTranscriptUrl()}#segment-${segId}`;
-    const shareData = {
-      title: title || "Transcript segment",
-      text: `${segment.speaker.name} (${segment.timestamp}): ${text}`,
-      url,
-    };
-
-    if (typeof navigator !== "undefined" && "share" in navigator) {
-      try {
-        await navigator.share(shareData);
-        toast.success("Shared");
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-      }
-    }
-
-    navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
-    toast("Share text copied");
-  }
-
-  // Text selection for inline highlight
+  };
+  const markBarBack = (bar: NonNullable<typeof markBar>, button: string): BarBack => () => { setMarkBar(bar); return { focus: `[data-mark-bar] ${button}` }; };
+  const timeOf = (a: Anchor) => { const r = rangeSeconds(a); return r ? clock(r.start) : blockTimestamp(a.segmentId); };
+  const continuationOf = (seg: Segment) => {
+    const i = displaySegments.findIndex((sg) => sg.id === seg.id);
+    return i > 0 && displaySegments[i - 1]?.speaker.id === seg.speaker.id;
+  };
+  const colorOf = (highlightId: string): LabelColor => labelsApi.labelOf(notesApi.highlights.find((h) => h.id === highlightId)?.labelId).color;
+  const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+  /* Scrolled away from the words being played: a pill at the bottom of the
+     transcript brings them back. It shows only while they are off the screen. */
+  const [playbackAway, setPlaybackAway] = useState<"up" | "down" | "hidden" | null>(null);
   useEffect(() => {
-    function handler(e?: Event) {
-      if (e && (e.target as HTMLElement | null)?.closest?.("[data-selection-pill], [data-slot=popover-content], [data-slot=drawer-content]")) return;
+    const check = () => {
+      if (activePlaybackSegmentId === null || activeTab !== "transcript" || editMode || reel) { setPlaybackAway(null); return; }
+      const root = document.querySelector<HTMLElement>("[data-transcript-scroll]");
+      const el = segmentRefs.current[activePlaybackSegmentId];
+      if (!root) { setPlaybackAway(null); return; }
+      if (!el || !el.isConnected) { setPlaybackAway(onlyHighlights ? "hidden" : null); return; }
+      const box = root.getBoundingClientRect(), words = el.getBoundingClientRect();
+      const top = Math.max(box.top, 0), bottom = Math.min(box.bottom, window.innerHeight);
+      setPlaybackAway(words.bottom < top + 24 ? "up" : words.top > bottom - 24 ? "down" : null);
+    };
+    const frame = requestAnimationFrame(check);
+    document.addEventListener("scroll", check, { capture: true, passive: true });
+    window.addEventListener("resize", check);
+    return () => { cancelAnimationFrame(frame); document.removeEventListener("scroll", check, { capture: true }); window.removeEventListener("resize", check); };
+  }, [activePlaybackSegmentId, activeTab, editMode, onlyHighlights, reel]);
+  function backToPlayback() {
+    const go = () => {
+      const el = activePlaybackSegmentId !== null ? segmentRefs.current[activePlaybackSegmentId] : null;
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+    /* the words being played are in a block Highlights only hides: show every block again */
+    if (playbackAway === "hidden") { setOnlyHighlights(false); window.setTimeout(go, 60); return; }
+    go();
+  }
+  /* where words sit in time: the block's span shared out by characters, the same
+     estimate the playback highlighting uses */
+  function rangeSeconds(a: Anchor) {
+    const t = segmentTimings.find((x) => x.id === a.segmentId);
+    if (!t) return null;
+    const len = Math.max(1, blockText(a.segmentId).length);
+    const span = Math.max(1, t.end - t.start);
+    const start = t.start + (a.start / len) * span;
+    return { start, end: Math.max(start + 1.5, t.start + (a.end / len) * span) };
+  }
+  /* what the player's Highlight and Comment act on: the sentence being said */
+  function currentSentence(): Anchor | null {
+    const segId = activePlaybackSegmentId ?? displaySegments[0]?.id;
+    if (segId == null) return null;
+    const text = blockText(segId);
+    const parts = splitSentences(text);
+    const idx = activePlaybackSegmentId != null ? Math.min(activeSentenceIndex ?? 0, parts.length - 1) : 0;
+    let from = 0;
+    for (let i = 0; i < idx; i++) from += parts[i].length;
+    const r = snapRange(text, from, from + (parts[idx]?.length ?? text.length));
+    return r.end > r.start ? { segmentId: segId, ...r } : null;
+  }
+  function highlightNow(labelId: string) {
+    const a = currentSentence();
+    if (!a) return;
+    const label = labelsApi.labelOf(labelId);
+    const covering = coveringMark(notesApi.highlights, a);
+    if (covering && (covering.labelId ?? DEFAULT_LABEL_ID) === labelId) { flashHighlight(covering.id); toast(SIMPLE_HIGHLIGHTS ? "Already highlighted" : `Already marked as ${label.name}`); return; }
+    const taken = covering ? [] : notesApi.highlights.filter((h) => mergesWith(h, a, labelId));
+    const id = notesApi.addHighlight(a, labelId);
+    setNoteFocus({ kind: "highlight", id });
+    window.setTimeout(() => setNoteFocus((cur) => (cur?.id === id ? null : cur)), 1800);
+    if (!isPlayerPlaying) segmentRefs.current[a.segmentId]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const said = rangeSeconds(a);
+    const undo = covering
+      ? () => notesApi.setLabel(covering.id, covering.labelId ?? DEFAULT_LABEL_ID)
+      : () => { notesApi.removeHighlight(id); taken.forEach((h) => notesApi.restoreHighlight(h)); };
+    toastUndo(`${SIMPLE_HIGHLIGHTS ? "Highlighted" : label.name} at ${clock(said ? said.start : effectiveCurrentSeconds)}`, undo, HighlighterIcon);
+  }
+  function commentNow() {
+    const a = currentSentence();
+    if (!a) return;
+    if (isPlayerPlaying) handlePlayerPlayPause();
+    commentOnRange(a);
+  }
+  /* Mark during the call (Otter marks the last transcribed piece; Fireflies bookmarks the
+     moment): a sentence still being said is marked whole once it is written down, otherwise
+     the last sentence that was. Same labels as everywhere else, Undo in the toast. */
+  function flashHighlight(id: string) {
+    setNoteFocus({ kind: "highlight", id });
+    window.setTimeout(() => setNoteFocus((cur) => (cur?.id === id ? null : cur)), 1800);
+  }
+  function markLive(labelId: string) {
+    const label = labelsApi.labelOf(labelId);
+    const last = liveTranscriptSegments[liveTranscriptSegments.length - 1];
+    /* a sentence that has only just begun is not what was meant: the one before it is */
+    if (liveTranscriptInterim.trim().length > 0 && (!last || liveTranscriptInterim.trim().split(/\s+/).length >= 4)) {
+      setLiveMark({ segmentId: liveTranscriptSegments.length + 1, labelId });
+      return;
+    }
+    if (!last) { toast("Nothing has been said yet"); return; }
+    const parts = splitSentences(last.text);
+    const r = snapRange(last.text, Math.max(0, last.text.length - (parts[parts.length - 1]?.length ?? last.text.length)), last.text.length);
+    if (r.end <= r.start) return;
+    const id = notesApi.addHighlight({ segmentId: last.id, ...r }, labelId);
+    flashHighlight(id);
+    segmentRefs.current[last.id]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    toastUndo(`${SIMPLE_HIGHLIGHTS ? "Marked" : label.name} at ${last.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+  }
+  useEffect(() => {
+    if (!liveMark) return;
+    const seg = liveTranscriptSegments.find((s) => s.id === liveMark.segmentId);
+    if (!seg) return;
+    const r = snapRange(seg.text, 0, seg.text.length);
+    setLiveMark(null);
+    if (r.end <= r.start) return;
+    const id = notesApi.addHighlight({ segmentId: seg.id, ...r }, liveMark.labelId);
+    flashHighlight(id);
+    toastUndo(`${SIMPLE_HIGHLIGHTS ? "Marked" : labelsApi.labelOf(liveMark.labelId).name} at ${seg.timestamp}`, () => notesApi.removeHighlight(id), HighlighterIcon);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveMark, liveTranscriptSegments]);
+  useEffect(() => { if (!isLiveRecordingDetail) setLiveMark(null); }, [isLiveRecordingDetail]);
+  function playAll(ids: string[]) {
+    const list = ids.map((id) => notesApi.highlights.find((h) => h.id === id)).filter((h): h is Highlight => Boolean(h));
+    const first = list[0] ? rangeSeconds(list[0]) : null;
+    if (!first) return;
+    setReel({ ids: list.map((h) => h.id), index: 0 });
+    seekToSeconds(first.start);
+    setNoteFocus({ kind: "highlight", id: list[0].id });
+    segmentRefs.current[list[0].segmentId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!isPlayerPlaying) handlePlayerPlayPause();
+  }
+  function stopReel() {
+    setReel(null);
+    setNoteFocus(null);
+    if (isPlayerPlaying) handlePlayerPlayPause();
+  }
+  const playerMarkers: PlayerMarker[] = [
+    ...notesApi.highlights.map((h) => {
+      const r = rangeSeconds(h);
+      if (!r) return null;
+      const label = labelsApi.labelOf(h.labelId);
+      const words = blockText(h.segmentId).slice(h.start, h.end);
+      return { id: h.id, kind: "highlight" as const, label, seconds: r.start, at: (r.start / effectiveDurationSeconds) * 100, title: `${clock(r.start)}${SIMPLE_HIGHLIGHTS ? "" : ` · ${label.name}`}: ${words.length > 70 ? words.slice(0, 70) + "..." : words}` };
+    }),
+    ...notesApi.threads.filter((t) => !t.resolved).map((t) => {
+      const r = rangeSeconds(t);
+      if (!r) return null;
+      const who = t.by.you ? "Your comment" : `${t.by.name.split(" ")[0]}'s comment`;
+      return { id: t.id, kind: "comment" as const, seconds: r.start, at: (r.start / effectiveDurationSeconds) * 100, title: `${clock(r.start)} · ${who}: ${t.text.length > 70 ? t.text.slice(0, 70) + "..." : t.text}` };
+    }),
+  ].filter((m): m is NonNullable<typeof m> => m !== null);
+  const playerLeading = reel ? (
+    <Button size="sm" variant="pill-outline" aria-label="Stop playing highlights" title="Stop playing highlights" className="h-8 gap-1.5 px-3 text-xs font-medium [@media(pointer:coarse)]:h-9" onClick={stopReel}>
+      <Icon icon={StopIcon} className="size-[13px]" strokeWidth={2} />
+      <span className="max-sm:hidden">Stop ·</span>
+      <span className="tabular-nums text-muted-foreground">{reel.index + 1} of {reel.ids.length}</span>
+    </Button>
+  ) : HIDDEN.playerMarkButtons ? null : (
+    <span className="flex items-center gap-1.5">
+      <HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" shortcut="H" heading="Mark the current sentence" open={highlightMenu === "player"} onOpenChange={(o) => setHighlightMenu(o ? "player" : null)} onHighlight={(id) => highlightNow(id)} onManage={manageLabels} />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {/* the phone keeps it as an icon beside Highlight: the pair reads the same on every width */}
+          <Button variant="pill-outline" size="sm" aria-label="Comment on this moment" className="h-8 gap-1.5 pl-2.5 pr-3 text-xs font-medium max-md:relative max-md:size-8 max-md:justify-center max-md:gap-0 max-md:p-0 max-md:after:absolute max-md:after:-inset-0.5 [@media(pointer:coarse)]:h-9 max-md:[@media(pointer:coarse)]:h-8" onClick={commentNow}>
+            <Icon icon={CommentAdd01Icon} className="size-[14px]" strokeWidth={1.8} />
+            <span className="max-md:hidden">Comment</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">Comment on this moment  (C)</TooltipContent>
+      </Tooltip>
+    </span>
+  );
+  /* H opens the labels, C comments: for the selected words, or for the sentence being played */
+  shortcutRef.current = (e: KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+    const target = e.target as HTMLElement | null;
+    if (target?.closest?.("input, textarea, select, [contenteditable=true], [role=dialog], [role=menu]")) return;
+    const k = e.key.toLowerCase();
+    /* during the call H marks what was just said; C has nothing to comment on yet */
+    if (isLiveRecordingDetail) { if (k === "h" && !composer) { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill && !HIDDEN.liveSelection) handleSelectionHighlight(DEFAULT_LABEL_ID); else if (!HIDDEN.liveMark) markLive(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "live"); } return; }
+    if (activeTab !== "transcript" || editMode || composer || isJobTranscribing) return;
+    if (k === "h") { e.preventDefault(); if (SIMPLE_HIGHLIGHTS) { if (selectionPill) handleSelectionHighlight(DEFAULT_LABEL_ID); else if (!HIDDEN.playerMarkButtons) highlightNow(DEFAULT_LABEL_ID); } else setHighlightMenu(selectionPill ? "pill" : "player"); }
+    else if (k === "c") { e.preventDefault(); if (selectionPill) handleSelectionComment(); else if (!HIDDEN.playerMarkButtons) commentNow(); }
+  };
+  const labelCounts = notesApi.highlights.reduce<Record<string, number>>((acc, h) => { const id = labelsApi.labelOf(h.labelId).id; acc[id] = (acc[id] ?? 0) + 1; return acc; }, {});
+  /* the marked lines, in transcript order, for the top of the summary */
+  const summaryHighlights: SummaryHighlight[] = notesApi.highlights.map((h) => ({ id: h.id, label: labelsApi.labelOf(h.labelId), time: (() => { const r = rangeSeconds(h); return r ? clock(r.start) : displaySegments.find((sg) => sg.id === h.segmentId)?.timestamp ?? ""; })(), words: blockText(h.segmentId).slice(h.start, h.end).trim() }));
+  /* Highlights only: a check like Speakers and Timestamps, first in the row,
+     because it filters the words rather than changing how they look */
+  const onlyHighlightsCheck = notesApi.highlights.length > 0 ? (
+    <label data-only-highlights="" data-on={onlyHighlights ? "true" : "false"} className="flex h-7 shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground select-none [@media(pointer:coarse)]:h-9">
+      <FigmaCheckbox checked={onlyHighlights} onChange={() => setOnlyHighlights((v) => !v)} />
+      <span>Highlights only</span>
+    </label>
+  ) : null;
+
+  /* The block bar's Highlight: the label you pick marks the whole block, or
+     relabels the block's own mark when it has one. */
+  function highlightBlock(segId: number, labelId: string) {
+    const len = blockText(segId).length;
+    const mine = notesApi.highlights.find((h) => h.segmentId === segId && coversBlock(h, len) && (h.by.you || isOwner));
+    if (mine) notesApi.setLabel(mine.id, labelId);
+    else notesApi.addHighlight({ segmentId: segId, start: 0, end: len }, labelId, false);
+  }
+  function startComment(anchor: Anchor, rect: { left: number; top: number; width: number; height: number }, returnTo?: string, back?: BarBack) {
+    rememberOrigin(back);
+    const a = { segmentId: anchor.segmentId, start: anchor.start, end: anchor.end };
+    setMarkBar(null);
+    setSelectionPill(null);
+    setRevealedBlock(null);
+    window.getSelection()?.removeAllRanges();
+    setComposer({ anchor: a, quote: blockText(a.segmentId).slice(a.start, a.end), timestamp: blockTimestamp(a.segmentId), rect, returnTo });
+  }
+  /* posting or cancelling brings you back to the list you started from */
+  function cancelComposer() {
+    if (composer?.returnTo) setActiveTab(composer.returnTo);
+    setComposer(null);
+  }
+  function submitComposer(body: string) {
+    if (!composer) return;
+    const threadId = notesApi.addThread({ ...composer.anchor, quote: composer.quote, timestamp: composer.timestamp }, body);
+    dialogOrigin.current = null;
+    if (composer.returnTo) setActiveTab(composer.returnTo);
+    setComposer(null);
+    setNoteFocus({ kind: "thread", id: threadId });
+    /* from the Highlights list you stay in it: the highlight now says "1 comment" */
+    if (!noPanel && panelTab !== "highlights") setPanelTab("comments");
+  }
+  /* From a list: bring the words into view and open the field under them. On
+     a phone the field is a sheet with the quote, so nothing has to move. */
+  function commentOnRange(anchor: Anchor, highlightId?: string) {
+    if (belowLg) { startComment(anchor, { left: 0, top: 0, width: 0, height: 0 }); return; }
+    const switching = noPanel && activeTab !== "transcript";
+    const from = switching ? activeTab : undefined;
+    /* the list goes away with its tab: a cancel brings the tab back, and the focus to the row's button */
+    const back: BarBack | undefined = switching && highlightId
+      ? () => ({ focus: `[data-highlight-item="${highlightId}"] button:is([aria-label="Comment on highlight"], [aria-label="More"])`, reveal: true })
+      : undefined;
+    if (switching) setActiveTab("transcript");
+    const target = () => {
+      const block = segmentRefs.current[anchor.segmentId];
+      const mark = highlightId ? block?.querySelector<HTMLElement>(`[data-hl~="${highlightId}"]`) : null;
+      return mark ?? block?.querySelector<HTMLElement>("[data-transcript-line]") ?? null;
+    };
+    window.setTimeout(() => {
+      segmentRefs.current[anchor.segmentId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      /* wait for the smooth scroll to settle: the field is placed where the words end up */
+      let last = Number.NaN, still = 0, frames = 0;
+      const settle = () => {
+        const top = target()?.getBoundingClientRect().top ?? 0;
+        still = Math.abs(top - last) < 0.5 ? still + 1 : 0;
+        last = top;
+        if (still < 4 && frames++ < 90) { requestAnimationFrame(settle); return; }
+        const r = target()?.getBoundingClientRect();
+        startComment(anchor, r ? { left: r.left, top: r.top, width: r.width, height: r.height } : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 }, from, back);
+      };
+      requestAnimationFrame(settle);
+    }, switching ? 80 : 0);
+  }
+  /* the commented words themselves: in a long block its first line would leave them under the sheet */
+  const wordsOf = (segmentId: number, threadId?: string) =>
+    (threadId ? segmentRefs.current[segmentId]?.querySelector<HTMLElement>(`[data-th~="${threadId}"]`) : null) ?? segmentRefs.current[segmentId];
+  function goToNote(anchor: Anchor, f: Focus) {
+    if (noPanel) setActiveTab("transcript");
+    setNoteFocus(f);
+    /* touch: a comment picked in the list opens over its words with its tools, as a tap on the words does */
+    const sheet = f.kind === "thread" && belowLg;
+    if (sheet) setThreadSheet({ segmentId: anchor.segmentId });
+    window.setTimeout(() => (sheet ? wordsOf(anchor.segmentId, f.id) : segmentRefs.current[anchor.segmentId])?.scrollIntoView({ behavior: "smooth", block: sheet ? "start" : "center" }), noPanel ? 80 : 0);
+    if (f.kind === "highlight") window.setTimeout(() => setNoteFocus((cur) => (cur?.id === f.id ? null : cur)), 1800);
+  }
+  /* touch: the discussion opens from the bottom with its words above it, on the transcript */
+  function openSheetOver(segmentId: number, threadId?: string) {
+    if (noPanel) setActiveTab("transcript");
+    setThreadSheet({ segmentId });
+    window.setTimeout(() => wordsOf(segmentId, threadId)?.scrollIntoView({ behavior: "smooth", block: "start" }), noPanel ? 80 : 0);
+  }
+  function openThread(threadId: string) {
+    const t = notesApi.threads.find((x) => x.id === threadId);
+    if (!t) return;
+    setNoteFocus({ kind: "thread", id: threadId });
+    if (belowLg) { openSheetOver(t.segmentId, t.id); return; }
+    if (noPanel) setActiveTab("comments");
+    else setPanelTab("comments");
+  }
+  function openBlockComments(segId: number) {
+    setRevealedBlock(null);
+    const first = notesApi.threads.find((t) => t.segmentId === segId && !t.resolved);
+    if (belowLg) { openSheetOver(segId, first?.id); return; }
+    if (first) { setNoteFocus({ kind: "thread", id: first.id }); if (noPanel) setActiveTab("comments"); else setPanelTab("comments"); }
+  }
+  function handleMark(segId: number, run: Run, rect: DOMRect, lines: DOMRect[]) {
+    setRevealedBlock(null);
+    if (run.highlights.length === 0) { if (run.threads.length > 0) openThread(run.threads[0]); return; }
+    const roof = document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect().top ?? 0;
+    const floor = document.querySelector("[data-player-bar]")?.getBoundingClientRect().top ?? window.innerHeight;
+    const roomAbove = rect.top - 48 >= roof, roomBelow = rect.bottom + 56 <= floor;
+    const below = coarsePointer ? roomBelow || !roomAbove : !roomAbove;
+    setMarkBar({ segmentId: segId, run, rect: { left: rect.left, top: rect.top, width: rect.width, bottom: rect.bottom }, line: edgeLine(lines, below), below });
+  }
+  function markBarLead() {
+    if (!markBar || SIMPLE_HIGHLIGHTS) return undefined;
+    const h = notesApi.highlights.find((x) => x.id === markBar.run.highlights[markBar.run.highlights.length - 1]);
+    if (!h) return undefined;
+    const label = labelsApi.labelOf(h.labelId);
+    if (!(h.by.you || isOwner)) return <span className="pl-2.5 pr-1"><LabelChip label={label} /></span>;
+    return (
+      <LabelPicker
+        labels={labelsApi}
+        currentId={label.id}
+        sheet={coarsePointer}
+        title="Label"
+        side={markBar.below ? "bottom" : "top"}
+        onPick={(id) => { notesApi.setLabel(h.id, id); closeMarkBar(); }}
+        /* on touch the sheet covers the bar and its Remove, so the sheet carries it */
+        onRemove={coarsePointer ? () => { closeMarkBar(); removeHighlightWithUndo(notesApi, h.id); } : undefined}
+        onManage={manageLabels ? () => { openManageLabels(markBarBack(markBar, "[data-mark-label]")); closeMarkBar(); } : undefined}
+        trigger={
+          <button type="button" data-mark-label="" aria-label={`Label: ${label.name}. Change`} className="ml-0.5 inline-flex h-7 items-center rounded-full px-2 transition-colors hover:bg-muted data-[state=open]:bg-muted [@media(pointer:coarse)]:h-9">
+            <LabelChip label={label}>
+              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><path d="M6 9l6 6 6-6" /></svg>
+            </LabelChip>
+          </button>
+        }
+      />
+    );
+  }
+  function markBarActions(): BarAction[] {
+    if (!markBar) return [];
+    const h = notesApi.highlights.find((x) => x.id === markBar.run.highlights[markBar.run.highlights.length - 1]);
+    if (!h) return [];
+    const text = blockText(h.segmentId).slice(h.start, h.end);
+    const r = markBar.rect;
+    const thread = markBar.run.threads[0];
+    /* a highlight and a comment are two things on the same words (the client, 06.10): each has its own
+       Remove, worded, so nothing is taken away that was not meant. On the phone the two verbs keep their
+       words and Comment / Copy give theirs up, or the bar would not fit the screen */
+    const actions: BarAction[] = [
+      thread
+        ? { key: "open", label: "Open comment", icon: Comment01Icon, short: true, onClick: () => openThread(thread) }
+        : { key: "comment", label: "Comment", icon: CommentAdd01Icon, short: true, onClick: () => startComment(h, { left: r.left, top: r.top, width: r.width, height: r.bottom - r.top }, undefined, markBarBack(markBar, "[data-bar-action=comment]")) },
+      { key: "copy", label: "Copy", icon: Copy01Icon, short: true, onClick: () => { void navigator.clipboard?.writeText(text); toast("Text copied"); } },
+    ];
+    if (h.by.you || isOwner) actions.push({ key: "remove", label: "Remove highlight", icon: Delete02Icon, danger: true, onClick: () => removeHighlightWithUndo(notesApi, h.id) });
+    const threadBy = thread ? notesApi.threads.find((t) => t.id === thread)?.by : undefined;
+    if (thread && threadBy && (threadBy.you || isOwner)) actions.push({ key: "remove-comment", label: "Remove comment", icon: Delete02Icon, danger: true, onClick: () => deleteThreadWithUndo(notesApi, thread) });
+    return actions;
+  }
+  /* A tap on a block's text: on touch it shows that block's bar (there is no
+     hover); anywhere it lets go of a comment the transcript was pointing at. */
+  function tapBlock(segId: number) {
+    if (noteFocus) setNoteFocus(null);
+    if (!coarsePointer) return;
+    const sel = window.getSelection();
+    if (sel && !sel.isCollapsed) return;
+    setRevealedBlock((cur) => (cur === segId ? null : segId));
+  }
+  const notesFor = (seg: Segment): SegmentNotes => {
+    const len = blockText(seg.id).length;
+    const highlights = notesApi.highlights.filter((h) => h.segmentId === seg.id);
+    const whole = highlights.find((h) => coversBlock(h, len) && (h.by.you || isOwner));
+    return {
+      highlights,
+      threads: notesApi.threads.filter((t) => t.segmentId === seg.id),
+      focus: noteFocus,
+      pending: composer && composer.anchor.segmentId === seg.id ? composer.anchor : highlightMenu === "pill" && selectionPill?.segmentId === seg.id ? snapRange(blockText(seg.id), selectionPill.start, selectionPill.end) : undefined,
+      blockHighlighted: Boolean(whole),
+      blockLabel: whole ? labelsApi.labelOf(whole.labelId) : undefined,
+      raised: continuationOf(seg),
+      revealed: revealedBlock === seg.id,
+      quiet: markBar?.segmentId === seg.id || composer?.anchor.segmentId === seg.id || selectionPill?.segmentId === seg.id,
+      onMark: (run, rect, lines) => handleMark(seg.id, run, rect, lines),
+      onTapText: () => tapBlock(seg.id),
+      onHighlightBlock: (labelId) => { setRevealedBlock(null); highlightBlock(seg.id, labelId); },
+      onRemoveBlockHighlight: () => { setRevealedBlock(null); if (whole) removeHighlightWithUndo(notesApi, whole.id); },
+      labels: labelsApi,
+      sheet: coarsePointer,
+      onManageLabels: manageLabels,
+      colorOf,
+      titleOf: (id) => { const h = notesApi.highlights.find((x) => x.id === id); const name = labelsApi.labelOf(h?.labelId).name; return h && !h.by.you ? `${name} · by ${h.by.name.split(" ")[0]}` : name; },
+      onCommentBlock: (rect) => startComment({ segmentId: seg.id, start: 0, end: len }, { left: rect.left, top: rect.top, width: rect.width, height: rect.height }),
+      onOpenComments: () => openBlockComments(seg.id),
+      onCopy: () => { setRevealedBlock(null); copySegmentText(seg.id); },
+    };
+  };
+  /* the export's Highlights and Comments files read these two texts */
+  useEffect(() => {
+    const hl: string[] = [];
+    for (const h of notesApi.highlights) {
+      const who = blockSpeaker(h.segmentId);
+      hl.push(`[${timeOf(h)}]${who ? ` ${who}` : ""}${SIMPLE_HIGHLIGHTS ? "" : ` · ${labelsApi.labelOf(h.labelId).name}`}`, `"${blockText(h.segmentId).slice(h.start, h.end)}"`, "");
+    }
+    const cm: string[] = [];
+    for (const t of notesApi.threads) {
+      cm.push(`[${timeOf(t)}] "${t.quote}"${t.resolved ? " (resolved)" : ""}`, `  ${t.by.name}: ${t.text}`);
+      for (const r of t.replies) cm.push(`  ${r.by.name}: ${r.text}`);
+      cm.push("");
+    }
+    try {
+      window.localStorage.setItem(`ttt_notes_highlights:${recordId}`, hl.join("\n"));
+      window.localStorage.setItem(`ttt_notes_comments:${recordId}`, cm.join("\n"));
+    } catch { /* this visit only */ }
+  }, [notesApi.highlights, notesApi.threads, labelsApi.labels, recordId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const notesView: NotesView = {
+    timeOf,
+    labels: labelsApi,
+    sheet: coarsePointer,
+    manageLabels,
+    reel,
+    playAll,
+    stopReel,
+    api: notesApi,
+    owner: isOwner,
+    focus: noteFocus,
+    textOf: blockText,
+    speakerOf: blockSpeaker,
+    timestampOf: blockTimestamp,
+    goTo: goToNote,
+    openThread,
+    commentOn: commentOnRange,
+    seek: seekTo,
+  };
+  // Text selection: the bar over selected words
+  useEffect(() => {
+    let touchTimer = 0;
+    /* The offset is counted from the start of the line, not searched for: a
+       word can appear twice in one block. A selection that runs into the next
+       block gets no bar. */
+    function read() {
       const sel = window.getSelection();
-      if (!sel || sel.isCollapsed || sel.toString().trim().length === 0) { setSelectionPill(null); return; }
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0 || sel.toString().trim().length === 0) return null;
       const range = sel.getRangeAt(0);
       const container = range.startContainer.parentElement?.closest("[data-segment-id]");
-      if (!container) { setSelectionPill(null); return; }
-      const segId = Number(container.getAttribute("data-segment-id"));
-      // Find text offset within the segment
-      const pEl = container.querySelector("p");
-      if (!pEl) { setSelectionPill(null); return; }
-      const fullText = texts[segId] ?? resolved.segments.find((s) => s.id === segId)?.text ?? "";
-      const selectedText = sel.toString();
-      const startIdx = fullText.indexOf(selectedText);
-      if (startIdx === -1) { setSelectionPill(null); return; }
+      const line = container?.querySelector<HTMLElement>("[data-transcript-line]");
+      if (!container || !line || !line.contains(range.startContainer) || !line.contains(range.endContainer)) return null;
+      const before = document.createRange();
+      before.selectNodeContents(line);
+      before.setEnd(range.startContainer, range.startOffset);
+      const start = before.toString().length;
       const rect = range.getBoundingClientRect();
-      setSelectionPill({ x: rect.left + rect.width / 2 - 30, y: rect.top, segmentId: segId, start: startIdx, end: startIdx + selectedText.length });
+      const lines = Array.from(range.getClientRects());
+      const first = edgeLine(lines, false) ?? rect, last = edgeLine(lines, true) ?? rect;
+      return {
+        x: first.left,
+        xBelow: last.left,
+        y: rect.top,
+        bottom: rect.bottom,
+        /* too close to the tab row: the bar goes under the words instead */
+        flip: rect.top - 48 < (document.querySelector("[data-transcript-scroll]")?.getBoundingClientRect().top ?? 0),
+        /* too close to the player: on touch the bar goes over the words instead */
+        low: rect.bottom + 56 > (document.querySelector("[data-player-bar]")?.getBoundingClientRect().top ?? window.innerHeight),
+        rect: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
+        segmentId: Number(container.getAttribute("data-segment-id")),
+        start,
+        end: start + range.toString().length,
+      };
     }
-    document.addEventListener("mouseup", handler);
-    document.addEventListener("keyup", handler);
-    return () => { document.removeEventListener("mouseup", handler); document.removeEventListener("keyup", handler); };
-  }, [texts, resolved.segments]);
+    function onUp(e?: Event) {
+      if (e && (e.target as HTMLElement | null)?.closest?.("[data-selection-pill], [data-slot=popover-content], [data-slot=drawer-content], [data-mark-bar], [data-label-menu], [data-manage-labels]")) return;
+      setSelectionPill(read());
+    }
+    /* A phone grows the selection with its handles and sends no mouseup: read
+       it once the handles come to rest. Pressing the bar itself clears the
+       native selection, which must not take the bar away. */
+    function onChange() {
+      if (!window.matchMedia("(hover: none)").matches) return;
+      window.clearTimeout(touchTimer);
+      touchTimer = window.setTimeout(() => {
+        const t = document.activeElement;
+        if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || document.querySelector("[data-label-sheet], [data-label-menu], [data-manage-labels]")) return;
+        const next = read();
+        if (next) { setSelectionPill(next); setRevealedBlock(null); return; }
+        if (Date.now() - pillPressRef.current < 800) return;
+        setSelectionPill(null);
+      }, 350);
+    }
+    document.addEventListener("mouseup", onUp);
+    document.addEventListener("keyup", onUp);
+    document.addEventListener("selectionchange", onChange);
+    return () => {
+      window.clearTimeout(touchTimer);
+      document.removeEventListener("mouseup", onUp);
+      document.removeEventListener("keyup", onUp);
+      document.removeEventListener("selectionchange", onChange);
+    };
+  }, []);
 
   /* the cut is exactly what was selected, grown only to whole words (Kirill 23.09:
      "only what I selected moves", never half a word) */
@@ -3896,12 +4513,19 @@ export function TranscriptionDetailPage() {
     toast.success(`Moved to ${to.name}`, { description: "The block was split at the selected words", cancel: { label: "Undo", onClick: () => { setSplits(before.splits); setExtraSpeakers(before.extraSpeakers); } } });
   }
 
-  function handleSelectionHighlight() {
+  function handleSelectionHighlight(labelId: string) {
     if (!selectionPill) return;
-    const { segmentId, start, end } = selectionPill;
-    setTextHighlights((prev) => ({ ...prev, [segmentId]: [...(prev[segmentId] ?? []), { start, end }] }));
+    const { segmentId } = selectionPill;
+    const r = snapRange(blockText(segmentId), selectionPill.start, selectionPill.end);
+    if (r.end > r.start) notesApi.addHighlight({ segmentId, ...r }, labelId);
     setSelectionPill(null);
     window.getSelection()?.removeAllRanges();
+  }
+  function handleSelectionComment() {
+    if (!selectionPill) return;
+    const { segmentId } = selectionPill;
+    const r = snapRange(blockText(segmentId), selectionPill.start, selectionPill.end);
+    if (r.end > r.start) startComment({ segmentId, ...r }, selectionPill.rect, undefined, pillBack(selectionPill, "[data-pill-comment]"));
   }
 
   const runGeneration = (selected: Template) => {
@@ -3927,6 +4551,44 @@ export function TranscriptionDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [desktopShell, routeState?.fromRecordingStop, templates.length, isJobTranscribing]);
 
+  /* the selection pill, the comment field, the mark bar, the labels dialog and the thread
+     sheet: the same layers over a live call and over a finished note */
+  const noteLayers = (
+    <>
+      {/* Text selection highlight pill */}
+      {selectionPill && !editMode && !composer && !(HIDDEN.liveSelection && isLiveRecordingDetail) && (
+        <SelectionHighlightPill
+          position={{ x: (coarsePointer && (!selectionPill.low || selectionPill.flip)) || selectionPill.flip ? selectionPill.xBelow : selectionPill.x, y: selectionPill.y, bottom: selectionPill.bottom }}
+          below={(coarsePointer && (!selectionPill.low || selectionPill.flip)) || selectionPill.flip}
+          onPress={() => { pillPressRef.current = Date.now(); }}
+          onHighlight={handleSelectionHighlight}
+          onComment={handleSelectionComment}
+          labels={labelsApi}
+          sheet={coarsePointer}
+          onManageLabels={manageLabels && (() => { openManageLabels(pillBack(selectionPill, "[data-highlight-button] button")); window.getSelection()?.removeAllRanges(); setSelectionPill(null); })}
+          menuOpen={highlightMenu === "pill"}
+          onMenuOpenChange={(o) => setHighlightMenu(o ? "pill" : null)}
+          speaker={isSingleSpeaker || !isOwner || isLiveRecordingDetail ? undefined : (() => {
+            const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId); if (!seg) return undefined;
+            /* the note appears only when part of the block stays where it is (Kirill 23.09) */
+            const cut = snapToWords(seg.text, selectionPill.start, selectionPill.end);
+            const rest = cut.start > 0 || cut.end < seg.text.trim().length;
+            const note = rest ? `Only the selected words move. The rest stays with ${seg.speaker.name}.` : undefined;
+            const onPreview = (id: string | null) => { const sp = id ? resolved.managed.find((x) => x.id === id) : undefined; setSplitPreview(sp && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
+            return { current: seg.speaker, speakers: resolved.managed, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut, onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, onAddSpeaker: speakersPanelActions.onAdd };
+          })()}
+        />
+      )}
+      {composer && (
+        <CommentComposer sheet={belowLg} rect={composer.rect} quote={composer.quote} onSubmit={submitComposer} onCancel={cancelComposer} onOutside={() => { dialogOrigin.current = null; }}
+          /* the field leaves the page when it closes: it is open while it is there */
+          onCloseAutoFocus={closedFocus(() => !!document.querySelector("[data-comment-composer]"))} />
+      )}
+      {markBar && <MarkBar rect={markBar.rect} line={markBar.line ?? undefined} below={markBar.below} actions={markBarActions()} lead={markBarLead()} onClose={closeMarkBar} />}
+      {!SIMPLE_HIGHLIGHTS && <ManageLabelsDialog labels={labelsApi} open={manageLabelsOpen} onOpenChange={setManageLabelsOpen} onCloseAutoFocus={closedFocus(() => manageLabelsOpen)} counts={labelCounts} elsewhere={labelsElsewhere} touch={coarsePointer} />}
+      {threadSheet && sheetThreads.length > 0 && <ThreadSheet threads={sheetThreads} v={notesView} onClose={() => setThreadSheet(null)} />}
+    </>
+  );
   if (isLiveRecordingDetail) {
     const isPaused = recordingPhase === "paused";
     const hasTranscript = liveTranscriptSegments.length > 0 || liveTranscriptInterim.trim().length > 0;
@@ -4060,19 +4722,8 @@ export function TranscriptionDetailPage() {
                   isPlaybackActive={!isPaused && index === liveDetailSegments.length - 1}
                   hideSpeaker={!transcriptView.speakers}
                   hideTimecodes={!transcriptView.timestamps}
+                  notes={notesFor(segment)}
                   segmentRef={(el) => { segmentRefs.current[segment.id] = el; }}
-                  isSegHighlighted={false}
-                  onToggleHighlight={() => {}}
-                  onOpenComment={() => {}}
-                  onShare={() => {}}
-                  onCopyText={() => {}}
-                  inlineComment={false}
-                  onCommentSubmit={() => {}}
-                  onCommentCancel={() => {}}
-                  onCommentChange={() => {}}
-                  commentValue=""
-                  textHighlights={[]}
-                  showActions={false}
                 />
               ))}
 
@@ -4080,13 +4731,17 @@ export function TranscriptionDetailPage() {
                 <div className="mx-[-8px] rounded-xl bg-primary/5 px-2 py-3 ring-1 ring-primary/20">
                   <div className="grid grid-cols-[minmax(160px,220px)_1fr] gap-4 max-md:grid-cols-1">
                     <div className="min-w-0 pt-1">
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                         <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">Y</div>
                         <span className="truncate text-sm font-medium text-foreground">You (speaking...)</span>
+                        {liveMark && (
+                          /* the label waits under the name until the sentence is written down */
+                          <LabelChip label={labelsApi.labelOf(liveMark.labelId)} className="basis-full shrink-0 self-start" />
+                        )}
                       </div>
                     </div>
                     <div className="relative min-w-0 pl-5">
-                      <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-full bg-primary/65" />
+                      <div className={`absolute left-0 top-0 bottom-0 w-[3px] rounded-full ${liveMark ? DOT[labelsApi.labelOf(liveMark.labelId).color] : "bg-primary/65"}`} />
                       <p className="mt-1 text-sm leading-relaxed text-foreground/85">
                         {liveTranscriptInterim}
                         <span className="ml-1 inline-block h-4 w-[2px] translate-y-[2px] animate-pulse bg-primary" />
@@ -4106,6 +4761,7 @@ export function TranscriptionDetailPage() {
             elapsedSeconds={recordingElapsed}
             onPauseResume={isPaused ? resumeInstantRecording : pauseInstantRecording}
             onStop={stopInstantRecording}
+            mark={HIDDEN.liveMark ? undefined : <HighlightButton labels={labelsApi} sheet={coarsePointer} variant="player" label="Mark" short tip="Mark what was just said  (H)" heading="Mark what was just said" open={highlightMenu === "live"} onOpenChange={(o) => setHighlightMenu(o ? "live" : null)} onHighlight={markLive} onManage={manageLabels} />}
             generate={desktopShell}
             warning={desktopShell && permDemo && (sysIsAPermission || permDemo === "1") ? {
               title: permDemo === "1" ? (sysIsAPermission ? `Microphone and the call's sound aren't allowed on ${machine}` : `Microphone isn't allowed on ${machine}`) : `Call sound isn't allowed on ${machine}`,
@@ -4125,13 +4781,14 @@ export function TranscriptionDetailPage() {
           /* the same right panel as a finished note, so the note does not widen when the call ends */
           <div className="relative hidden shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center lg:flex" style={{ width: rightPanelWidth }}>
             <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/5">
-              <MessageSquarePlus className="size-5 text-primary/70" strokeWidth={1.7} />
+              <Icon icon={Comment01Icon} className="size-5 text-primary/70" strokeWidth={1.7} />
             </span>
             <p className="mt-3 text-[13px] font-medium text-foreground">Outline & comments</p>
             <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">They appear here once the call has ended and the notes are written.</p>
           </div>
         )}
       </div>
+      {noteLayers}
       </>
     );
   }
@@ -4301,7 +4958,7 @@ export function TranscriptionDetailPage() {
           trailing={(
             <>
               {/* the folder as a pill in the meta line on the web too, like the desktop shell (Kirill 23.09) */}
-              {!desktopShell && <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />}
+              {!desktopShell && !sharedOwner && <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />}
               {!isSingleSpeaker && !isJobTranscribing && (
                 <SpeakersPanel speakers={managedSpeakers} actions={speakersPanelActions} open={speakersPanelOpen} onOpenChange={setSpeakersPanelOpen} onAskRemove={setRemoveTarget}>
                   <SpeakersChip speakers={resolved.speakers} />
@@ -4311,8 +4968,8 @@ export function TranscriptionDetailPage() {
           )}
           chips={desktopShell ? (<>
             <MeetingCard meetingId={recordMeetingId} onChange={setRecordMeetingId} dateLabel={(selectedRecord?.dateCreated ?? "Mar 24, 2026 · 10:30 AM").split(/[,·]/)[0].trim()} />
-            <span className="text-border">{"\u2022"}</span>
-            <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} />
+            {!sharedOwner && <><span className="text-border">{"\u2022"}</span>
+            <FolderChip folderId={selectedFolder?.id ?? null} onChange={(fid) => { if (fid) moveToFolder(fid); }} /></>}
           </>) : undefined}
           onCreateFolderAndMove={createFolderAndMove}
           onExport={exportTranscript}
@@ -4338,7 +4995,7 @@ export function TranscriptionDetailPage() {
             </Button>
           </div>
         )}
-        <ExportDialog open={exportDialogOpen} onClose={() => setExportDialogOpen(false)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
+        <ExportDialog open={exportDialogOpen} format={exportFormat} onClose={() => setExportDialogOpen(false)} onCloseAutoFocus={closedFocus(() => exportDialogOpen)} records={[buildExportableRecord()]} availableRecords={demoRecords.map(recordRowToExportable)} />
 
         <ShareDialog
           open={shareDialogOpen}
@@ -4350,14 +5007,16 @@ export function TranscriptionDetailPage() {
 
         <UpgradeGateModal open={limitedModalOpen} onOpenChange={setLimitedModalOpen} variant="done" />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden">
-          <div className="flex items-end justify-between border-b border-border px-4 lg:px-8 max-lg:overflow-x-auto">
-            <TabsList variant="line" className="border-b-0 max-lg:shrink-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden max-md:[@media(pointer:coarse)]:mt-1.5">
+          <div className="flex items-end justify-between gap-4 border-b border-border px-4 lg:px-8">
+            <ScrollRow activeKey={activeTab}>
+            <TabsList variant="line" className="border-b-0 shrink-0 max-md:[@media(pointer:coarse)]:*:pt-2.5 md:max-lg:[@media(pointer:coarse)]:*:pt-0.5">
               {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
-              <TabsTrigger value="outline" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Outline</TabsTrigger>
-              <TabsTrigger value="comments" variant="line" className="lg:hidden max-lg:text-[13px] md:max-lg:pb-4">Comments</TabsTrigger>
+              {!isJobTranscribing && <TabsTrigger value="comments" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Comments<TabCount n={notesApi.threads.filter((t) => !t.resolved).reduce((sum, t) => sum + 1 + t.replies.length, 0)} /></TabsTrigger>}
+              {!isJobTranscribing && <TabsTrigger value="highlights" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Highlights<TabCount n={notesApi.highlights.length} /></TabsTrigger>}
+              <TabsTrigger value="outline" variant="line" className="xl:hidden max-lg:text-[13px] md:max-lg:pb-4">Outline</TabsTrigger>
               {activeTranslationMeta && !isJobTranscribing ? (
                 <>
                   <TabsTrigger value="transcript-translated" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">
@@ -4375,9 +5034,10 @@ export function TranscriptionDetailPage() {
                 </>
               ) : null}
             </TabsList>
+            </ScrollRow>
 
             {/* Right side of tab row: context-dependent */}
-            <div className="mb-1 flex items-center gap-2 max-md:hidden md:max-lg:mb-2">
+            <div className="mb-1 flex shrink-0 items-center gap-2 max-md:hidden md:max-lg:mb-2">
               <LockedTooltip what="translation" locked={locked} className={"lg:hidden " + (sharedOwner ? "hidden" : "inline-flex")}>
               <div className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex") + (locked ? " " + LOCKED_CLASS : "")}>
                 <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing || locked}>
@@ -4415,11 +5075,11 @@ export function TranscriptionDetailPage() {
                   </>
                 ) : (
                   <>
-                  <TranscriptViewChecks />
+                  <span className="contents max-xl:hidden">{onlyHighlightsCheck}<TranscriptViewChecks /></span>
                   {sharedOwner ? null : (
-                  <Button variant="ghost" size="sm" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
+                  <Button variant="ghost" size="sm" aria-label="Edit transcript" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
                     <PencilIcon className="size-3.5" />
-                    Edit transcript
+                    <span className="max-lg:hidden">Edit transcript</span>
                   </Button>
                   )}
                   </>
@@ -4435,20 +5095,27 @@ export function TranscriptionDetailPage() {
                     </>
                   )}
                 {/* the template shapes the summary only: on My thoughts there is nothing for it to do */}
-                {activeTab === "summary" && <TemplateSelectorButton
+                {activeTab === "summary" && (locked ? (
+                  <LockedTooltip what="templates" locked>
+                    <Button variant="ghost" size="sm" aria-disabled className={"h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground " + LOCKED_CLASS} onClick={() => toastLocked("templates")}>
+                      Template: <span className="text-foreground font-medium">{activeTemplate ? activeTemplate.name : "None"}</span>
+                    </Button>
+                  </LockedTooltip>
+                ) : <TemplateSelectorButton
                   activeTemplateId={activeTemplateId}
                   templates={templates}
-                  open={templatePickerOpen}
+                  open={templatePickerOpen && !belowMd}
                   onOpenChange={setTemplatePickerOpen}
                   onSelect={handleTemplateSelect}
                   onNavigateToTemplates={() => navigate("/")}
-                />}
+                />)}
                 </div>
               )}
             </div>
           </div>
           {activeTab === "transcript" && !editMode && !isJobTranscribing && (
-            <div className="flex items-center gap-4 px-4 pb-2 md:hidden">
+            <div className="flex items-center gap-4 px-4 pb-2 lg:px-8 xl:hidden">
+              {onlyHighlightsCheck}
               <TranscriptViewChecks />
             </div>
           )}
@@ -4471,7 +5138,7 @@ export function TranscriptionDetailPage() {
             </div>
           ) : null}
 
-                    <TabsContent value="outline" className="lg:hidden flex-1 overflow-auto flex flex-col items-center justify-center px-6 py-16 text-center">
+                    <TabsContent value="outline" className="xl:hidden flex-1 overflow-auto flex flex-col items-center justify-center px-6 py-16 text-center">
             <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className="text-primary"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
             </div>
@@ -4479,13 +5146,11 @@ export function TranscriptionDetailPage() {
             <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
             <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-muted-foreground">Auto-generated chapters and a jump-to-section outline are on the way.</p>
           </TabsContent>
-          <TabsContent value="comments" className="lg:hidden flex-1 overflow-auto flex flex-col items-center justify-center px-6 py-16 text-center">
-            <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5 animate-[pulse_3s_ease-in-out_infinite]">
-              <MessageSquarePlus className="size-6 text-primary" strokeWidth={1.6} />
-            </div>
-            <h3 className="text-[15px] font-semibold text-foreground">Comments</h3>
-            <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
-            <p className="mt-2 max-w-[240px] text-[13px] leading-relaxed text-muted-foreground">Time-stamped comments and team discussion will live here soon.</p>
+          <TabsContent value="comments" className="xl:hidden flex flex-1 flex-col overflow-auto">
+            <CommentsList v={notesView} title={title} />
+          </TabsContent>
+          <TabsContent value="highlights" className="xl:hidden flex flex-1 flex-col overflow-auto">
+            <HighlightsList v={notesView} title={title} />
           </TabsContent>
           {desktopShell && (
             <TabsContent value="notes" className="flex-1 overflow-auto">
@@ -4500,13 +5165,15 @@ export function TranscriptionDetailPage() {
               </div>
             </TabsContent>
           )}
-          <TabsContent value="transcript" className="flex-1 overflow-auto relative">
+          <TabsContent value="transcript" data-transcript-scroll="" className="flex-1 overflow-auto relative">
             {isJobTranscribing ? (
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (
-              <div className="animate-in fade-in duration-300 px-4 pb-4 lg:px-8">
+              <div className="animate-in fade-in duration-300 px-4 pb-16 lg:px-8">
                 <div className="relative">
-                {limitedFreeSegments.map((seg, index) => {
+                {(onlyHighlights ? limitedFreeSegments.filter((sg) => notesApi.highlights.some((h) => h.segmentId === sg.id)) : limitedFreeSegments).map((seg, vi, visible) => {
+                  const index = shownSegments.indexOf(seg);
+                  const prevSeg = onlyHighlights ? visible[vi - 1] : shownSegments[index - 1];
                   // The last free turn is the one dissolving under the fade. At that
                   // point it is decoration, so it takes no hover, clicks or selection.
                   const isFadingOut = limitedActive && index === limitedFreeSegments.length - 1;
@@ -4516,8 +5183,8 @@ export function TranscriptionDetailPage() {
                     segment={seg}
                     nextTimestamp={shownSegments[index + 1]?.timestamp}
                     hideSpeaker={isSingleSpeaker || !transcriptView.speakers}
-                    continuation={index > 0 && !seg.preview && !shownSegments[index - 1]?.preview && shownSegments[index - 1]?.speaker.id === seg.speaker.id}
-                    speakerControl={isSingleSpeaker ? undefined : { speakers: resolved.managed, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, onAddSpeaker: speakersPanelActions.onAdd, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
+                    continuation={Boolean(prevSeg) && !seg.preview && !prevSeg?.preview && prevSeg?.speaker.id === seg.speaker.id}
+                    speakerControl={isSingleSpeaker || !isOwner ? undefined : { speakers: resolved.managed, blockCount: speakerBlockCount(seg.speaker.id), onPick: (choice) => pickSpeaker(seg.id, choice), onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, onAddSpeaker: speakersPanelActions.onAdd, dialog: speakerDialogDemo, quotes: quotesFor(seg.speaker.id, seg.id), attendees: inviteAttendees, playing: isPlayerPlaying, onPlay: playQuote, onPause: pauseQuote }}
                     selectionMark={selectionMenuOpen && !splitPreview && selectionPill && selectionPill.segmentId === seg.id ? { start: selectionPill.start, end: selectionPill.end } : undefined}
                     hideTimecodes={(forcePlainMono && !editMode) || !transcriptView.timestamps}
                     onSeekTimecode={editMode ? undefined : seekTo}
@@ -4530,17 +5197,7 @@ export function TranscriptionDetailPage() {
                     activeSentence={activePlaybackSegmentId === seg.id ? activeSentenceIndex : null}
                     activeWord={activePlaybackSegmentId === seg.id ? activeWordIndex : null}
                     segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
-                    isSegHighlighted={segHighlights.has(seg.id)}
-                    onToggleHighlight={toggleHighlight}
-                    onOpenComment={openComment}
-                    onShare={(id) => { void shareSegment(id); }}
-                    onCopyText={copySegmentText}
-                    inlineComment={commentSegmentId === seg.id}
-                    onCommentSubmit={submitComment}
-                    onCommentCancel={() => setCommentSegmentId(null)}
-                    onCommentChange={setCommentText}
-                    commentValue={commentText}
-                    textHighlights={textHighlights[seg.id] ?? []}
+                    notes={editMode || seg.preview ? undefined : notesFor(seg)}
                   />
                   );
                   return isFadingOut ? (
@@ -4596,6 +5253,16 @@ export function TranscriptionDetailPage() {
                 ) : null}
               </div>
             )}
+            {playbackAway && (
+              <div className="pointer-events-none sticky bottom-0 z-30 h-0">
+                <div className="absolute inset-x-0 bottom-3 flex justify-center">
+                  <Button variant="pill-outline" data-back-to-playback="" className="pointer-events-auto h-8 gap-1.5 bg-background px-3.5 text-xs font-medium shadow-md animate-in fade-in slide-in-from-bottom-1 duration-150 [@media(pointer:coarse)]:h-10 [@media(pointer:coarse)]:px-4 [@media(pointer:coarse)]:text-[13px]" onClick={backToPlayback}>
+                    <Icon icon={playbackAway === "up" ? ArrowUp02Icon : ArrowDown02Icon} className="size-[14px] text-primary" strokeWidth={2} />
+                    <span>Back to <span className="tabular-nums">{clock(effectiveCurrentSeconds)}</span></span>
+                  </Button>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="summary" className="flex-1 overflow-auto">
@@ -4612,16 +5279,25 @@ export function TranscriptionDetailPage() {
                 </div>
                 <h3 className="text-[16px] font-semibold text-foreground">No summary yet</h3>
                 <p className="text-[13px] text-muted-foreground leading-relaxed mt-1.5 max-w-[360px]">
-                  Pick a template and we will turn this transcript into a structured summary.
+                  {sharedOwner ? `When ${sharedOwner.name} adds one, it shows here.` : "Pick a template and we will turn this transcript into a structured summary."}
                 </p>
-                <LockedTooltip what="templates" locked={locked} className="inline-flex mt-5">
-                <Button className={"rounded-full h-9 px-5 text-[13px] font-medium mt-5" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined} onClick={() => setTemplatePickerOpen(true)}>
-                  Apply template
-                </Button>
+                {!sharedOwner && !HIDDEN.summaryFromHighlights && notesApi.highlights.length > 0 && (
+                  /* the marks are not lost on the way: they are what the summary starts from */
+                  <p className="mt-1 flex items-center gap-1.5 text-[13px] text-muted-foreground" data-summary-highlights-note="">
+                    <Icon icon={HighlighterIcon} className="size-[14px]" strokeWidth={1.8} />
+                    {notesApi.highlights.length === 1 ? "Your highlight goes in first." : `Your ${notesApi.highlights.length} highlights go in first.`}
+                  </p>
+                )}
+                {!sharedOwner && (
+                <LockedTooltip what="templates" locked={locked}>
+                  <Button className={"rounded-full h-9 px-5 text-[13px] font-medium mt-5" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined} onClick={() => setTemplatePickerOpen(true)}>
+                    Apply template
+                  </Button>
                 </LockedTooltip>
+                )}
               </div>
             ) : (
-              <SummaryTab summaryText={contentSummary} template={activeTemplate} highlight={summaryQuery} />
+              <SummaryTab summaryText={contentSummary} template={activeTemplate} highlight={summaryQuery} highlights={HIDDEN.summaryFromHighlights ? [] : summaryHighlights} />
             )}
           </TabsContent>
           {(activeTranslationMeta || translationTranscriptStatus === "loading" || translationTranscriptStatus === "error") && !isJobTranscribing ? (
@@ -4653,17 +5329,6 @@ export function TranscriptionDetailPage() {
                     activeSentence={activePlaybackSegmentId === seg.id ? activeSentenceIndex : null}
                     activeWord={activePlaybackSegmentId === seg.id ? activeWordIndex : null}
                     segmentRef={(el) => { segmentRefs.current[seg.id] = el; }}
-                    isSegHighlighted={false}
-                    onToggleHighlight={() => {}}
-                    onOpenComment={() => {}}
-                    onShare={() => {}}
-                    onCopyText={() => {}}
-                    inlineComment={false}
-                    onCommentSubmit={() => {}}
-                    onCommentCancel={() => {}}
-                    onCommentChange={() => {}}
-                    commentValue=""
-                    textHighlights={[]}
                   />
                 ))}
                 <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
@@ -4680,7 +5345,7 @@ export function TranscriptionDetailPage() {
               ) : translationSummaryStatus === "error" ? (
                 <TranslationErrorState onRetry={() => { void handleTranslate(); }} />
               ) : (
-                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} highlight={summaryQuery} />
+                <SummaryTab summaryText={translatedSummary || contentSummary} template={activeTemplate} highlight={summaryQuery} highlights={HIDDEN.summaryFromHighlights ? [] : summaryHighlights} />
               )}
             </TabsContent>
           ) : null}
@@ -4749,9 +5414,11 @@ export function TranscriptionDetailPage() {
               somebody else's record does not get them - the same line the
               desktop menu already draws. */}
           {!sharedOwner && (
-            <ActionSheetItem icon={Zap} label="Regenerate summary" onClick={() => { setMoreSheetOpen(false); regenerateSummary(); }} />
+            <ActionSheetItem icon={Zap} label="Regenerate summary" dimmed={locked} onClick={() => { setMoreSheetOpen(false); regenerateSummary(); }} />
           )}
-          <ActionSheetItem icon={FolderOpen} label="Move to folder" onClick={() => { setMoreSheetOpen(false); setMoveDialogOpen(true); }} />
+          {!sharedOwner && (
+            <ActionSheetItem icon={FolderOpen} label="Move to folder" onClick={() => { setMoreSheetOpen(false); setMoveDialogOpen(true); }} />
+          )}
           {/* Leaving the object comes last, wherever the sheet is opened. */}
           {sharedOwner ? (
             <ActionSheetItem icon={Cancel01Icon} label="Remove from Shared" onClick={() => setMoreSheetOpen(false)} />
@@ -4801,6 +5468,9 @@ export function TranscriptionDetailPage() {
             onSpeedChange={handlePlaybackRateChange}
             currentTimeSeconds={effectiveCurrentSeconds}
             durationSeconds={effectiveDurationSeconds}
+            leading={playerLeading}
+            markers={playerMarkers}
+            onSeekSeconds={(sec) => { seekToSeconds(sec); }}
             trailing={desktopShell ? (
               <Button variant="outline" size="sm" aria-disabled={locked || undefined} className={"h-8 gap-1.5 rounded-full border-border px-3 text-[13px] font-medium" + (locked ? " " + LOCKED_CLASS : "")} onClick={() => { void continueRecording(); }} title={locked ? undefined : "Record more into this note"}>
                 <Icon icon={Mic01Icon} className="size-[14px]" strokeWidth={2} />
@@ -4840,13 +5510,13 @@ export function TranscriptionDetailPage() {
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setCopySheetOpen(true)} aria-label="Copy">
                   <Icon icon={Copy} className="size-[18px]" strokeWidth={1.7} />
                 </Button>
-                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={exportTranscript} aria-label="Export">
+                <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => exportTranscript()} aria-label="Export">
                   <Icon icon={Upload} className="size-[18px]" strokeWidth={1.7} />
                 </Button>
                 <Button variant="pill-outline" size="icon" className="size-[46px] shrink-0" onClick={() => setMoreSheetOpen(true)} aria-label="More actions">
                   <Icon icon={MoreHorizontal} className="size-[18px]" strokeWidth={2} />
                 </Button>
-                {templateCta}
+                {isOwner && templateCta}
               </div>
             )}
           </div>
@@ -4855,47 +5525,25 @@ export function TranscriptionDetailPage() {
 
       {/* Right panel */}
       {isJobTranscribing ? (
-        <div className="relative hidden shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center lg:flex" style={{ width: rightPanelWidth }}>
+        <div className="relative hidden shrink-0 flex-col items-center justify-center border-l border-border bg-background px-6 text-center xl:flex" style={{ width: rightPanelWidth }}>
           <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/5">
-            <MessageSquarePlus className="size-5 text-primary/70" strokeWidth={1.7} />
+            <Icon icon={Comment01Icon} className="size-5 text-primary/70" strokeWidth={1.7} />
           </span>
-          <p className="mt-3 text-[13px] font-medium text-foreground">Outline & comments</p>
-          <span className="mt-1.5 inline-flex items-center rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-medium text-primary">Coming soon</span>
-          <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">We're still building these - they'll show up here in a future update.</p>
+          <p className="mt-3 text-[13px] font-medium text-foreground">Comments and highlights</p>
+          <p className="mt-2 max-w-[210px] text-[12px] leading-relaxed text-muted-foreground">{notesApi.highlights.length > 0 ? `Your ${notesApi.highlights.length === 1 ? "mark" : `${notesApi.highlights.length} marks`} from the call ${notesApi.highlights.length === 1 ? "is" : "are"} kept. ` : ""}You can comment and highlight once the transcript is ready.</p>
         </div>
       ) : (
         <RightPanel
-          onSeek={seekTo}
-          onScrollToSegment={scrollToSegment}
-          comments={comments}
-          videoPreview={videoPreview}
-          videoPlaybackRate={videoPlaybackRate}
-          onVideoElementReady={handleVideoElementReady}
-          onVideoPlayStateChange={setIsVideoPlaying}
-          onVideoTimeChange={setVideoCurrentTime}
-          onVideoDurationChange={(seconds) => setVideoDuration(Number.isFinite(seconds) ? seconds : 0)}
-          onVideoPlaybackRateChange={setVideoPlaybackRate}
+          notes={notesView}
+          tab={panelTab}
+          onTabChange={setPanelTab}
+          recordTitle={title}
           width={rightPanelWidth}
           onResizeStart={() => setIsRightPanelResizing(true)}
         />
       )}
 
-      {/* Text selection highlight pill */}
-      {selectionPill && !editMode && (
-        <SelectionHighlightPill
-          position={{ x: selectionPill.x, y: selectionPill.y }}
-          onHighlight={handleSelectionHighlight}
-          speaker={isSingleSpeaker ? undefined : (() => {
-            const seg = resolved.segments.find((sg) => sg.id === selectionPill.segmentId); if (!seg) return undefined;
-            /* the note appears only when part of the block stays where it is (Kirill 23.09) */
-            const cut = snapToWords(seg.text, selectionPill.start, selectionPill.end);
-            const rest = cut.start > 0 || cut.end < seg.text.trim().length;
-            const note = rest ? `Only the selected words move. The rest stays with ${seg.speaker.name}.` : undefined;
-            const onPreview = (id: string | null) => { const sp = id ? resolved.managed.find((x) => x.id === id) : undefined; setSplitPreview(sp && sp.id !== seg.speaker.id ? { segmentId: seg.id, start: cut.start, end: cut.end, speaker: sp } : null); };
-            return { current: seg.speaker, speakers: resolved.managed, onPick: handleSelectionSpeaker, note, onPreview, onOpen: setSelectionMenuOpen, mark: cut, onRename: speakersPanelActions.onRename, onRemove: askRemoveSpeaker, onAddSpeaker: speakersPanelActions.onAdd };
-          })()}
-        />
-      )}
+      {noteLayers}
     </div>
   );
 }

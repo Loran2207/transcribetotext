@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useAccountLock, LockedTooltip, LOCKED_CLASS } from "./account-lock";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -719,6 +720,7 @@ export function EmptyFilterState({ onClear }: { onClear: () => void }) {
 
 export function EmptyTabState({ tab, onNew }: { tab: string; onNew?: () => void }) {
   const { t } = useLanguage();
+  const locked = useAccountLock();
 
   // Trash / Starred keep their simple single-line message.
   if (tab === "Trash" || tab === "Starred") {
@@ -749,10 +751,12 @@ export function EmptyTabState({ tab, onNew }: { tab: string; onNew?: () => void 
       <p className="font-semibold text-[16px] text-foreground mb-[6px]">No records yet</p>
       <p className="text-[13px] text-muted-foreground text-center max-w-[300px] leading-[20px] mb-[20px]">Upload a file, paste a link, or record audio to create your first transcription.</p>
       {onNew && (
-        <Button onClick={onNew} className="flex items-center gap-[7px] h-[38px] px-[18px] rounded-full bg-primary text-primary-foreground">
+        <LockedTooltip what="files" locked={locked}>
+        <Button onClick={onNew} aria-disabled={locked || undefined} className={"flex items-center gap-[7px] h-[38px] px-[18px] rounded-full bg-primary text-primary-foreground" + (locked ? " " + LOCKED_CLASS : "")}>
           <Icon icon={Upload} className="size-[15px]" strokeWidth={2} />
           <span className="font-semibold text-[13px]">Upload</span>
         </Button>
+        </LockedTooltip>
       )}
     </div>
   );

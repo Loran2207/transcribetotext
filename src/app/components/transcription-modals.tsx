@@ -28,6 +28,7 @@ import { useTemplates } from "@/hooks/use-templates";
 import type { Template } from "@/lib/templates";
 import { TemplatePicker } from "./template-picker";
 import { templateEmoji } from "@/lib/template-meta";
+import { clearAnnotations } from "@/lib/annotations";
 import { router } from "../routes";
 import { useShell, useWideScreen } from "./desktop/shell";
 import { DesktopAppCard } from "./desktop/desktop-app-banner";
@@ -187,6 +188,8 @@ type TranscriptionJobOptions = {
   source?: SourceType;
   mediaUrl?: string;
   livePreviewSegments?: Array<{ id: number; timestamp: string; text: string }>;
+  /* a recording made here knows how long it ran; an upload learns it when the demo finishes */
+  duration?: string;
   noAudioDetected?: boolean;
   kind?: "meeting";
 };
@@ -474,6 +477,7 @@ export function TranscriptionModalsProvider({
   const [recordingDetailOpen, setRecordingDetailOpen] = useState(false);
   const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const shouldRestartSpeechRef = useRef(false);
+  const demoFeedRef = useRef<number | null>(null);
   const recordingPhaseRef = useRef<RecordingPhase>("idle");
   const recordingElapsedRef = useRef(0);
   const instantRecordingOptionsRef = useRef<InstantRecordingSubmitOptions | undefined>(undefined);
@@ -558,6 +562,7 @@ export function TranscriptionModalsProvider({
 
   function stopLiveTranscription(opts?: { clearInterim?: boolean; clearSegments?: boolean }) {
     shouldRestartSpeechRef.current = false;
+    if (demoFeedRef.current != null) { window.clearInterval(demoFeedRef.current); demoFeedRef.current = null; }
     const recognition = speechRecognitionRef.current;
     if (recognition) {
       recognition.onend = null;
@@ -587,7 +592,54 @@ export function TranscriptionModalsProvider({
     ]);
   }
 
+  /* ttt_demo_live_text=1 speaks a scripted meeting into the live transcript, word by
+     word, for captures and probes on machines without speech recognition */
+  function startDemoLiveFeed() {
+    const lines = [
+      "Okay, let's start with the launch date. Marketing wants the twentieth, engineering says the twenty seventh is realistic.",
+      "I think we go with the twenty seventh and tell the customers early.",
+      "Agreed. Anna, can you draft the customer email by Friday?",
+      "Yes, I will send the draft on Thursday so there is time for a review.",
+      "One more thing: the pricing page still shows the old plan names.",
+      "Let's fix that before the announcement, it is a small change.",
+      "Good. Next topic is the onboarding numbers from last week.",
+      "Activation went up four points after the new first steps card.",
+    ];
+    /* ttt_demo_live_stop = "<lines>" or "<lines>.<words>": the feed falls silent after that many
+       finished lines (and that many words of the next one left mid-sentence), so a screen of
+       the live note can be captured in a state that does not move */
+    /* read on every tick, so a capture can move the stop forward between its steps */
+    const limit = () => {
+      try {
+        const raw = window.localStorage.getItem("ttt_demo_live_stop");
+        if (raw) { const [l, w] = raw.split("."); return { line: Number(l), word: Number(w ?? 0) }; }
+      } catch { /* demo flag only */ }
+      return { line: Infinity, word: 0 };
+    };
+    let line = 0; let word = 0;
+    const tick = () => {
+      if (recordingPhaseRef.current !== "recording") return;
+      const stop = limit();
+      if (line > stop.line || (line === stop.line && (stop.word === 0 || word >= stop.word))) return;
+      const words = lines[line % lines.length].split(" ");
+      word += 1;
+      if (word < words.length) { setLiveTranscriptInterim(words.slice(0, word).join(" ")); return; }
+      appendLiveTranscriptSegment(words.join(" "));
+      setLiveTranscriptInterim("");
+      line += 1; word = -4; /* a short breath between sentences */
+    };
+    demoFeedRef.current = window.setInterval(tick, 220);
+  }
+
   function startLiveTranscriptionSession() {
+    let demoFeed = false;
+    try { demoFeed = window.localStorage.getItem("ttt_demo_live_text") === "1"; } catch { /* demo flag only */ }
+    if (demoFeed) {
+      stopLiveTranscription({ clearInterim: true });
+      setIsLiveTranscriptionSupported(true);
+      startDemoLiveFeed();
+      return;
+    }
     const SpeechRecognitionCtor = getSpeechRecognitionCtor();
     if (!SpeechRecognitionCtor) {
       setIsLiveTranscriptionSupported(false);
@@ -718,6 +770,7 @@ export function TranscriptionModalsProvider({
       setRecordingElapsed(0);
       setLiveTranscriptSegments([]);
       setLiveTranscriptInterim("");
+      clearAnnotations("live");
       _startMediaRecorder(stream);
       const activeDeviceId = stream.getAudioTracks()[0]?.getSettings().deviceId;
       if (activeDeviceId) setSelectedMicrophoneId(activeDeviceId);
@@ -818,7 +871,8 @@ export function TranscriptionModalsProvider({
     recordingPhaseRef.current = "idle";
     setRecordingPhase("idle");
     setRecordingElapsed(0);
-    const id = addJob(name, "audio", { ...opts, source: "microphone", livePreviewSegments: previewSegments });
+    const duration = fmtDuration(recordingElapsedRef.current);
+    const id = addJob(name, "audio", { ...opts, source: "microphone", livePreviewSegments: previewSegments, duration });
     const queuedJob: TranscriptionJob = {
       id,
       name,
@@ -831,6 +885,7 @@ export function TranscriptionModalsProvider({
       ...opts,
       source: "microphone",
       livePreviewSegments: previewSegments,
+      duration,
     };
     const recordState = mapJobToRecordState(queuedJob);
     try {
@@ -878,7 +933,7 @@ export function TranscriptionModalsProvider({
             uploadProgress: 100,
             transcriptionProgress: 100,
             status: "done",
-            duration: randomDuration(),
+            duration: j.duration ?? randomDuration(),
           } : j));
         }
         return;
@@ -1014,7 +1069,6 @@ export function TranscriptionModalsProvider({
 function randomDuration() {
   return `${Math.floor(Math.random() * 44 + 1)}m ${Math.floor(Math.random() * 59)}s`;
 }
-
 function fmtTime(s: number) {
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 }

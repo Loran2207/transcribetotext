@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { ArrowExpand01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { NotesPad, type PadLine } from "./notes-pad";
 import { useTranscriptionModals } from "../transcription-modals";
-import { LiveRecordingBar, LiveTitle, LiveFolderChip, LiveMeetingChips, LiveHeaderActions, LiveTopControls, LiveTranscriptTabLabel, LiveTabsTrailing, LiveTranscriptBody, LiveSummaryWaiting, padWithTemplate } from "../transcription-detail-page";
+import { LiveRecordingBar, LiveTitle, LiveFolderChip, LiveMeetingChips, LiveHeaderActions, LiveTopControls, LiveTranscriptTabLabel, LiveTabsTrailing, LiveTranscriptBody, LiveSummaryWaiting, padWithTemplate, useLiveMarking } from "../transcription-detail-page";
+import { HighlightButton, ManageLabelsDialog } from "../annotations/labels-ui";
 import { ShareDialog } from "../share-dialog";
 import { useTemplates } from "@/hooks/use-templates";
 import { TemplateLibraryDialog } from "../template-library-dialog";
 import { useShell } from "./shell";
+import { SIMPLE_HIGHLIGHTS, countLabelsElsewhere } from "@/lib/annotations";
 import { SourceIcon } from "../source-icons";
 
 const DEMO_PAD: PadLine[] = [
@@ -32,9 +34,27 @@ export function SplitNotetaker() {
   const insertTemplate = (id: string) => { const t = templates.find((x) => x.id === id); if (t) setPad((prev) => padWithTemplate(prev, t)); };
   const { recordingElapsed, recordingPhase, pauseInstantRecording, resumeInstantRecording, microphoneDevices, selectedMicrophoneId, switchRecordingMicrophone, isSwitchingMicrophone } = useTranscriptionModals();
   const elapsed = recordingPhase === "idle" ? 754 : recordingElapsed;
+  /* Mark what was just said, the same way as in the full window: the button on the bar and H */
+  const marking = useLiveMarking();
+  const [markOpen, setMarkOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const elsewhere = useMemo(() => (marking.manageOpen ? countLabelsElsewhere("live") : {}), [marking.manageOpen]);
+  /* Labels closed: the keyboard is back on the Mark button that opened it */
+  const backToMark = (e: Event) => { const b = root.current?.querySelector<HTMLElement>("[data-highlight-button='player'] button"); if (b) { e.preventDefault(); b.focus({ preventScroll: true }); } };
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      if ((e.key !== "h" && e.key !== "H") || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, [contenteditable=true], [role=dialog], [role=menu]")) return;
+      e.preventDefault();
+      setMarkOpen(true);
+    };
+    window.addEventListener("keydown", on);
+    return () => window.removeEventListener("keydown", on);
+  }, []);
   const fmt = (n: number) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
   return (
-    <div className="flex h-full flex-col bg-background text-foreground">
+    <div ref={root} className="flex h-full flex-col bg-background text-foreground">
       <div className="shrink-0 px-[20px] pt-[14px] pb-[12px]">
         <div className="flex h-7 items-center justify-end">
           {/* the same top controls as the full window: the arrows and the translation that waits */}
@@ -76,15 +96,17 @@ export function SplitNotetaker() {
           ) : tab === "summary" ? (
             <LiveSummaryWaiting compact />
           ) : (
-            <LiveTranscriptBody compact />
+            <LiveTranscriptBody compact marking={marking} />
           )}
         </div>
       </Tabs>
+      {!SIMPLE_HIGHLIGHTS && <ManageLabelsDialog labels={marking.labelsApi} open={marking.manageOpen} onOpenChange={marking.setManageOpen} onCloseAutoFocus={backToMark} counts={marking.counts} elsewhere={elsewhere} touch={marking.coarse} />}
       <LiveRecordingBar
         isPaused={recordingPhase === "paused"}
         elapsedSeconds={elapsed}
         onPauseResume={() => { if (recordingPhase === "paused") void resumeInstantRecording(); else pauseInstantRecording(); }}
         onStop={() => {}}
+        mark={<HighlightButton labels={marking.labelsApi} sheet={marking.coarse} variant="player" label="Mark" short tip="Mark what was just said  (H)" heading="Mark what was just said" open={markOpen} onOpenChange={setMarkOpen} onHighlight={marking.mark} onManage={SIMPLE_HIGHLIGHTS ? undefined : () => marking.setManageOpen(true)} />}
         generate
         showGenerate={false}
         caption={false}

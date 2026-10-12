@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/app/components/ui/dialog";
 import { Sheet, SheetContent } from "@/app/components/ui/sheet";
 import { Button } from "@/app/components/ui/button";
@@ -20,9 +20,11 @@ import { Loading01Icon, CheckmarkCircle02Icon, Alert02Icon, ArrowDown01Icon, Arr
 import { usePlan } from "./use-plan";
 import { useAccountLock, toastLocked } from "./account-lock";
 import { LANGUAGES } from "./language-context";
+import { HIDDEN } from "@/lib/annotations";
 import {
   runExportPlan, transformForExport, DEFAULT_EXPORT_OPTIONS, FORMAT_META,
   type ExportableRecord, type ExportFormat, type ExportContentOptions, type ExportFilePlan, type ExportManifest,
+  safeFilename, notesText, NOTES_EMPTY, type NotesKind,
 } from "@/lib/export-formats";
 
 /* ══════════════════════════════════════════════
@@ -42,6 +44,8 @@ interface FileSettings {
   includeSummary: boolean;
   includeAudio: boolean;
   includeTranslation: boolean;
+  includeHighlights: boolean;
+  includeComments: boolean;
   translationLanguage: string;
   options: ExportContentOptions;
 }
@@ -52,6 +56,8 @@ const DEFAULT_SETTINGS: FileSettings = {
   includeSummary: false,
   includeAudio: false,
   includeTranslation: false,
+  includeHighlights: false,
+  includeComments: false,
   translationLanguage: "es",
   options: DEFAULT_EXPORT_OPTIONS,
 };
@@ -118,9 +124,10 @@ function useIsPhone() {
    only its top corners rounded - the sort sheet and the move-to-folder sheet
    are both built that way. On a tablet and up it is a centred card. The body
    is written once and the shell changes under it. */
-function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
+function Modal({ open, onOpenChange, onCloseAutoFocus, sheetClass, dialogClass, children }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  onCloseAutoFocus?: (e: Event) => void;
   sheetClass?: string;
   dialogClass?: string;
   children: React.ReactNode;
@@ -129,7 +136,7 @@ function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
   if (isPhone) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className={"rounded-t-[22px] p-0 gap-0 flex flex-col " + (sheetClass || "")}>
+        <SheetContent side="bottom" onCloseAutoFocus={onCloseAutoFocus} className={"rounded-t-[22px] p-0 gap-0 flex flex-col " + (sheetClass || "")}>
           {children}
         </SheetContent>
       </Sheet>
@@ -137,7 +144,7 @@ function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
   }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={"p-0 gap-0 overflow-hidden flex flex-col " + (dialogClass || "")} aria-describedby={undefined}>
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus} className={"p-0 gap-0 overflow-hidden flex flex-col " + (dialogClass || "")} aria-describedby={undefined}>
         {children}
       </DialogContent>
     </Dialog>
@@ -147,11 +154,12 @@ function Modal({ open, onOpenChange, sheetClass, dialogClass, children }: {
 function SectionRow({ title, enabled, onToggle, disabled, children }: {
   title: string; enabled: boolean; onToggle: (v: boolean) => void; disabled?: boolean; children?: React.ReactNode;
 }) {
+  const id = useId();
   return (
     <div className="border-b border-border last:border-b-0 py-[16px]">
       <div className="flex items-center justify-between">
-        <span className={disabled ? "font-semibold text-[14.5px] text-muted-foreground" : "font-semibold text-[14.5px] text-foreground"}>{title}</span>
-        <Switch checked={enabled} onCheckedChange={onToggle} disabled={disabled} />
+        <label htmlFor={id} className={disabled ? "font-semibold text-[14.5px] text-muted-foreground" : "cursor-pointer font-semibold text-[14.5px] text-foreground"}>{title}</label>
+        <Switch id={id} checked={enabled} onCheckedChange={onToggle} disabled={disabled} />
       </div>
       {children}
     </div>
@@ -167,8 +175,29 @@ function OptionCheck({ id, label, checked, onChange }: { id: string; label: stri
   );
 }
 
+/* Each switch in the settings is one file; the preview shows the one you
+   are looking at. Audio has nothing to read, so it is not here. */
+type PreviewKind = "transcript" | "summary" | "highlights" | "comments" | "translation";
+const PREVIEW_LABEL: Record<PreviewKind, string> = { transcript: "Transcript", summary: "Summary", highlights: "Highlights", comments: "Comments", translation: "Translation" };
+
+/* The file a switch adds, as it will read. The record page writes the
+   highlights and comments texts; nothing written yet reads as none. */
+function TextFilePreview({ record, kind, fileName }: { record: ExportableRecord; kind: "summary" | NotesKind; fileName: string }) {
+  const text = kind === "summary" ? (record.summary ?? "") : (notesText(kind, record.id) ?? "");
+  const empty = kind === "summary" ? "No summary yet." : NOTES_EMPTY[kind];
+  return (
+    <div className="flex flex-col">
+      <div className="mb-[16px] pb-[14px] border-b border-border/70">
+        <p className="font-semibold text-[14px] text-foreground leading-[20px] max-lg:hidden">{record.title}</p>
+        <p className="mt-[3px] text-[11.5px] text-muted-foreground">{fileName}</p>
+      </div>
+      <pre className="whitespace-pre-wrap break-words font-sans text-[12.5px] leading-[19px] text-foreground/80">{text.trim() || empty}</pre>
+    </div>
+  );
+}
+
 /* Transcript preview (center pane) - live: reflects the current export options */
-function TranscriptPreview({ record, options }: { record: ExportableRecord; options: ExportContentOptions }) {
+function TranscriptPreview({ record, options, fileName }: { record: ExportableRecord; options: ExportContentOptions; fileName?: string }) {
   const view = transformForExport(record, options);
   record = view;
   return (
@@ -176,7 +205,7 @@ function TranscriptPreview({ record, options }: { record: ExportableRecord; opti
       <div className="mb-[16px] pb-[14px] border-b border-border/70">
         <p className="font-semibold text-[14px] text-foreground leading-[20px] max-lg:hidden">{record.title}</p>
         <p className="mt-[3px] text-[11.5px] text-muted-foreground">
-          {[record.metadata?.duration, record.metadata?.date, record.metadata?.language?.toUpperCase()].filter(Boolean).join("  ·  ")}
+          {fileName ?? [record.metadata?.duration, record.metadata?.date, record.metadata?.language?.toUpperCase()].filter(Boolean).join("  ·  ")}
         </p>
       </div>
       {record.segments.length === 0 && (
@@ -197,8 +226,10 @@ function TranscriptPreview({ record, options }: { record: ExportableRecord; opti
   );
 }
 
-export function ExportDialog({ open, onClose, records, availableRecords }: {
-  open: boolean; onClose: () => void; records: ExportableRecord[]; availableRecords?: ExportableRecord[];
+export function ExportDialog({ open, onClose, onCloseAutoFocus, records, availableRecords, format }: {
+  open: boolean; onClose: () => void; onCloseAutoFocus?: (e: Event) => void; records: ExportableRecord[]; availableRecords?: ExportableRecord[];
+  /* the format chosen on the way in (the record's Export menu); a Pro format stays Plain text on the free plan */
+  format?: ExportFormat;
 }) {
   const plan = usePlan();
   /* a translation made for the export is paid work; while the account is
@@ -224,6 +255,8 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   /* Below lg there is room for one pane at a time. Settings is what the export
      is for, so it opens there; the transcript is one tap away rather than gone. */
   const [mobilePane, setMobilePane] = useState<"settings" | "transcript">("settings");
+  /* which file the preview shows; a switch turned on brings its file forward */
+  const [previewKind, setPreviewKind] = useState<PreviewKind>("transcript");
   const [progress, setProgress] = useState(0);
 
   const multi = items.length > 1;
@@ -242,9 +275,10 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     setZipEnabled(zipOn);
     setItems(records);
     setActiveId(records[0]?.id ?? "");
-    setShared(full ? { ...DEFAULT_SETTINGS, includeSummary: true, includeAudio: true, includeTranslation: true } : DEFAULT_SETTINGS);
+    const start = format && !(FORMAT_CHOICES.find((c) => c.format === format)?.pro && plan === "free") ? format : DEFAULT_SETTINGS.format;
+    setShared(full ? { ...DEFAULT_SETTINGS, format: start, includeSummary: true, includeAudio: true, includeTranslation: true, includeHighlights: !HIDDEN.exportNotes, includeComments: !HIDDEN.exportNotes } : { ...DEFAULT_SETTINGS, format: start });
     setExportName(records.length > 1 ? `transcripts-${records.length}` : "");
-    setNameTouched(false);
+    setNameTouched(false); setPreviewKind("transcript");
     setAddOpen(false); setMoreOpen(full); setProgress(0); setManifest(null);
     if (demo === "error") setPhase("error");
     else if (demo === "processing") { setPhase("processing"); setProgress(Math.max(1, Math.floor(records.length / 2))); }
@@ -272,6 +306,15 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     setShared((prev) => ({ ...prev, ...patch }));
   }
   const patchOptions = (k: keyof ExportContentOptions, v: boolean) => patchShared({ options: { ...shared.options, [k]: v } });
+  /* a switch and the file it stands for: turning it on shows that file in the preview */
+  function toggleFile(kind: PreviewKind, key: keyof FileSettings, v: boolean) {
+    patchShared({ [key]: v } as Partial<FileSettings>);
+    if (v) setPreviewKind(kind);
+  }
+  /* the record page has written an empty text for every record here: nothing to export */
+  const knownEmpty = (kind: NotesKind) => items.length > 0 && items.every((r) => { const t = notesText(kind, r.id); return t !== null && t.trim() === ""; });
+  const noHighlights = knownEmpty("highlights");
+  const noComments = knownEmpty("comments");
 
   function removeItem(id: string) {
     const next = items.filter((r) => r.id !== id);
@@ -286,28 +329,48 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
   const zipFileName = `${safeName(exportName || `transcripts-${items.length}`)}.zip`;
 
   const plans: ExportFilePlan[] = useMemo(
-    () => items.map((r) => ({ record: r, format: shared.format, includeTranscript: shared.includeTranscript, includeSummary: shared.includeSummary, includeAudio: shared.includeAudio, includeTranslation: shared.includeTranslation && !locked, translationLanguage: shared.translationLanguage, options: shared.options })),
+    () => items.map((r) => ({ record: r, format: shared.format, includeTranscript: shared.includeTranscript, includeSummary: shared.includeSummary, includeAudio: shared.includeAudio, includeTranslation: shared.includeTranslation && !locked, includeHighlights: shared.includeHighlights, includeComments: shared.includeComments, translationLanguage: shared.translationLanguage, options: shared.options })),
     [items, shared]
   );
-  const nothingSelected = items.length === 0 || (!shared.includeTranscript && !shared.includeSummary && !shared.includeAudio && !(shared.includeTranslation && !locked));
-  const fileCount = nothingSelected ? 0 : items.length * ((shared.includeTranscript ? 1 : 0) + (shared.includeSummary ? 1 : 0) + (shared.includeAudio ? 1 : 0) + (shared.includeTranslation && !locked ? 1 : 0));
+  const perRecord = (shared.includeTranscript ? 1 : 0) + (shared.includeSummary ? 1 : 0) + (shared.includeAudio ? 1 : 0) + (shared.includeTranslation && !locked ? 1 : 0) + (shared.includeHighlights ? 1 : 0) + (shared.includeComments ? 1 : 0);
+  const nothingSelected = items.length === 0 || perRecord === 0;
+  const fileCount = nothingSelected ? 0 : items.length * perRecord;
+  /* the files with something to read, in the order of the switches */
+  const previewable = useMemo(() => ([
+    shared.includeTranscript && "transcript", shared.includeSummary && "summary", shared.includeHighlights && "highlights",
+    shared.includeComments && "comments", shared.includeTranslation && !locked && "translation",
+  ] as const).filter((k): k is PreviewKind => Boolean(k)), [shared]);
+  const shownKind: PreviewKind = previewable.includes(previewKind) ? previewKind : (previewable[0] ?? "transcript");
+  const previewFileName = (kind: PreviewKind, r: ExportableRecord) => {
+    const base = safeFilename(r.title);
+    if (kind === "transcript") return `${base}.${FORMAT_META[shared.format].extension}`;
+    if (kind === "translation") return `${base}-${shared.translationLanguage}.txt`;
+    return `${base}-${kind}.txt`;
+  };
+  /* an archive is about the files that come out, not the recordings that go in */
+  const canZip = fileCount > 1;
 
   const footerSummary = useMemo(() => {
     if (nothingSelected) return "Nothing selected";
     if (fileCount === 1) {
       const r = items[0];
-      const base = safeName(r.title);
+      /* the same name the file is saved under */
+      const base = safeFilename(r.title);
       if (shared.includeTranscript) return `${base}.${FORMAT_META[shared.format].extension}`;
       if (shared.includeSummary) return `${base}-summary.txt`;
+      if (shared.includeHighlights) return `${base}-highlights.txt`;
+      if (shared.includeComments) return `${base}-comments.txt`;
       if (shared.includeTranslation) return `${base}-${shared.translationLanguage}.txt`;
       return `${base}.mp3`;
     }
     const mix: string[] = [];
     if (shared.includeTranscript) mix.push(`${items.length}× ${shared.format.toUpperCase()}`);
     if (shared.includeSummary) mix.push(`${items.length}× summary`);
+    if (shared.includeHighlights) mix.push(`${items.length}× highlights`);
+    if (shared.includeComments) mix.push(`${items.length}× comments`);
     if (shared.includeTranslation) mix.push(`${items.length}× ${shared.translationLanguage} translation`);
     if (shared.includeAudio) mix.push(`${items.length}× mp3`);
-    return `${mix.join(" · ")}  →  ${zipEnabled ? zipFileName : "separate files"}`;
+    return `${mix.join(" · ")}  →  ${zipEnabled ? zipFileName : `${fileCount} files`}`;
   }, [items, shared, fileCount, nothingSelected, zipFileName, zipEnabled]);
 
   async function handleExport() {
@@ -318,7 +381,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         await new Promise((r) => setTimeout(r, Math.min(350, 900 / items.length)));
         setProgress(i + 1);
       }
-      const m = await runExportPlan(plans, zipFileName, { zip: multi && zipEnabled });
+      const m = await runExportPlan(plans, zipFileName, { zip: canZip && zipEnabled });
       // Single-file export: no confirmation screen - download and close.
       if (m.files.length === 1) { toastExported(m.downloadName, "Downloaded to your device"); onClose(); return; }
       setManifest(m);
@@ -335,19 +398,19 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           makes the server pull every file out of storage first. */}
       <div className="border-b border-border py-[16px]">
         <div className="flex items-center justify-between gap-[12px]">
-          <span className={multi ? "font-semibold text-[14.5px] text-foreground" : "font-semibold text-[14.5px] text-muted-foreground"}>
+          <span className={canZip ? "font-semibold text-[14.5px] text-foreground" : "font-semibold text-[14.5px] text-muted-foreground"}>
             Download as ZIP archive
           </span>
-          <Switch checked={multi && zipEnabled} onCheckedChange={setZipEnabled} disabled={!multi} />
+          <Switch checked={canZip && zipEnabled} onCheckedChange={setZipEnabled} disabled={!canZip} />
         </div>
         <p className="mt-[8px] text-[11.5px] leading-[16px] text-muted-foreground">
-          {!multi
+          {!canZip
             ? "A single file downloads on its own. An archive is only worth it for several files."
             : zipEnabled
-              ? `All ${items.length} files are packed into one archive.`
-              : `Each of the ${items.length} files downloads on its own.`}
+              ? "Everything comes as one archive."
+              : "Each file downloads on its own."}
         </p>
-        {multi && zipEnabled && (
+        {canZip && zipEnabled && (
           <div className="relative mt-[12px]">
             <Input
               value={exportName}
@@ -382,7 +445,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               </SelectContent>
             </Select>
           </div>
-          <button type="button" className="flex items-center gap-[4px] text-[13px] text-foreground/70 hover:text-foreground w-fit" onClick={() => setMoreOpen(!moreOpen)}>
+          <button type="button" className="relative flex items-center gap-[4px] text-[13px] text-foreground/70 hover:text-foreground w-fit [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-x-1 [@media(pointer:coarse)]:after:-inset-y-2" onClick={() => setMoreOpen(!moreOpen)}>
             More options
             <Icon icon={moreOpen ? ArrowUp01Icon : ArrowDown01Icon} size={13} strokeWidth={1.8} />
           </button>
@@ -399,11 +462,25 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
         </div>
       </SectionRow>
 
-      <SectionRow title="Summary" enabled={shared.includeSummary} onToggle={(v) => patchShared({ includeSummary: v })}>
+      <SectionRow title="Summary" enabled={shared.includeSummary} onToggle={(v) => toggleFile("summary", "includeSummary", v)}>
         <p className={shared.includeSummary ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>Exports the AI summary as a separate .txt file.</p>
       </SectionRow>
 
-      <SectionRow title="Translation" enabled={locked ? false : shared.includeTranslation} onToggle={(v) => { if (locked) { toastLocked("translation"); return; } patchShared({ includeTranslation: v }); }} disabled={locked}>
+      {/* One switch, one file. A record with none of them says so in place of the switch working.
+          Hidden for the first release (the client, 06.10): the files come back when highlights are used. */}
+      {!HIDDEN.exportNotes && <SectionRow title="Highlights" enabled={shared.includeHighlights} disabled={noHighlights} onToggle={(v) => toggleFile("highlights", "includeHighlights", v)}>
+        <p className={noHighlights || shared.includeHighlights ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>
+          {noHighlights ? (multi ? "No highlights on these records yet." : "No highlights on this record yet.") : "Every highlight with its time and speaker, as a separate .txt file."}
+        </p>
+      </SectionRow>}
+
+      {!HIDDEN.exportNotes && <SectionRow title="Comments" enabled={shared.includeComments} disabled={noComments} onToggle={(v) => toggleFile("comments", "includeComments", v)}>
+        <p className={noComments || shared.includeComments ? "mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground" : "hidden"}>
+          {noComments ? (multi ? "No comments on these records yet." : "No comments on this record yet.") : "Every comment thread with its replies, as a separate .txt file."}
+        </p>
+      </SectionRow>}
+
+      <SectionRow title="Translation" enabled={locked ? false : shared.includeTranslation} disabled={locked} onToggle={(v) => { if (locked) { toastLocked("translation"); return; } toggleFile("translation", "includeTranslation", v); }}>
         {locked && <p data-export-translation-locked className="mt-[6px] text-[12.5px] leading-[18px] text-muted-foreground">Translation is paused while your account is locked. Write to support to unlock it.</p>}
         <div className={shared.includeTranslation && !locked ? "mt-[12px] flex flex-col gap-[10px]" : "hidden"}>
           <div className="flex items-center justify-between">
@@ -436,6 +513,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
     <Modal
       open={open}
       onOpenChange={(o) => { if (!o) onClose(); }}
+      onCloseAutoFocus={onCloseAutoFocus}
       sheetClass="bg-background h-[84dvh]"
       dialogClass="bg-background lg:max-w-[960px]! sm:max-w-[560px] max-lg:h-[74dvh]"
     >
@@ -447,7 +525,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           <button
             type="button"
             onClick={() => setFilesOpen(true)}
-            className="flex shrink-0 items-center gap-[6px] h-[26px] pl-[9px] pr-[11px] rounded-full border border-border bg-card text-muted-foreground active:bg-muted/50 transition-colors lg:hidden"
+            className="relative flex shrink-0 items-center gap-[6px] h-[26px] pl-[9px] pr-[11px] rounded-full border border-border bg-card text-muted-foreground active:bg-muted/50 transition-colors lg:hidden [@media(pointer:coarse)]:after:absolute [@media(pointer:coarse)]:after:-inset-[5px]"
           >
             <Icon icon={PencilEdit02Icon} size={13} strokeWidth={1.9} />
             <span className="text-[12px] font-medium text-foreground">{items.length === 1 ? "1 file" : `${items.length} files`}</span>
@@ -528,7 +606,7 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                   Both sit clear of the dividers: an underline that lands on a
                   border reads as one thick line and the tabs stop looking like
                   tabs. */}
-              <div className="flex w-full shrink-0 items-end gap-[12px] border-b border-border px-[16px] pt-[10px] lg:hidden">
+              <div className="flex w-full shrink-0 items-end gap-[12px] border-b border-border px-[16px] pt-[10px] lg:hidden [@media(pointer:coarse)]:pt-0">
                 <span className="min-w-0 flex-1 truncate pb-[10px] text-[13px] font-medium text-foreground">
                   {activeRecord ? activeRecord.title : ""}
                 </span>
@@ -537,9 +615,9 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
                   onValueChange={(v) => setMobilePane(v === "transcript" ? "transcript" : "settings")}
                   className="shrink-0"
                 >
-                  <TabsList variant="line" className="gap-[16px] border-b-0">
+                  <TabsList variant="line" className="gap-[16px] border-b-0 [@media(pointer:coarse)]:*:pt-3">
                     <TabsTrigger value="settings" variant="line" className="text-[13px]">Settings</TabsTrigger>
-                    <TabsTrigger value="transcript" variant="line" className="text-[13px]">Transcript</TabsTrigger>
+                    <TabsTrigger value="transcript" variant="line" className="text-[13px]">Preview</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -609,7 +687,29 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
               )}
               {/* Center pane - live preview of the selected file */}
               <div className={"flex-1 min-w-0 bg-muted/40 border-r border-border overflow-y-auto px-[24px] py-[20px] max-lg:px-[16px] max-lg:py-[14px] " + (mobilePane === "transcript" ? "" : "max-lg:hidden")}>
-                {activeRecord && <TranscriptPreview record={activeRecord} options={shared.options} />}
+                {/* More than one file to read: say which one this is, let the others be picked */}
+                {previewable.length > 1 && (
+                  <div className="mb-[14px] flex flex-wrap gap-[4px]" role="tablist" aria-label="File to preview">
+                    {previewable.map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        role="tab"
+                        aria-selected={k === shownKind}
+                        onClick={() => setPreviewKind(k)}
+                        className={"h-[26px] rounded-full px-[10px] text-[12px] transition-colors [@media(pointer:coarse)]:h-9 " +
+                          (k === shownKind ? "bg-primary/5 font-medium text-primary" : "text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground")}
+                      >
+                        {PREVIEW_LABEL[k]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {activeRecord && (
+                  shownKind === "transcript" ? <TranscriptPreview record={activeRecord} options={shared.options} />
+                  : shownKind === "translation" ? <TranscriptPreview record={activeRecord} options={shared.options} fileName={previewFileName("translation", activeRecord)} />
+                  : <TextFilePreview record={activeRecord} kind={shownKind} fileName={previewFileName(shownKind, activeRecord)} />
+                )}
               </div>
               <div className={mobilePane === "transcript" ? "max-lg:hidden contents" : "contents"}>{settingsPanel}</div>
             </div>
@@ -726,7 +826,10 @@ export function ExportDialog({ open, onClose, records, availableRecords }: {
           ) : (
             <>
               <p className="flex-1 min-w-0 truncate text-[12.5px] text-muted-foreground">
-                <span className="font-semibold text-foreground">{fileCount > 1 ? "Files: " : "Filename: "}</span>{footerSummary}
+                <span className="font-semibold text-foreground">{fileCount > 1 ? "Files: " : "Filename: "}</span>
+                {/* a phone has no room for the mix of kinds: the count, or the archive name, says what comes out */}
+                <span className="max-lg:hidden">{footerSummary}</span>
+                <span className="lg:hidden">{fileCount > 1 ? (zipEnabled ? zipFileName : `${fileCount} files`) : footerSummary}</span>
               </p>
               <Button variant="pill-outline" onClick={onClose} disabled={phase === "processing"} className="h-[36px] px-[16px]">
                 <span className="font-medium text-[13px]">Cancel</span>

@@ -1,4 +1,5 @@
 import { Calendar, Shield01Icon } from "@hugeicons/core-free-icons";
+import { useAccountLock, LockedTooltip, LOCKED_CLASS } from "./account-lock";
 import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
 import { PROVIDER_NAMES, type CalendarProvider } from "./calendar-accounts";
@@ -145,6 +146,7 @@ interface CalendarEmptyStateProps {
 }
 
 export function CalendarEmptyState({ onOpenSettings, onRecordMeeting }: CalendarEmptyStateProps) {
+  const locked = useAccountLock();
   return (
     <div className="flex-1 flex items-center justify-center pb-16">
       <div className="flex flex-col items-center text-center max-w-[400px] px-4">
@@ -159,9 +161,11 @@ export function CalendarEmptyState({ onOpenSettings, onRecordMeeting }: Calendar
           automatically.
         </p>
         <div className="flex items-center gap-2.5 mt-6">
-          <Button className="rounded-full h-9 px-4 text-[13px] font-medium" onClick={onRecordMeeting}>
+          <LockedTooltip what="meetings" locked={locked}>
+          <Button className={"rounded-full h-9 px-4 text-[13px] font-medium" + (locked ? " " + LOCKED_CLASS : "")} aria-disabled={locked || undefined} onClick={onRecordMeeting}>
             Record a meeting
           </Button>
+          </LockedTooltip>
           <Button
             variant="pill-outline"
             className="h-9 px-4 text-[13px] font-medium"
