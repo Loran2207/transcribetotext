@@ -9,6 +9,7 @@ import { Icon } from "@/app/components/ui/icon";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import { Checkbox } from "@/app/components/ui/checkbox";
 import { AuthLayout } from "./auth-layout";
 import { BrowserHandoff } from "./auth-browser-handoff";
 import { useShell } from "./desktop/shell";
@@ -45,6 +46,7 @@ export function SignupPage() {
   const prefersReducedMotion = useReducedMotion();
 
   const [showPassword, setShowPassword] = useState(false);
+  const [newsletter, setNewsletter] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   /* in the desktop app Google signs in through the system browser, so the window hands over and waits */
@@ -296,6 +298,20 @@ export function SignupPage() {
               </span>
             </div>
           )}
+        </motion.div>
+
+        {/* Newsletter consent: on by default (Artem, 12.10) */}
+        <motion.div className="flex items-start gap-2.5" {...animProps(0.34)}>
+          <Checkbox
+            id="signupNewsletter"
+            checked={newsletter}
+            onCheckedChange={(v) => setNewsletter(v === true)}
+            disabled={isFormDisabled}
+            className="mt-[2px]"
+          />
+          <Label htmlFor="signupNewsletter" className="text-[13px] font-normal leading-[18px] text-muted-foreground">
+            I accept to receive newsletters from Transcribe to Text. Unsubscribe anytime.
+          </Label>
         </motion.div>
 
         {/* Submit */}

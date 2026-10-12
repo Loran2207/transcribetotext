@@ -255,13 +255,24 @@ export function LoginPage() {
           className="text-sm text-center text-muted-foreground"
           {...animProps(0.46)}
         >
-          No account?{" "}
+          Don't have an account?{" "}
           <Link
             to="/signup"
             className="text-primary font-medium hover:underline"
           >
-            Create one free &rarr;
+            Sign up for free &rarr;
           </Link>
+        </motion.p>
+
+        {/* the help line lives on the login only (Artem, 12.10): the sign-up stays clean */}
+        <motion.p
+          className="text-xs text-center text-muted-foreground"
+          {...animProps(0.5)}
+        >
+          Need help? Contact us at{" "}
+          <a href="mailto:support@transcribetotext.ai" className="text-foreground/80 hover:underline">
+            support@transcribetotext.ai
+          </a>
         </motion.p>
       </form>
       )}
