@@ -4892,7 +4892,7 @@ export function TranscriptionDetailPage() {
             </div>
           )}
           <LockedTooltip what="translation" locked={locked} className={"max-lg:hidden " + (sharedOwner ? "hidden" : "inline-flex")}>
-          <div className={"max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex") + (locked ? " " + LOCKED_CLASS : "")}>
+          <div className={"max-lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex") + (locked ? " " + LOCKED_CLASS : "")} onClick={locked ? () => toastLocked("translation") : undefined}>
             <Select
               value={selectedTranslationLang || undefined}
               onValueChange={setSelectedTranslationLang}
@@ -5039,7 +5039,7 @@ export function TranscriptionDetailPage() {
             {/* Right side of tab row: context-dependent */}
             <div className="mb-1 flex shrink-0 items-center gap-2 max-md:hidden md:max-lg:mb-2">
               <LockedTooltip what="translation" locked={locked} className={"lg:hidden " + (sharedOwner ? "hidden" : "inline-flex")}>
-              <div className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex") + (locked ? " " + LOCKED_CLASS : "")}>
+              <div className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex") + (locked ? " " + LOCKED_CLASS : "")} onClick={locked ? () => toastLocked("translation") : undefined}>
                 <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing || locked}>
                   <SelectTrigger size="sm" className="h-8 w-[168px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
                     <SelectValue placeholder="Translate to..." />
