@@ -217,6 +217,12 @@ function JobRow({
               </>
             )}
           </p>
+          {opensLive && !failed && (
+            <span className="mt-1.5 flex items-center gap-1 sm:hidden">
+              <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onOpen(job); }} className="h-7 px-2 text-[12px] font-medium text-primary hover:bg-primary/8">Open transcript</Button>
+              {job.meetingUrl && <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); window.open(job.meetingUrl, "_blank", "noopener,noreferrer"); }} className="h-7 px-2 text-[12px] font-medium text-foreground">Join call</Button>}
+            </span>
+          )}
           <p className="mt-0.5 hidden items-center gap-[6px] truncate text-[11.5px] text-muted-foreground sm:flex">
             {failed ? (
               errorLabel
@@ -262,7 +268,17 @@ function JobRow({
               </span>
             )}
             {opensLive && (
-              <Icon icon={ArrowRight01Icon} className="size-[14px] text-muted-foreground/70 transition-colors group-hover/row:text-foreground" strokeWidth={2} />
+              <span className="ml-1 flex items-center gap-1">
+                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onOpen(job); }} className="h-8 gap-1.5 px-2.5 text-[12.5px] font-medium text-primary hover:bg-primary/8">
+                  Open transcript
+                </Button>
+                {job.meetingUrl && (
+                  <Button variant="ghost" size="sm" title={"Join the call"} onClick={(e) => { e.stopPropagation(); window.open(job.meetingUrl, "_blank", "noopener,noreferrer"); }} className="h-8 gap-1.5 px-2.5 text-[12.5px] font-medium text-foreground">
+                    Join call
+                    <Icon icon={ArrowRight01Icon} className="size-[12px] -rotate-45 text-muted-foreground" strokeWidth={2} />
+                  </Button>
+                )}
+              </span>
             )}
           </div>
         )}
@@ -340,6 +356,9 @@ export function ProgressWidget({ jobs, onRetry, onReconnect, onRemove }: Progres
 
   if (widgetJobs.length === 0) return null;
   if (CLOSED_TO_WIDGET.some((prefix) => path.startsWith(prefix))) return null;
+  /* on the page of a meeting the bot is in, the queue would only point back at
+     that page: the bar at the bottom already says everything the bubble would */
+  if (!expanded && widgetJobs.some((job) => job.kind === "meeting" && job.status !== "done" && path === "/transcriptions/" + job.id)) return null;
 
   /* Collapsed, the queue is one button in the corner: no pill that stretches
      with the longest status, no wording that changes width every few seconds.

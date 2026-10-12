@@ -3915,10 +3915,10 @@ export function TranscriptionDetailPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [desktopShell, routeState?.fromRecordingStop, templates.length, isJobTranscribing]);
 
-  /* a meeting the bot records lives on its own page until the full transcript
-     is written: the door, the words as they come, then the draft while the full
-     pass runs; a bot that was not let in says so and offers the way out */
-  if (selectedJob && selectedJob.kind === "meeting" && selectedJob.status !== "done" && (selectedJob.status !== "error" || BOT_ERRORS.includes(selectedJob.errorType))) {
+  /* a meeting the bot records lives on its own page while the bot is at the
+     door or in the call; once it ends, this page's own transcribing screen takes
+     over. A bot that was not let in says so and offers the way out */
+  if (selectedJob && selectedJob.kind === "meeting" && (selectedJob.status === "connecting" || selectedJob.status === "recording" || (selectedJob.status === "error" && BOT_ERRORS.includes(selectedJob.errorType)))) {
     return <MeetingLivePage job={selectedJob} />;
   }
 

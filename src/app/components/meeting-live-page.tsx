@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useReducedMotion } from "motion/react";
-import { Alert02Icon, AiMagicIcon, ArrowUpRight01Icon, Loading03Icon, RefreshIcon } from "@hugeicons/core-free-icons";
+import { Alert02Icon, AiMagicIcon, ArrowUpRight01Icon, RefreshIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
@@ -10,7 +10,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "./ui/alert-dialog";
-import { SourceIcon, getSourceLabel } from "./source-icons";
+import { SourceIcon, getSourceLabel, type SourceType } from "./source-icons";
 import { NotesPad, loadPad, savePad, type PadLine } from "./desktop/notes-pad";
 import { TemplatePicker } from "./template-picker";
 import { useTemplates } from "@/hooks/use-templates";
@@ -20,14 +20,13 @@ import { TranscriptSegment, type Segment } from "./transcription-detail-page";
 import { liveSpeaker, fmtLiveClock, BOT_LOBBY_LIMIT_SECONDS, type LiveSegment } from "@/lib/live-meeting-demo";
 
 /* The page a bot-recorded meeting opens on the moment the bot is sent, and
-   keeps until the full transcript is written. The same shell as a finished
+   keeps until the meeting ends; then the record page takes over with its own
+   transcribing screen. The same shell as a finished
    record (top row, title, chips, tabs), so nothing moves when the meeting
    ends; only the middle changes with the bot's state:
 
      connecting  the door: joining the link, then waiting to be let in
      recording   the words, one line at a time, typed out as they come
-     processing  the meeting is over; the lines stay as a draft while the
-                 full pass runs
      error       the bot was not let in: say which way, and hand over
                  the way out
 
@@ -46,7 +45,6 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
 
   const isConnecting = job.status === "connecting";
   const isRecording = job.status === "recording";
-  const isProcessing = job.status === "uploading" || job.status === "processing" || job.status === "transcribing";
   const isError = job.status === "error";
   const segments = job.liveSegments ?? [];
   const now = useClock(isConnecting || isRecording);
@@ -57,7 +55,6 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
   const statusLine = isConnecting
     ? (job.botPhase === "waiting" ? "Waiting at the door" : "The bot is joining")
     : isRecording ? "Recording in real time"
-    : isProcessing ? "Meeting ended, writing the transcript"
     : "Not recorded";
 
   const joinMeeting = () => {
@@ -89,7 +86,7 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
 
       <div className="flex flex-1 overflow-hidden" data-live-meeting={job.status}>
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-          <div className="border-b border-border px-4 pt-6 pb-5 lg:px-8">
+          <div className="px-4 pt-6 lg:px-8">
             <div className="flex h-7 items-center justify-between text-xs text-muted-foreground">
               <span>My records</span>
             </div>
@@ -110,7 +107,7 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
             </div>
           </div>
 
-          <Tabs value={tab} onValueChange={(v) => setTab(v as LiveTab)} className="mt-3">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as LiveTab)} className="mt-4 lg:mt-8">
             <div className="flex items-end border-b border-border px-4 lg:px-8">
               <TabsList variant="line" className="border-b-0">
                 <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">Notes</TabsTrigger>
@@ -135,35 +132,33 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
                   templates={[]}
                   onTemplate={() => {}}
                   autoFocus
-                  hint={isProcessing ? "The meeting is over. Add anything you still remember; it goes into the summary." : isError ? "Nothing was recorded. Your notes stay here if you send the bot again." : "Your notes during the meeting. They go into the summary together with the transcript."}
+                  hint={isError ? "Nothing was recorded. Your notes stay here if you send the bot again." : "Your notes during the meeting. They go into the summary together with the transcript."}
                 />
               </div>
             ) : tab === "summary" ? (
-              <LiveSummaryTab processing={isProcessing} error={isError} />
+              <LiveSummaryTab error={isError} />
             ) : (
               <div className="mx-auto w-full max-w-[980px] px-4 py-6 lg:px-8">
                 {isConnecting && (
-                  <DoorCard phase={job.botPhase ?? "joining"} botName={botName} platform={platform} waited={elapsed} onJoin={joinMeeting} onCancel={cancel} />
+                  <DoorCard phase={job.botPhase ?? "joining"} botName={botName} platform={platform} source={job.source ?? "google-meet"} waited={elapsed} onJoin={joinMeeting} onCancel={cancel} />
                 )}
                 {isError && (
-                  <NotAdmittedCard errorType={job.errorType} botName={botName} platform={platform} onResend={() => reconnectBot(job.id)} onJoin={joinMeeting} />
-                )}
-                {isProcessing && (
-                  <ProcessingBanner progress={job.transcriptionProgress ?? job.progress ?? 0} phase={job.status} hasDraft={segments.length > 0} />
+                  <NotAdmittedCard errorType={job.errorType} botName={botName} platform={platform} source={job.source ?? "google-meet"} onResend={() => reconnectBot(job.id)} onJoin={joinMeeting} />
                 )}
                 {isRecording && segments.length === 0 && (
                   <div className="mt-4 rounded-[16px] border border-dashed border-border bg-muted/20 px-6 py-8">
                     <p className="text-sm font-medium text-foreground">Recording. The first words appear here a few seconds after someone speaks.</p>
                   </div>
                 )}
-                {(isRecording || isProcessing) && segments.length > 0 && (
+                {isRecording && segments.length > 0 && (
                   <LiveLines segments={segments} live={isRecording} />
                 )}
               </div>
             )}
           </div>
 
-          {(isConnecting || isRecording) && (
+          {/* the bar belongs to the recording; at the door the card already carries the timer and the way in */}
+          {isRecording && (
             <BotBar
               job={job}
               elapsed={elapsed}
@@ -194,45 +189,48 @@ function useClock(running: boolean) {
 
 /* ── the door ─────────────────────────────────────────────────────────── */
 
-function DoorCard({ phase, botName, platform, waited, onJoin, onCancel }: {
-  phase: "joining" | "waiting"; botName: string; platform: string; waited: number; onJoin: () => void; onCancel: () => void;
+function DoorCard({ phase, botName, platform, source, waited, onJoin, onCancel }: {
+  phase: "joining" | "waiting"; botName: string; platform: string; source: SourceType; waited: number; onJoin: () => void; onCancel: () => void;
 }) {
   const waiting = phase === "waiting";
   const left = Math.max(0, BOT_LOBBY_LIMIT_SECONDS - waited);
   return (
-    <div className="flex flex-col items-center px-6 py-16 text-center lg:py-24" data-door={phase}>
-      <span className="relative flex size-[72px] items-center justify-center">
-        {/* two rings leaving the bot, the way a call rings: the page is doing something, and it says so without a number */}
-        <span aria-hidden className="ttt-ring absolute inset-0 rounded-full border-2 border-primary/40" />
-        <span aria-hidden className="ttt-ring absolute inset-0 rounded-full border-2 border-primary/40" style={{ animationDelay: "0.9s" }} />
-        <span className="relative flex size-[56px] items-center justify-center rounded-full bg-primary/[0.07]">
-          <Icon icon={Loading03Icon} className="size-6 animate-spin text-primary" strokeWidth={1.8} />
+    <div className="flex justify-center px-2 py-10 lg:py-16" data-door={phase}>
+      <div className="w-full max-w-[520px] rounded-[16px] border border-border bg-card px-6 py-7 text-center">
+        <span className="relative mx-auto flex size-[64px] items-center justify-center">
+          {/* two rings leave the mark, the way a call rings: something is happening, without claiming a number */}
+          <span aria-hidden className="ttt-ring absolute inset-0 rounded-full border-2 border-primary/40" />
+          <span aria-hidden className="ttt-ring absolute inset-0 rounded-full border-2 border-primary/40" style={{ animationDelay: "0.9s" }} />
+          <span className="relative flex size-[52px] items-center justify-center rounded-full bg-primary/[0.07]">
+            <span className="scale-[1.3]"><SourceIcon source={source} /></span>
+          </span>
         </span>
-      </span>
-      <h3 className="mt-5 text-[17px] font-semibold text-foreground">{waiting ? "Waiting at the door" : "Joining the meeting"}</h3>
-      <p className="mt-1.5 max-w-[400px] text-[13.5px] leading-relaxed text-muted-foreground">
-        {waiting
-          ? `The host needs to let ${botName} in. It knocks for up to 5 minutes.`
-          : `${botName} is opening the ${platform} link. This takes a few seconds.`}
-      </p>
-      {waiting && (
-        <div className="mt-5 w-full max-w-[320px]">
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
-            <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${Math.min(100, (waited / BOT_LOBBY_LIMIT_SECONDS) * 100)}%` }} />
-          </div>
-          <p className="mt-2 text-[12px] font-medium tabular-nums text-primary">{fmtLiveClock(waited)} <span className="font-normal text-muted-foreground">of 5:00, {fmtLiveClock(left)} left</span></p>
-        </div>
-      )}
-      <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+        <h3 className="mt-4 text-[17px] font-semibold text-foreground">{waiting ? "Waiting at the door" : "Joining the meeting"}</h3>
+        <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
+          {waiting
+            ? `The host needs to let ${botName} in. It knocks for up to 5 minutes.`
+            : `${botName} is opening the ${platform} link. This takes a few seconds.`}
+        </p>
         {waiting && (
-          <Button onClick={onJoin} className="h-9 gap-1.5 rounded-full px-4 text-[13px] font-medium">
-            Join and let the bot in
-            <Icon icon={ArrowUpRight01Icon} className="size-[14px]" strokeWidth={2} />
-          </Button>
+          <div className="mx-auto mt-5 w-full max-w-[320px]">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-primary/10">
+              <div className="h-full rounded-full bg-primary transition-[width] duration-1000 ease-linear" style={{ width: `${Math.min(100, (waited / BOT_LOBBY_LIMIT_SECONDS) * 100)}%` }} />
+            </div>
+            <p className="mt-2 text-[12px] font-medium tabular-nums text-primary">{fmtLiveClock(waited)} <span className="font-normal text-muted-foreground">of 5:00, {fmtLiveClock(left)} left</span></p>
+          </div>
         )}
-        <Button variant={waiting ? "ghost" : "pill-outline"} onClick={onCancel} className="h-9 rounded-full px-4 text-[13px] font-medium">
-          Cancel
-        </Button>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+          {waiting && (
+            <Button onClick={onJoin} className="h-9 gap-2 rounded-full px-4 text-[13px] font-medium">
+              <span className="scale-[0.9]"><SourceIcon source={source} /></span>
+              Join {platform}
+              <Icon icon={ArrowUpRight01Icon} className="size-[14px]" strokeWidth={2} />
+            </Button>
+          )}
+          <Button variant={waiting ? "ghost" : "pill-outline"} onClick={onCancel} className="h-9 rounded-full px-4 text-[13px] font-medium">
+            Cancel
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -240,8 +238,8 @@ function DoorCard({ phase, botName, platform, waited, onJoin, onCancel }: {
 
 /* ── not let in ───────────────────────────────────────────────────────── */
 
-function NotAdmittedCard({ errorType, botName, platform, onResend, onJoin }: {
-  errorType: TranscriptionJob["errorType"]; botName: string; platform: string; onResend: () => void; onJoin: () => void;
+function NotAdmittedCard({ errorType, botName, platform, source, onResend, onJoin }: {
+  errorType: TranscriptionJob["errorType"]; botName: string; platform: string; source: SourceType; onResend: () => void; onJoin: () => void;
 }) {
   const timeout = errorType === "bot_timeout";
   const title = timeout ? "Nobody let the bot in" : "The host didn't let the bot in";
@@ -249,12 +247,13 @@ function NotAdmittedCard({ errorType, botName, platform, onResend, onJoin }: {
     ? `${botName} knocked for 5 minutes and nobody answered, so it left. Nothing was recorded.`
     : `${botName} asked to join and the host turned it down. Nothing was recorded.`;
   return (
-    <div className="flex flex-col items-center px-6 py-16 text-center lg:py-24" data-door="error">
-      <span className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
+    <div className="flex justify-center px-2 py-10 lg:py-16" data-door="error">
+      <div className="w-full max-w-[520px] rounded-[16px] border border-border bg-card px-6 py-7 text-center">
+      <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-destructive/10">
         <Icon icon={Alert02Icon} className="size-[22px] text-destructive" strokeWidth={1.8} />
       </span>
       <h3 className="mt-4 text-[17px] font-semibold text-foreground">{title}</h3>
-      <p className="mt-1.5 max-w-[420px] text-[13.5px] leading-relaxed text-muted-foreground">
+      <p className="mt-1.5 text-[13.5px] leading-relaxed text-muted-foreground">
         {body} Press Send the bot again while the meeting is on, or join {platform} yourself and let it in when it knocks.
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
@@ -263,32 +262,12 @@ function NotAdmittedCard({ errorType, botName, platform, onResend, onJoin }: {
           Send the bot again
         </Button>
         <Button variant="pill-outline" onClick={onJoin} className="h-9 gap-1.5 rounded-full px-4 text-[13px] font-medium">
+          <span className="scale-[0.9]"><SourceIcon source={source} /></span>
           Join {platform}
           <Icon icon={ArrowUpRight01Icon} className="size-[14px]" strokeWidth={2} />
         </Button>
       </div>
-    </div>
-  );
-}
-
-/* ── the meeting is over ──────────────────────────────────────────────── */
-
-function ProcessingBanner({ progress, phase, hasDraft }: { progress: number; phase: TranscriptionJob["status"]; hasDraft: boolean }) {
-  const pct = Math.max(0, Math.min(100, Math.round(progress)));
-  return (
-    <div className="mb-6" data-processing="">
-      <div className="flex items-center gap-3 rounded-[14px] border border-primary/20 bg-primary/[0.04] px-4 py-3">
-        <Icon icon={Loading03Icon} className="size-[18px] shrink-0 animate-spin text-primary" strokeWidth={1.8} />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[13.5px] font-semibold text-foreground">The meeting has ended. {phase === "uploading" ? "Saving the recording" : "Writing the full transcript"}</span>
-          <span className="block text-[12.5px] text-muted-foreground">{hasDraft ? "The live lines below are the draft. The full pass hears everything again and replaces them." : "The transcript and the summary appear here when they are ready."}</span>
-        </span>
-        <span className="shrink-0 text-[12.5px] font-medium tabular-nums text-primary">{pct}%</span>
       </div>
-      <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-primary/10">
-        <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${pct}%` }} />
-      </div>
-      {hasDraft && <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Live transcript, draft</p>}
     </div>
   );
 }
@@ -374,7 +353,7 @@ function useTypedText(text: string, enabled: boolean) {
 
 /* ── the summary before there is one ──────────────────────────────────── */
 
-function LiveSummaryTab({ processing, error }: { processing: boolean; error: boolean }) {
+function LiveSummaryTab({ error }: { error: boolean }) {
   const navigate = useNavigate();
   const { templates } = useTemplates();
   const [templateId, setTemplateId] = useState<string | null>(() => window.sessionStorage.getItem("ttt_live_template"));
@@ -384,7 +363,7 @@ function LiveSummaryTab({ processing, error }: { processing: boolean; error: boo
     <div className="flex flex-col items-center justify-center px-8 py-24 text-center">
       <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary/5"><Icon icon={AiMagicIcon} className="size-6 text-primary" strokeWidth={1.6} /></div>
       <h3 className="text-[16px] font-semibold text-foreground">
-        {error ? "No summary without a recording" : processing ? "The summary comes right after the transcript" : "The summary is written when the meeting ends"}
+        {error ? "No summary without a recording" : "The summary is written when the meeting ends"}
       </h3>
       <p className="mt-1.5 max-w-[380px] text-[13px] leading-relaxed text-muted-foreground">
         {error ? "Send the bot again from the Transcript tab." : "Pick a template now, or leave it to the first one. Your notes are used too."}

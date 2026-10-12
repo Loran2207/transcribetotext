@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import svgPaths from "../../imports/svg-i3wf63n6gj";
 import { AuthIllustration } from "./auth-illustration";
+import { AppWordmark } from "./app-wordmark";
 
 function AuthLogo() {
   return (
@@ -40,7 +41,9 @@ export function AuthLayout({ children }: { children: ReactNode }) {
       </div>
 
       {/* Right panel - form */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-background overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-center gap-10 p-6 bg-background overflow-y-auto">
+        {/* below lg the dark panel is gone, and with it the logo: it stands above the form instead */}
+        <div className="flex w-full max-w-sm justify-center lg:hidden"><AppWordmark /></div>
         <div className="w-full max-w-sm">{children}</div>
       </div>
     </div>
