@@ -93,6 +93,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   const i = step.indexOf("="); const op = step.slice(0, i), arg = step.slice(i + 1);
   if (op === "enter") continue;
   if (op === "click") await p.click(arg);
+  /* tap=<sel>: a press on a control that is aria-disabled on purpose (a locked one), which a plain click would wait out */
+  else if (op === "tap") await p.click(arg, { force: true });
   else if (op === "wait") await p.waitForTimeout(+arg);
   else if (op === "store") { const [k, v] = arg.split("|"); await p.evaluate(([k, v]) => { localStorage.setItem(k, v); dispatchEvent(new Event("ttt-banner-hidden")); }, [k, v]); await p.waitForTimeout(600); }
   else if (op === "fill") { const [sel, text] = arg.split("|"); await p.fill(sel, text); }
@@ -162,6 +164,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   /* reload: the page again at the same URL, so flags stored a moment ago are read at mount */
   else if (op === "reload") { await p.reload({ waitUntil: "networkidle" }); await p.waitForTimeout(1200); }
   else if (op === "nav") { await p.evaluate((to) => { history.pushState({}, "", to); dispatchEvent(new PopStateEvent("popstate")); }, arg); await p.waitForTimeout(900); }
+  /* page=<name>: open one of the app shell's pages (records, calendar, templates) the way the sidebar does, through the router state */
+  else if (op === "page") { await p.evaluate((pg) => { history.pushState({ usr: { page: pg } }, "", "/"); dispatchEvent(new PopStateEvent("popstate", { state: { usr: { page: pg } } })); }, arg); await p.waitForTimeout(1200); }
   /* scrollx=<sel>|<px>: slide a horizontal carousel to a given offset */
   else if (op === "scrollx") { const [sel, px] = arg.split("|"); await p.$eval(sel, (el, x) => { el.scrollLeft = x; }, +px); }
   await p.waitForTimeout(350);

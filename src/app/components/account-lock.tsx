@@ -119,9 +119,9 @@ export function AccountLockedBanner() {
         <p className="text-[15px] font-semibold leading-[20px] tracking-[-0.2px]">Your account is locked</p>
         <p className="text-[13px] leading-[18px] text-destructive/85">
           <span className="hidden md:inline">
-            We noticed unusual activity{email ? <> on <span className="font-medium text-destructive">{email}</span></> : null}. You can still read your records. Adding files, templates and translation are paused until support unlocks the account.
+            We noticed unusual activity{email ? <> on <span className="font-medium text-destructive">{email}</span></> : null}. You can still read your records. Adding files, recording, templates and translation are paused until support unlocks the account.
           </span>
-          <span className="md:hidden">Adding files, templates and translation are paused. Your records stay available.</span>
+          <span className="md:hidden">Adding files, recording, templates and translation are paused. Your records stay available.</span>
         </p>
       </div>
       <div className="flex items-center shrink-0">
