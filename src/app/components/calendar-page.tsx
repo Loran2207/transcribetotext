@@ -278,7 +278,7 @@ export function CalendarPage() {
           <Button
             aria-disabled={locked || undefined}
             className={"rounded-full h-9 px-4 text-[13px] font-medium" + (locked ? " " + LOCKED_CLASS : "")}
-            onClick={() => setOpenModal("meeting")}
+            onClick={() => { if (locked) { toastLocked("meetings"); return; } setOpenModal("meeting"); }}
           >
             <span className="lg:hidden">Record</span>
             <span className="max-lg:hidden">Record a meeting</span>
@@ -322,7 +322,7 @@ export function CalendarPage() {
             <Button
               aria-disabled={locked || undefined}
               className={"rounded-full h-9 px-4 text-[13px] font-medium" + (locked ? " " + LOCKED_CLASS : "")}
-              onClick={() => setOpenModal("meeting")}
+              onClick={() => { if (locked) { toastLocked("meetings"); return; } setOpenModal("meeting"); }}
             >
               <span className="lg:hidden">Record</span>
               <span className="max-lg:hidden">Record a meeting</span>
@@ -462,7 +462,7 @@ export function CalendarPage() {
               {meetings.length === 0 ? (
                 <CalendarEmptyState
                   onOpenSettings={() => setActiveTab("settings")}
-                  onRecordMeeting={() => setOpenModal("meeting")}
+                  onRecordMeeting={() => { if (locked) { toastLocked("meetings"); return; } setOpenModal("meeting"); }}
                 />
               ) : (
                 <div className="flex-1 overflow-y-auto mt-5 pb-6 scrollbar-hide">

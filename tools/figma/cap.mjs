@@ -233,6 +233,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   await p.waitForTimeout(350);
 }
 await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important} [data-vaul-drawer]{transform:none!important;animation:none!important} [data-vaul-drawer]::after{content:none!important;display:none!important}" });
+/* a finger has no hover: on a tablet or phone frame a tooltip that the scripted press opened is not what the app shows */
+if (+w < 1024) await p.addStyleTag({ content: "[data-slot=tooltip-content]{display:none!important}" });
 if (!(process.env.STEPS || "").includes("drag=")) await p.mouse.move(2, 2);
 /* enter=<sel> (a late step): React's onMouseEnter fired after the pointer has left, so a
    state that lives in JS (a hover preview) is held for the frame the way force= holds :hover */
