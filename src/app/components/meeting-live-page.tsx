@@ -100,9 +100,9 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
                 <span className="scale-[0.9]"><SourceIcon source={job.source ?? "google-meet"} /></span>
                 <span>{platform}</span>
               </span>
-              {/* the dot travels with its item, so a wrap on a phone never leaves it hanging at a line end */}
+              {/* the dot travels with its item; on a phone the status takes its own line, with no dot in front */}
               <span className="before:mr-2 before:text-border before:content-['•']">{botName}</span>
-              <span className={"before:mr-2 before:text-border before:content-['•']" + (isError ? " text-destructive" : "")}>{statusLine}</span>
+              <span className={"max-sm:basis-full max-sm:before:content-none before:mr-2 before:text-border before:content-['•']" + (isError ? " text-destructive" : "")}>{statusLine}</span>
               <span className="max-sm:hidden before:mr-2 before:text-border before:content-['•']">{new Date(job.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
             </div>
           </div>
