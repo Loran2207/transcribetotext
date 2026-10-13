@@ -254,3 +254,18 @@ html[data-desk="1"] .ttt-recording-pill { display: none; }
 @keyframes ttt-ring { 0% { transform: scale(0.8); opacity: 0.9; } 100% { transform: scale(1.35); opacity: 0; } }
 .ttt-ring { animation: ttt-ring 1.8s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
 @media (prefers-reduced-motion: reduce) { .ttt-ring { animation: none; opacity: 0.35; } }
+
+/* live meeting page: a line that arrives rises into place; three dots breathe while
+   the page listens; the bot knocks at the door; a state change fades in */
+@keyframes ttt-line-in { from { opacity: 0; transform: translateY(10px); filter: blur(2px); } to { opacity: 1; transform: none; filter: blur(0); } }
+.ttt-line-in { animation: ttt-line-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes ttt-dot { 0%, 80%, 100% { transform: translateY(0); opacity: 0.45; } 40% { transform: translateY(-3px); opacity: 1; } }
+.ttt-dot { animation: ttt-dot 1.2s ease-in-out infinite; }
+@keyframes ttt-knock { 0%, 30%, 100% { transform: rotate(0); } 6% { transform: rotate(-9deg); } 12% { transform: rotate(8deg); } 18% { transform: rotate(-6deg); } 24% { transform: rotate(3deg); } }
+.ttt-knock { animation: ttt-knock 2.8s ease-in-out infinite; transform-origin: 50% 60%; }
+@keyframes ttt-state-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.ttt-state-in { animation: ttt-state-in 0.3s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .ttt-line-in, .ttt-dot, .ttt-knock, .ttt-state-in { animation: none; }
+  .ttt-dot { opacity: 0.7; }
+}

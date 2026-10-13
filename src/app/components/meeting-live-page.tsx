@@ -137,7 +137,7 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
             ) : tab === "summary" ? (
               <LiveSummaryTab error={isError} />
             ) : (
-              <div className="mx-auto w-full max-w-[980px] px-4 py-6 lg:px-8">
+              <div key={job.status + ":" + (job.botPhase ?? "")} className="ttt-state-in mx-auto w-full max-w-[980px] px-4 py-6 lg:px-8">
                 {isConnecting && (
                   <DoorCard phase={job.botPhase ?? "joining"} botName={botName} platform={platform} source={job.source ?? "google-meet"} waited={elapsed} onJoin={joinMeeting} onCancel={cancel} />
                 )}
@@ -145,9 +145,7 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
                   <NotAdmittedCard errorType={job.errorType} botName={botName} platform={platform} source={job.source ?? "google-meet"} onResend={() => reconnectBot(job.id)} onJoin={joinMeeting} />
                 )}
                 {isRecording && segments.length === 0 && (
-                  <div className="mt-4 rounded-[16px] border border-dashed border-border bg-muted/20 px-6 py-8">
-                    <p className="text-sm font-medium text-foreground">Recording. The first words appear here a few seconds after someone speaks.</p>
-                  </div>
+                  <ListeningRow caption="Listening. The first words appear a few seconds after someone speaks." />
                 )}
                 {isRecording && segments.length > 0 && (
                   <LiveLines segments={segments} live={isRecording} />
@@ -200,7 +198,7 @@ function DoorCard({ phase, botName, platform, source, waited, onJoin, onCancel }
           {/* two rings leave the mark, the way a call rings: something is happening, without claiming a number */}
           <span aria-hidden className="ttt-ring absolute inset-0 rounded-full border-2 border-primary/40" />
           <span aria-hidden className="ttt-ring absolute inset-0 rounded-full border-2 border-primary/40" style={{ animationDelay: "0.9s" }} />
-          <span className="relative flex size-[52px] items-center justify-center rounded-full bg-primary/[0.07]">
+          <span className={"relative flex size-[52px] items-center justify-center rounded-full bg-primary/[0.07]" + (waiting ? " ttt-knock" : "")}>
             <span className="scale-[1.3]"><SourceIcon source={source} /></span>
           </span>
         </span>
@@ -283,6 +281,9 @@ function LiveLines({ segments, live }: { segments: LiveSegment[]; live: boolean 
   /* lines that were already there when the page opened are not typed out
      again: only what arrives while you watch */
   const seenRef = useRef<Set<number>>(new Set(segments.map((s) => s.id)));
+  /* the lines on screen when the page opened stand still; a line that arrives
+     while you watch rises into place */
+  const atMountRef = useRef<Set<number>>(new Set(segments.map((s) => s.id)));
   const last = segments[segments.length - 1];
   const typeLast = live && last !== undefined && !seenRef.current.has(last.id);
   const typed = useTypedText(last?.text ?? "", typeLast);
@@ -297,8 +298,8 @@ function LiveLines({ segments, live }: { segments: LiveSegment[]; live: boolean 
         const text = isLast && typeLast ? typed.text : line.text;
         const prev = segments[index - 1];
         return (
+          <div key={line.id} className={live && !atMountRef.current.has(line.id) ? "ttt-line-in" : undefined}>
           <TranscriptSegment
-            key={line.id}
             segment={toSegment(line, text)}
             nextTimestamp={segments[index + 1]?.timestamp}
             continuation={!!prev && prev.speakerId === line.speakerId}
@@ -319,9 +320,26 @@ function LiveLines({ segments, live }: { segments: LiveSegment[]; live: boolean 
             textHighlights={[]}
             showActions={false}
           />
+          </div>
         );
       })}
+      {/* between two lines the page shows it is still listening, so a pause in the
+          call does not read as the transcript having stopped */}
+      {live && (!typeLast || typed.done) && <ListeningRow />}
       <div ref={endRef} />
+    </div>
+  );
+}
+
+/* Three dots breathe where the next line will land. The text is shown once,
+   before the first words, so the empty page says what it is waiting for. */
+function ListeningRow({ caption }: { caption?: string }) {
+  return (
+    <div className="ttt-line-in flex items-center gap-3 py-3 pl-[40px] lg:pl-[254px]" data-listening="">
+      <span className="inline-flex items-center gap-[3px]" aria-hidden>
+        {[0, 1, 2].map((i) => <span key={i} className="ttt-dot size-[6px] rounded-full bg-primary/70" style={{ animationDelay: `${i * 0.18}s` }} />)}
+      </span>
+      <span className="text-[13px] text-muted-foreground">{caption ?? "Listening"}</span>
     </div>
   );
 }
@@ -336,14 +354,20 @@ function useTypedText(text: string, enabled: boolean) {
   useEffect(() => {
     if (!enabled || reduced) { setShown(Number.MAX_SAFE_INTEGER); return; }
     const words = text.split(" ");
-    let i = 0;
+    let i = 0; let id = 0;
     setShown(0);
-    const id = window.setInterval(() => {
+    /* words land unevenly, with a breath after a comma or a full stop, the way
+       speech comes in, not on a metronome */
+    const tick = () => {
       i += 1;
       setShown(i);
-      if (i >= words.length) window.clearInterval(id);
-    }, 70);
-    return () => window.clearInterval(id);
+      if (i >= words.length) return;
+      const prev = words[i - 1];
+      const pause = /[.!?]$/.test(prev) ? 220 : /[,;:]$/.test(prev) ? 140 : 0;
+      id = window.setTimeout(tick, 45 + Math.random() * 50 + pause);
+    };
+    id = window.setTimeout(tick, 120);
+    return () => window.clearTimeout(id);
   }, [text, enabled, reduced]);
   const words = text.split(" ");
   const done = shown >= words.length;
@@ -389,7 +413,7 @@ function LiveWave({ active }: { active: boolean }) {
     return () => window.clearInterval(id);
   }, [active]);
   return (
-    <div className="hidden items-center gap-[2px] min-[980px]:flex" style={{ height: "18px" }}>
+    <div className="hidden items-center gap-[2px] md:flex" style={{ height: "18px" }}>
       {heights.map((h, i) => (
         <div key={i} className="w-[2px] rounded-full transition-[height] duration-150" style={{ height: `${h}px`, backgroundColor: active ? "var(--primary)" : "var(--muted-foreground)", opacity: active ? 0.45 + (i % 5) * 0.1 : 0.28 }} />
       ))}
