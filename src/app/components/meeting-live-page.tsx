@@ -335,7 +335,7 @@ function LiveLines({ segments, live }: { segments: LiveSegment[]; live: boolean 
    before the first words, so the empty page says what it is waiting for. */
 function ListeningRow({ caption }: { caption?: string }) {
   return (
-    <div className="ttt-line-in flex items-center gap-3 py-3 pl-[40px] lg:pl-[254px]" data-listening="">
+    <div className="ttt-line-in flex items-center gap-3 py-3 lg:pl-[254px]" data-listening="">
       <span className="inline-flex items-center gap-[3px]" aria-hidden>
         {[0, 1, 2].map((i) => <span key={i} className="ttt-dot size-[6px] rounded-full bg-primary/70" style={{ animationDelay: `${i * 0.18}s` }} />)}
       </span>
