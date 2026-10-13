@@ -68,7 +68,7 @@ import { ExportDialog } from "./export-dialog";
 import { UpgradeGateModal } from "./upgrade-gate-modal";
 import { records as demoRecords, recordRowToExportable } from "./records-table";
 import { BOT_ERRORS } from "./transcription-modals";
-import { MeetingLivePage } from "./meeting-live-page";
+import { MeetingLivePage, MeetingDraft } from "./meeting-live-page";
 import {
   exportRecords,
   type ExportableRecord,
@@ -5159,7 +5159,10 @@ export function TranscriptionDetailPage() {
             </TabsContent>
           )}
           <TabsContent value="transcript" data-transcript-scroll="" className="flex-1 overflow-auto relative">
-            {isJobTranscribing ? (
+            {isJobTranscribing && selectedJob?.kind === "meeting" && (selectedJob.liveSegments?.length ?? 0) > 0 ? (
+              /* a meeting the bot recorded keeps its live text in view while the final transcript is written */
+              <MeetingDraft job={selectedJob} />
+            ) : isJobTranscribing ? (
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (
               <div className="animate-in fade-in duration-300 px-4 pb-16 lg:px-8">

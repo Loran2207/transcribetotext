@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useReducedMotion } from "motion/react";
+import { LottieStage } from "./checkout-loader/lottie-stage";
 import { Alert02Icon, AiMagicIcon, ArrowUpRight01Icon, RefreshIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -331,6 +332,30 @@ function LiveLines({ segments, live }: { segments: LiveSegment[]; live: boolean 
   );
 }
 
+/* After the meeting the live text does not vanish behind an hourglass: it stays
+   on the record page under a plate that says the final transcript is being
+   written (speakers, punctuation, the summary), with the progress. */
+export function MeetingDraft({ job }: { job: TranscriptionJob }) {
+  const segments = job.liveSegments ?? [];
+  const progress = job.progress ?? 0;
+  return (
+    <div className="animate-in fade-in duration-300 px-4 pb-16 lg:px-8" data-meeting-draft="">
+      <div className="mb-3 flex items-center gap-3.5 rounded-2xl bg-primary/[0.06] px-4 py-3 sm:gap-4 sm:px-5">
+        <LottieStage src="/lottie/hourglass-blue.json" w={48} h={48} />
+        <div className="min-w-0 flex-1">
+          <p className="text-[13.5px] font-semibold text-foreground">Writing the final transcript</p>
+          <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">The meeting has ended. Speakers, punctuation and the summary are being finished. The live text stays meanwhile.</p>
+          <div className="mt-2.5 flex items-center gap-3">
+            <div className="h-1 flex-1 overflow-hidden rounded-full bg-primary/10"><div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${progress}%` }} /></div>
+            <span className="w-[34px] text-right text-[12px] font-medium tabular-nums text-primary">{progress}%</span>
+          </div>
+        </div>
+      </div>
+      <LiveLines segments={segments} live={false} />
+    </div>
+  );
+}
+
 /* Three dots breathe where the next line will land. The text is shown once,
    before the first words, so the empty page says what it is waiting for. */
 function ListeningRow({ caption }: { caption?: string }) {
@@ -405,7 +430,8 @@ function LiveSummaryTab({ error }: { error: boolean }) {
 
 const WAVE_BARS = 18;
 
-function LiveWave({ active }: { active: boolean }) {
+/* kept for the microphone bar on the desktop shell; the bot bar has no sound level to draw */
+export function LiveWave({ active }: { active: boolean }) {
   const [heights, setHeights] = useState<number[]>(() => Array(WAVE_BARS).fill(4));
   useEffect(() => {
     if (!active) { setHeights(Array(WAVE_BARS).fill(4)); return; }
@@ -439,7 +465,6 @@ function BotBar({ job, elapsed, platform, onStop, onCancel, onJoin }: {
             {recording ? "Recording" : waiting ? "Waiting" : "Connecting"}
           </span>
           {(recording || waiting) && <span className="text-[14px] font-semibold tabular-nums text-foreground">{fmtLiveClock(elapsed)}</span>}
-          <LiveWave active={recording} />
           <span className="hidden whitespace-nowrap text-xs text-muted-foreground @[980px]:inline">
             {recording ? "Live transcript is running" : waiting ? "The host has to let the bot in" : "The bot is opening the link"}
           </span>
