@@ -114,8 +114,8 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
                 <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">Notes</TabsTrigger>
                 <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">
                   {isRecording && (
-                    /* the transcript is alive: three green bars breathe on the tab while sound comes in */
-                    <span className="mr-1.5 inline-flex h-[12px] items-center gap-[2px]" aria-hidden>{[0.55, 1, 0.7].map((h, i) => <span key={i} className="ttt-bar w-[2.5px] rounded-full bg-[#34C759]" style={{ height: `${h * 100}%`, animationDelay: `${i * 0.18}s` }} />)}</span>
+                    /* the transcript is alive: a green dot pulses on the tab (no sound level to draw bars from) */
+                    <span className="relative mr-1.5 inline-flex size-[7px]" aria-hidden><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#34C759]/60" /><span className="relative inline-flex size-[7px] rounded-full bg-[#34C759]" /></span>
                   )}
                   Transcript
                 </TabsTrigger>
