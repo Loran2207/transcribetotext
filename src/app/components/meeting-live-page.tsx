@@ -340,16 +340,18 @@ export function MeetingDraft({ job }: { job: TranscriptionJob }) {
   const progress = job.progress ?? 0;
   return (
     <div className="animate-in fade-in duration-300 px-4 pb-16 lg:px-8" data-meeting-draft="">
-      <div className="mb-3 flex items-center gap-3.5 rounded-2xl bg-primary/[0.06] px-4 py-3 sm:gap-4 sm:px-5">
-        <LottieStage src="/lottie/hourglass-blue.json" w={48} h={48} />
-        <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] font-semibold text-foreground">Writing the final transcript</p>
-          <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">The meeting has ended. Speakers, punctuation and the summary are being finished. The live text stays meanwhile.</p>
-          <div className="mt-2.5 flex items-center gap-3">
-            <div className="h-1 flex-1 overflow-hidden rounded-full bg-primary/10"><div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${progress}%` }} /></div>
-            <span className="w-[34px] text-right text-[12px] font-medium tabular-nums text-primary">{progress}%</span>
+      {/* a slim card: the hourglass, one line of what is being written, the percent; the
+          progress is the card's bottom edge, so the plate stays one row tall */}
+      <div className="mb-4 overflow-hidden rounded-xl border border-border bg-card shadow-[var(--elevation-sm)]">
+        <div className="flex items-center gap-3 px-4 py-2.5">
+          <LottieStage src="/lottie/hourglass-blue.json" w={36} h={36} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[13.5px] font-semibold leading-tight text-foreground">Writing the final transcript</p>
+            <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">Speakers, punctuation and the summary are on their way.</p>
           </div>
+          <span className="shrink-0 text-[12.5px] font-semibold tabular-nums text-primary">{progress}%</span>
         </div>
+        <div className="h-[3px] w-full bg-primary/10"><div className="h-full bg-primary transition-[width] duration-500" style={{ width: `${progress}%` }} /></div>
       </div>
       <LiveLines segments={segments} live={false} />
     </div>
