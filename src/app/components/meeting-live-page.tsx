@@ -100,12 +100,10 @@ export function MeetingLivePage({ job }: { job: TranscriptionJob }) {
                 <span className="scale-[0.9]"><SourceIcon source={job.source ?? "google-meet"} /></span>
                 <span>{platform}</span>
               </span>
-              <span className="text-border">{"•"}</span>
-              <span>{botName}</span>
-              <span className="text-border">{"•"}</span>
-              <span className={isError ? "text-destructive" : undefined}>{statusLine}</span>
-              <span className="text-border max-sm:hidden">{"•"}</span>
-              <span className="max-sm:hidden">{new Date(job.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+              {/* the dot travels with its item, so a wrap on a phone never leaves it hanging at a line end */}
+              <span className="before:mr-2 before:text-border before:content-['•']">{botName}</span>
+              <span className={"before:mr-2 before:text-border before:content-['•']" + (isError ? " text-destructive" : "")}>{statusLine}</span>
+              <span className="max-sm:hidden before:mr-2 before:text-border before:content-['•']">{new Date(job.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}</span>
             </div>
           </div>
 
@@ -407,7 +405,8 @@ function BotBar({ job, elapsed, platform, onStop, onCancel, onJoin }: {
   return (
     <div className="relative shrink-0 border-t border-border bg-background/95 px-4 py-3 backdrop-blur-[2px] lg:px-6" data-bot-bar={recording ? "recording" : job.botPhase ?? "joining"}>
       <div className="@container grid items-center gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+        {/* on a phone the status sits centred over the buttons; wider, it takes the left cell */}
+        <div className="flex min-w-0 items-center justify-center gap-2 overflow-hidden md:justify-start">
           <span className="relative flex size-[8px] shrink-0">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" style={{ backgroundColor: recording ? "#f87171" : "var(--primary)" }} />
             <span className="relative inline-flex size-[8px] rounded-full" style={{ backgroundColor: recording ? "#ef4444" : "var(--primary)" }} />
@@ -422,24 +421,24 @@ function BotBar({ job, elapsed, platform, onStop, onCancel, onJoin }: {
           </span>
         </div>
 
-        {/* on a phone the two buttons share one row under the status; on wider
-            screens they take the grid's middle and right cells */}
-        <div className="flex items-center justify-between gap-2 md:contents">
+        {/* on a phone the two buttons share one row under the status, each half
+            of it; on wider screens they take the grid's middle and right cells */}
+        <div className="grid grid-cols-2 items-center gap-2 md:contents">
         <div className="flex items-center justify-center gap-2 md:order-2">
           {recording ? (
-            <Button variant="destructive" className="h-9 gap-1.5 rounded-full px-3" onClick={onStop} title="Stop recording">
+            <Button variant="destructive" className="h-9 w-full gap-1.5 rounded-full px-3 md:w-auto" onClick={onStop} title="Stop recording">
               <svg className="size-[12px] text-white" viewBox="0 0 12 12" fill="currentColor"><rect x="1" y="1" width="10" height="10" rx="2" /></svg>
               <span className="text-[13px] font-semibold text-white">Stop recording</span>
             </Button>
           ) : (
-            <Button variant="pill-outline" className="h-9 rounded-full px-4" onClick={onCancel}>
+            <Button variant="pill-outline" className="h-9 w-full rounded-full px-4 md:w-auto" onClick={onCancel}>
               <span className="text-[13px] font-medium text-foreground">Cancel</span>
             </Button>
           )}
         </div>
 
-        <div className="flex items-center md:order-3 md:justify-self-end">
-          <Button variant="pill-outline" className="h-9 gap-2 rounded-full px-3.5" onClick={onJoin} title={`Open ${platform} in a new tab`}>
+        <div className="flex items-center justify-center md:order-3 md:justify-self-end">
+          <Button variant="pill-outline" className="h-9 w-full gap-2 rounded-full px-3.5 md:w-auto" onClick={onJoin} title={`Open ${platform} in a new tab`}>
             <span className="scale-[0.9]"><SourceIcon source={job.source ?? "google-meet"} /></span>
             <span className="text-[13px] font-medium text-foreground">Join {platform}</span>
             <Icon icon={ArrowUpRight01Icon} className="size-[13px] text-muted-foreground" strokeWidth={2} />
