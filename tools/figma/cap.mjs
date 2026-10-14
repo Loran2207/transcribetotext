@@ -98,6 +98,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   const i = step.indexOf("="); const op = step.slice(0, i), arg = step.slice(i + 1);
   if (op === "enter") continue;
   if (op === "click") await p.click(arg);
+  /* jsclick=<sel>: the element's own click(), for a row inside a sheet Playwright cannot scroll to */
+  else if (op === "jsclick") await p.$eval(arg, (el) => el.click());
   else if (op === "wait") await p.waitForTimeout(+arg);
   /* waitfor=<sel>: a state that arrives on its own clock (live words) is waited for, not timed */
   else if (op === "waitfor") await p.locator(arg).first().waitFor({ state: "visible", timeout: 30000 });
@@ -229,7 +231,7 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   else if (op === "scrollx") { const [sel, px] = arg.split("|"); await p.$eval(sel, (el, x) => { el.scrollLeft = x; }, +px); }
   await p.waitForTimeout(350);
 }
-await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important} [data-vaul-drawer]{transform:none!important;animation:none!important} [data-vaul-drawer]::after{content:none!important;display:none!important}" });
+await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important} [data-vaul-drawer]{transform:none!important;animation:none!important} [data-vaul-drawer]::after{content:none!important;display:none!important} [data-vaul-drawer][data-state=closed],[data-vaul-overlay][data-state=closed]{display:none!important}" });
 if (!(process.env.STEPS || "").includes("drag=")) await p.mouse.move(2, 2);
 /* a tour light moves to its anchor on a spring: the frame is taken only once it has
    come to rest, or the hole sits where the previous step was (the D2 tablet scar) */
@@ -247,8 +249,17 @@ await p.evaluate(() => {
   const light = root.querySelector("[style*='box-shadow']"); if (!light) return;
   const b = light.getBoundingClientRect(); const W = innerWidth, H = innerHeight;
   const a = root.hasAttribute("data-handoff") ? 0.4 : 0.55;
-  const mk = (x, y, w, h) => { const d = document.createElement("div"); d.setAttribute("data-capture-dim", ""); d.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:rgba(15,23,42,${a});pointer-events:none`; root.insertBefore(d, root.firstChild); };
-  if (b.width > 0 && b.height > 0) { mk(0, 0, W, Math.max(0, b.top)); mk(0, b.bottom, W, Math.max(0, H - b.bottom)); mk(0, b.top, Math.max(0, b.left), b.height); mk(b.right, b.top, Math.max(0, W - b.right), b.height); }
+  /* one SVG: the whole screen in the dim colour with a rounded hole where the light is (even-odd) */
+  if (b.width > 0 && b.height > 0) {
+    const r = 14, x = b.left, y = b.top, w = b.width, h = b.height;
+    const hole = `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("data-capture-dim", ""); svg.setAttribute("width", String(W)); svg.setAttribute("height", String(H)); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.style.cssText = `position:fixed;left:0;top:0;width:${W}px;height:${H}px;pointer-events:none`;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("fill-rule", "evenodd"); path.setAttribute("fill", `rgba(15,23,42,${a})`); path.setAttribute("d", `M0 0H${W}V${H}H0Z ${hole}`);
+    svg.appendChild(path); root.insertBefore(svg, root.firstChild);
+  }
   light.style.boxShadow = "none";
   const dark = root.querySelector("[style*='rgba(15, 23, 42, 0.55)']"); if (dark && dark !== light) dark.style.display = "none";
 });

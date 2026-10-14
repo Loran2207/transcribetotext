@@ -191,25 +191,30 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
     </div>
   );
 
+  /* on a phone the only button is the lesson itself: the close is the x on the cover, and a
+     keyboard hint means nothing there */
   const footer = (
-    <div className="flex items-center gap-[10px] border-t border-border px-[20px] py-[12px]">
-      <Button data-academy-panel-start="" onClick={onStart} className="h-9 flex-1 gap-[8px] pl-[6px] text-[13px] font-semibold"><img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[24px] shrink-0 rounded-full bg-white/20 object-cover object-top" />{done ? "Show me again" : "Show me on the real screens"}<kbd className="ml-[2px] rounded-[4px] bg-white/20 px-[5px] text-[10.5px] font-semibold">Enter</kbd></Button>
-      <Button variant="pill-outline" onClick={onClose} className="h-9 gap-[6px] px-[14px] text-[13px] font-semibold">Close<kbd className="rounded-[4px] border border-border px-[5px] text-[10.5px] font-semibold text-muted-foreground">Esc</kbd></Button>
+    <div className={cn("flex items-center gap-[10px] border-t border-border px-[20px] py-[12px]", phone && "pb-[calc(12px+env(safe-area-inset-bottom))]")}>
+      <Button data-academy-panel-start="" onClick={onStart} className={cn("flex-1 gap-[8px] pl-[6px] text-[13px] font-semibold", phone ? "h-11 text-[14px]" : "h-9")}><img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[24px] shrink-0 rounded-full bg-white/20 object-cover object-top" />{done ? "Show me again" : "Show me on the real screens"}{!phone && <kbd className="ml-[2px] rounded-[4px] bg-white/20 px-[5px] text-[10.5px] font-semibold">Enter</kbd>}</Button>
+      {!phone && <Button variant="pill-outline" onClick={onClose} className="h-9 gap-[6px] px-[14px] text-[13px] font-semibold">Close<kbd className="rounded-[4px] border border-border px-[5px] text-[10.5px] font-semibold text-muted-foreground">Esc</kbd></Button>}
     </div>
   );
+  const closeX = <button type="button" onClick={onClose} aria-label="Close" className="absolute right-[12px] top-[12px] z-10 flex size-8 items-center justify-center rounded-full bg-[#0A1630]/55 text-white transition-colors hover:bg-[#0A1630]/75 [@media(pointer:coarse)]:size-9"><Icon icon={Cancel01Icon} size={16} /></button>;
 
   if (phone) {
     return (
       <Drawer open={openState} onOpenChange={(o) => { if (!o) onClose(); }}>
-        <DrawerContent data-academy-panel="" className="[&>div:first-child]:hidden">
+        {/* the whole height of the phone: the cover at the top with the x, the steps scrolling
+            under a fade, the one button pinned at the bottom. No handle, no border line. */}
+        <DrawerContent data-academy-panel="" className="!mt-0 h-[calc(100dvh-20px)] !max-h-none overflow-hidden !rounded-t-[18px] !border-0 bg-card [&>div:first-child]:!hidden">
           <DrawerTitle className="sr-only">{g.title}</DrawerTitle>
           <DrawerDescription className="sr-only">{g.summary}</DrawerDescription>
-          {/* the list scrolls under the footer: room at the end and a fade, so no line is cut by the buttons */}
-          <div className="relative">
-            <div className="max-h-[78vh] overflow-y-auto pb-[16px]">{body}</div>
+          {closeX}
+          <div className="relative flex min-h-0 flex-1 flex-col">
+            <div className="flex-1 overflow-y-auto pb-[16px]">{body}</div>
             <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[28px] bg-gradient-to-t from-card to-transparent" />
           </div>
-          <div style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>{footer}</div>
+          {footer}
         </DrawerContent>
       </Drawer>
     );
@@ -219,7 +224,7 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
       <SheetContent side="right" data-academy-panel="" overlayClassName="bg-[#0A1630]/35" className="flex w-[420px] max-w-[92vw] flex-col gap-0 border-l p-0 shadow-[var(--elevation-md)] sm:max-w-[420px] [&>button]:hidden">
         <SheetTitle className="sr-only">{g.title}</SheetTitle>
         <SheetDescription className="sr-only">{g.summary}</SheetDescription>
-        <button type="button" onClick={onClose} aria-label="Close" className="absolute right-[12px] top-[12px] z-10 flex size-8 items-center justify-center rounded-full bg-[#0A1630]/55 text-white transition-colors hover:bg-[#0A1630]/75"><Icon icon={Cancel01Icon} size={16} /></button>
+        {closeX}
         <div className="relative flex min-h-0 flex-1 flex-col">
           <div className="flex-1 overflow-y-auto pb-[16px]">{body}</div>
           <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[28px] bg-gradient-to-t from-card to-transparent" />

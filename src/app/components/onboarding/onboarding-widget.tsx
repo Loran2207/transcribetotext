@@ -1,7 +1,8 @@
 import type React from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowRight01Icon, ArrowUp01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, ArrowUp01Icon, Tick02Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
+import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "../ui/drawer";
 import { cn } from "../ui/utils";
 import { useOnboarding } from "./onboarding-context";
 import { SETUP, SETUP_GROUPS, isSetupDone, stepTourId } from "./guides";
@@ -120,7 +121,7 @@ function AcademyLink() {
    the things that make the account yours. Shared by the web card and the
    compact-shell slide. A whole open row is the button (a touch screen has no
    hover to reveal the pill), so the tap target is the row, 38px high. */
-function SetupList({ compact }: { compact: boolean }) {
+function SetupList({ compact, onPick }: { compact: boolean; onPick?: () => void }) {
   const ob = useOnboarding();
   const run = useRunSetup();
   const has = (id: string) => ob.actions.has(id);
@@ -143,7 +144,7 @@ function SetupList({ compact }: { compact: boolean }) {
               return (
                 <li key={x.id} className="relative">
                   {!last && <span aria-hidden className={cn("absolute left-[20px] top-[20px] z-[1] w-[2px] transition-colors duration-500", done ? "bg-primary" : "bg-border")} style={{ height: ROW_H }} />}
-                  <Row {...(done ? {} : { type: "button" as const, "data-onboarding-setup": x.id, onClick: () => run(x.id) })} className={cn("group flex w-full items-center gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors", !done && "hover:bg-muted/70", !done && focus)} style={{ height: ROW_H }}>
+                  <Row {...(done ? {} : { type: "button" as const, "data-onboarding-setup": x.id, onClick: () => { onPick?.(); run(x.id); } })} className={cn("group flex w-full items-center gap-[12px] rounded-[10px] pl-[10px] pr-[6px] text-left transition-colors", !done && "hover:bg-muted/70", !done && focus)} style={{ height: ROW_H }}>
                     <span className={cn(
                       "relative z-[2] flex size-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums transition-colors",
                       done ? "bg-primary text-primary-foreground" : isNext ? "border-2 border-primary bg-card text-primary" : "border-2 border-border bg-card text-muted-foreground group-hover:border-foreground/25 group-hover:text-foreground",
@@ -181,7 +182,7 @@ function SetupList({ compact }: { compact: boolean }) {
 /* The compact shell (phone and tablet): the setup is one slide of the Home info
    carousel, the same 84px header row as Today's events and Analytics, the same
    shared expand state, the same bounded detail. */
-export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCls }: { expanded: boolean; onToggle: () => void; headCls: string; cardCls: string; detailCls: string }) {
+export function OnboardingSlide({ expanded, onToggle, onClose, headCls, cardCls }: { expanded: boolean; onToggle: () => void; onClose: () => void; headCls: string; cardCls: string; detailCls?: string }) {
   const ob = useOnboarding();
   if (ob.hidden || ob.allDone) return null;
   const has = (id: string) => ob.actions.has(id);
@@ -189,7 +190,7 @@ export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCl
   const total = SETUP.length;
   return (
     <div data-onboarding-card="" data-state={expanded ? "open" : "closed"} className={cardCls}>
-      <button type="button" data-onboarding-collapse={expanded ? "" : undefined} data-onboarding-pill={expanded ? undefined : ""} onClick={onToggle} aria-expanded={expanded} className={headCls}>
+      <button type="button" data-onboarding-pill="" onClick={onToggle} aria-expanded={expanded} className={headCls}>
         <span className="flex min-w-0 flex-col gap-[8px]">
           <span className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "12px", lineHeight: "16px" }}>First steps</span>
           <span className="flex items-baseline gap-[8px] text-foreground">
@@ -198,18 +199,31 @@ export function OnboardingSlide({ expanded, onToggle, headCls, cardCls, detailCl
             <span className="text-muted-foreground/40" style={{ fontWeight: 400, fontSize: "16px", lineHeight: 1 }}>{"·"}</span>
             <span className="flex min-w-0 items-center gap-[5px] truncate text-muted-foreground" style={{ fontWeight: 500, fontSize: "13px", lineHeight: "18px" }}>
               <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain" />
-              <span className="truncate">Bonus: skip the queue</span>
+              <span className="truncate">Bonus: files go first</span>
             </span>
           </span>
         </span>
         <Icon icon={ArrowUp01Icon} size={18} strokeWidth={2} className="shrink-0 text-muted-foreground transition-transform duration-200" style={{ transform: expanded ? "rotate(0deg)" : "rotate(180deg)" }} />
       </button>
-      {expanded && (
-        <div className={cn(detailCls, "!max-h-[420px] px-[6px] py-[6px]")}>
-          <SetupList compact />
-          <AcademyLink />
-        </div>
-      )}
+      {/* the list needs the whole screen on a phone, so it opens as a sheet from the bottom
+          rather than pushing the carousel open; a step closes the sheet before it runs */}
+      <Drawer open={expanded} onOpenChange={(o) => { if (!o) onClose(); }}>
+        <DrawerContent data-onboarding-sheet="" className="!mt-0 !max-h-[calc(100dvh-40px)] overflow-hidden !rounded-t-[18px] !border-0 bg-card [&>div:first-child]:!hidden">
+          <DrawerTitle className="sr-only">First steps</DrawerTitle>
+          <DrawerDescription className="sr-only">{doneCount} of {total} done</DrawerDescription>
+          <div className="flex items-center justify-between gap-[12px] px-[18px] pt-[16px] pb-[6px]">
+            <span className="flex flex-col gap-[2px]">
+              <span className="text-[17px] font-bold leading-[22px] tracking-[-0.2px] text-foreground">First steps</span>
+              <span className="text-[12.5px] font-medium leading-[16px] text-muted-foreground">Try each once<span className="text-border"> · </span><span className="tabular-nums">{doneCount} of {total} done</span></span>
+            </span>
+            <button type="button" data-onboarding-collapse="" onClick={onClose} aria-label="Close" className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"><Icon icon={Cancel01Icon} size={16} /></button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-[6px] pb-[calc(8px+env(safe-area-inset-bottom))]">
+            <SetupList compact onPick={onClose} />
+            <AcademyLink />
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

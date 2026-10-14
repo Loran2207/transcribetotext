@@ -295,7 +295,11 @@ export function OnboardingTour() {
   const phoneCardH = cardRef.current?.offsetHeight ?? 190;
   const phonePage = !!(rect && (anchorName?.startsWith("page-") || rect.height > window.innerHeight * 0.7));
   const phoneSheet = !!(rect && rect.top > 0 && rect.top + rect.height >= window.innerHeight - 4);
-  const phoneTop = !!(phone && rect && (handoff ? rect.top >= phoneCardH + 24 || phoneSheet : !phonePage && rect.top + rect.height > window.innerHeight - 240));
+  const phoneLow = !!(phone && rect && !handoff && !phonePage && rect.top + rect.height > window.innerHeight - 240);
+  /* a lit control low on the screen (the + button) takes the card right above itself, so the
+     words sit next to what they are about; only when there is no room above does the card go to the top */
+  const phoneAbove = phoneLow && rect!.top >= phoneCardH + 28;
+  const phoneTop = !!(phone && rect && (handoff ? rect.top >= phoneCardH + 24 || phoneSheet : phoneLow && !phoneAbove));
 
   const spring = reduce ? { duration: 0 } : { type: "spring" as const, stiffness: 320, damping: 30 };
 
@@ -345,9 +349,9 @@ export function OnboardingTour() {
         className={cn(
           "pointer-events-auto absolute flex flex-col gap-2 rounded-[16px] border border-border bg-popover p-4 text-popover-foreground shadow-[var(--elevation-md)]",
           phone && "left-3 right-3",
-          phone && (phoneTop ? "top-[calc(12px+env(safe-area-inset-top))]" : "bottom-[calc(16px+env(safe-area-inset-bottom))]"),
+          phone && (phoneTop ? "top-[calc(12px+env(safe-area-inset-top))]" : phoneAbove ? "" : "bottom-[calc(16px+env(safe-area-inset-bottom))]"),
         )}
-        style={phone ? undefined : { width: cardW }}
+        style={phone ? (phoneAbove && rect ? { bottom: window.innerHeight - rect.top + 12 } : undefined) : { width: cardW }}
         initial={reduce ? false : { opacity: 0, y: 8, ...(phone ? {} : cardStyle) }}
         animate={{ opacity: 1, y: 0, ...(phone ? {} : cardStyle) }}
         transition={spring}

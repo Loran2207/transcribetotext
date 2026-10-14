@@ -153,7 +153,7 @@ export function DashboardInsights({ onNavigate }: { onNavigate?: (page: string) 
       <div ref={infoRef} onScroll={onInfoScroll} className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide -mx-[16px] px-[16px] pt-0 pb-[6px] gap-[16px]" style={{ scrollbarWidth: "none" }}>
         {infoSlides.map((key) => (
           <div key={key} className="snap-center shrink-0 w-full self-start">
-            {key === "guide" ? <OnboardingSlide expanded={expanded === "guide"} onToggle={() => toggle("guide")} headCls={headCls} cardCls={cardCls} detailCls={detailCls} /> : key === "analytics" ? analyticsCard : eventsCard}
+            {key === "guide" ? <OnboardingSlide expanded={expanded === "guide"} onToggle={() => toggle("guide")} onClose={() => setExpanded((v) => (v === "guide" ? null : v))} headCls={headCls} cardCls={cardCls} /> : key === "analytics" ? analyticsCard : eventsCard}
           </div>
         ))}
       </div>
