@@ -1489,6 +1489,21 @@ function TranscriptionModeToggle({ mode, onChange, compact = false }: {
   );
 }
 
+/* The Academy lesson "Make your first transcript" puts a sample file into the
+   upload dialog, so the settings under it (the speakers) can be shown before a
+   real file is picked. The tour asks through the window event; the dialog takes
+   the flag on mount, or the event when it is already open. */
+const DEMO_FILE_KEY = "ttt_tour_demo_file";
+function demoFile(): File { return new File([new Uint8Array(64 * 1024)], "Client call.m4a", { type: "audio/mp4" }); }
+function askDemoFile() { try { window.sessionStorage.setItem(DEMO_FILE_KEY, "1"); } catch { /* ignore */ } }
+let demoJustLoaded = false;
+function takeDemoFile(): File[] {
+  try { if (window.sessionStorage.getItem(DEMO_FILE_KEY)) { window.sessionStorage.removeItem(DEMO_FILE_KEY); demoJustLoaded = true; return [demoFile()]; } } catch { /* ignore */ }
+  return [];
+}
+/* with the sample in, the lesson shows the speakers on Auto-detect, the setting it is about */
+const DEMO_SPEAKERS = { speakerEnabled: true, speakerCount: "auto" as const };
+
 // ── Speaker identification ─────────────────────────────────
 
 export function SpeakerSection({ enabled, onToggle, count, onCountChange }: {
@@ -1507,7 +1522,7 @@ export function SpeakerSection({ enabled, onToggle, count, onCountChange }: {
   const countLabel = count === "auto" ? "Auto-detect" : `${count} speaker${count > 1 ? "s" : ""}`;
 
   return (
-    <div>
+    <div data-tour="upload-speakers">
       <div className="flex items-center justify-between">
         <div>
           <p className="font-medium text-[13px] text-foreground">Speaker identification</p>
@@ -2051,7 +2066,14 @@ function InstantSpeechSetupModal({ open, onClose }: { open: boolean; onClose: ()
 function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { addJob, templates, userPlan, consumePreloadedFiles, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
 
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<File[]>(takeDemoFile);
+  /* the Academy lesson asks for the sample file while this dialog is already open */
+  useEffect(() => {
+    if (demoJustLoaded) { demoJustLoaded = false; setSettings((s) => ({ ...s, ...DEMO_SPEAKERS })); }
+    const on = (e: Event) => { if ((e as CustomEvent<string>).detail === "upload-demo") { setFiles((prev) => (prev.length ? prev : [demoFile()])); setSettings((s) => ({ ...s, ...DEMO_SPEAKERS })); } };
+    window.addEventListener("ttt-tour", on);
+    return () => window.removeEventListener("ttt-tour", on);
+  }, []);
   const [preparing, setPreparing] = useState<Set<string>>(new Set());
   const [dragActive, setDragActive] = useState(false);
   const [settings, setSettings] = useState<SharedSettingsState>(DEFAULT_SETTINGS);
@@ -3267,7 +3289,7 @@ function AllModals() {
   const { openModal, setOpenModal } = useTranscriptionModals();
   const close = () => setOpenModal(null);
   useEffect(() => {
-    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "upload-open") setOpenModal("upload"); if (t === "record-open") setOpenModal("record"); if (t === "link-open") setOpenModal("link"); if (t === "meeting-open") setOpenModal("meeting"); if (t === "upload-close" || t === "record-close" || t === "link-close" || t === "meeting-close" || t === "close-all") setOpenModal(null); };
+    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "upload-demo") { askDemoFile(); setOpenModal("upload"); } if (t === "upload-open") setOpenModal("upload"); if (t === "record-open") setOpenModal("record"); if (t === "link-open") setOpenModal("link"); if (t === "meeting-open") setOpenModal("meeting"); if (t === "upload-close" || t === "record-close" || t === "link-close" || t === "meeting-close" || t === "close-all") setOpenModal(null); };
     window.addEventListener("ttt-tour", on);
     return () => window.removeEventListener("ttt-tour", on);
   }, [setOpenModal]);

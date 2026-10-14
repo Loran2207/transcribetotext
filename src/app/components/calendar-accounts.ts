@@ -50,6 +50,9 @@ function loadAccounts(): CalendarAccount[] {
   return DEFAULT_ACCOUNTS;
 }
 
+/* the tour reads this without the hook: a step says different words when a calendar is already there */
+export function calendarConnected(): boolean { return loadAccounts().length > 0; }
+
 function saveAccounts(accounts: CalendarAccount[]) {
   try {
     localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));

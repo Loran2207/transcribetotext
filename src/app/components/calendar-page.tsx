@@ -116,6 +116,8 @@ export function CalendarPage() {
 
   /* Account Setup: a connected calendar is a real action */
   const connectAndCredit = async (provider: CalendarProvider) => { const ok = await connectAccount(provider); if (ok) creditOnboarding("calendar"); return ok; };
+  /* a calendar connected before the first steps (or on another device) counts as done the moment this page sees it */
+  useEffect(() => { if (accounts.length > 0) creditOnboarding("calendar"); }, [accounts.length]);
   const isDisconnected = accounts.length === 0;
   const showEmptyDemo = isEmptyDemoState();
 

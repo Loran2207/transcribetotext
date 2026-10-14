@@ -132,7 +132,7 @@ export function SidebarAppPlaque({ onGet }: { onGet?: () => void }) {
   const wide = useWideScreen();
   if (!on) return null;
   return (
-    <div className="relative mx-2 mb-2 overflow-hidden rounded-[12px] text-white group-data-[collapsible=icon]:hidden" style={{ height: 63, background: NAVY }}>
+    <div data-tour="sidebar-desktop" className="relative mx-2 mb-2 overflow-hidden rounded-[12px] text-white group-data-[collapsible=icon]:hidden" style={{ height: 63, background: NAVY }}>
       <img src="/images/desktop/banner.jpg" alt="" className="absolute inset-y-0 right-0 h-full w-[34%] object-cover" style={{ objectPosition: "center 42%" }} />
       <span className="absolute inset-0" style={{ background: "linear-gradient(90deg, #0A1630 0%, #0A1630 64%, rgba(10,22,48,0.55) 82%, rgba(10,22,48,0.15) 100%)" }} />
       <p className="absolute left-[12px] top-[12px] whitespace-nowrap text-[13px] font-semibold leading-[19px]">Record on your desktop</p>

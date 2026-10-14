@@ -5,6 +5,7 @@ import { ArrowLeft01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { Button } from "../ui/button";
 import { useIsMobile, useIsPhone } from "../ui/use-mobile";
+import { calendarConnected } from "../calendar-accounts";
 import { cn } from "../ui/utils";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
@@ -133,6 +134,8 @@ export function OnboardingTour() {
   const anchorName = step?.anchor && step.anchor !== NO_ANCHOR ? step.anchor : null;
   const speaking = step?.anchor === NO_ANCHOR;
   const handoff = !!step?.handoff;
+  /* a step about the calendar says other words when one is already connected */
+  const spoken = step ? (step.connected && calendarConnected() ? { title: step.connected.title ?? step.title, body: step.connected.body ?? step.body, phoneBody: step.connected.phoneBody ?? step.connected.body ?? step.phoneBody } : { title: step.title, body: step.body, phoneBody: step.phoneBody }) : { title: "", body: "", phoneBody: undefined };
 
   /* wait for the anchor: the step may have just navigated to another page */
   useLayoutEffect(() => {
@@ -374,8 +377,8 @@ export function OnboardingTour() {
             <Icon icon={Cancel01Icon} size={14} />
           </button>
         </div>
-        <p className="text-[15px] font-semibold leading-[20px] text-foreground">{(phone && step.phoneTitle) || step.title}</p>
-        <p className="text-[13px] leading-[19px] text-foreground/80">{missing ? (handoff ? "This part is not on the screen right now. Close me and press the step again." : "This part is not on the screen right now. Skip ahead.") : (phone && step.phoneBody) || (compact && step.compactBody) || step.body}</p>
+        <p className="text-[15px] font-semibold leading-[20px] text-foreground">{(phone && step.phoneTitle) || spoken.title}</p>
+        <p className="text-[13px] leading-[19px] text-foreground/80">{missing ? (handoff ? "This part is not on the screen right now. Close me and press the step again." : "This part is not on the screen right now. Skip ahead.") : (phone && spoken.phoneBody) || (compact && step.compactBody) || spoken.body}</p>
         <div className="mt-1 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1">
             {tour.guide.steps.map((_, i) => (

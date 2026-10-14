@@ -166,40 +166,34 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
   }, [openState, onStart]);
   const g = guide ?? last;
   if (!g) return null;
-  const steps = g.steps.filter((s) => s.anchor !== NO_ANCHOR);
+  /* the panel is read, not walked: navigation steps stay out and every step shows its reading line */
+  const steps = g.steps.filter((s) => s.anchor !== NO_ANCHOR && !s.nav);
 
   const body = (
     <div className="flex flex-col">
       <SceneCover id={g.id} src={g.cover} size="md" className="aspect-[16/10] w-full" />
-      <div className="px-[20px] pt-[16px] pb-[6px]">
-        <p className="flex items-center gap-[6px] text-[12px] font-medium text-muted-foreground"><Icon icon={Clock01Icon} size={12} strokeWidth={2.2} />{g.seconds}s{done && <span className="text-primary">· done</span>}</p>
+      <div className="px-[20px] pt-[16px] pb-[4px]">
+        <p className="flex items-center gap-[6px] text-[12px] font-medium text-muted-foreground"><Icon icon={Clock01Icon} size={12} strokeWidth={2.2} />{g.seconds}s<span className="text-border">|</span>{steps.length} steps{done && <><span className="text-border">|</span><span className="text-primary">done</span></>}</p>
         <h3 className="mt-[4px] text-[19px] font-bold leading-[25px] tracking-[-0.3px] text-foreground">{g.title}</h3>
         <p className="mt-[6px] text-[13.5px] leading-[19px] text-foreground/80">{g.summary}</p>
       </div>
-      <div className="px-[20px] pt-[10px]">
-        <ol className="flex flex-col">
+      {/* what the lesson teaches, as a list to read: one line per step, no tour voice */}
+      <div className="px-[20px] pt-[14px] pb-[8px]">
+        <ol className="flex flex-col gap-[10px]">
           {steps.map((s, i) => (
-            <li key={i} className="relative flex gap-[12px] py-[8px]">
-              {i < steps.length - 1 && <span aria-hidden className="absolute left-[10px] top-[30px] h-[calc(100%-20px)] w-[2px] bg-border" />}
-              <span className="relative z-[1] flex size-[20px] shrink-0 items-center justify-center rounded-full border-2 border-border bg-card text-[10.5px] font-bold tabular-nums text-muted-foreground">{i + 1}</span>
-              <span className="min-w-0">
-                <span className="block text-[13.5px] font-semibold leading-[18px] text-foreground">{s.title}</span>
-                <span className="block text-[13px] leading-[18px] text-muted-foreground">{s.body}</span>
-              </span>
+            <li key={i} className="flex gap-[10px]">
+              <span className="mt-[2px] flex size-[18px] shrink-0 items-center justify-center rounded-full bg-primary/[0.08] text-[10.5px] font-bold tabular-nums text-primary">{i + 1}</span>
+              <span className="min-w-0 text-[13px] leading-[18px] text-foreground/80"><span className="font-semibold text-foreground">{s.title}.</span> {s.read ?? s.body}</span>
             </li>
           ))}
         </ol>
-        <div className="mt-[10px] mb-[8px] flex items-center gap-[10px] rounded-[10px] bg-muted/60 px-[12px] py-[9px]">
-          <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[28px] shrink-0 rounded-full bg-primary/10 object-cover object-top" />
-          <p className="text-[12.5px] leading-[17px] text-foreground/80"><span className="font-semibold text-foreground">{GUIDE_PERSON.name}</span>: "Or press Enter and I'll show you on the real screens."</p>
-        </div>
       </div>
     </div>
   );
 
   const footer = (
     <div className="flex items-center gap-[10px] border-t border-border px-[20px] py-[12px]">
-      <Button data-academy-panel-start="" onClick={onStart} className="h-9 flex-1 gap-[8px] text-[13px] font-semibold"><Icon icon={PlayIcon} size={12} strokeWidth={2.6} />{done ? "Take the tour again" : "Start tour"}<kbd className="ml-[2px] rounded-[4px] bg-white/20 px-[5px] text-[10.5px] font-semibold">Enter</kbd></Button>
+      <Button data-academy-panel-start="" onClick={onStart} className="h-9 flex-1 gap-[8px] pl-[6px] text-[13px] font-semibold"><img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[24px] shrink-0 rounded-full bg-white/20 object-cover object-top" />{done ? "Show me again" : "Show me on the real screens"}<kbd className="ml-[2px] rounded-[4px] bg-white/20 px-[5px] text-[10.5px] font-semibold">Enter</kbd></Button>
       <Button variant="pill-outline" onClick={onClose} className="h-9 gap-[6px] px-[14px] text-[13px] font-semibold">Close<kbd className="rounded-[4px] border border-border px-[5px] text-[10.5px] font-semibold text-muted-foreground">Esc</kbd></Button>
     </div>
   );
