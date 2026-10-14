@@ -43,6 +43,10 @@ export type TourStep = {
   read?: string;
   /* a step that only walks to another screen: the panel does not list it */
   nav?: boolean;
+  /* the step waits for the person: the page stays live, there is no Next, and the tour
+     moves on by itself the moment it happens (a calendar connected). Already done, the
+     step shows its `connected` words with Next as usual */
+  waitFor?: "calendar";
   /* the words when a calendar is already connected (the Meetings page looks different then) */
   connected?: { title?: string; body?: string; phoneBody?: string; read?: string };
 };
@@ -100,11 +104,9 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     completeBy: "action",
     steps: [
       PAGE_HOME,
-      { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "MP3, MP4, WAV, any recording. Drop it here and the transcript is ready in minutes.", phoneBody: "MP3, MP4, WAV, any recording. On a phone the plus button at the bottom opens this and the other three ways.", read: "MP3, MP4, WAV, any recording from your computer. On a phone the plus button at the bottom opens the same four ways." },
-      { anchor: "home-card-record|add-fab", go: HOME, side: "bottom", title: "Instant speech", body: "Press and talk. The words appear as you speak. Good for voice notes and dictation.", read: "Press and talk, the words appear as you speak. Good for voice notes and dictation." },
-      { anchor: "home-card-meeting|add-fab", go: HOME, side: "bottom", title: "Meeting Recorder", body: "Paste a Meet, Zoom or Teams invite. A bot joins the call, records it and writes the notes while you talk.", read: "Paste a Meet, Zoom or Teams invite and a bot joins the call, records it and writes the notes." },
-      { anchor: "home-card-link|add-fab", go: HOME, side: "bottom", title: "Transcribe from URL", body: "A YouTube, Google Drive or Dropbox link. Nothing to download: paste it and go.", read: "A YouTube, Google Drive or Dropbox link, nothing to download." },
-      { anchor: "upload-speakers|upload-dialog", go: HOME, side: "right", title: "Speakers: Auto-detect is enough", body: "I put a sample file in and switched Speaker identification on. Auto-detect counts the voices itself. Set a number only when you know it for sure: a wrong number puts two people in one voice.", read: "Once a file is in, switch on Speaker identification under it and keep Auto-detect: it counts the voices itself. Set a number only when you know it for sure, a wrong number puts two people in one voice.", trigger: "upload-demo" },
+      { anchor: "home-cards|add-fab", go: HOME, side: "bottom", title: "Four ways in", body: "A file, your voice, a meeting or a link. Each card opens its own window.", phoneBody: "The plus button opens all four: a file, your voice, a meeting or a link.", read: "Four ways in, as cards on Home: a file, your voice (Instant speech), a meeting (Meeting Recorder) or a link. On a phone the plus button opens the same four." },
+      { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "MP3, MP4, WAV, any recording. Press this card and the upload opens. Next opens it for you.", phoneBody: "MP3, MP4, WAV, any recording. Press the plus, then Audio and video files. Next opens it for you.", read: "Press Audio and video files and the upload window opens. MP3, MP4, WAV, any recording.", trigger: "upload-close" },
+      { anchor: "upload-speakers|upload-dialog", go: HOME, side: "right", title: "Speakers: keep Auto-detect", body: "This is the upload. I put a sample file in so its settings show. Auto-detect counts the voices itself; set a number only when you are sure.", read: "Once a file is in, switch on Speaker identification under it and keep Auto-detect: it counts the voices itself. Set a number only when you know it for sure, a wrong number puts two people in one voice.", trigger: "upload-demo" },
       { anchor: "upload-drop|upload-dialog", go: HOME, side: "right", title: "Your turn", body: "Press Start transcription with the sample, or drop your own file in its place. I count this lesson done the moment the upload starts.", phoneBody: "Press Start transcription with the sample, or tap to choose your own file. I count this lesson done the moment the upload starts.", read: "Drop a file or choose one, pick a template and a folder if you like, and press Start transcription. The transcript is ready in minutes.", trigger: "upload-demo", handoff: true },
     ],
   },
@@ -221,9 +223,9 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     steps: [
       { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Where your calls live", body: "Meetings, in the sidebar. Next takes you there.", nav: true },
       PAGE_MEETINGS,
-      { anchor: "meetings-connect|meetings-accounts|meetings-tabs", go: CALENDAR, side: "top", title: "Connect a calendar first", body: "Google or Outlook, one sign-in. Until then this page is empty and the recorder cannot see your meetings.", read: "Connect Google or Outlook first, one sign-in. Until then the Meetings page is empty and the recorder cannot see your calls.", connected: { title: "Your calendar is connected", body: "Every meeting from it lands here by itself. Another one connects from the Settings tab." }, trigger: "meetings-upcoming" },
-      { anchor: "calendar-week|meetings-tabs|meetings-connect", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Each meeting has a switch. On, and the recorder joins by itself; the transcript is ready when the call ends.", read: "Each meeting has an Auto-record switch. On, and the recorder joins by itself; the transcript is ready when the call ends.", trigger: "meetings-upcoming" },
-      { anchor: "calendar-week|meetings-tabs|meetings-connect", go: CALENDAR, side: "bottom", title: "Let the bot in", body: "The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in; otherwise nothing is recorded.", read: "The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in, or nothing is recorded.", trigger: "meetings-upcoming" },
+      { anchor: "meetings-connect|meetings-accounts|meetings-tabs", go: CALENDAR, side: "top", title: "Connect your calendar", body: "Press Connect next to Google or Outlook. The rest of this lesson needs your meetings, so I wait here.", read: "Connect Google or Outlook first, one sign-in. Until then the Meetings page is empty and the recorder cannot see your calls.", connected: { title: "Your calendar is connected", body: "Every meeting from it lands here by itself. Another one connects from the Settings tab." }, trigger: "meetings-upcoming", waitFor: "calendar" },
+      { anchor: "calendar-week|meetings-tabs", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Your meetings are here now. Each has a switch: on, and the recorder joins by itself; the transcript is ready when the call ends.", read: "Each meeting has an Auto-record switch. On, and the recorder joins by itself; the transcript is ready when the call ends.", trigger: "meetings-upcoming" },
+      { anchor: "calendar-week|meetings-tabs", go: CALENDAR, side: "bottom", title: "Let the bot in", body: "The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in; otherwise nothing is recorded.", read: "The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in, or nothing is recorded.", trigger: "meetings-upcoming" },
       { anchor: "home-card-meeting|add-fab|nav-calendar", go: HOME, side: "bottom", title: "Or record one now", body: "Paste any invite link from the Home page. Same recorder, no calendar needed.", read: "A call that is not on the calendar: paste its invite link on Home. Same recorder, no calendar needed." },
           ],
   },
@@ -232,7 +234,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     title: "Find anything fast",
     seconds: 25,
     steps: [
-      { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Searches what was said, not only the titles. Ctrl K opens it from anywhere.", read: "Searches what was said, not only the titles. Ctrl K opens it from anywhere.", quickFind: { open: false, query: "" } },
+      { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Searches what was said, not only the titles. Ctrl K opens it from anywhere; Next opens it now.", read: "Searches what was said, not only the titles. Ctrl K opens it from anywhere.", quickFind: { open: false, query: "" } },
       { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A name, a topic, a phrase. I typed one for you.", read: "Type what you remember: a name, a topic, a phrase.", quickFind: { open: true, query: "record" } },
       { anchor: "quick-find-results", go: HOME, side: "bottom", title: "Every match, with its moment", body: "Each result is a recording where those words were said. Click one to open it right there.", phoneBody: "Each result is a recording where those words were said. Tap one to open it right there.", read: "Each result is a recording where those words were said. Open one and it lands on that moment.", quickFind: { open: true } },
       { anchor: "quick-find-filters", go: HOME, side: "bottom", title: "Narrow it down", body: "By folder, source, who recorded it or when.", read: "Narrow the results by folder, source, who recorded it or when.", quickFind: { open: true } },
@@ -245,9 +247,10 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     steps: [
       { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Where your calls live", body: "Meetings, in the sidebar. Next takes you there.", nav: true },
       PAGE_MEETINGS,
-      { anchor: "meetings-tabs|meetings-connect", go: CALENDAR, side: "bottom", title: "Settings", body: "Everything the recorder does by itself is set here, once a calendar is connected. Connect one first and the tab appears.", read: "A tab on Meetings with everything the recorder does by itself. It appears once a calendar is connected.", connected: { body: "Everything the recorder does by itself is set on this tab." }, trigger: "meetings-settings" },
-      { anchor: "meetings-autorecord|meetings-connect", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Choose which meetings the recorder joins on its own: all of them, only the ones you host, or none.", read: "All meetings, only the ones you host, or none. The recorder joins those on its own.", trigger: "meetings-settings" },
-      { anchor: "meetings-recap|meetings-connect", go: CALENDAR, side: "top", title: "After the call", body: "Who gets the recap email and access to the recording: only you, or everyone who was invited.", read: "Who gets the recap email and access to the recording: only you, or everyone invited.", trigger: "meetings-settings" },
+      { anchor: "meetings-connect|meetings-accounts|meetings-tabs", go: CALENDAR, side: "top", title: "Connect your calendar", body: "The recorder's settings belong to a calendar. Press Connect next to Google or Outlook and I go on.", read: "The settings appear once a calendar is connected.", connected: { title: "Your calendar is connected", body: "Its settings are one tab away." }, trigger: "meetings-upcoming", waitFor: "calendar" },
+      { anchor: "meetings-tabs", go: CALENDAR, side: "bottom", title: "Settings", body: "Everything the recorder does by itself is set on this tab.", read: "A tab on Meetings with everything the recorder does by itself. It appears once a calendar is connected.", connected: { body: "Everything the recorder does by itself is set on this tab." }, trigger: "meetings-settings" },
+      { anchor: "meetings-autorecord|meetings-tabs", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Choose which meetings the recorder joins on its own: all of them, only the ones you host, or none.", read: "All meetings, only the ones you host, or none. The recorder joins those on its own.", trigger: "meetings-settings" },
+      { anchor: "meetings-recap|meetings-tabs", go: CALENDAR, side: "top", title: "After the call", body: "Who gets the recap email and access to the recording: only you, or everyone who was invited.", read: "Who gets the recap email and access to the recording: only you, or everyone invited.", trigger: "meetings-settings" },
     ],
   },
   {
@@ -392,10 +395,11 @@ export const STEP_TOURS: Guide[] = [
   ] },
   { ...STEP_META, id: "step-edit", forStep: "edit", title: "Edit the transcript", seconds: 15, steps: [
     OPEN_RECORD_FOR_STEP,
-    { anchor: "record-edit-bar+record-transcript-body|record-more-edit|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "At 0:47 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.", phoneBody: "At 0:47 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.", trigger: "tab-transcript", handoff: true },
+    { anchor: "record-edit-bar+record-transcript-body|record-more-edit|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "At 0:48 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.", phoneBody: "At 0:48 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.", trigger: "tab-transcript", handoff: true },
   ] },
   { ...STEP_META, id: "step-folders", forStep: "folders", title: "Create a folder", seconds: 15, steps: [
-    { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Folders live here. Next opens a new one." },
+    { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Folders live on this page. Next takes you there." },
+    { anchor: "records-add-folder", go: RECORDS, side: "bottom", title: "Add Folder", body: "This button makes a new folder. Next opens it.", trigger: "add-folder-close" },
     { anchor: "add-folder-dialog", go: RECORDS, side: "right", title: "Name it, press Create Folder", body: "One folder per client or project. It shows up in your folders at once.", trigger: "add-folder-open", handoff: true },
   ] },
   { ...STEP_META, id: "step-speakers", forStep: "speakers", title: "Name a speaker", seconds: 15, steps: [

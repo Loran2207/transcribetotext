@@ -1,5 +1,6 @@
-import { House, Calendar, Layers, GraduationScrollIcon, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon, Mic01Icon } from "@hugeicons/core-free-icons";
+import { House, Calendar, Layers, Puzzle, Settings, Globe, LogOut, Plus, ChevronRight, ChevronsLeft, FileText, UserMultiple02Icon, UserGroupIcon, Mic01Icon } from "@hugeicons/core-free-icons";
 import { useShell } from "./desktop/shell";
+import { Orb } from "./onboarding/orb/orb";
 
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
@@ -393,7 +394,7 @@ export function AppSidebar({ activePage, onNavigate, onOpenFolder }: AppSidebarP
               onClick={() => { onNavigate("academy"); setOpenMobile(false); }}
               tooltip={t("nav.academy")}
             >
-              <Icon icon={GraduationScrollIcon} strokeWidth={1.3} />
+              <Orb size={18} still className="ring-0" />
               <span className="flex min-w-0 flex-1 items-center gap-[8px]">
                 <span className="truncate">{t("nav.academy")}</span>
                 <span className="rounded-full bg-primary px-[6px] py-px text-[9.5px] font-bold uppercase leading-[14px] tracking-[0.04em] text-primary-foreground group-data-[collapsible=icon]:hidden">New</span>

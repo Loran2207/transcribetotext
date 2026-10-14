@@ -18,4 +18,5 @@ const step = (s) => { say(s.title, s.body); if (s.phoneBody) say(s.phoneTitle ??
 step(g.INTRO_STEP);
 for (const guide of [...g.GUIDES, ...g.STEP_TOURS]) for (const s of guide.steps) step(s);
 if (g.REWARD) say(g.REWARD.title, g.REWARD.body);
-process.stdout.write(JSON.stringify({ guides: [...lines], welcome: m.MOCK_TRANSCRIPTS.welcome.map((x) => ({ speaker: x.speaker, text: x.text })) }, null, 1));
+process.stdout.write(JSON.stringify({ guides: [...lines], /* the transcript shows "lunch" where the voice says "launch": the edit lesson fixes it */
+  welcome: m.MOCK_TRANSCRIPTS.welcome.map((x) => ({ speaker: x.speaker, text: x.text.replace("The lunch is", "The launch is") })) }, null, 1));

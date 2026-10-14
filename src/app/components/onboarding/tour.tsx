@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft01Icon, Cancel01Icon, VolumeHighIcon, VolumeOffIcon } from "@hugeicons/core-free-icons";
+import { ArrowLeft01Icon, Cancel01Icon, ReplayIcon, VolumeHighIcon, VolumeOffIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { Button } from "../ui/button";
 import { useIsMobile, useIsPhone } from "../ui/use-mobile";
@@ -136,6 +136,10 @@ export function OnboardingTour() {
   const anchorName = step?.anchor && step.anchor !== NO_ANCHOR ? step.anchor : null;
   const speaking = step?.anchor === NO_ANCHOR;
   const handoff = !!step?.handoff;
+  /* a step that waits for the person (connect a calendar): live page, no Next, moves on by itself */
+  const [waitDone, setWaitDone] = useState(false);
+  const waiting = step?.waitFor === "calendar" && !waitDone && !calendarConnected();
+  const live = handoff || waiting;
   /* a step about the calendar says other words when one is already connected */
   const spoken = step ? (step.connected && calendarConnected() ? { title: step.connected.title ?? step.title, body: step.connected.body ?? step.body, phoneBody: step.connected.phoneBody ?? step.connected.body ?? step.phoneBody } : { title: step.title, body: step.body, phoneBody: step.phoneBody }) : { title: "", body: "", phoneBody: undefined };
 
@@ -234,6 +238,19 @@ export function OnboardingTour() {
   const sayAgain = () => { if (!spokenBody) return; if (!sound) { setVoiceOn(true); setSound(true); } void speak(spokenTitle, spokenBody); };
 
 
+  useEffect(() => {
+    setWaitDone(false);
+    if (step?.waitFor !== "calendar" || calendarConnected()) return;
+    const id = window.setInterval(() => {
+      if (!calendarConnected()) return;
+      window.clearInterval(id);
+      setWaitDone(true);
+      /* the toast "connected" first, then the next step */
+      window.setTimeout(() => nextStep(), 900);
+    }, 400);
+    return () => window.clearInterval(id);
+  }, [step, nextStep]);
+
   if (!tour || !step) return null;
   /* the card waits for its place: nothing is drawn top-left and then moved */
   const placed = rect !== null || missing || speaking;
@@ -326,23 +343,23 @@ export function OnboardingTour() {
   const spring = reduce ? { duration: 0 } : { type: "spring" as const, stiffness: 320, damping: 30 };
 
   return createPortal(
-    <div data-onboarding-tour="" data-handoff={handoff ? "" : undefined} className={cn("fixed inset-0 z-[300]", handoff ? "pointer-events-none" : "pointer-events-auto")}>
+    <div data-onboarding-tour="" data-handoff={live ? "" : undefined} className={cn("fixed inset-0 z-[300]", live ? "pointer-events-none" : "pointer-events-auto")}>
       {/* click catcher: a click on the dark goes to the next step; handed over, the page is live and nothing is dark */}
-      {!handoff && <div className="absolute inset-0" onClick={nextStep} />}
+      {!live && <div className="absolute inset-0" onClick={nextStep} />}
       <AnimatePresence>
         {rect && (
           <motion.div
             key="light"
             className="absolute pointer-events-none rounded-[14px] ring-2 ring-primary/70"
             initial={reduce ? false : { opacity: 0 }}
-            animate={{ opacity: 1, top: rect.top, left: rect.left, width: rect.width, height: rect.height, boxShadow: handoff ? DIM_HANDOFF : DIM }}
+            animate={{ opacity: 1, top: rect.top, left: rect.left, width: rect.width, height: rect.height, boxShadow: live ? DIM_HANDOFF : DIM }}
             transition={spring}
-            style={{ borderRadius: RADIUS, boxShadow: handoff ? DIM_HANDOFF : DIM }}
+            style={{ borderRadius: RADIUS, boxShadow: live ? DIM_HANDOFF : DIM }}
           />
         )}
         {/* handed over, the page is live: the dark stays, lighter, and lets clicks through
             (the light and its shadow take no pointer events); the change is eased, not a jump */}
-        {!rect && !handoff && (
+        {!rect && !live && (
           <motion.div key="dark" className="absolute inset-0 pointer-events-none" style={{ background: "rgba(15, 23, 42, 0.55)" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
         )}
       </AnimatePresence>
@@ -390,15 +407,19 @@ export function OnboardingTour() {
             )}
           />
         )}
-        <div className="flex items-start justify-between gap-3">
-          <span className="flex items-center gap-[10px]">
-            {!(speaking && !phone) && <button type="button" onClick={sayAgain} aria-label="Say it again" title="Say it again" className="group/orb relative shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"><Orb size={34} /></button>}
-            <span className="flex flex-col">
+        <div className="flex items-center justify-between gap-3">
+          <span className="flex min-w-0 items-center gap-[10px]">
+            {!(speaking && !phone) && <Orb size={32} className="block" />}
+            <span className="flex min-w-0 flex-col justify-center">
               <span className="text-[13px] font-semibold leading-[17px] text-foreground">{GUIDE_PERSON.name}</span>
               <span className="text-[11.5px] font-medium leading-[15px] text-muted-foreground">{GUIDE_PERSON.title}</span>
             </span>
           </span>
-          <span className="-mr-1 -mt-1 flex shrink-0 items-center">
+          <span className="-mr-1 flex shrink-0 items-center">
+            {/* say the line again: the guide may have spoken while the person looked elsewhere */}
+            <button type="button" onClick={sayAgain} disabled={!spokenBody} aria-label="Play again" title="Play again" className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 pointer-coarse:size-9">
+              <Icon icon={ReplayIcon} size={14} />
+            </button>
             {/* the voice switch: off stays off for every later card */}
             <button type="button" onClick={() => { const next = !sound; setVoiceOn(next); setSound(next); }} aria-label={sound ? "Turn the voice off" : "Turn the voice on"} aria-pressed={sound} className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:size-9">
               <Icon icon={sound ? VolumeHighIcon : VolumeOffIcon} size={14} />
@@ -422,8 +443,8 @@ export function OnboardingTour() {
                 <Icon icon={ArrowLeft01Icon} size={14} />
               </Button>
             )}
-            {/* handed over, there is nothing to press here: the real action ends the step */}
-            {!handoff && <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } nextStep(); }} className="h-8 pl-4 pr-3 text-[13px] font-semibold pointer-coarse:h-9">{last ? (step.action?.label ?? "Done") : <>Next<span className="ml-2 rounded-full bg-primary-foreground/20 px-[7px] text-[11px] font-semibold tabular-nums leading-[18px]">{tour.step + 1}/{total}</span></>}</Button>}
+            {/* handed over or waiting, there is nothing to press here: the real action moves it on */}
+            {!live && <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } nextStep(); }} className="h-8 pl-4 pr-3 text-[13px] font-semibold pointer-coarse:h-9">{last ? (step.action?.label ?? "Done") : <>Next<span className="ml-2 rounded-full bg-primary-foreground/20 px-[7px] text-[11px] font-semibold tabular-nums leading-[18px]">{tour.step + 1}/{total}</span></>}</Button>}
           </div>
         </div>
       </motion.div>}

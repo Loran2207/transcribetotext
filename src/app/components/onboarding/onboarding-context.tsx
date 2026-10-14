@@ -136,10 +136,9 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const startGuide = useCallback((id: string, opts?: { onRecord?: boolean }) => {
     const found = GUIDES.find((g) => g.id === id) ?? STEP_TOURS.find((g) => g.id === id); if (!found) return;
     const base = opts?.onRecord ? { ...found, steps: found.steps.filter((s) => !s.opensRecord) } : found;
-    /* she says hello on the first lesson started, and again on any later start as long as
-       nothing is finished yet (the person closed the tour and came back); a First steps
-       tour goes straight to its step */
-    const hello = !base.forStep && (!stored.introSeen || stored.done.length === 0);
+    /* Echo says hello on the first tour of all, from the Academy or from First steps
+       alike (Kirill, 15.10); an Academy lesson repeats it while no lesson is finished yet */
+    const hello = !stored.introSeen || (!base.forStep && stored.done.length === 0);
     const guide: Guide = hello ? { ...base, steps: [INTRO_STEP, ...base.steps] } : base;
     setStored((s) => ({ ...s, expanded: false, introSeen: true }));
     /* a toast from the step just finished ("Template applied") would sit over her card */

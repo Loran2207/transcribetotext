@@ -392,15 +392,15 @@ const WELCOME_SPEAKERS: Speaker[] = [
 const [SAM, CLIENT, JORDAN] = WELCOME_SPEAKERS;
 const WELCOME_SEGMENTS: Segment[] = [
   { id: 1, speaker: SAM, timestamp: "0:00", text: "Thanks for joining, Priya. Jordan runs operations and I lead the team. This is our first call in Transcribe To Text, so the notes write themselves and you get a feel for how it works." },
-  { id: 2, speaker: CLIENT, timestamp: "0:11", text: "Great. I have about ten calls a week with carriers, and nobody has time to type them up. Where do the recordings go?" },
-  { id: 3, speaker: JORDAN, timestamp: "0:19", text: "Drop the file on the Home page, or paste the Zoom or Meet link and the recorder joins the call for you. Each call comes back as a transcript, a summary and the action items." },
+  { id: 2, speaker: CLIENT, timestamp: "0:12", text: "Great. I have about ten calls a week with carriers, and nobody has time to type them up. Where do the recordings go?" },
+  { id: 3, speaker: JORDAN, timestamp: "0:20", text: "Drop the file on the Home page, or paste the Zoom or Meet link and the recorder joins the call for you. Each call comes back as a transcript, a summary and the action items." },
   { id: 4, speaker: CLIENT, timestamp: "0:31", text: "And the summary comes in the same shape every time? My manager reads these on the phone, so one page with the decisions is ideal." },
-  { id: 5, speaker: SAM, timestamp: "0:39", text: "That is a template. Pick Meeting notes once and every call comes out as a one-pager. I'll set one up for the team today." },
-  { id: 6, speaker: JORDAN, timestamp: "0:47", text: "One more thing. The lunch is on the fourteenth, so let's keep one folder for everything about it and share it with the whole team." },
-  { id: 7, speaker: CLIENT, timestamp: "0:56", text: "Perfect. And please keep the speaker names in the notes, the quotes are worth nothing without who said them." },
+  { id: 5, speaker: SAM, timestamp: "0:40", text: "That is a template. Pick Meeting notes once and every call comes out as a one-pager. I'll set one up for the team today." },
+  { id: 6, speaker: JORDAN, timestamp: "0:48", text: "One more thing. The lunch is on the fourteenth, so let's keep one folder for everything about it and share it with the whole team." },
+  { id: 7, speaker: CLIENT, timestamp: "0:55", text: "Perfect. And please keep the speaker names in the notes, the quotes are worth nothing without who said them." },
   { id: 8, speaker: SAM, timestamp: "1:03", text: "Done. A folder for the launch, names stay in, the template today. I'll put the summary of this call in the shared folder tonight." },
 ];
-const WELCOME_END = "1:10";
+const WELCOME_END = "1:11";
 const WELCOME_DURATION_SECONDS = timestampToSeconds(WELCOME_END);
 
 // Single-speaker (podcast / monologue / dictation) demo content - one voice, no speaker column.
@@ -437,8 +437,8 @@ const MOCK_OUTLINE: OutlineSection[] = [
 
 const WELCOME_OUTLINE: OutlineSection[] = [
   { id: "w-o1", title: "Why this call", timestamp: "0:00", segmentId: 1, bullets: [{ text: "Priya's first call in Transcribe To Text", segmentId: 1 }, { text: "About ten carrier calls a week, nobody types them up", segmentId: 2 }] },
-  { id: "w-o2", title: "How a call becomes notes", timestamp: "0:19", segmentId: 3, bullets: [{ text: "Drop a file or paste the call link", segmentId: 3 }, { text: "A template keeps every summary one page", segmentId: 5 }] },
-  { id: "w-o3", title: "Decisions", timestamp: "0:47", segmentId: 6, bullets: [{ text: "One shared folder for the launch", segmentId: 6 }, { text: "Speaker names stay in the notes", segmentId: 7 }] },
+  { id: "w-o2", title: "How a call becomes notes", timestamp: "0:20", segmentId: 3, bullets: [{ text: "Drop a file or paste the call link", segmentId: 3 }, { text: "A template keeps every summary one page", segmentId: 5 }] },
+  { id: "w-o3", title: "Decisions", timestamp: "0:48", segmentId: 6, bullets: [{ text: "One shared folder for the launch", segmentId: 6 }, { text: "Speaker names stay in the notes", segmentId: 7 }] },
 ];
 
 const WELCOME_SUMMARY = `## Key points

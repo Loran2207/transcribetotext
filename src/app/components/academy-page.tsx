@@ -11,6 +11,7 @@ import { BannerStage, SceneCover } from "./academy-scene";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { ACADEMY_SECTIONS, GUIDE_PERSON, NO_ANCHOR, type Guide } from "./onboarding/guides";
 import { Orb } from "./onboarding/orb/orb";
+import { STEP_SHOTS } from "./onboarding/step-shots";
 import { useOnboarding } from "./onboarding/onboarding-context";
 
 /* The Academy: every feature as a short lesson you can read or be walked
@@ -180,11 +181,17 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
       </div>
       {/* what the lesson teaches, as a list to read: one line per step, no tour voice */}
       <div className="px-[20px] pt-[14px] pb-[8px]">
-        <ol className="flex flex-col gap-[10px]">
+        {/* each step with the real screen it happens on (tools/academy-shots.mjs), on a thin rail */}
+        <ol className="relative flex flex-col gap-[20px] before:absolute before:bottom-[6px] before:left-[8.5px] before:top-[22px] before:w-px before:bg-border">
           {steps.map((s, i) => (
-            <li key={i} className="flex gap-[10px]">
-              <span className="mt-[2px] flex size-[18px] shrink-0 items-center justify-center rounded-full bg-primary/[0.08] text-[10.5px] font-bold tabular-nums text-primary">{i + 1}</span>
-              <span className="min-w-0 text-[13px] leading-[18px] text-foreground/80"><span className="font-semibold text-foreground">{s.title}.</span> {s.read ?? s.body}</span>
+            <li key={i} className="relative flex gap-[12px]">
+              <span className="relative z-[1] mt-[1px] flex size-[18px] shrink-0 items-center justify-center rounded-full bg-card text-[10.5px] font-bold tabular-nums text-primary ring-1 ring-primary/25">{i + 1}</span>
+              <span className="flex min-w-0 flex-1 flex-col gap-[8px]">
+                <span className="text-[13px] leading-[18px] text-foreground/80"><span className="font-semibold text-foreground">{s.title}.</span> {s.read ?? s.body}</span>
+                {STEP_SHOTS[g.id]?.includes(i) && (
+                  <img src={`/academy/steps/${g.id}-${i}.webp`} alt="" loading="lazy" decoding="async" className="aspect-[8/5] w-full select-none rounded-[10px] bg-muted object-cover ring-1 ring-border" />
+                )}
+              </span>
             </li>
           ))}
         </ol>
