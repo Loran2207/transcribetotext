@@ -231,6 +231,27 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
 }
 await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important} [data-vaul-drawer]{transform:none!important;animation:none!important} [data-vaul-drawer]::after{content:none!important;display:none!important}" });
 if (!(process.env.STEPS || "").includes("drag=")) await p.mouse.move(2, 2);
+/* a tour light moves to its anchor on a spring: the frame is taken only once it has
+   come to rest, or the hole sits where the previous step was (the D2 tablet scar) */
+for (let i = 0; i < 30; i++) {
+  const r = await p.evaluate(() => { const l = document.querySelector("[data-onboarding-tour] [style*='box-shadow']"); if (!l) return "none"; const b = l.getBoundingClientRect(); return [b.x, b.y, b.width, b.height].map(Math.round).join(","); });
+  if (r === "none") break;
+  await p.waitForTimeout(150);
+  const r2 = await p.evaluate(() => { const l = document.querySelector("[data-onboarding-tour] [style*='box-shadow']"); const b = l ? l.getBoundingClientRect() : { x: 0, y: 0, width: 0, height: 0 }; return [b.x, b.y, b.width, b.height].map(Math.round).join(","); });
+  if (r === r2) break;
+}
+/* the tour dim is a box-shadow on the light, which the converter drops; for the frame it
+   becomes four real rectangles around the light, the same on every capture */
+await p.evaluate(() => {
+  const root = document.querySelector("[data-onboarding-tour]"); if (!root) return;
+  const light = root.querySelector("[style*='box-shadow']"); if (!light) return;
+  const b = light.getBoundingClientRect(); const W = innerWidth, H = innerHeight;
+  const a = root.hasAttribute("data-handoff") ? 0.4 : 0.55;
+  const mk = (x, y, w, h) => { const d = document.createElement("div"); d.setAttribute("data-capture-dim", ""); d.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:${w}px;height:${h}px;background:rgba(15,23,42,${a});pointer-events:none`; root.insertBefore(d, root.firstChild); };
+  if (b.width > 0 && b.height > 0) { mk(0, 0, W, Math.max(0, b.top)); mk(0, b.bottom, W, Math.max(0, H - b.bottom)); mk(0, b.top, Math.max(0, b.left), b.height); mk(b.right, b.top, Math.max(0, W - b.right), b.height); }
+  light.style.boxShadow = "none";
+  const dark = root.querySelector("[style*='rgba(15, 23, 42, 0.55)']"); if (dark && dark !== light) dark.style.display = "none";
+});
 /* enter=<sel> (a late step): React's onMouseEnter fired after the pointer has left, so a
    state that lives in JS (a hover preview) is held for the frame the way force= holds :hover */
 for (const step of (process.env.STEPS || "").split(";").filter((x) => x.startsWith("enter="))) {
