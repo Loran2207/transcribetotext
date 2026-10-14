@@ -34,6 +34,7 @@ async function session(query, width = 1440, height = 900) {
   return { p, ctx, faults, nav };
 }
 
+/* The desktop-app card and banner flows left on 2026-10-14: the desktop app is not in this release (Kirill). */
 async function flow(name, query, fn, width, height) {
   const s = await session(query, width, height);
   const steps = [];
@@ -50,15 +51,6 @@ const vis = async (p, sel) => (await p.locator(sel).filter({ visible: true }).co
 const count = (p, sel) => p.locator(sel).count();
 
 /* ---------- Web portal ---------- */
-await flow("Web: home, four cards, panel card, hide card", "shell=web&installed=0&banner=panel", async ({ p }, expect) => {
-  await expect("greeting", () => vis(p, "text=/Good (morning|afternoon|evening)/"));
-  await expect("four home cards", async () => (await count(p, "text=Audio & Video Files")) >= 1 && (await vis(p, "text=Instant speech")) && (await vis(p, "text=Meeting Recorder")) && (await vis(p, "text=Transcribe from URL")));
-  await expect("desktop card in the right panel", () => vis(p, "text=Record calls on your computer"));
-  await p.click("button[aria-label='Hide this card'] >> visible=true"); await p.waitForTimeout(400);
-  await expect("card gone after the cross", async () => !(await vis(p, "text=Record calls on your computer")));
-  await expect("discount ticket still there", () => vis(p, "text=welcome50"));
-});
-
 await flow("Web: Record meeting dialog, bot or app, get the app", "shell=web&installed=0", async ({ p }, expect) => {
   await p.click("p:has-text('Meeting Recorder') >> visible=true"); await p.waitForTimeout(600);
   await expect("dialog opens", () => vis(p, "[role=dialog], .ttt-modal, [data-slot=drawer-content], [data-slot=dialog-content]"));
@@ -113,17 +105,6 @@ await flow("Web: navigation pages open", "shell=web&installed=0", async ({ p, na
   await expect("menu: Home again", () => vis(p, "text=/Good (morning|afternoon|evening)/"));
 });
 
-await flow("Web phone: home carousel, record dialog with the card", "shell=web&installed=0", async ({ p }, expect) => {
-  await expect("phone greeting", () => vis(p, "text=/Good (morning|afternoon|evening)/"));
-  await expect("desktop card in the phone carousel", () => vis(p, "text=Record calls on your computer"));
-  /* on a phone the four cards live behind the plus button */
-  await p.click("[aria-label='New transcription'] >> visible=true"); await p.waitForTimeout(500);
-  await expect("plus menu with Meeting Recorder", () => vis(p, "text=Meeting Recorder"));
-  await p.click("text=Meeting Recorder >> visible=true"); await p.waitForTimeout(700);
-  await expect("info card instead of the choice", () => vis(p, "text=/Also on Mac and Windows/"));
-}, 390, 844);
-
-/* ---------- Desktop shell, macOS ---------- */
 await flow("macOS: record a call in one click, live note, pause, generate, after", "shell=desktop&os=mac&installed=0", async ({ p }, expect) => {
   await p.click("p:has-text('Record a call') >> visible=true"); await p.waitForTimeout(700);
   await expect("choose how: on this Mac", () => vis(p, "[role=radio]:has-text('Record on this Mac')"));
@@ -164,21 +145,6 @@ await flow("macOS: side by side from a live call, back to the full window, Notet
   await expect("no shortcut card any more", async () => !(await vis(p, "text=/Shortcut/")));
   await nav("/"); await p.waitForTimeout(800);
   await expect("closed-app desk renders", async () => { await nav("/desk"); await p.waitForTimeout(900); return vis(p, "text=/Zoom|Recording|Notes/"); });
-});
-
-await flow("Web: banner variants (wide banner, navigation block) open the Mac / Windows menu", "shell=web&installed=0&banner=home", async ({ p }, expect) => {
-  await expect("wide banner under the cards", () => vis(p, "text=Record calls on your computer"));
-  await p.click("button:has-text('Get the app') >> visible=true"); await p.waitForTimeout(400);
-  await expect("menu: Mac and Windows", async () => (await vis(p, "[role=menuitem]:has-text('Mac')")) && (await vis(p, "[role=menuitem]:has-text('Windows')")));
-  await p.keyboard.press("Escape"); await p.waitForTimeout(200);
-  await p.click("button[aria-label='Hide this banner'], button[aria-label='Hide'] >> visible=true").catch(() => {});
-});
-
-await flow("Web: navigation block variant", "shell=web&installed=0&banner=sidebar", async ({ p }, expect) => {
-  await expect("block in the navigation", () => vis(p, "text=Record on your desktop"));
-  await expect("panel card not doubled", async () => !(await vis(p, "text=Record calls on your computer")));
-  await p.click("button:has-text('Get the desktop app') >> visible=true"); await p.waitForTimeout(400);
-  await expect("menu: Mac and Windows", async () => (await vis(p, "[role=menuitem]:has-text('Mac')")) && (await vis(p, "[role=menuitem]:has-text('Windows')")));
 });
 
 await flow("macOS: permissions missing show the warning and fold the bar", "shell=desktop&os=mac&installed=0&perm=1", async ({ p }, expect) => {

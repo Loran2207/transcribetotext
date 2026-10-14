@@ -22,12 +22,21 @@ GAP = 0.6        # silence between lines of the dialogue, in seconds
 
 
 async def say(text, voice):
-    c = edge_tts.Communicate(text, voice, boundary="WordBoundary")
-    audio = bytearray(); words = []
-    async for ch in c.stream():
-        if ch["type"] == "audio": audio += ch["data"]
-        elif ch["type"] == "WordBoundary": words.append([ch["text"], round(ch["offset"] / 1e7, 3), round(ch["duration"] / 1e7, 3)])
-    return bytes(audio), words
+    """the service drops a request now and then: three tries, a short pause between them"""
+    last = None
+    for attempt in range(3):
+        try:
+            c = edge_tts.Communicate(text, voice, boundary="WordBoundary")
+            audio = bytearray(); words = []
+            async for ch in c.stream():
+                if ch["type"] == "audio": audio += ch["data"]
+                elif ch["type"] == "WordBoundary": words.append([ch["text"], round(ch["offset"] / 1e7, 3), round(ch["duration"] / 1e7, 3)])
+            if audio: return bytes(audio), words
+            last = RuntimeError("empty audio")
+        except Exception as e:  # noqa: BLE001
+            last = e
+        await asyncio.sleep(2 + attempt * 3)
+    raise last
 
 
 def seconds(audio): return round(len(audio) * 8 / BITRATE, 3)

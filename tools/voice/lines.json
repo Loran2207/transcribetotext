@@ -1,7 +1,7 @@
 {
  "guides": [
-  "Hi, I'm your guide. Every lesson in the Academy takes half a minute: I show you the real screens, and you can stop any time.",
-  "This is Home. Four ways to make a transcript at the top, your recordings below, your plan and the guide on the right.",
+  "Hi, I'm Echo. I show you around on the real screens, half a minute a lesson. Stop me any time.",
+  "This is Home. Four ways to make a transcript at the top, your recordings below, your plan and First steps on the right.",
   "Start with a file. MP3, MP4, WAV, any recording. Drop it here and the transcript is ready in minutes.",
   "Start with a file. MP3, MP4, WAV, any recording. On a phone the plus button at the bottom opens this and the other three ways.",
   "Instant speech. Press and talk. The words appear as you speak. Good for voice notes and dictation.",
@@ -31,7 +31,7 @@
   "Click straight into the text. Every block is a field now. I put the cursor in the first one: type to fix it, like in any document.",
   "Undo, reset, save. Undo steps back one change. Reset to original brings back what the model wrote. Save keeps it for everyone you share with.",
   "Nothing is lost. Timecodes and speakers stay where they are. I leave editing now without saving.",
-  "Three voices, one unnamed. The app heard three people. Speaker 2 still needs a name. Next opens the list.",
+  "Three voices, one unnamed. The app heard three people. Sam greets Priya in the first line, so Speaker 2 is her. Next opens the list.",
   "Rename, add, remove. Click a name to rename it. Remove a voice and its blocks go to someone else.",
   "Rename, add, remove. Tap a name to rename it. Remove a voice and its blocks go to someone else.",
   "Wrong name on one block. Click the name on that block and pick who really said it.",
@@ -67,7 +67,6 @@
   "Auto-record. Each meeting has a switch. On, and the recorder joins by itself; the transcript is ready when the call ends.",
   "Let the bot in. The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in; otherwise nothing is recorded.",
   "Or record one now. Paste any invite link from the Home page. Same recorder, no calendar needed.",
-  "Or from your computer. The desktop app records any call quietly in the background, with no bot in the room.",
   "Quick Find. Searches what was said, not only the titles. Ctrl K opens it from anywhere.",
   "Type what you remember. A name, a topic, a phrase. I typed one for you.",
   "Every match, with its moment. Each result is a recording where those words were said. Click one to open it right there.",
@@ -77,9 +76,12 @@
   "Settings. Everything the recorder does by itself is set on this tab.",
   "Auto-record. Choose which meetings the recorder joins on its own: all of them, only the ones you host, or none.",
   "After the call. Who gets the recap email and access to the recording: only you, or everyone who was invited.",
-  "Point at a block. When the mouse is over a block, a small bar appears on it. I show it for you.",
-  "Four things for one block. Highlight it, comment on it, share just that part, or copy its text.",
-  "Or select a few words. Select the words you need: only they get the highlight, the comment or the new speaker.",
+  "Point at a paragraph. A small bar appears at its edge. I show it for you.",
+  "Press and hold a paragraph. A small bar appears at its edge. I show it for you.",
+  "Highlight, comment, copy. Highlight the paragraph in a colour, write a comment on it, or copy its text.",
+  "A colour is a label. Decision, question, to do: name the colours once and every highlight says what it is. Manage them from the same menu.",
+  "Or select a few words. Select the words you need: a bar above them highlights or comments on just those.",
+  "Everything in one place. Comments open a thread on the right. Highlights are listed there too, so a long call reads in a minute.",
   "Trash. A deleted recording waits here. Nothing is gone at once.",
   "Restore or delete for good. Open a row's menu: put it back where it was, or remove it forever.",
   "What Free includes. The files you have used this month and the day the count resets.",
@@ -101,8 +103,8 @@
   "A calendar is already connected. This step is done. Another calendar connects from the Settings tab.",
   "Open the welcome recording. I made this one for you, so you can try it on real text. Next opens it.",
   "Press Apply template. Pick a shape: meeting notes, interview, action items. The summary is rewritten in it.",
-  "Fix a word. At 1:02 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.",
-  "Fix a word. At 1:02 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.",
+  "Fix a word. At 0:47 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.",
+  "Fix a word. At 0:47 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.",
   "My Records. Folders live here. Next opens a new one.",
   "Name it, press Create Folder. One folder per client or project. It shows up in your folders at once.",
   "Three voices, one unnamed. Sam greets Priya in the first line, and Speaker 2 answers. Next opens the list.",
@@ -113,35 +115,35 @@
  "welcome": [
   {
    "speaker": "Sam Rivera",
-   "text": "Thanks for making time, Priya. Jordan runs production on our side and joins us today. The goal is to plan the customer interview series and agree how the recordings turn into notes."
+   "text": "Thanks for joining, Priya. Jordan runs operations and I lead the team. This is our first call in Transcribe To Text, so the notes write themselves and you get a feel for how it works."
   },
   {
    "speaker": "Speaker 2",
-   "text": "Perfect. We have twelve interviews booked between now and the end of the month, mostly on Zoom, a few in person. Nobody on my team has time to write them up by hand."
+   "text": "Great. I have about ten calls a week with carriers, and nobody has time to type them up. Where do the recordings go?"
   },
   {
    "speaker": "Jordan Lee",
-   "text": "Then we record every call and send the files in a weekly batch. Each one comes back as a transcript, a summary and the action items, in the same shape every week."
+   "text": "Drop the file on the Home page, or paste the Zoom or Meet link and the recorder joins the call for you. Each call comes back as a transcript, a summary and the action items."
   },
   {
    "speaker": "Speaker 2",
-   "text": "The same shape matters. My head of product reads these on the train, so a one-page summary with quotes is ideal."
+   "text": "And the summary comes in the same shape every time? My manager reads these on the phone, so one page with the decisions is ideal."
   },
   {
    "speaker": "Sam Rivera",
-   "text": "That is a template. We set it once and every interview comes out as a one-pager with quotes. I'll send you the draft on Tuesday so you can tweak the sections."
+   "text": "That is a template. Pick Meeting notes once and every call comes out as a one-pager. I'll set one up for the team today."
   },
   {
    "speaker": "Jordan Lee",
-   "text": "One thing to decide: Fridays for the batch? The lunch is on the fourteenth, so the last batch lands the week before."
+   "text": "One more thing. The launch is on the fourteenth, so let's keep one folder for everything about it and share it with the whole team."
   },
   {
    "speaker": "Speaker 2",
-   "text": "Fridays work. And please keep the speaker names in, the quotes are worth nothing without who said them."
+   "text": "Perfect. And please keep the speaker names in the notes, the quotes are worth nothing without who said them."
   },
   {
    "speaker": "Sam Rivera",
-   "text": "Done. Fridays it is, names stay in, draft template on Tuesday. I'll put the summary of this call in the shared folder tonight."
+   "text": "Done. A folder for the launch, names stay in, the template today. I'll put the summary of this call in the shared folder tonight."
   }
  ]
 }

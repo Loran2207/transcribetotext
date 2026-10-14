@@ -391,16 +391,16 @@ const WELCOME_SPEAKERS: Speaker[] = [
 ];
 const [SAM, CLIENT, JORDAN] = WELCOME_SPEAKERS;
 const WELCOME_SEGMENTS: Segment[] = [
-  { id: 1, speaker: SAM, timestamp: "0:00", text: "Thanks for making time, Priya. Jordan runs production on our side and joins us today. The goal is to plan the customer interview series and agree how the recordings turn into notes." },
-  { id: 2, speaker: CLIENT, timestamp: "0:11", text: "Perfect. We have twelve interviews booked between now and the end of the month, mostly on Zoom, a few in person. Nobody on my team has time to write them up by hand." },
-  { id: 3, speaker: JORDAN, timestamp: "0:21", text: "Then we record every call and send the files in a weekly batch. Each one comes back as a transcript, a summary and the action items, in the same shape every week." },
-  { id: 4, speaker: CLIENT, timestamp: "0:33", text: "The same shape matters. My head of product reads these on the train, so a one-page summary with quotes is ideal." },
-  { id: 5, speaker: SAM, timestamp: "0:41", text: "That is a template. We set it once and every interview comes out as a one-pager with quotes. I'll send you the draft on Tuesday so you can tweak the sections." },
-  { id: 6, speaker: JORDAN, timestamp: "0:50", text: "One thing to decide: Fridays for the batch? The lunch is on the fourteenth, so the last batch lands the week before." },
-  { id: 7, speaker: CLIENT, timestamp: "0:59", text: "Fridays work. And please keep the speaker names in, the quotes are worth nothing without who said them." },
-  { id: 8, speaker: SAM, timestamp: "1:06", text: "Done. Fridays it is, names stay in, draft template on Tuesday. I'll put the summary of this call in the shared folder tonight." },
+  { id: 1, speaker: SAM, timestamp: "0:00", text: "Thanks for joining, Priya. Jordan runs operations and I lead the team. This is our first call in Transcribe To Text, so the notes write themselves and you get a feel for how it works." },
+  { id: 2, speaker: CLIENT, timestamp: "0:11", text: "Great. I have about ten calls a week with carriers, and nobody has time to type them up. Where do the recordings go?" },
+  { id: 3, speaker: JORDAN, timestamp: "0:19", text: "Drop the file on the Home page, or paste the Zoom or Meet link and the recorder joins the call for you. Each call comes back as a transcript, a summary and the action items." },
+  { id: 4, speaker: CLIENT, timestamp: "0:31", text: "And the summary comes in the same shape every time? My manager reads these on the phone, so one page with the decisions is ideal." },
+  { id: 5, speaker: SAM, timestamp: "0:39", text: "That is a template. Pick Meeting notes once and every call comes out as a one-pager. I'll set one up for the team today." },
+  { id: 6, speaker: JORDAN, timestamp: "0:47", text: "One more thing. The lunch is on the fourteenth, so let's keep one folder for everything about it and share it with the whole team." },
+  { id: 7, speaker: CLIENT, timestamp: "0:56", text: "Perfect. And please keep the speaker names in the notes, the quotes are worth nothing without who said them." },
+  { id: 8, speaker: SAM, timestamp: "1:03", text: "Done. A folder for the launch, names stay in, the template today. I'll put the summary of this call in the shared folder tonight." },
 ];
-const WELCOME_END = "1:14";
+const WELCOME_END = "1:10";
 const WELCOME_DURATION_SECONDS = timestampToSeconds(WELCOME_END);
 
 // Single-speaker (podcast / monologue / dictation) demo content - one voice, no speaker column.
@@ -436,27 +436,28 @@ const MOCK_OUTLINE: OutlineSection[] = [
 ];
 
 const WELCOME_OUTLINE: OutlineSection[] = [
-  { id: "w-o1", title: "Goal and scope", timestamp: "0:00", segmentId: 1, bullets: [{ text: "Twelve interviews by the end of the month", segmentId: 2 }, { text: "Nobody has time to write them up", segmentId: 2 }] },
-  { id: "w-o2", title: "How the notes come out", timestamp: "0:27", segmentId: 3, bullets: [{ text: "A weekly batch, the same shape every week", segmentId: 3 }, { text: "A one-pager with quotes", segmentId: 4 }] },
-  { id: "w-o3", title: "Decisions", timestamp: "1:02", segmentId: 6, bullets: [{ text: "Fridays for the batch", segmentId: 6 }, { text: "Names stay in, draft template on Tuesday", segmentId: 8 }] },
+  { id: "w-o1", title: "Why this call", timestamp: "0:00", segmentId: 1, bullets: [{ text: "Priya's first call in Transcribe To Text", segmentId: 1 }, { text: "About ten carrier calls a week, nobody types them up", segmentId: 2 }] },
+  { id: "w-o2", title: "How a call becomes notes", timestamp: "0:19", segmentId: 3, bullets: [{ text: "Drop a file or paste the call link", segmentId: 3 }, { text: "A template keeps every summary one page", segmentId: 5 }] },
+  { id: "w-o3", title: "Decisions", timestamp: "0:47", segmentId: 6, bullets: [{ text: "One shared folder for the launch", segmentId: 6 }, { text: "Speaker names stay in the notes", segmentId: 7 }] },
 ];
 
 const WELCOME_SUMMARY = `## Key points
 
-- Twelve customer interviews are booked before the end of the month, mostly on Zoom
-- Recordings go out in a weekly batch; each comes back as a transcript, a summary and action items
-- The summary is a one-pager with quotes, with speaker names kept in
+- Priya's first call in Transcribe To Text: about ten carrier calls a week, nobody has time to type them up
+- A recording goes in as a file or as a call link; the recorder joins the call by itself
+- Each call comes back as a transcript, a summary and the action items
 
 ## Decisions
 
-- Batch day is Friday; the last batch lands the week before the launch on the 14th
+- Meeting notes template for the whole team, so every summary is one page
+- One shared folder for everything about the launch on the fourteenth
 - Speaker names stay in every summary
 
 ## Action items
 
-- Sam sends the draft template on Tuesday
+- Sam sets up the Meeting notes template today
 - Sam puts the summary of this call in the shared folder tonight
-- The client team tweaks the template sections after Tuesday
+- Jordan creates the launch folder and shares it with the team
 `;
 
 const MOCK_SUMMARY = `## Key Discussion Points
@@ -1548,7 +1549,7 @@ function MediaPlayer({
           <span className="min-w-[34px] text-xs tabular-nums text-muted-foreground sm:min-w-[50px]">{formatTime(currentSeconds)}</span>
           {leading}
         </div>
-        <div className="flex items-center justify-center gap-1.5">
+        <div data-tour="record-transport" className="flex items-center justify-center gap-1.5">
           <Button variant="outline" size="icon" className="size-8 rounded-full border-border [@media(pointer:coarse)]:size-9" onClick={() => onProgressChange([(Math.max(0, progress[0] - (5 / totalSeconds) * 100))])} title="Back 5s">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 19l-7-7 7-7" /><text x="14" y="16" fontSize="8" fill="currentColor" stroke="none" fontWeight="700">5</text></svg>
           </Button>
@@ -1572,7 +1573,7 @@ function MediaPlayer({
         <div className="flex items-center justify-end gap-2">
           {trailing && <span className="mr-auto pl-4">{trailing}</span>}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border [@media(pointer:coarse)]:h-9">{speed}x</Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button data-tour="record-speed" variant="outline" size="sm" className="h-7 rounded-full px-2.5 text-xs font-medium border-border [@media(pointer:coarse)]:h-9">{speed}x</Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[80px]">{[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => <DropdownMenuItem key={rate} onClick={() => onSpeedChange(rate)}>{rate}x</DropdownMenuItem>)}</DropdownMenuContent>
           </DropdownMenu>
           <span className="text-xs tabular-nums text-muted-foreground">{duration}</span>
@@ -1597,7 +1598,7 @@ export function LiveTabsTrailing({ visible, compact = false }: { visible: boolea
   return (
     <div className={`mb-1 ml-auto flex items-center ${compact ? "gap-1.5" : "gap-2"} ${visible ? "" : "invisible pointer-events-none"}`}>
       <TranscriptViewChecks />
-      <WaitsFor hint="The transcript can be edited once the call has ended"><Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled><PencilIcon className="size-3.5" />{compact ? "Edit" : "Edit transcript"}</Button></WaitsFor>
+      <WaitsFor hint="The transcript can be edited once the call has ended"><Button data-tour="record-edit" variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled><PencilIcon className="size-3.5" />{compact ? "Edit" : "Edit transcript"}</Button></WaitsFor>
     </div>
   );
 }
@@ -2832,6 +2833,8 @@ export function TranscriptionDetailPage() {
   const [highlightedSegment, setHighlightedSegment] = useState<number | null>(null);
   const [playerProgress, setPlayerProgress] = useState(demoPlayheadProgress);
   const [isFallbackPlaying, setIsFallbackPlaying] = useState(false);
+  /* the welcome recording is the sample every account has: its text, summary and sound are built in */
+  const sampleRecord = id === WELCOME_RECORD_ID;
   /* the welcome recording has real sound (public/voice/welcome): this plays it line by line */
   const welcomeRef = useRef<WelcomePlayer | null>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -3009,7 +3012,7 @@ export function TranscriptionDetailPage() {
   const [speakersPanelOpen, setSpeakersPanelOpen] = useState(false);
   const [translateOpen, setTranslateOpen] = useState(false);
   /* functions the tour calls later; kept fresh every render so the listener below never holds a stale one */
-  const tourActs = useRef<{ translate: () => void; pick: (code: string) => void; tab: (t: "transcript" | "summary") => void }>({ translate: () => {}, pick: () => {}, tab: () => {} });
+  const tourActs = useRef<{ translate: () => void; pick: (code: string) => void; tab: (t: "transcript" | "summary") => void; reveal: (on: boolean) => void }>({ translate: () => {}, pick: () => {}, tab: () => {}, reveal: () => {} });
   const viewBefore = useRef<string | null>(null);
   /* the onboarding tour opens the real dialogs of this page, and shows the real controls at work */
   useEffect(() => {
@@ -3032,8 +3035,8 @@ export function TranscriptionDetailPage() {
         window.setTimeout(() => { const el = document.querySelector<HTMLTextAreaElement>("[data-tour='record-transcript-body'] textarea"); if (el) { el.focus({ preventScroll: true }); el.setSelectionRange(el.value.length, el.value.length); } }, 250);
       }
       /* the hover bar shows on hover or focus: the tour focuses the first block's bar */
-      if (t === "hoverbar-show") { tourActs.current.tab("transcript"); window.setTimeout(() => document.querySelector<HTMLButtonElement>("[data-tour='record-hover-bar'] button")?.focus({ preventScroll: true }), 200); }
-      if (t === "hoverbar-hide" || t === "close-all") { const a = document.activeElement as HTMLElement | null; if (a && a.closest("[data-tour='record-hover-bar']")) a.blur(); }
+      if (t === "hoverbar-show") { tourActs.current.tab("transcript"); window.setTimeout(() => tourActs.current.reveal(true), 150); }
+      if (t === "hoverbar-hide" || t === "close-all") tourActs.current.reveal(false);
       if (t === "translate-open") setTranslateOpen(true);
       if (t === "translate-close" || t === "close-all") setTranslateOpen(false);
       if (t === "translate-pick") { setTranslateOpen(false); tourActs.current.pick("es"); }
@@ -3734,7 +3737,6 @@ export function TranscriptionDetailPage() {
     setTranslationSummaryStatus("idle");
     setTranslationTranscriptStatus("idle");
     setSummaryError(false);
-    setComments(sampleRecord ? [] : MOCK_COMMENTS);
 
     // Demo: force result-page states for design captures.
     const readFlag = (k: string) => { try { return window.localStorage.getItem(k); } catch { return null; } };
@@ -4776,7 +4778,7 @@ export function TranscriptionDetailPage() {
           {desktopShell && (
             <Tabs value={liveTab} onValueChange={(v) => setLiveTab(v as "notes" | "transcript" | "summary")} className="mt-3">
               <div className="flex items-end border-b border-border px-4 lg:px-8">
-                <TabsList variant="line" className="border-b-0">
+                <TabsList data-tour="record-tabs" variant="line" className="border-b-0">
                   <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px]">My thoughts</TabsTrigger>
                   <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px]">
                     {!isPaused && (
@@ -4789,7 +4791,7 @@ export function TranscriptionDetailPage() {
                 </TabsList>
                 <div className={`mb-1 ml-auto flex items-center gap-2 max-md:hidden ${liveTab === "transcript" ? "" : "invisible pointer-events-none"}`}>
                   <TranscriptViewChecks />
-                  <WaitsFor hint="The transcript can be edited once the call has ended"><Button variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled><PencilIcon className="size-3.5" />Edit transcript</Button></WaitsFor>
+                  <WaitsFor hint="The transcript can be edited once the call has ended"><Button data-tour="record-edit" variant="ghost" size="sm" className="h-7 gap-1.5 rounded-full px-2.5 text-xs text-muted-foreground" disabled><PencilIcon className="size-3.5" />Edit transcript</Button></WaitsFor>
                 </div>
               </div>
             </Tabs>
@@ -4951,7 +4953,7 @@ export function TranscriptionDetailPage() {
   };
   const barActiveTemplate = activeTemplateId ? templates.find((t) => t.id === activeTemplateId) ?? null : null;
   const isTranscriptTab = activeTab === "transcript" || activeTab === "transcript-translated";
-  tourActs.current = { translate: () => { void handleTranslate("es"); }, pick: (code) => setSelectedTranslationLang(code), tab: (t) => setActiveTab(t) };
+  tourActs.current = { translate: () => { void handleTranslate("es"); }, pick: (code) => setSelectedTranslationLang(code), tab: (t) => setActiveTab(t), reveal: (on) => setRevealedBlock(on ? (contentSegments[0]?.id ?? null) : null) };
   const templateCta = barActiveTemplate ? (
     <Button variant="pill-outline" onClick={() => setTemplatePickerOpen(true)} className="flex-1 min-w-0 h-[46px] gap-1.5 px-3 justify-between text-[14px] font-medium">
       <span className="flex items-center gap-1.5 min-w-0">
@@ -5143,7 +5145,7 @@ export function TranscriptionDetailPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden max-md:[@media(pointer:coarse)]:mt-1.5">
           <div className="flex items-end justify-between gap-4 border-b border-border px-4 lg:px-8">
             <ScrollRow activeKey={activeTab}>
-            <TabsList variant="line" className="border-b-0 shrink-0 max-md:[@media(pointer:coarse)]:*:pt-2.5 md:max-lg:[@media(pointer:coarse)]:*:pt-0.5">
+            <TabsList data-tour="record-tabs" variant="line" className="border-b-0 shrink-0 max-md:[@media(pointer:coarse)]:*:pt-2.5 md:max-lg:[@media(pointer:coarse)]:*:pt-0.5">
               {desktopShell && <TabsTrigger value="notes" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">My thoughts</TabsTrigger>}
               <TabsTrigger value="transcript" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Transcript</TabsTrigger>
               <TabsTrigger value="summary" variant="line" className="max-lg:text-[13px] md:max-lg:pb-4">Summary</TabsTrigger>
@@ -5171,7 +5173,7 @@ export function TranscriptionDetailPage() {
 
             {/* Right side of tab row: context-dependent */}
             <div className="mb-1 flex shrink-0 items-center gap-2 max-md:hidden md:max-lg:mb-2">
-              <div className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
+              <div data-tour="record-translate-tablet" className={"lg:hidden h-8 items-center gap-1 rounded-[12px] border border-border/70 bg-muted/20 px-1 " + (sharedOwner ? "hidden" : "inline-flex")}>
                 <Select value={selectedTranslationLang || undefined} onValueChange={setSelectedTranslationLang} disabled={isTranslationLoading || isJobTranscribing}>
                   <SelectTrigger size="sm" className="h-8 w-[168px] rounded-[12px] border-none bg-transparent px-2.5 text-sm shadow-none focus-visible:ring-0">
                     <SelectValue placeholder="Translate to..." />
@@ -5291,7 +5293,7 @@ export function TranscriptionDetailPage() {
               </div>
             </TabsContent>
           )}
-          <TabsContent value="transcript" data-transcript-scroll="" className="flex-1 overflow-auto relative">
+          <TabsContent value="transcript" data-transcript-scroll="" data-tour="record-transcript-body" className="flex-1 overflow-auto relative">
             {isJobTranscribing ? (
               <TranscribingState phase={selectedJob?.status === "uploading" ? "uploading" : "processing"} progress={selectedJob?.progress ?? 0} />
             ) : (

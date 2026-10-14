@@ -221,11 +221,17 @@ export function OnboardingTour() {
   const spokenTitle = (phone && step?.phoneTitle) || spoken?.title;
   const spokenBody = missing ? undefined : (phone && spoken?.phoneBody) || (compact && step?.compactBody) || spoken?.body;
   const [sound, setSound] = useState(() => voiceOn());
+  const shown = rect !== null || missing || speaking;
+  const spokenKey = tour ? `${tour.guide.id}:${tour.step}:${spokenTitle ?? ""}:${spokenBody ?? ""}` : "";
+  const saidRef = useRef("");
   useEffect(() => {
-    if (!(rect !== null || missing || speaking) || !spokenBody) return;
+    if (!shown || !spokenBody || !spokenKey) return;
+    if (saidRef.current === spokenKey) return;
+    saidRef.current = spokenKey;
     void speak(spokenTitle, spokenBody);
-    return () => stopSpeaking();
-  }, [rect, missing, speaking, tour?.guide.id, tour?.step, spokenTitle, spokenBody]);
+  }, [shown, spokenKey, spokenTitle, spokenBody]);
+  useEffect(() => () => { saidRef.current = ""; stopSpeaking(); }, [tour?.guide.id]);
+  const sayAgain = () => { if (!spokenBody) return; if (!sound) { setVoiceOn(true); setSound(true); } void speak(spokenTitle, spokenBody); };
 
 
   if (!tour || !step) return null;
@@ -255,9 +261,11 @@ export function OnboardingTour() {
       cardStyle = { top: Math.max(8, rect.top - GAP - est), left };
       arrow = "bottom";
     } else {
-      /* the lit page may be taller than the window: keep the card inside the visible part */
-      const top = Math.max(24, rect.top + 24);
-      cardStyle = { top: Math.min(top, window.innerHeight - 220), left };
+      /* the whole page is lit: the card keeps to the bottom-right corner of the visible
+         part, where the guide stood at the hello, out of the way of what it talks about */
+      const vh = window.innerHeight;
+      const bottom = Math.min(vh, rect.top + rect.height);
+      cardStyle = { top: Math.max(24, bottom - est - 24), left: Math.max(12, Math.min(window.innerWidth - CARD_W - 12, rect.left + Math.min(rect.width, window.innerWidth - rect.left) - CARD_W - 24)) };
       arrow = "top";
     }
   }
@@ -384,7 +392,7 @@ export function OnboardingTour() {
         )}
         <div className="flex items-start justify-between gap-3">
           <span className="flex items-center gap-[10px]">
-            {!(speaking && !phone) && <Orb size={34} />}
+            {!(speaking && !phone) && <button type="button" onClick={sayAgain} aria-label="Say it again" title="Say it again" className="group/orb relative shrink-0 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"><Orb size={34} /></button>}
             <span className="flex flex-col">
               <span className="text-[13px] font-semibold leading-[17px] text-foreground">{GUIDE_PERSON.name}</span>
               <span className="text-[11.5px] font-medium leading-[15px] text-muted-foreground">{GUIDE_PERSON.title}</span>
@@ -392,7 +400,7 @@ export function OnboardingTour() {
           </span>
           <span className="-mr-1 -mt-1 flex shrink-0 items-center">
             {/* the voice switch: off stays off for every later card */}
-            <button type="button" onClick={() => { const next = !sound; setVoiceOn(next); setSound(next); if (next) void speak(spokenTitle, spokenBody); }} aria-label={sound ? "Turn the voice off" : "Turn the voice on"} aria-pressed={sound} className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:size-9">
+            <button type="button" onClick={() => { const next = !sound; setVoiceOn(next); setSound(next); }} aria-label={sound ? "Turn the voice off" : "Turn the voice on"} aria-pressed={sound} className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:size-9">
               <Icon icon={sound ? VolumeHighIcon : VolumeOffIcon} size={14} />
             </button>
             <button type="button" onClick={endTour} aria-label="Close the guide" className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:size-9">

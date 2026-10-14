@@ -5,14 +5,14 @@ import type { ExportSegment } from "@/lib/export-formats";
 export const MOCK_TRANSCRIPTS: Record<string, ExportSegment[]> = {
   /* mirrors WELCOME_SEGMENTS in transcription-detail-page.tsx */
   welcome: [
-    { speaker: "Sam Rivera", timestamp: "0:00", text: "Thanks for making time, Priya. Jordan runs production on our side and joins us today. The goal is to plan the customer interview series and agree how the recordings turn into notes." },
-    { speaker: "Speaker 2", timestamp: "0:11", text: "Perfect. We have twelve interviews booked between now and the end of the month, mostly on Zoom, a few in person. Nobody on my team has time to write them up by hand." },
-    { speaker: "Jordan Lee", timestamp: "0:21", text: "Then we record every call and send the files in a weekly batch. Each one comes back as a transcript, a summary and the action items, in the same shape every week." },
-    { speaker: "Speaker 2", timestamp: "0:33", text: "The same shape matters. My head of product reads these on the train, so a one-page summary with quotes is ideal." },
-    { speaker: "Sam Rivera", timestamp: "0:41", text: "That is a template. We set it once and every interview comes out as a one-pager with quotes. I'll send you the draft on Tuesday so you can tweak the sections." },
-    { speaker: "Jordan Lee", timestamp: "0:50", text: "One thing to decide: Fridays for the batch? The lunch is on the fourteenth, so the last batch lands the week before." },
-    { speaker: "Speaker 2", timestamp: "0:59", text: "Fridays work. And please keep the speaker names in, the quotes are worth nothing without who said them." },
-    { speaker: "Sam Rivera", timestamp: "1:06", text: "Done. Fridays it is, names stay in, draft template on Tuesday. I'll put the summary of this call in the shared folder tonight." },
+    { speaker: "Sam Rivera", timestamp: "0:00", text: "Thanks for joining, Priya. Jordan runs operations and I lead the team. This is our first call in Transcribe To Text, so the notes write themselves and you get a feel for how it works." },
+    { speaker: "Speaker 2", timestamp: "0:11", text: "Great. I have about ten calls a week with carriers, and nobody has time to type them up. Where do the recordings go?" },
+    { speaker: "Jordan Lee", timestamp: "0:19", text: "Drop the file on the Home page, or paste the Zoom or Meet link and the recorder joins the call for you. Each call comes back as a transcript, a summary and the action items." },
+    { speaker: "Speaker 2", timestamp: "0:31", text: "And the summary comes in the same shape every time? My manager reads these on the phone, so one page with the decisions is ideal." },
+    { speaker: "Sam Rivera", timestamp: "0:39", text: "That is a template. Pick Meeting notes once and every call comes out as a one-pager. I'll set one up for the team today." },
+    { speaker: "Jordan Lee", timestamp: "0:47", text: "One more thing. The lunch is on the fourteenth, so let's keep one folder for everything about it and share it with the whole team." },
+    { speaker: "Speaker 2", timestamp: "0:56", text: "Perfect. And please keep the speaker names in the notes, the quotes are worth nothing without who said them." },
+    { speaker: "Sam Rivera", timestamp: "1:03", text: "Done. A folder for the launch, names stay in, the template today. I'll put the summary of this call in the shared folder tonight." },
   ],
   "2": [
     { speaker: "Maria Garcia", timestamp: "0:02", text: "Alright, everyone's here - let's get started. Today I want to lock the Q2 roadmap: the new export flow, transcription accuracy for noisy audio, and folder sharing." },

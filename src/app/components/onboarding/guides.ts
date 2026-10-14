@@ -70,7 +70,7 @@ export const NO_ANCHOR = "none";
 
 /* Mia's hello. It opens whichever lesson the person starts FIRST, once; after
    that she stays on the cards as a small portrait with her name and title. */
-export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm your guide", body: "Every lesson in the Academy takes half a minute: I show you the real screens, and you can stop any time." };
+export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm Echo", body: "I show you around on the real screens, half a minute a lesson. Stop me any time." };
 
 const HOME: TourTarget = { page: "dashboard" };
 const RECORDS: TourTarget = { page: "records" };
@@ -86,7 +86,7 @@ const CALENDAR: TourTarget = { page: "calendar" };
 
 /* Every lesson opens on the whole page it lives on, so the person sees where
    they are before one control lights up (Kirill, review 55). */
-const PAGE_HOME: TourStep = { anchor: "page-home", go: HOME, side: "bottom", title: "This is Home", body: "Four ways to make a transcript at the top, your recordings below, your plan and the guide on the right.", read: "The four ways to make a transcript at the top, your recordings below, your plan and First steps on the right." };
+const PAGE_HOME: TourStep = { anchor: "page-home", go: HOME, side: "bottom", title: "This is Home", body: "Four ways to make a transcript at the top, your recordings below, your plan and First steps on the right.", read: "The four ways to make a transcript at the top, your recordings below, your plan and First steps on the right." };
 const PAGE_RECORD: TourStep = { anchor: "page-record", go: RECORD, side: "bottom", title: "A recording", body: "The transcript on the left, the tools above it, notes and outline on the right.", read: "A recording opens with the transcript on the left, the tools above it, comments and outline on the right." };
 const PAGE_RECORDS: TourStep = { anchor: "page-records", go: RECORDS, side: "bottom", title: "My Records", body: "Every recording you own, in one table. Tabs above, folders in the sidebar.", read: "Every recording you own in one table, with tabs above and folders in the sidebar." };
 const PAGE_TEMPLATES: TourStep = { anchor: "page-templates", go: TEMPLATES, side: "bottom", title: "Templates", body: "Every way a summary can be written, built in and yours.", read: "Every shape a summary can take: the built-in ones and yours." };
@@ -155,7 +155,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     seconds: 30,
     steps: [
       OPEN_RECORD_AGAIN,
-      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Three voices, one unnamed", body: "The app heard three people. Speaker 2 still needs a name. Next opens the list.", read: "The speakers chip under the title says how many voices the app heard and which still need a name.", trigger: "speakers-close" },
+      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Three voices, one unnamed", body: "The app heard three people. Sam greets Priya in the first line, so Speaker 2 is her. Next opens the list.", read: "The speakers chip under the title says how many voices the app heard and which still need a name.", trigger: "speakers-close" },
       { anchor: "speakers-panel", go: RECORD, side: "right", title: "Rename, add, remove", body: "Click a name to rename it. Remove a voice and its blocks go to someone else.", phoneBody: "Tap a name to rename it. Remove a voice and its blocks go to someone else.", read: "In the list, click a name to rename it. Remove a voice and its blocks go to someone else.", trigger: "speakers-open" },
       { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Wrong name on one block?", body: "Click the name on that block and pick who really said it.", phoneBody: "Tap the name on that block and pick who really said it.", read: "A wrong name on one block: click the name on that block and pick who really said it.", trigger: "speakers-close" },
       { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Two people in one block?", body: "Select the other person's words and pick their name. Only those words move.", read: "Two people in one block: select the other person's words and pick their name. Only those words move." },
@@ -225,8 +225,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       { anchor: "calendar-week|meetings-tabs|meetings-connect", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Each meeting has a switch. On, and the recorder joins by itself; the transcript is ready when the call ends.", read: "Each meeting has an Auto-record switch. On, and the recorder joins by itself; the transcript is ready when the call ends.", trigger: "meetings-upcoming" },
       { anchor: "calendar-week|meetings-tabs|meetings-connect", go: CALENDAR, side: "bottom", title: "Let the bot in", body: "The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in; otherwise nothing is recorded.", read: "The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in, or nothing is recorded.", trigger: "meetings-upcoming" },
       { anchor: "home-card-meeting|add-fab|nav-calendar", go: HOME, side: "bottom", title: "Or record one now", body: "Paste any invite link from the Home page. Same recorder, no calendar needed.", read: "A call that is not on the calendar: paste its invite link on Home. Same recorder, no calendar needed." },
-      { anchor: "sidebar-desktop|nav-calendar|menu", go: HOME, side: "right", title: "Or from your computer", body: "The desktop app records any call quietly in the background, with no bot in the room.", read: "The desktop app records any call quietly in the background, with no bot in the room. Get it from the sidebar." },
-    ],
+          ],
   },
   {
     id: "find",
@@ -253,13 +252,15 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
   },
   {
     id: "highlights",
-    title: "Highlight, comment, share a part",
-    seconds: 25,
+    title: "Highlight, comment, label",
+    seconds: 30,
     steps: [
       OPEN_RECORD_AGAIN,
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Point at a block", body: "When the mouse is over a block, a small bar appears on it. I show it for you.", read: "Point at a block of the transcript and a small bar appears on it.", trigger: "tab-transcript" },
-      { anchor: "record-hover-bar|record-transcript-body", go: RECORD, side: "left", title: "Four things for one block", body: "Highlight it, comment on it, share just that part, or copy its text.", read: "The bar does four things for that block: highlight it, comment on it, share just that part, or copy its text.", trigger: "hoverbar-show" },
-      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Or select a few words", body: "Select the words you need: only they get the highlight, the comment or the new speaker.", read: "Select a few words instead and only they get the highlight, the comment or the new speaker.", trigger: "hoverbar-hide" },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Point at a paragraph", phoneTitle: "Press and hold a paragraph", body: "A small bar appears at its edge. I show it for you.", phoneBody: "A small bar appears at its edge. I show it for you.", read: "Point at a paragraph of the transcript and a small bar appears at its edge.", trigger: "tab-transcript" },
+      { anchor: "record-hover-bar|record-transcript-body", go: RECORD, side: "left", title: "Highlight, comment, copy", body: "Highlight the paragraph in a colour, write a comment on it, or copy its text.", read: "The bar highlights the paragraph in a colour, adds a comment to it, or copies its text.", trigger: "hoverbar-show" },
+      { anchor: "record-hover-bar|record-transcript-body", go: RECORD, side: "left", title: "A colour is a label", body: "Decision, question, to do: name the colours once and every highlight says what it is. Manage them from the same menu.", read: "Each highlight colour is a label: decision, question, to do. Name them once and manage them from the highlight menu.", trigger: "hoverbar-show" },
+      { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Or select a few words", body: "Select the words you need: a bar above them highlights or comments on just those.", read: "Select a few words and a bar above them highlights or comments on just those.", trigger: "hoverbar-hide" },
+      { anchor: "record-tabs", go: RECORD, side: "bottom", title: "Everything in one place", body: "Comments open a thread on the right. Highlights are listed there too, so a long call reads in a minute.", read: "Comments open a thread in the right panel, and every highlight is listed there, so a long call reads in a minute." },
     ],
   },
   {
@@ -346,7 +347,7 @@ export const setupComplete = (has: (id: string) => boolean) => SETUP.every((x) =
 /* The guide who walks you through: her portrait sits on every tour card and
    on the reward, the words are hers, the arrows only point. */
 /* the guide is a voice and an orb, not a person: no name, no photo (Kirill, 14.10) */
-export const GUIDE_PERSON = { name: "Guide", title: "Transcribe To Text", avatar: "/images/onboarding-guide.png", figure: "/images/onboarding-mia.png" };
+export const GUIDE_PERSON = { name: "Echo", title: "Your guide", avatar: "/images/onboarding-guide.png", figure: "/images/onboarding-mia.png" };
 
 
 /* The bonus for finishing the first steps (client call 05.10): priority
@@ -391,7 +392,7 @@ export const STEP_TOURS: Guide[] = [
   ] },
   { ...STEP_META, id: "step-edit", forStep: "edit", title: "Edit the transcript", seconds: 15, steps: [
     OPEN_RECORD_FOR_STEP,
-    { anchor: "record-edit-bar+record-transcript-body|record-more-edit|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "At 1:02 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.", phoneBody: "At 1:02 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.", trigger: "tab-transcript", handoff: true },
+    { anchor: "record-edit-bar+record-transcript-body|record-more-edit|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "At 0:47 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.", phoneBody: "At 0:47 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.", trigger: "tab-transcript", handoff: true },
   ] },
   { ...STEP_META, id: "step-folders", forStep: "folders", title: "Create a folder", seconds: 15, steps: [
     { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Folders live here. Next opens a new one." },

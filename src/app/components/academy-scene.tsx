@@ -276,7 +276,7 @@ function CoverPhoto({ src }: { src: string }) {
   return (
     <>
       {!loaded && <span aria-hidden className="absolute inset-0 animate-pulse bg-[radial-gradient(120%_80%_at_70%_30%,rgba(143,194,255,0.14),transparent_60%)]" />}
-      <img ref={ref} src={src} alt="" aria-hidden decoding="async" onLoad={() => setLoaded(true)} className={cn("absolute inset-0 h-full w-full select-none object-cover transition-[opacity,transform] duration-[600ms,1600ms] ease-out group-hover:scale-[1.05]", loaded ? "opacity-100" : "opacity-0")} style={{ objectPosition: "50% 40%" }} />
+      <img ref={ref} src={src} alt="" aria-hidden decoding="async" onLoad={() => setLoaded(true)} className={cn("absolute -inset-px h-[calc(100%+2px)] w-[calc(100%+2px)] select-none object-cover transition-[opacity,transform] duration-[600ms,1600ms] ease-out group-hover:scale-[1.05]", loaded ? "opacity-100" : "opacity-0")} style={{ objectPosition: "50% 40%" }} />
     </>
   );
 }

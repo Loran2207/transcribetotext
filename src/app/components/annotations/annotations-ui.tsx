@@ -295,6 +295,7 @@ export function BlockActions({
     <div className={cn("pointer-events-none absolute right-2 z-20 flex items-center gap-1.5", raised ? "-top-4" : "top-1")}>
       <div
         data-block-actions=""
+        data-tour="record-hover-bar"
         className={cn("flex items-center gap-0.5 rounded-full border border-border/70 bg-background p-1 shadow-sm backdrop-blur-[2px] transition-all duration-150", shown)}
       >
         <HighlightButton labels={labels} sheet={sheet} variant="icon" current={current} onHighlight={onHighlight} onRemove={onRemoveHighlight} onManage={onManageLabels} />

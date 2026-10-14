@@ -1,6 +1,5 @@
 import { isFreshAccount } from "@/lib/fresh-account";
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
-import { DesktopAppCard, useBannerVariant, useDesktopBannerHidden } from "./desktop/desktop-app-banner";
 import { useShell } from "./desktop/shell";
 import { useNavigate } from "react-router";
 import { SourceIcon } from "./source-icons";
@@ -397,10 +396,7 @@ export function RightPanel() {
   const { t } = useLanguage();
   const plan = usePlan();
   const { desktop: desktopShell } = useShell();
-  const bannerVariant = useBannerVariant();
-  const { hidden: appCardHidden } = useDesktopBannerHidden();
   /* a hidden card must not leave an empty slide (and a second dot) behind */
-  const appCardHere = !desktopShell && !appCardHidden && bannerVariant === "panel";
 
   const meetingGrouped = [
     { day: "03/16", dayLabel: "Monday", items: meetings.filter((m) => m.day === "03/16") },
@@ -420,7 +416,7 @@ export function RightPanel() {
           {/* Get started: the first card until the six guides are done */}
           <OnboardingCard />
           {/* Widget Cards: on the web the desktop app and the ticket ride one carousel, the card first (Kirill, 12.09) */}
-          <PanelPromoCarousel slides={[appCardHere ? <DesktopAppCard key="app" /> : null, plan === "free" ? <PromoCard key="promo" /> : null].filter(Boolean) as ReactNode[]} />
+          <PanelPromoCarousel slides={[plan === "free" ? <PromoCard key="promo" /> : null].filter(Boolean) as ReactNode[]} />
           {plan === "pro" && <AnalyticsCard />}
           <TipsCarousel />
           {plan === "free" && <FreePlanCard />}

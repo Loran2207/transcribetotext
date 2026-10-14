@@ -130,10 +130,10 @@ const LIVE_LEFT = "max(44%, 460px)";
 /* ── a lesson card: the photograph with its scene; one translucent chip; title and one line ── */
 function LessonCard({ guide, done, seen, isNext, onOpen, onStart }: { guide: Guide; done: boolean; seen: boolean; isNext: boolean; onOpen: () => void; onStart: () => void }) {
   return (
-    <div data-academy-card={guide.id} className={cn("group relative flex flex-col overflow-hidden rounded-[14px] border bg-card transition-[box-shadow,border-color] hover:shadow-[var(--elevation-md)]", isNext ? "border-primary/40" : "border-border")}>
+    <div data-academy-card={guide.id} className={cn("group relative flex flex-col overflow-hidden rounded-[14px] border bg-card transition-[box-shadow,border-color,transform] duration-300 ease-out hover:-translate-y-[2px] hover:shadow-[var(--elevation-md)] motion-reduce:transition-none motion-reduce:hover:translate-y-0", isNext ? "border-primary/40" : "border-border")}>
       <button type="button" onClick={onOpen} className="flex flex-1 flex-col text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
         <div className="relative aspect-[3/2] w-full overflow-hidden" style={{ background: NAVY }}>
-          <SceneCover id={guide.id} src={guide.cover} className="absolute inset-0" />
+          <SceneCover id={guide.id} src={guide.cover} className="absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
           <span className={cn("absolute left-[10px] top-[10px] flex h-[22px] items-center gap-[4px] rounded-full px-[8px] text-[11px] font-semibold tabular-nums text-white", done ? "bg-white/90 !text-[#0A1630]" : "bg-[#0A1630]/45 ring-1 ring-white/20")}>
             {done ? <><Icon icon={Tick02Icon} size={11} strokeWidth={3} />Done</> : <><Icon icon={Clock01Icon} size={11} strokeWidth={2.2} />{guide.seconds}s{seen && <span className="text-white/60"> · read</span>}</>}
           </span>
