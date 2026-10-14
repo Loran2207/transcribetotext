@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
+import { createWelcomePlayer, loadWelcomeVoice, type WelcomePlayer } from "@/lib/welcome-audio";
 import { motion, AnimatePresence } from "motion/react";
 import { Copy as CopyLucide, MessageSquarePlus, PenLine, Share2 } from "lucide-react";
 import { FolderOpen, MoreHorizontal, Share, Trash, User, Zap, Mic, Link, Edit, Copy, RefreshIcon, Upload, SquareLock01Icon, Cancel01Icon, AiMagicIcon , VolumeHighIcon , Alert02Icon , ArrowDown01Icon , Mic01Icon , PlayIcon, PauseIcon , ArrowLeft01Icon, ArrowRight01Icon, LayoutRightIcon , Search01Icon , Settings02Icon , Calendar03Icon , UserGroupIcon , Cancel01Icon as CloseIcon , Tick02Icon , Link01Icon } from "@hugeicons/core-free-icons";
@@ -385,15 +386,15 @@ const WELCOME_SPEAKERS: Speaker[] = [
 const [SAM, CLIENT, JORDAN] = WELCOME_SPEAKERS;
 const WELCOME_SEGMENTS: Segment[] = [
   { id: 1, speaker: SAM, timestamp: "0:00", text: "Thanks for making time, Priya. Jordan runs production on our side and joins us today. The goal is to plan the customer interview series and agree how the recordings turn into notes." },
-  { id: 2, speaker: CLIENT, timestamp: "0:13", text: "Perfect. We have twelve interviews booked between now and the end of the month, mostly on Zoom, a few in person. Nobody on my team has time to write them up by hand." },
-  { id: 3, speaker: JORDAN, timestamp: "0:27", text: "Then we record every call and send the files in a weekly batch. Each one comes back as a transcript, a summary and the action items, in the same shape every week." },
-  { id: 4, speaker: CLIENT, timestamp: "0:40", text: "The same shape matters. My head of product reads these on the train, so a one-page summary with quotes is ideal." },
-  { id: 5, speaker: SAM, timestamp: "0:50", text: "That is a template. We set it once and every interview comes out as a one-pager with quotes. I'll send you the draft on Tuesday so you can tweak the sections." },
-  { id: 6, speaker: JORDAN, timestamp: "1:02", text: "One thing to decide: Fridays for the batch? The lunch is on the fourteenth, so the last batch lands the week before." },
-  { id: 7, speaker: CLIENT, timestamp: "1:13", text: "Fridays work. And please keep the speaker names in, the quotes are worth nothing without who said them." },
-  { id: 8, speaker: SAM, timestamp: "1:22", text: "Done. Fridays it is, names stay in, draft template on Tuesday. I'll put the summary of this call in the shared folder tonight." },
+  { id: 2, speaker: CLIENT, timestamp: "0:11", text: "Perfect. We have twelve interviews booked between now and the end of the month, mostly on Zoom, a few in person. Nobody on my team has time to write them up by hand." },
+  { id: 3, speaker: JORDAN, timestamp: "0:21", text: "Then we record every call and send the files in a weekly batch. Each one comes back as a transcript, a summary and the action items, in the same shape every week." },
+  { id: 4, speaker: CLIENT, timestamp: "0:33", text: "The same shape matters. My head of product reads these on the train, so a one-page summary with quotes is ideal." },
+  { id: 5, speaker: SAM, timestamp: "0:41", text: "That is a template. We set it once and every interview comes out as a one-pager with quotes. I'll send you the draft on Tuesday so you can tweak the sections." },
+  { id: 6, speaker: JORDAN, timestamp: "0:50", text: "One thing to decide: Fridays for the batch? The lunch is on the fourteenth, so the last batch lands the week before." },
+  { id: 7, speaker: CLIENT, timestamp: "0:59", text: "Fridays work. And please keep the speaker names in, the quotes are worth nothing without who said them." },
+  { id: 8, speaker: SAM, timestamp: "1:06", text: "Done. Fridays it is, names stay in, draft template on Tuesday. I'll put the summary of this call in the shared folder tonight." },
 ];
-const WELCOME_END = "1:32";
+const WELCOME_END = "1:14";
 const WELCOME_DURATION_SECONDS = timestampToSeconds(WELCOME_END);
 
 // Single-speaker (podcast / monologue / dictation) demo content - one voice, no speaker column.
@@ -2792,6 +2793,8 @@ export function TranscriptionDetailPage() {
   const [highlightedSegment, setHighlightedSegment] = useState<number | null>(null);
   const [playerProgress, setPlayerProgress] = useState(demoPlayheadProgress);
   const [isFallbackPlaying, setIsFallbackPlaying] = useState(false);
+  /* the welcome recording has real sound (public/voice/welcome): this plays it line by line */
+  const welcomeRef = useRef<WelcomePlayer | null>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [videoCurrentTime, setVideoCurrentTime] = useState(0);
   const [videoDuration, setVideoDuration] = useState(0);
@@ -3498,6 +3501,20 @@ export function TranscriptionDetailPage() {
     setIsVideoPlaying(!node.paused && !node.ended);
   }, []);
 
+  useEffect(() => {
+    if (!sampleRecord || hasVideo) return;
+    let gone = false;
+    void loadWelcomeVoice().then((voice) => {
+      if (gone || !voice) return;
+      welcomeRef.current = createWelcomePlayer(voice, {
+        time: (t) => setPlayerProgress([Math.max(0, Math.min(100, (t / fallbackDurationSeconds) * 100))]),
+        state: (playing) => setIsFallbackPlaying(playing),
+        ended: () => undefined,
+      });
+    });
+    return () => { gone = true; welcomeRef.current?.dispose(); welcomeRef.current = null; };
+  }, [sampleRecord, hasVideo, fallbackDurationSeconds]);
+
   const seekToSeconds = useCallback((seconds: number) => {
     if (hasVideo && videoElementRef.current) {
       const node = videoElementRef.current;
@@ -3511,6 +3528,7 @@ export function TranscriptionDetailPage() {
 
     const nextProgress = Math.max(0, Math.min(100, (seconds / fallbackDurationSeconds) * 100));
     setPlayerProgress([nextProgress]);
+    welcomeRef.current?.seek(seconds);
   }, [fallbackDurationSeconds, hasVideo, videoDuration]);
 
   const handlePlayerProgressChange = useCallback((value: number[]) => {
@@ -3523,7 +3541,8 @@ export function TranscriptionDetailPage() {
       }
     }
     setPlayerProgress([nextProgress]);
-  }, [hasVideo, seekToSeconds, videoDuration]);
+    welcomeRef.current?.seek((nextProgress / 100) * fallbackDurationSeconds);
+  }, [hasVideo, seekToSeconds, videoDuration, fallbackDurationSeconds]);
 
   const handlePlayerPlayPause = useCallback(() => {
     if (hasVideo) {
@@ -3538,6 +3557,8 @@ export function TranscriptionDetailPage() {
       }
       return;
     }
+    const w = welcomeRef.current;
+    if (w) { if (w.playing()) w.pause(); else w.play(); return; }
     setIsFallbackPlaying((prev) => !prev);
   }, [hasVideo]);
 
@@ -3554,7 +3575,7 @@ export function TranscriptionDetailPage() {
   }, [hasVideo, videoCurrentTime, videoDuration]);
 
   useEffect(() => {
-    if (hasVideo || !isFallbackPlaying) return;
+    if (hasVideo || !isFallbackPlaying || welcomeRef.current) return;
     const intervalId = window.setInterval(() => {
       setPlayerProgress((prev) => {
         const current = prev[0] ?? 0;

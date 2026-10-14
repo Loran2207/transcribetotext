@@ -70,7 +70,7 @@ export const NO_ANCHOR = "none";
 
 /* Mia's hello. It opens whichever lesson the person starts FIRST, once; after
    that she stays on the cards as a small portrait with her name and title. */
-export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm Mia", body: "I look after new customers here. Every lesson in the Academy takes half a minute: I show you the real screens, you can stop any time." };
+export const INTRO_STEP: TourStep = { anchor: NO_ANCHOR, go: { page: "dashboard" }, title: "Hi, I'm your guide", body: "Every lesson in the Academy takes half a minute: I show you the real screens, and you can stop any time." };
 
 const HOME: TourTarget = { page: "dashboard" };
 const RECORDS: TourTarget = { page: "records" };
@@ -345,7 +345,8 @@ export const setupComplete = (has: (id: string) => boolean) => SETUP.every((x) =
 
 /* The guide who walks you through: her portrait sits on every tour card and
    on the reward, the words are hers, the arrows only point. */
-export const GUIDE_PERSON = { name: "Mia", title: "Customer Success Lead", avatar: "/images/onboarding-guide.png", figure: "/images/onboarding-mia.png" };
+/* the guide is a voice and an orb, not a person: no name, no photo (Kirill, 14.10) */
+export const GUIDE_PERSON = { name: "Guide", title: "Transcribe To Text", avatar: "/images/onboarding-guide.png", figure: "/images/onboarding-mia.png" };
 
 
 /* The bonus for finishing the first steps (client call 05.10): priority

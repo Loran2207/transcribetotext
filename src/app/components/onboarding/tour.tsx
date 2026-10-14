@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { ArrowLeft01Icon, Cancel01Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft01Icon, Cancel01Icon, VolumeHighIcon, VolumeOffIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "../ui/icon";
 import { Button } from "../ui/button";
 import { useIsMobile, useIsPhone } from "../ui/use-mobile";
@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { useTranscriptionModals } from "../transcription-modals";
 import { useOnboarding } from "./onboarding-context";
 import { GUIDE_PERSON, NO_ANCHOR } from "./guides";
+import { Orb } from "./orb/orb";
+import { speak, stopSpeaking, voiceOn, setVoiceOn } from "@/lib/voice";
 
 /* The guided tour: the page dims, the one element the step is about stays
    lit, and a small card beside it says what it is in two lines.
@@ -91,7 +93,7 @@ export function OnboardingTour() {
     if (celebration === "all") { celebrate(true); return; }
     if (celebration.kind === "academy") {
       celebrate(true);
-      toast.success("You finished the Academy", { description: `${GUIDE_PERSON.name}: "That was every lesson. The app is yours now."`, duration: 6000 });
+      toast.success("You finished the Academy", { description: "That was every lesson. The app is yours now.", duration: 6000 });
       dismissCelebration();
       return;
     }
@@ -214,6 +216,18 @@ export function OnboardingTour() {
     return () => window.removeEventListener("keydown", key, handoff);
   }, [tour, handoff, nextStep, prevStep, endTour]);
 
+  /* what the card says is what the voice says: the same title and body, the
+     same phone or connected variant. A missing line (a hand-off with no file) is silent. */
+  const spokenTitle = (phone && step?.phoneTitle) || spoken?.title;
+  const spokenBody = missing ? undefined : (phone && spoken?.phoneBody) || (compact && step?.compactBody) || spoken?.body;
+  const [sound, setSound] = useState(() => voiceOn());
+  useEffect(() => {
+    if (!(rect !== null || missing || speaking) || !spokenBody) return;
+    void speak(spokenTitle, spokenBody);
+    return () => stopSpeaking();
+  }, [rect, missing, speaking, tour?.guide.id, tour?.step, spokenTitle, spokenBody]);
+
+
   if (!tour || !step) return null;
   /* the card waits for its place: nothing is drawn top-left and then moved */
   const placed = rect !== null || missing || speaking;
@@ -327,17 +341,16 @@ export function OnboardingTour() {
 
       {/* Mia: she steps in from the corner only to say hello; afterwards she stays on the cards */}
       {!phone && speaking && (
-        <motion.img
-          key="mia"
-          src={GUIDE_PERSON.figure}
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute bottom-0 right-[16px] select-none object-contain object-bottom"
-          style={{ width: MIA_W, height: MIA_H, filter: "drop-shadow(0 18px 30px rgba(10,22,48,0.45))" }}
-          initial={reduce ? false : { opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
+        <motion.div
+          key="orb"
+          className="pointer-events-none absolute flex items-center justify-center"
+          style={{ right: 16, bottom: 0, width: MIA_W, height: MIA_H }}
+          initial={reduce ? false : { opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 220, damping: 26 }}
-        />
+        >
+          <Orb size={168} className="shadow-[0_24px_60px_rgba(37,99,235,0.45)] ring-0" />
+        </motion.div>
       )}
 
       {placed && <motion.div
@@ -371,15 +384,21 @@ export function OnboardingTour() {
         )}
         <div className="flex items-start justify-between gap-3">
           <span className="flex items-center gap-[10px]">
-            {!(speaking && !phone) && <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[34px] shrink-0 select-none rounded-full bg-primary/10 object-cover object-top ring-2 ring-primary/15" />}
+            {!(speaking && !phone) && <Orb size={34} />}
             <span className="flex flex-col">
               <span className="text-[13px] font-semibold leading-[17px] text-foreground">{GUIDE_PERSON.name}</span>
               <span className="text-[11.5px] font-medium leading-[15px] text-muted-foreground">{GUIDE_PERSON.title}</span>
             </span>
           </span>
-          <button type="button" onClick={endTour} aria-label="Close the guide" className="-mr-1 -mt-1 flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:-mr-2 pointer-coarse:-mt-2 pointer-coarse:size-9">
-            <Icon icon={Cancel01Icon} size={14} />
-          </button>
+          <span className="-mr-1 -mt-1 flex shrink-0 items-center">
+            {/* the voice switch: off stays off for every later card */}
+            <button type="button" onClick={() => { const next = !sound; setVoiceOn(next); setSound(next); if (next) void speak(spokenTitle, spokenBody); }} aria-label={sound ? "Turn the voice off" : "Turn the voice on"} aria-pressed={sound} className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:size-9">
+              <Icon icon={sound ? VolumeHighIcon : VolumeOffIcon} size={14} />
+            </button>
+            <button type="button" onClick={endTour} aria-label="Close the guide" className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground pointer-coarse:size-9">
+              <Icon icon={Cancel01Icon} size={14} />
+            </button>
+          </span>
         </div>
         <p className="text-[15px] font-semibold leading-[20px] text-foreground">{(phone && step.phoneTitle) || spoken.title}</p>
         <p className="text-[13px] leading-[19px] text-foreground/80">{missing ? (handoff ? "This part is not on the screen right now. Close me and press the step again." : "This part is not on the screen right now. Skip ahead.") : (phone && spoken.phoneBody) || (compact && step.compactBody) || spoken.body}</p>

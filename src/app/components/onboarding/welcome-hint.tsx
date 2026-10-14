@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import { Icon } from "../ui/icon";
 import { useOnboarding } from "./onboarding-context";
+import { Orb } from "./orb/orb";
 import { GUIDE_PERSON, SETUP, isSetupDone, stepTourId } from "./guides";
 
 /* Three First steps happen inside the welcome recording. While one of them is
@@ -20,10 +21,7 @@ export function WelcomeStepHint() {
   return (
     <div className="@container px-4 pt-3 lg:px-8">
       <div data-welcome-hint={next.id} className="flex items-center gap-[10px] rounded-[14px] border border-border bg-card py-[7px] pl-[10px] pr-[6px]">
-        <Avatar className="size-[26px]">
-          <AvatarImage src={GUIDE_PERSON.avatar} alt="" className="object-cover" />
-          <AvatarFallback className="text-[11px] font-semibold">{GUIDE_PERSON.name[0]}</AvatarFallback>
-        </Avatar>
+        <Orb size={26} still />
         {/* the column, not the window, decides: next to the side panel the long lead would cut the step name */}
         <p className="min-w-0 flex-1 truncate text-[13px] leading-[18px] text-foreground/80">
           <span className="hidden @[520px]:inline">Try the next step here: </span>

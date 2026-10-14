@@ -10,6 +10,7 @@ import { ScrollFade } from "./scroll-fade";
 import { BannerStage, SceneCover } from "./academy-scene";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { ACADEMY_SECTIONS, GUIDE_PERSON, NO_ANCHOR, type Guide } from "./onboarding/guides";
+import { Orb } from "./onboarding/orb/orb";
 import { useOnboarding } from "./onboarding/onboarding-context";
 
 /* The Academy: every feature as a short lesson you can read or be walked
@@ -90,7 +91,7 @@ function Banner({ watched, total, next, onContinue }: { watched: number; total: 
       <div className="relative flex min-h-[220px] flex-col justify-between gap-6 px-[24px] py-[24px] lg:min-h-[280px] lg:px-[32px] lg:py-[30px]">
         <div>
           <h1 className="text-[26px] font-bold leading-[32px] tracking-[-0.6px] text-white lg:text-[30px] lg:leading-[36px]">Academy</h1>
-          <p className="mt-[6px] max-w-[400px] text-[14px] leading-[20px] text-white/75 @[860px]:max-w-[380px]">Short guides, one per feature. Read one in a minute or let {GUIDE_PERSON.name} walk you through it on the real screens.</p>
+          <p className="mt-[6px] max-w-[400px] text-[14px] leading-[20px] text-white/75 @[860px]:max-w-[380px]">Short guides, one per feature. Read one in a minute or let the guide walk you through it on the real screens.</p>
         </div>
         <div className="flex flex-col items-start gap-[16px]">
           <div>
@@ -195,7 +196,7 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
      keyboard hint means nothing there */
   const footer = (
     <div className={cn("flex items-center gap-[10px] border-t border-border px-[20px] py-[12px]", phone && "pb-[calc(12px+env(safe-area-inset-bottom))]")}>
-      <Button data-academy-panel-start="" onClick={onStart} className={cn("flex-1 gap-[8px] pl-[6px] text-[13px] font-semibold", phone ? "h-11 text-[14px]" : "h-9")}><img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="size-[24px] shrink-0 rounded-full bg-white/20 object-cover object-top" />{done ? "Show me again" : "Show me on the real screens"}{!phone && <kbd className="ml-[2px] rounded-[4px] bg-white/20 px-[5px] text-[10.5px] font-semibold">Enter</kbd>}</Button>
+      <Button data-academy-panel-start="" onClick={onStart} className={cn("flex-1 gap-[8px] pl-[6px] text-[13px] font-semibold", phone ? "h-11 text-[14px]" : "h-9")}><Orb size={24} className="ring-white/30" />{done ? "Show me again" : "Show me on the real screens"}{!phone && <kbd className="ml-[2px] rounded-[4px] bg-white/20 px-[5px] text-[10.5px] font-semibold">Enter</kbd>}</Button>
       {!phone && <Button variant="pill-outline" onClick={onClose} className="h-9 gap-[6px] px-[14px] text-[13px] font-semibold">Close<kbd className="rounded-[4px] border border-border px-[5px] text-[10.5px] font-semibold text-muted-foreground">Esc</kbd></Button>}
     </div>
   );

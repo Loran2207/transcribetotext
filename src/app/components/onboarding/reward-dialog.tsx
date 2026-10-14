@@ -1,6 +1,7 @@
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../ui/dialog";
 import { DialogHero } from "../dialog-hero";
+import { Orb } from "./orb/orb";
 import { GUIDE_PERSON, REWARD } from "./guides";
 import { useOnboarding } from "./onboarding-context";
 
@@ -21,7 +22,7 @@ export function RewardDialog() {
         <div className="flex flex-col items-center px-6 pt-7 pb-6 text-center">
           <div className="relative">
             <DialogHero src={GIFT_HERO} alt="" />
-            <img src={GUIDE_PERSON.avatar} alt="" aria-hidden className="absolute -right-[6px] bottom-[6px] size-[44px] select-none rounded-full object-cover ring-[3px] ring-card" />
+            <span className="absolute -right-[6px] bottom-[6px] rounded-full ring-[3px] ring-card"><Orb size={44} still /></span>
           </div>
           <DialogTitle className="mt-2 text-[22px] font-bold tracking-[-0.3px] text-foreground">{REWARD.title}</DialogTitle>
           <DialogDescription className="mt-2 text-[14px] leading-[20px] text-muted-foreground">{GUIDE_PERSON.name}, {GUIDE_PERSON.title}: "{REWARD.body}"</DialogDescription>
