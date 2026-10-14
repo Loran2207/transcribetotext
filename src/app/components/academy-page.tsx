@@ -204,7 +204,11 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
         <DrawerContent data-academy-panel="" className="[&>div:first-child]:hidden">
           <DrawerTitle className="sr-only">{g.title}</DrawerTitle>
           <DrawerDescription className="sr-only">{g.summary}</DrawerDescription>
-          <div className="max-h-[78vh] overflow-y-auto">{body}</div>
+          {/* the list scrolls under the footer: room at the end and a fade, so no line is cut by the buttons */}
+          <div className="relative">
+            <div className="max-h-[78vh] overflow-y-auto pb-[16px]">{body}</div>
+            <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[28px] bg-gradient-to-t from-card to-transparent" />
+          </div>
           <div style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>{footer}</div>
         </DrawerContent>
       </Drawer>
@@ -216,7 +220,10 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
         <SheetTitle className="sr-only">{g.title}</SheetTitle>
         <SheetDescription className="sr-only">{g.summary}</SheetDescription>
         <button type="button" onClick={onClose} aria-label="Close" className="absolute right-[12px] top-[12px] z-10 flex size-8 items-center justify-center rounded-full bg-[#0A1630]/55 text-white transition-colors hover:bg-[#0A1630]/75"><Icon icon={Cancel01Icon} size={16} /></button>
-        <div className="flex-1 overflow-y-auto">{body}</div>
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 overflow-y-auto pb-[16px]">{body}</div>
+          <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[28px] bg-gradient-to-t from-card to-transparent" />
+        </div>
         {footer}
       </SheetContent>
     </Sheet>
