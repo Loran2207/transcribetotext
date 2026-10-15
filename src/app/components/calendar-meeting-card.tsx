@@ -103,7 +103,8 @@ export function CalendarMeetingCard({
             )}>
               {meeting.openEnded ? meeting.startTime : `${meeting.startTime} - ${meeting.endTime}`}
             </span>
-            {meeting.openEnded && <span className="shrink-0 text-[12.5px] text-muted-foreground">until the recording ends</span>}
+            {/* on a phone the hint moves down to the platform line, so the title keeps its room */}
+            {meeting.openEnded && <span className="hidden shrink-0 text-[12.5px] text-muted-foreground sm:inline">until the recording ends</span>}
             <span className="text-border w-px h-3.5 shrink-0 bg-border" />
             <h4 className={cn(
               "text-[14px] font-semibold truncate leading-snug",
@@ -138,6 +139,12 @@ export function CalendarMeetingCard({
                 <span className="text-[12px] text-muted-foreground truncate">
                   {meeting.organizerEmail}
                 </span>
+              </>
+            )}
+            {meeting.openEnded && (
+              <>
+                <span className="text-muted-foreground/50 sm:hidden">·</span>
+                <span className="text-[12px] text-muted-foreground sm:hidden">until the recording ends</span>
               </>
             )}
           </div>
