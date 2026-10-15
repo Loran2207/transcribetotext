@@ -315,12 +315,15 @@ function StepGallery({ guide, steps, shots, index, phone, onIndex, onClose }: { 
   /* the caption bar: a fixed height, so the picture never moves when the words are longer or shorter */
   const caption = (
     <div className={cn("flex items-center gap-[16px]", phone ? "h-[150px] px-[20px]" : "h-[104px] px-[28px]")}>
-      <span className="flex h-[30px] shrink-0 items-center rounded-full bg-primary/10 px-[11px] text-[12.5px] font-semibold tabular-nums text-primary">{at + 1}<span className="mx-[3px] text-primary/40">/</span>{shots.length}</span>
       <div className="relative min-w-0 flex-1">
         <AnimatePresence initial={false} mode="popLayout">
           <motion.div key={index} {...slide} className="flex min-w-0 flex-col">
-            <p className={cn("truncate font-bold tracking-[-0.2px] text-foreground", phone ? "text-[16px] leading-[22px]" : "text-[16px] leading-[22px]")}>{step.title}</p>
-            <p className={cn("mt-[3px] text-[13.5px] leading-[19px] text-foreground/75", phone ? "line-clamp-4 h-[76px]" : "line-clamp-2 h-[38px]")}>{step.read ?? step.body}</p>
+            {/* the number sits in the title's line, on its baseline; the words hang under the title */}
+            <div className="flex items-center gap-[10px]">
+              <span className="flex h-[22px] shrink-0 items-center rounded-full bg-primary/10 px-[9px] text-[12px] font-semibold tabular-nums leading-none text-primary">{at + 1}<span className="mx-[3px] text-primary/40">/</span>{shots.length}</span>
+              <p className="min-w-0 truncate text-[16px] font-bold leading-[22px] tracking-[-0.2px] text-foreground">{step.title}</p>
+            </div>
+            <p className={cn("mt-[5px] text-[13.5px] leading-[19px] text-foreground/75", phone ? "line-clamp-4 h-[76px]" : "line-clamp-2 h-[38px]")}>{step.read ?? step.body}</p>
           </motion.div>
         </AnimatePresence>
       </div>
