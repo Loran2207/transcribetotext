@@ -101,8 +101,9 @@ export function CalendarMeetingCard({
               "text-[14px] font-semibold tabular-nums shrink-0",
               isPast ? "text-muted-foreground" : "text-foreground",
             )}>
-              {meeting.startTime} - {meeting.endTime}
+              {meeting.openEnded ? meeting.startTime : `${meeting.startTime} - ${meeting.endTime}`}
             </span>
+            {meeting.openEnded && <span className="shrink-0 text-[12.5px] text-muted-foreground">until the recording ends</span>}
             <span className="text-border w-px h-3.5 shrink-0 bg-border" />
             <h4 className={cn(
               "text-[14px] font-semibold truncate leading-snug",

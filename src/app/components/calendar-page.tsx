@@ -137,9 +137,8 @@ export function CalendarPage() {
     const adHoc = liveJobs.filter((j) => !j.meetingId).map((j) => {
       const started = new Date(j.startedAt ?? j.createdAt);
       const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-      const end = new Date(started.getTime() + 60 * 60000);
       const platform = (j.source === "zoom" || j.source === "teams" || j.source === "google-meet") ? j.source : "google-meet";
-      return { id: `job:${j.id}`, date: TODAY_ISO, startTime: hhmm(started), endTime: hhmm(end), title: j.name, platform, organizerEmail: "", autoJoin: false, language: "en" as LangCode, attendees: [], videoLink: j.meetingUrl, isLive: true, liveJobId: j.id, liveStatus: j.status as "connecting" | "recording" };
+      return { id: `job:${j.id}`, date: TODAY_ISO, startTime: hhmm(started), endTime: "", openEnded: true, title: j.name, platform, organizerEmail: "", autoJoin: false, language: "en" as LangCode, attendees: [], videoLink: j.meetingUrl, isLive: true, liveJobId: j.id, liveStatus: j.status as "connecting" | "recording" };
     });
     return [...base, ...adHoc];
   }, [isDisconnected, showEmptyDemo, liveJobs]);

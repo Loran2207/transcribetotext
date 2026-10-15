@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   AlertCircle,
-  ArrowUpRight01Icon,
   Loading03Icon,
   RefreshIcon,
   Trash,
@@ -221,7 +220,6 @@ function JobRow({
           {opensLive && !failed && (
             <span className="mt-1.5 flex items-center gap-1 sm:hidden">
               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onOpen(job); }} className="h-7 px-2 text-[12px] font-medium text-primary hover:bg-primary/8">Open transcript</Button>
-              {job.meetingUrl && <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); window.open(job.meetingUrl, "_blank", "noopener,noreferrer"); }} className="h-7 gap-1 px-2 text-[12px] font-medium text-foreground">Join call<Icon icon={ArrowUpRight01Icon} className="size-[12px] text-muted-foreground" strokeWidth={2} /></Button>}
             </span>
           )}
           <p className="mt-0.5 hidden items-center gap-[6px] truncate text-[11.5px] text-muted-foreground sm:flex">
@@ -281,12 +279,6 @@ function JobRow({
                 <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onOpen(job); }} className="h-8 gap-1.5 px-2.5 text-[12.5px] font-medium text-primary hover:bg-primary/8">
                   Open transcript
                 </Button>
-                {job.meetingUrl && (
-                  <Button variant="ghost" size="sm" title={"Join the call"} onClick={(e) => { e.stopPropagation(); window.open(job.meetingUrl, "_blank", "noopener,noreferrer"); }} className="h-8 gap-1.5 px-2.5 text-[12.5px] font-medium text-foreground">
-                    Join call
-                    <Icon icon={ArrowUpRight01Icon} className="size-[13px] text-muted-foreground" strokeWidth={2} />
-                  </Button>
-                )}
               </span>
             )}
           </div>

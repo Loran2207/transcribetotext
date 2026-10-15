@@ -30,6 +30,8 @@ export interface CalendarMeeting {
   /** the bot's recording of this meeting, when one is running: its page is the way in */
   liveJobId?: string;
   liveStatus?: "connecting" | "recording";
+  /** a call the recorder was sent to by its link, not from the calendar: nobody knows when it ends */
+  openEnded?: boolean;
 }
 
 export interface DayGroup {
