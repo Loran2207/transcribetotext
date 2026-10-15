@@ -182,13 +182,13 @@ export function seedWelcomeAnnotations(segments: SeedText[], now = Date.now(), o
   h("wh3", 7, "leave it on Auto-detect, and set a number only if you know exactly how many people were on the call", SAM, 2 * HOUR);
   h("wh4", 10, "the speed runs from half to double", owner, 110 * MIN);
   h("wh5", 12, "Edit transcript lets you change the word right in the text, and the summary follows", JORDAN, 100 * MIN);
-  h("wh6", 15, "Pick a template once, Meeting notes, Sales call or Interview, and every summary comes out in that shape.", JORDAN, 90 * MIN);
-  h("wh7", 16, "highlight a sentence, leave a comment on it, tag a colleague", SAM, 80 * MIN);
+  h("wh6", 15, "Pick a template once, Meeting notes, Interview or Sales call, and every summary comes out in that shape.", JORDAN, 90 * MIN);
+  h("wh7", 16, "highlight a quote, leave a comment on it, tag a colleague", SAM, 80 * MIN);
   h("wh8", 18, "the transcript and the summary appear on a second tab next to the original", owner, 70 * MIN);
   h("wh9", 20, "Export as PDF, Word, plain text or subtitles.", JORDAN, 60 * MIN);
   h("wh10", 22, "Quick Find searches what was said across every recording", SAM, 40 * MIN);
   h("wh11", 24, "After each call a recap email can go out by itself, to everyone invited or only to you.", owner, 35 * MIN);
-  h("wh12", 27, "a two week pilot with the dispatch team and check in on Fridays", JORDAN, 30 * MIN);
+  h("wh12", 27, "try it for two weeks on the next study", JORDAN, 30 * MIN);
 
   /* the team's talk after the call: a to-do, a question answered, a catch, a decision, and one note of your own */
   t({
@@ -204,24 +204,24 @@ export function seedWelcomeAnnotations(segments: SeedText[], now = Date.now(), o
   }, 8, "Priya said this");
   t({
     id: "wt3", by: JORDAN, at: now - 95 * MIN,
-    text: "The model heard \"lunch\" for \"launch\" here. Worth a quick edit before this goes to Priya's manager.",
+    text: "The model heard \"lunch\" for \"launch\" here. Worth a quick edit before this goes to Priya's client.",
     replies: [],
   }, 13, "the lunch of our noise-robust model");
   t({
     id: "wt4", by: SAM, at: now - 50 * MIN,
-    text: "Her manager reads on the phone. Recap to everyone invited, or only to her?",
-    replies: [{ id: "wt4r1", by: JORDAN, text: "Only to her for the pilot. She forwards what she wants.", at: now - 42 * MIN }],
+    text: "Her clients read the notes on the phone. Recap to everyone invited, or only to her?",
+    replies: [{ id: "wt4r1", by: JORDAN, text: "Only to her for now. She forwards what she wants.", at: now - 42 * MIN }],
   }, 24, "After each call a recap email can go out by itself");
   t({
     id: "wt5", by: owner, at: now - 20 * MIN,
-    text: "Pilot on Free, upgrade when the ten-file limit hits. Check the count on Friday.",
+    text: "Trying it on Free, upgrade when the ten-file limit hits. Check the count on Friday.",
     replies: [],
   }, 26, "Free covers your first recordings");
   t({
     id: "wt6", by: JORDAN, at: now - 80 * MIN,
-    text: "Carriers folder is up. I'll drop the pilot calls in there as they come.",
+    text: "The study folder is up. I'll drop her interviews in there as they come.",
     replies: [{ id: "wt6r1", by: SAM, text: "Add a Week 1 folder inside it, so the Friday export is one click.", at: now - 55 * MIN }],
-  }, 28, "I'll set up the carriers folder today");
+  }, 28, "I'll set up a folder for that study today");
 
   return { highlights, threads };
 }

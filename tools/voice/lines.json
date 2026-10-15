@@ -5,8 +5,8 @@
   "Four ways in. The plus button opens all four: a file, your voice, a meeting or a link.",
   "Start with a file. MP3, MP4, WAV, any recording. Press this card and the upload opens. Next opens it for you.",
   "Start with a file. MP3, MP4, WAV, any recording. Press the plus, then Audio and video files. Next opens it for you.",
-  "The file goes here. Drop a recording here or press browse. The settings below appear once a file is in; I show them now.",
-  "The file goes here. Tap here to choose a recording. The settings below appear once a file is in; I show them now.",
+  "The file goes here. Drop a recording here, or press Upload file. The settings below appear once a file is in; I show them already. No file at hand? Next walks on.",
+  "The file goes here. Press Upload file and pick a recording. The settings below appear once a file is in; I show them already. No file at hand? Next walks on.",
   "Transcription language. Detect automatically is right for most calls. Pick a language only when the detection gets it wrong.",
   "Speakers: keep Auto-detect. Auto-detect counts the voices itself; set a number only when you are sure. A wrong number puts two people in one voice.",
   "Template and folder. Both optional. A template shapes the summary, a folder is where the recording lands. Both can be set later.",
@@ -107,8 +107,8 @@
   "A calendar is already connected. This step is done. Another calendar connects from the Settings tab.",
   "Open the welcome recording. I made this one for you, so you can try it on real text. Next opens it.",
   "Press Apply template. Pick a shape: meeting notes, interview, action items. The summary is rewritten in it.",
-  "Fix a word. At 2:10 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.",
-  "Fix a word. At 2:10 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.",
+  "Fix a word. At 2:16 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.",
+  "Fix a word. At 2:16 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.",
   "My Records. Folders live on this page. Next takes you there.",
   "Add Folder. This button makes a new folder. Next opens it.",
   "Name it, press Create Folder. One folder per client or project. It shows up in your folders at once.",
@@ -121,12 +121,12 @@
   {
    "id": 1,
    "speaker": "Sam Rivera",
-   "text": "Thanks for joining, Priya. I'm Sam, I look after new teams at Transcribe To Text, and Jordan here runs customer success. You said your team drowns in call notes, so let's walk through what the app does with a call like this one."
+   "text": "Thanks for joining, Priya. I'm Sam, I look after new accounts at Transcribe To Text, and Jordan here runs customer success. You said your week is full of calls and the notes never get written, so let's walk through what the app does with a call like this one."
   },
   {
    "id": 2,
    "speaker": "Priya",
-   "text": "Great. We're a logistics company. Every dispatcher has about ten carrier calls a day, and nobody writes them up. By Friday half of what was agreed is gone. Where would a recording even go?"
+   "text": "Great. I'm an independent researcher. I interview people for three clients, about eight calls a week, and every client wants the notes by Friday. Half the time I'm typing them from memory. Where would a recording even go?"
   },
   {
    "id": 3,
@@ -156,7 +156,7 @@
   {
    "id": 8,
    "speaker": "Sam Rivera",
-   "text": "The voices come out as Speaker 1 and Speaker 2 until you name them. That takes a few seconds, and from then on every quote says who said it. A manager reading on the phone sees that Priya said this, not Speaker 2."
+   "text": "The voices come out as Speaker 1 and Speaker 2 until you name them. That takes a few seconds, and from then on every quote says who said it. A client reading the notes sees that Priya asked this and the participant answered that, not Speaker 2."
   },
   {
    "id": 9,
@@ -171,7 +171,7 @@
   {
    "id": 11,
    "speaker": "Priya",
-   "text": "Good. Our carriers talk fast and the yard is loud. How accurate is it?"
+   "text": "Good. Some of my interviews happen over a phone line, and people mumble. How accurate is it?"
   },
   {
    "id": 12,
@@ -181,27 +181,27 @@
   {
    "id": 13,
    "speaker": "Sam Rivera",
-   "text": "Quick aside: the launch of our noise-robust model is on the fourteenth, and every account gets it free for the first two weeks. Loud yards are exactly what it was trained on."
+   "text": "Quick aside: the launch of our noise-robust model is on the fourteenth, and every account gets it free for the first two weeks. Phone lines and busy cafes are exactly what it was trained on."
   },
   {
    "id": 14,
    "speaker": "Priya",
-   "text": "Nice. Now the part my manager actually reads. The summary?"
+   "text": "Nice. Now the part my clients actually read. The summary?"
   },
   {
    "id": 15,
    "speaker": "Sam Rivera",
-   "text": "Every recording gets a summary on its own tab: key points, decisions, action items. Pick a template once, Meeting notes, Sales call or Interview, and every summary comes out in that shape. You can write your own template and apply it to any recording later."
+   "text": "Every recording gets a summary on its own tab: key points, decisions, action items. Pick a template once, Meeting notes, Interview or Sales call, and every summary comes out in that shape. You can write your own template and apply it to any recording later."
   },
   {
    "id": 16,
    "speaker": "Jordan Lee",
-   "text": "The outline on the right lists the topics with their times, so you jump straight to the rate talk. And for a long call, mark what matters while you read: highlight a sentence, leave a comment on it, tag a colleague. Everything you mark lands in the panel on the right, so an hour reads in a minute."
+   "text": "The outline on the right lists the topics with their times, so you jump straight to the part about pricing. And for a long interview, mark what matters while you read: highlight a quote, leave a comment on it, tag a colleague. Everything you mark lands in the panel on the right, so an hour reads in a minute."
   },
   {
    "id": 17,
    "speaker": "Priya",
-   "text": "Half my team is in Mexico. Can they read it in Spanish?"
+   "text": "One of my clients is in Mexico City. Can they read it in Spanish?"
   },
   {
    "id": 18,
@@ -211,7 +211,7 @@
   {
    "id": 19,
    "speaker": "Priya",
-   "text": "What about getting it out of the app? Our weekly report is a Word document."
+   "text": "What about getting it out of the app? My clients want a Word document."
   },
   {
    "id": 20,
@@ -221,42 +221,42 @@
   {
    "id": 21,
    "speaker": "Priya",
-   "text": "Folders. Every carrier should have one."
+   "text": "Folders. Every client should have one."
   },
   {
    "id": 22,
    "speaker": "Sam Rivera",
-   "text": "A folder per carrier, per week, whatever fits. Drag a recording in, star the important ones, and My Records keeps the whole archive. Quick Find searches what was said across every recording, so a rate increase is found in the exact sentence of the exact call. And a recording deleted by mistake waits in Trash until you empty it."
+   "text": "A folder per client, per study, whatever fits. Drag a recording in, star the important ones, and My Records keeps the whole archive. Quick Find searches what was said across every recording, so the one quote about pricing is found in the exact sentence of the exact interview. And a recording deleted by mistake waits in Trash until you empty it."
   },
   {
    "id": 23,
    "speaker": "Priya",
-   "text": "Alright. On the day to day, what does a dispatcher do differently?"
+   "text": "Alright. On a normal week, what do I do differently?"
   },
   {
    "id": 24,
    "speaker": "Jordan Lee",
-   "text": "Nothing. The calendar is connected, the recorder joins the calls, and the transcript and the summary wait in the folder. After each call a recap email can go out by itself, to everyone invited or only to you. On Friday they open the folder, export the summaries and send the report."
+   "text": "Nothing. The calendar is connected, the recorder joins the calls, and the transcript and the summary wait in the folder. After each call a recap email can go out by itself, to everyone invited or only to you. On Friday you open the client's folder, export the summaries and send them."
   },
   {
    "id": 25,
    "speaker": "Priya",
-   "text": "What does it cost us?"
+   "text": "What does it cost me?"
   },
   {
    "id": 26,
    "speaker": "Sam Rivera",
-   "text": "Free covers your first recordings, so the whole team can try everything. Pro removes the limits and adds long files, priority processing and the team features. The plan page says exactly what is in each."
+   "text": "Free covers your first recordings, so you can try everything. Pro removes the limits and adds long files, priority processing and the team features for when you bring someone in. The plan page says exactly what is in each."
   },
   {
    "id": 27,
    "speaker": "Priya",
-   "text": "Sounds like a plan. Let's run a two week pilot with the dispatch team and check in on Fridays."
+   "text": "Sounds like a plan. I'll try it for two weeks on the next study, and we check in on Friday."
   },
   {
    "id": 28,
    "speaker": "Jordan Lee",
-   "text": "Done. I'll set up the carriers folder today and connect your calendar on tomorrow's call."
+   "text": "Done. I'll set up a folder for that study today and connect your calendar on tomorrow's call."
   },
   {
    "id": 29,

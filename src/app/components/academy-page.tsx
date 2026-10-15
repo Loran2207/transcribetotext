@@ -291,7 +291,10 @@ function StepGallery({ guide, steps, shots, index, phone, onIndex, onClose }: { 
     if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? next : prev);
   };
   if (!step) return null;
-  const pic = (i: number) => `/academy/steps/${guide.id}-${i}${phone ? "-m" : ""}-f.webp`;
+  /* the picture matches the shell the person is in: phone, tablet (no sidebar) or the full web */
+  const [compact, setCompact] = useState(() => typeof window !== "undefined" && window.innerWidth < 1024);
+  useEffect(() => { const on = () => setCompact(window.innerWidth < 1024); window.addEventListener("resize", on); return () => window.removeEventListener("resize", on); }, []);
+  const pic = (i: number) => `/academy/steps/${guide.id}-${i}${phone ? "-m" : compact ? "-t" : ""}-f.webp`;
   const src = pic(index);
   const ahead = [prev, next].filter((i): i is number => i !== null).map(pic);
   const fade = reduce ? {} : { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } };
@@ -299,7 +302,7 @@ function StepGallery({ guide, steps, shots, index, phone, onIndex, onClose }: { 
   const picture = (
     <div className="relative h-full w-full" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <AnimatePresence initial={false}>
-        <motion.img key={src} src={src} alt="" decoding="async" draggable={false} {...fade} className="absolute inset-0 m-auto max-h-full max-w-full select-none rounded-[12px] object-contain shadow-[0_20px_60px_rgba(10,22,48,0.28)] ring-1 ring-black/10" />
+        <motion.img key={src} src={src} alt="" decoding="async" draggable={false} {...fade} onError={(e) => { /* a step with no tablet picture shows the web one */ const el = e.currentTarget; const web = pic(index).replace("-t-f.webp", "-f.webp"); if (el.src.endsWith("-t-f.webp") && !el.src.endsWith(web)) el.src = web; }} className="absolute inset-0 m-auto max-h-full max-w-full select-none rounded-[12px] object-contain shadow-[0_20px_60px_rgba(10,22,48,0.28)] ring-1 ring-black/10" />
       </AnimatePresence>
       <span aria-hidden className="hidden">{ahead.map((u) => <img key={u} src={u} alt="" />)}</span>
     </div>
