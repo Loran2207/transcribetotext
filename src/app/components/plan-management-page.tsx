@@ -75,6 +75,9 @@ function CheckBadge() {
 }
 
 function BenefitsCard({ title }: { title: string }) {
+  /* the First steps bonus is already priority processing: it is not offered again */
+  const ob = useOnboarding();
+  const earned = ob.rewardClaimed || ob.allDone;
   return (
     <section>
       <h3 className="text-[15px] font-semibold mb-3.5 -tracking-[0.1px]">
@@ -86,9 +89,9 @@ function BenefitsCard({ title }: { title: string }) {
             <div key={b.title} className="flex gap-3 items-start">
               <CheckBadge />
               <div className="text-[13.5px] leading-[1.5]">
-                <strong className="font-semibold block">{b.title}</strong>
+                <strong className="font-semibold block">{b.title}{earned && b.title === "Priority processing" && <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-px text-[11px] font-semibold text-primary">Already yours</span>}</strong>
                 <span className="block text-muted-foreground text-[13px] mt-0.5 font-normal">
-                  {b.desc}
+                  {earned && b.title === "Priority processing" ? "Earned in First steps." : b.desc}
                 </span>
               </div>
             </div>
@@ -200,7 +203,7 @@ function HeroMeta({
 
 function TrustLine({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 mt-4 text-[12.5px] text-muted-foreground">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-4 text-[12.5px] text-muted-foreground">
       <svg
         className="text-emerald-600 shrink-0"
         width="14"
@@ -246,7 +249,7 @@ function HeroFree({ onUpgrade }: { onUpgrade: () => void }) {
         </Button>
       </div>
 
-      <TrustLine>Secure payment · Cancel anytime · No hidden fees</TrustLine>
+      <TrustLine><span className="whitespace-nowrap">Secure payment</span> · <span className="whitespace-nowrap">Cancel anytime</span> · <span className="whitespace-nowrap">No hidden fees</span></TrustLine>
     </HeroShell>
   );
 }

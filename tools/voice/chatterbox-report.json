@@ -1,18 +1,18 @@
 [
  {
-  "n": 23,
-  "hash": "caa77d0e81",
+  "n": 63,
+  "hash": "ad24d64434",
   "wer": 0.0,
   "takes": 1,
-  "text": "It starts at once. On a phone there is nothing more to press: the work starts the moment you pick a language.",
-  "heard": "It starts at once. On a phone there is nothing more to press. The work starts the moment you pick a language."
+  "text": "Auto-record. Your meetings are here now. Auto-record picks which ones the recorder joins by itself: all, internal ones only, or the ones you select. The transcript is ready when the call ends.",
+  "heard": "Auto record. Your meetings are here now. Auto record picks which ones the recorder joins by itself. All internal ones only, or the ones you select. The transcript is ready when the call ends."
  },
  {
-  "n": 63,
-  "hash": "788d79622c",
+  "n": 74,
+  "hash": "d6e18180b4",
   "wer": 0.0,
   "takes": 1,
-  "text": "Auto-record. Your meetings are here now. Auto-record picks which ones the recorder joins by itself: all, only yours, or none. The transcript is ready when the call ends.",
-  "heard": "Auto record. Your meetings are here now. Auto record picks which ones the recorder joins by itself, all, only yours, or none. The transcript is ready when the call ends."
+  "text": "Auto-record. Which meetings the recorder joins on its own: all of them, internal ones only, internal without one-on-ones, or the ones you select.",
+  "heard": "Auto record, which meetings the recorder joins on its own, all of them internal ones only, internal without one-on-ones or the ones you select."
  }
 ]

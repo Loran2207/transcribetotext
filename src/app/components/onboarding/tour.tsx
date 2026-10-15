@@ -72,7 +72,9 @@ function measure(els: HTMLElement[]): Rect {
   }
   const one = els.length === 1 ? els[0] : null;
   const round = !!one && (() => { const r = one.getBoundingClientRect(); return parseFloat(getComputedStyle(one).borderTopLeftRadius) >= Math.min(r.width, r.height) / 2 - 1; })();
-  return { top: top - PAD, left: left - PAD, width: right - left + PAD * 2, height: bottom - top + PAD * 2, round };
+  /* a window (dialog or sheet) is lit to its own edge: a pad would show the page behind it as a grey ring */
+  const pad = one && one.matches("[role=dialog], .ttt-modal, [data-slot=dialog-content], [data-slot=drawer-content]") ? 0 : PAD;
+  return { top: top - pad, left: left - pad, width: right - left + pad * 2, height: bottom - top + pad * 2, round };
 }
 
 /* A short burst from the bottom of the screen; the whole-guide one is wider and longer. */
@@ -341,7 +343,9 @@ export function OnboardingTour() {
   /* a lit control low on the screen (the + button) takes the card right above itself, so the
      words sit next to what they are about; only when there is no room above does the card go to the top */
   const phoneAbove = phoneLow && rect!.top >= phoneCardH + 28;
-  const phoneTop = !!(phone && rect && (handoff ? rect.top >= phoneCardH + 24 || phoneSheet : phoneLow && !phoneAbove));
+  /* handed over, the card goes to the top only when the light reaches into the bottom of the screen (a sheet's own buttons live there) */
+  const handLow = !!(rect && rect.top + rect.height > window.innerHeight - phoneCardH - 40);
+  const phoneTop = !!(phone && rect && (handoff ? (handLow && rect.top >= phoneCardH + 24) || phoneSheet : phoneLow && !phoneAbove));
 
   const spring = reduce ? { duration: 0 } : { type: "spring" as const, stiffness: 320, damping: 30 };
 

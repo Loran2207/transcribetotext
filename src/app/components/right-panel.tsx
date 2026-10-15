@@ -273,7 +273,7 @@ function FreePlanCard() {
 
       {/* Pro features */}
       <div className="mx-[10px] mb-[10px] px-[14px] py-[12px] rounded-[10px] bg-muted/60">
-        <p className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "10.5px", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.6px" }}>Unlock with Pro</p>
+        <p className="text-muted-foreground" style={{ fontWeight: 600, fontSize: "12px", marginBottom: "8px" }}>Unlock with Pro</p>
         <div className="flex flex-col gap-[6px]">
           {features.map((f, i) => (
             <div key={i} className="flex items-start gap-[8px]">

@@ -170,8 +170,8 @@ function SetupList({ compact, onPick }: { compact: boolean; onPick?: () => void 
             <img src={GIFT} alt="" aria-hidden className="size-[26px] select-none object-contain" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13.5px] font-semibold leading-[18px] text-foreground">Your bonus: priority processing</span>
-            <span className="block truncate text-[12px] font-medium leading-[16px] text-muted-foreground">After all {total} steps your files go first.</span>
+            <span className="block truncate text-[13.5px] font-semibold leading-[18px] text-foreground">Bonus: files go first</span>
+            <span className="block truncate text-[12px] font-medium leading-[16px] text-muted-foreground">Yours after all {total} steps, even at peak times.</span>
           </span>
         </div>
       </li>
