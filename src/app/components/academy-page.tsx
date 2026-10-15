@@ -255,11 +255,13 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
   </>);
 }
 
-/* ── the gallery: one step's whole screen, large, with its words beside it ──
-   Opened from a picture in the lesson panel. Left and right (or the arrows)
-   walk the steps that have a picture; Escape and the x close it. On a phone
-   the picture sits on top and the words under it. The light stays on the
-   control in the picture, so the words always point at something visible. */
+/* ── the gallery: one step's whole screen, large, with its words under it ──
+   Opened from a picture in the lesson panel. A dark room: the screen sits in
+   the middle as big as the window allows, the arrows at its sides, the step's
+   title and line under it, a dot per step. Left and right keys, Escape and
+   the x. On a phone the same room, the picture on top and the words under
+   it. The light stays on the control in the picture, so the words always
+   point at something visible. */
 function StepGallery({ guide, steps, shots, index, phone, onIndex, onClose }: { guide: Guide; steps: Guide["steps"]; shots: number[]; index: number; phone: boolean; onIndex: (i: number) => void; onClose: () => void }) {
   const at = shots.indexOf(index);
   const prev = at > 0 ? shots[at - 1] : null;
@@ -275,35 +277,48 @@ function StepGallery({ guide, steps, shots, index, phone, onIndex, onClose }: { 
   }, [prev, next, onIndex]);
   if (!step) return null;
   const src = `/academy/steps/${guide.id}-${index}${phone ? "-m" : ""}-f.webp`;
+  const ahead = [prev, next].filter((i): i is number => i !== null).map((i) => `/academy/steps/${guide.id}-${i}${phone ? "-m" : ""}-f.webp`);
+  const preload = <span aria-hidden className="hidden">{ahead.map((u) => <img key={u} src={u} alt="" />)}</span>;
+  const arrow = (dir: "prev" | "next") => {
+    const to = dir === "prev" ? prev : next;
+    return (
+      <button type="button" aria-label={dir === "prev" ? "Previous step" : "Next step"} disabled={to === null} onClick={() => to !== null && onIndex(to)} className="flex size-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/15 backdrop-blur-sm transition-colors hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 [@media(pointer:coarse)]:size-12">
+        <Icon icon={dir === "prev" ? ArrowLeft01Icon : ArrowRight01Icon} size={18} strokeWidth={2} />
+      </button>
+    );
+  };
+  const dots = (
+    <div className="flex items-center justify-center gap-[6px]" aria-label={`Step ${at + 1} of ${shots.length}`}>
+      {shots.map((i) => (
+        <button key={i} type="button" aria-label={`Step ${shots.indexOf(i) + 1}`} aria-current={i === index ? "step" : undefined} onClick={() => onIndex(i)} className={cn("h-[6px] rounded-full transition-all", i === index ? "w-[18px] bg-white" : "w-[6px] bg-white/35 hover:bg-white/60")} />
+      ))}
+    </div>
+  );
   const words = (
-    <div className="flex min-w-0 flex-col">
-      <p className="text-[12px] font-medium text-muted-foreground">Step {at + 1} of {shots.length}<span className="mx-[6px] text-border">|</span>{guide.title}</p>
-      <h3 className="mt-[6px] text-[17px] font-bold leading-[23px] tracking-[-0.2px] text-foreground">{step.title}</h3>
-      <p className="mt-[8px] text-[13.5px] leading-[20px] text-foreground/80">{step.read ?? step.body}</p>
+    <div className="mx-auto flex w-full max-w-[720px] flex-col items-center text-center">
+      <p className="text-[12px] font-medium text-white/55">{guide.title}<span className="mx-[6px] text-white/25">|</span>Step {at + 1} of {shots.length}</p>
+      <h3 className="mt-[6px] text-[18px] font-bold leading-[24px] tracking-[-0.2px] text-white">{step.title}</h3>
+      <p className="mt-[6px] text-[14px] leading-[21px] text-white/75">{step.read ?? step.body}</p>
     </div>
   );
-  const arrows = (
-    <div className="flex items-center gap-[8px]">
-      <Button variant="pill-outline" size="icon" aria-label="Previous step" disabled={prev === null} onClick={() => prev !== null && onIndex(prev)} className="size-9"><Icon icon={ArrowLeft01Icon} size={16} /></Button>
-      <Button variant="pill-outline" size="icon" aria-label="Next step" disabled={next === null} onClick={() => next !== null && onIndex(next)} className="size-9"><Icon icon={ArrowRight01Icon} size={16} /></Button>
-    </div>
-  );
+  const closeX = <button type="button" onClick={onClose} aria-label="Close" className="absolute right-[14px] top-[14px] z-10 flex size-9 items-center justify-center rounded-full bg-white/10 text-white ring-1 ring-white/15 transition-colors hover:bg-white/20 [@media(pointer:coarse)]:size-10"><Icon icon={Cancel01Icon} size={16} /></button>;
   if (phone) {
     return (
       <Drawer open onOpenChange={(o) => { if (!o) onClose(); }}>
-        <DrawerContent data-academy-gallery="" className="!mt-0 h-[calc(100dvh-20px)] !max-h-none overflow-hidden !rounded-t-[18px] !border-0 bg-card [&>div:first-child]:!hidden">
+        <DrawerContent data-academy-gallery="" className="!mt-0 h-[calc(100dvh-20px)] !max-h-none overflow-hidden !rounded-t-[18px] !border-0 bg-[#0A1630] [&>div:first-child]:!hidden">
           <DrawerTitle className="sr-only">{step.title}</DrawerTitle>
           <DrawerDescription className="sr-only">{step.read ?? step.body}</DrawerDescription>
-          <button type="button" onClick={onClose} aria-label="Close" className="absolute right-[12px] top-[12px] z-10 flex size-9 items-center justify-center rounded-full bg-[#0A1630]/55 text-white"><Icon icon={Cancel01Icon} size={16} /></button>
+          {closeX}{preload}
           <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex min-h-0 flex-1 items-start justify-center bg-muted px-[16px] pt-[16px]">
-              <img key={src} src={src} alt="" decoding="async" className="h-full max-h-full w-auto max-w-full select-none rounded-t-[14px] object-contain object-top ring-1 ring-border" />
+            <div className="relative min-h-0 flex-1 px-[24px] pt-[56px]">
+              <img key={src} src={src} alt="" decoding="async" className="absolute inset-x-[24px] top-[56px] bottom-0 m-auto max-h-full max-w-full select-none rounded-[14px] object-contain shadow-[0_18px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/15" />
             </div>
             <div className="shrink-0 px-[20px] pt-[16px] pb-[calc(14px+env(safe-area-inset-bottom))]">
               {words}
               <div className="mt-[14px] flex items-center justify-between">
-                {arrows}
-                <Button variant="pill-outline" onClick={onClose} className="h-9 px-[14px] text-[13px] font-semibold">Back to the lesson</Button>
+                {arrow("prev")}
+                {dots}
+                {arrow("next")}
               </div>
             </div>
           </div>
@@ -313,18 +328,22 @@ function StepGallery({ guide, steps, shots, index, phone, onIndex, onClose }: { 
   }
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent data-academy-gallery="" className="grid-cols-[minmax(0,1fr)_300px] gap-0 overflow-hidden p-0 sm:max-w-[min(1240px,94vw)]">
+      <DialogContent data-academy-gallery="" className="flex h-[min(94vh,1040px)] w-[96vw] flex-col gap-0 overflow-hidden border-0 bg-[#0A1630] p-0 shadow-[0_30px_90px_rgba(0,0,0,0.6)] sm:max-w-[1500px] [&>button:last-child]:hidden">
         <DialogTitle className="sr-only">{step.title}</DialogTitle>
         <DialogDescription className="sr-only">{step.read ?? step.body}</DialogDescription>
-        <div className="flex items-center justify-center bg-muted p-[16px]">
-          <img key={src} src={src} alt="" decoding="async" className="max-h-[calc(100vh-120px)] w-full select-none rounded-[10px] object-contain ring-1 ring-border" />
-        </div>
-        <div className="flex flex-col border-l border-border p-[22px] pt-[48px]">
-          {words}
-          <div className="mt-auto flex items-center justify-between pt-[20px]">
-            {arrows}
-            <span className="text-[12px] text-muted-foreground"><kbd className="rounded-[4px] border border-border px-[5px] text-[10.5px] font-semibold">Left</kbd> <kbd className="rounded-[4px] border border-border px-[5px] text-[10.5px] font-semibold">Right</kbd></span>
+        {closeX}{preload}
+        {/* the screen, as big as the room allows, the arrows at its sides */}
+        <div className="flex min-h-0 flex-1 items-center gap-[16px] px-[24px] pt-[56px]">
+          {arrow("prev")}
+          {/* the picture row has a definite height (flex basis 0), so the picture can be capped by it */}
+          <div className="relative h-full min-h-0 min-w-0 flex-1">
+            <img key={src} src={src} alt="" decoding="async" className="absolute inset-0 m-auto max-h-full max-w-full select-none rounded-[12px] object-contain shadow-[0_24px_70px_rgba(0,0,0,0.55)] ring-1 ring-white/15" />
           </div>
+          {arrow("next")}
+        </div>
+        <div className="shrink-0 px-[80px] pt-[18px] pb-[22px]">
+          {words}
+          <div className="mt-[14px]">{dots}</div>
         </div>
       </DialogContent>
     </Dialog>

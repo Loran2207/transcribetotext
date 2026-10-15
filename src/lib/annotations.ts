@@ -178,15 +178,15 @@ export function seedWelcomeAnnotations(segments: SeedText[], now = Date.now()): 
 
   h("wh1", 3, "Four ways in, all on the Home page.", JORDAN, 3 * HOUR);
   h("wh2", 7, "leave it on Auto-detect, and set a number only if you know exactly how many people were on the call", SAM, 2 * HOUR);
-  h("wh3", 13, "Pick a template once, Meeting notes, Sales call or Interview, and every summary comes out in that shape.", JORDAN, 90 * MIN);
-  h("wh4", 20, "Quick Find searches what was said across every recording", SAM, 40 * MIN);
-  h("wh5", 25, "a two week pilot with the dispatch team and check in on Fridays", JORDAN, 30 * MIN);
+  h("wh3", 15, "Pick a template once, Meeting notes, Sales call or Interview, and every summary comes out in that shape.", JORDAN, 90 * MIN);
+  h("wh4", 22, "Quick Find searches what was said across every recording", SAM, 40 * MIN);
+  h("wh5", 27, "a two week pilot with the dispatch team and check in on Fridays", JORDAN, 30 * MIN);
 
   t({
     id: "wt1", by: JORDAN, at: now - 80 * MIN,
     text: "Carriers folder is up. I'll drop the pilot calls in there as they come.",
     replies: [{ id: "wt1r1", by: SAM, text: "Add a Week 1 folder inside it, so the Friday export is one click.", at: now - 55 * MIN }],
-  }, 26, "I'll set up the carriers folder today");
+  }, 28, "I'll set up the carriers folder today");
   t({
     id: "wt2", by: SAM, at: now - 26 * HOUR,
     text: "Priya's full name for the speaker list?",
