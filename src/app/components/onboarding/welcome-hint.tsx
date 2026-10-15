@@ -23,9 +23,8 @@ export function WelcomeStepHint() {
       <div data-welcome-hint={next.id} className="flex items-center gap-[10px] rounded-[14px] border border-border bg-card py-[7px] pl-[10px] pr-[6px]">
         <Orb size={26} still />
         {/* the column, not the window, decides: next to the side panel the long lead would cut the step name */}
-        <p className="min-w-0 flex-1 truncate text-[13px] leading-[18px] text-foreground/80">
-          <span className="hidden @[520px]:inline">Try the next step here: </span>
-          <span className="@[520px]:hidden">Next: </span>
+        <p className="min-w-0 flex-1 line-clamp-2 text-[13px] leading-[18px] text-foreground/80">
+          Try the next step here:{" "}
           <span className="font-semibold text-foreground">{next.title}</span>
         </p>
         <Button size="sm" data-welcome-hint-go="" onClick={() => ob.startGuide(stepTourId(next.id), { onRecord: true })} className="h-8 shrink-0 px-3 text-[12px] font-semibold pointer-coarse:h-9">

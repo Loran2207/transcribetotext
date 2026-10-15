@@ -127,10 +127,9 @@ export function CalendarConnectScreen({ connecting, onConnect }: CalendarConnect
           {PROVIDERS.map((p) => (
             <ProviderRow key={p.id} provider={p} connecting={connecting} onConnect={onConnect} />
           ))}
-        </div>
-
-        <div className="mt-6">
-          <PrivacyNote />
+          <div className="mt-3.5 pb-1">
+            <PrivacyNote />
+          </div>
         </div>
       </div>
     </div>

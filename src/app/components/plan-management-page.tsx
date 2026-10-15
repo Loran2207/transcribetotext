@@ -203,9 +203,9 @@ function HeroMeta({
 
 function TrustLine({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-4 text-[12.5px] text-muted-foreground">
+    <div className="flex items-start gap-2 mt-4 text-[12.5px] leading-[18px] text-muted-foreground">
       <svg
-        className="text-emerald-600 shrink-0"
+        className="text-emerald-600 shrink-0 mt-[2px]"
         width="14"
         height="14"
         viewBox="0 0 24 24"

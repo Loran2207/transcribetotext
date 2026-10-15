@@ -924,7 +924,7 @@ export function SettingsPage({ onClose: _onClose }: SettingsPageProps) {
 
   return (
     <div className="flex h-full flex-1 flex-col overflow-y-auto bg-background">
-      <div className={`${MAX_WIDTH[section]} w-full px-[16px] pb-16 pt-[16px] lg:px-[32px] lg:pt-[28px]`}>
+      <div className={`${MAX_WIDTH[section]} max-lg:max-w-none w-full px-[16px] pb-16 pt-[16px] lg:px-[32px] lg:pt-[28px]`}>
         <div className={isRoot ? "" : "max-md:hidden"}>
           <div className="mb-6 flex items-center gap-2 lg:mb-8">
             {!isRoot && (

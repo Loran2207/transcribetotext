@@ -73,7 +73,7 @@ function measure(els: HTMLElement[]): Rect {
   const one = els.length === 1 ? els[0] : null;
   const round = !!one && (() => { const r = one.getBoundingClientRect(); return parseFloat(getComputedStyle(one).borderTopLeftRadius) >= Math.min(r.width, r.height) / 2 - 1; })();
   /* a window (dialog or sheet) is lit to its own edge: a pad would show the page behind it as a grey ring */
-  const pad = one && one.matches("[role=dialog], .ttt-modal, [data-slot=dialog-content], [data-slot=drawer-content]") ? 0 : PAD;
+  const pad = one && one.matches("[role=dialog], .ttt-modal, [data-slot=dialog-content], [data-slot=drawer-content], [data-tour$=-dialog]") ? 0 : PAD;
   return { top: top - pad, left: left - pad, width: right - left + pad * 2, height: bottom - top + pad * 2, round };
 }
 

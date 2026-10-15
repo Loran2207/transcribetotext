@@ -404,6 +404,12 @@ export function RightPanel() {
     { day: "03/18", dayLabel: "Wednesday", items: meetings.filter((m) => m.day === "03/18") },
   ];
 
+  /* the panel takes the right edge: the + button moves left of it (bottom-nav) */
+  useEffect(() => {
+    document.documentElement.dataset.rightPanel = "";
+    return () => { delete document.documentElement.dataset.rightPanel; };
+  }, []);
+
   const todayStr = "03/16";
   const todayCount = meetings.filter((m) => m.day === todayStr).length;
 

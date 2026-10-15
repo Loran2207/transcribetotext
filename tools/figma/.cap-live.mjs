@@ -101,6 +101,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   if (op === "click") await p.click(arg);
   /* jsclick=<sel>: the element's own click(), for a row inside a sheet Playwright cannot scroll to */
   else if (op === "jsclick") await p.$eval(arg, (el) => el.click());
+  /* credit=<step id>: a First step done, the way the app credits it (ttt-onboarding event) */
+  else if (op === "credit") await p.evaluate((id) => window.dispatchEvent(new CustomEvent("ttt-onboarding", { detail: id })), arg);
   /* tap=<sel>: a press on a control that is aria-disabled on purpose (a locked one), which a plain click would wait out */
   else if (op === "tap") await p.click(arg, { force: true });
   else if (op === "wait") await p.waitForTimeout(+arg);
@@ -236,7 +238,7 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   else if (op === "scrollx") { const [sel, px] = arg.split("|"); await p.$eval(sel, (el, x) => { el.scrollLeft = x; }, +px); }
   await p.waitForTimeout(350);
 }
-await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important} [data-vaul-drawer]{transform:none!important;animation:none!important} [data-vaul-drawer]::after{content:none!important;display:none!important} [data-vaul-drawer][data-state=closed],[data-vaul-overlay][data-state=closed]{display:none!important}" });
+await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important} [data-vaul-drawer]{transform:none!important;animation:none!important} [data-vaul-drawer]::after{content:none!important;display:none!important} .ttt-modal-rise,.ttt-modal-sheet,.ttt-modal-sheet-sm{animation:none!important} *{scrollbar-width:none!important} *::-webkit-scrollbar{width:0!important;height:0!important} [data-vaul-drawer][data-state=closed],[data-vaul-overlay][data-state=closed]{display:none!important}" });
 /* a finger has no hover: on a tablet or phone frame a tooltip that the scripted press opened is not what the app shows */
 if (+w < 1024) await p.addStyleTag({ content: "[data-slot=tooltip-content]{display:none!important}" });
 /* the collapsed queue bubble draws a Lottie canvas that the converter cannot carry: it came through as a broken ring, so a frame never shows it (the open queue is captured on purpose) */
@@ -260,7 +262,9 @@ await p.evaluate(() => {
   const a = root.hasAttribute("data-handoff") ? 0.4 : 0.55;
   /* one SVG: the whole screen in the dim colour with a rounded hole where the light is (even-odd) */
   if (b.width > 0 && b.height > 0) {
-    const r = 14, x = b.left, y = b.top, w = b.width, h = b.height;
+    const x = b.left, y = b.top, w = b.width, h = b.height;
+    /* the hole keeps the light's own corners: 14px, or a circle around a round button */
+    const r = Math.min(w / 2, h / 2, parseFloat(getComputedStyle(light).borderTopLeftRadius) || 14);
     const hole = `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("data-capture-dim", ""); svg.setAttribute("width", String(W)); svg.setAttribute("height", String(H)); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);

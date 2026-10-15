@@ -1,18 +1,18 @@
 [
  {
-  "n": 63,
-  "hash": "ad24d64434",
+  "n": 90,
+  "hash": "5c57e86e8b",
   "wer": 0.0,
   "takes": 1,
-  "text": "Auto-record. Your meetings are here now. Auto-record picks which ones the recorder joins by itself: all, internal ones only, or the ones you select. The transcript is ready when the call ends.",
-  "heard": "Auto record. Your meetings are here now. Auto record picks which ones the recorder joins by itself. All internal ones only, or the ones you select. The transcript is ready when the call ends."
+  "text": "Drop a file here. Or click to choose one, then press Start transcription. The step is done the moment the upload starts.",
+  "heard": "Drop a file here, or click to choose one, then press Start Transcription. The step is done the moment the upload starts."
  },
  {
-  "n": 74,
-  "hash": "d6e18180b4",
+  "n": 91,
+  "hash": "b2121689c3",
   "wer": 0.0,
   "takes": 1,
-  "text": "Auto-record. Which meetings the recorder joins on its own: all of them, internal ones only, internal without one-on-ones, or the ones you select.",
-  "heard": "Auto record, which meetings the recorder joins on its own, all of them internal ones only, internal without one-on-ones or the ones you select."
+  "text": "Drop a file here. Or tap to choose one, then press Start transcription. The step is done the moment the upload starts.",
+  "heard": "Drop a file here, or tap to choose one, then press Start Transcription. The step is done the moment the upload starts."
  }
 ]
