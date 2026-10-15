@@ -30,6 +30,10 @@ export type TourStep = {
   /* the last step may end on a real action instead of "Done" */
   /* "upload" opens the upload window; "pick" opens the file picker of the open upload window and leaves it open */
   action?: { label: string; kind: "upload" | "pick" };
+  /* the page stays live under the card (the person may act right there), Next stays too */
+  live?: boolean;
+  /* the tour moves on by itself when the page reports this (a file landed in the upload window) */
+  advanceOn?: "upload-files";
   /* the last step of a First steps tour: the page stays live under Mia's card, the person does the thing right there */
   handoff?: boolean;
   /* the step opens (or closes) Quick Find, typing for the person */
@@ -106,7 +110,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     steps: [
       { anchor: "home-cards|add-fab", go: HOME, side: "bottom", title: "Four ways in", body: "A file, your voice, a meeting or a link. Each card opens its own window.", phoneBody: "The plus button opens all four: a file, your voice, a meeting or a link.", read: "A file, your voice (Instant speech), a meeting (Meeting Recorder) or a link: each is a card on Home, and on a phone the plus button opens the same four." },
       { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "MP3, MP4, WAV, any recording. Press this card and the upload opens. Next opens it for you.", phoneBody: "MP3, MP4, WAV, any recording. Press the plus, then Audio and video files. Next opens it for you.", read: "Press Audio and video files and the upload window opens. MP3, MP4, WAV, any recording.", trigger: "upload-close" },
-      { anchor: "upload-drop|upload-dialog", go: HOME, side: "right", title: "The file goes here", body: "Drop a recording here or press browse. The settings below appear once a file is in; I show them now.", phoneBody: "Tap here to choose a recording. The settings below appear once a file is in; I show them now.", read: "Drop a recording on the upload window or press browse. MP3, MP4, WAV, any recording.", trigger: "upload-preview" },
+      { anchor: "upload-drop|upload-dialog", go: HOME, side: "right", title: "The file goes here", body: "Drop a recording here, or press Upload file. The settings below appear once a file is in; I show them already. No file at hand? Next walks on.", phoneBody: "Press Upload file and pick a recording. The settings below appear once a file is in; I show them already. No file at hand? Next walks on.", read: "Drop a recording on the upload window or press browse. MP3, MP4, WAV, any recording.", trigger: "upload-preview", live: true, advanceOn: "upload-files", action: { label: "Upload file", kind: "pick" } },
       { anchor: "upload-language|upload-dialog", go: HOME, side: "right", title: "Transcription language", body: "Detect automatically is right for most calls. Pick a language only when the detection gets it wrong.", read: "Transcription language: Detect automatically is right for most calls. Pick a language only when the detection gets it wrong.", trigger: "upload-preview" },
       { anchor: "upload-speakers|upload-dialog", go: HOME, side: "right", title: "Speakers: keep Auto-detect", body: "Auto-detect counts the voices itself; set a number only when you are sure. A wrong number puts two people in one voice.", read: "Speaker identification: keep Auto-detect, it counts the voices itself. Set a number only when you know it for sure, a wrong number puts two people in one voice.", trigger: "upload-preview" },
       { anchor: "upload-template|upload-folder|upload-dialog", go: HOME, side: "right", title: "Template and folder", body: "Both optional. A template shapes the summary, a folder is where the recording lands. Both can be set later.", read: "At the bottom, a template for the summary and a folder for the recording. Both optional, both can be set later.", trigger: "upload-preview" },

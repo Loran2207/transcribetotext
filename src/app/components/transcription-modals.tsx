@@ -2182,6 +2182,8 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
       if (fresh.length) markPreparing(fresh.map(f => f.name + f.size));
       return [...prev, ...fresh];
     });
+    /* the lesson waiting on this step moves on */
+    if (newFiles.length) window.dispatchEvent(new CustomEvent("ttt-page", { detail: "upload-files" }));
   }
 
   function handleDrop(e: React.DragEvent) {

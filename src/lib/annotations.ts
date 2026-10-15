@@ -157,7 +157,7 @@ export function seedAnnotations(segments: SeedText[], now = Date.now(), owner: P
 const SAM: Person = { name: "Sam Rivera", color: "#2563eb", initial: "S" };
 const JORDAN: Person = { name: "Jordan Lee", color: "#10b981", initial: "J" };
 
-export function seedWelcomeAnnotations(segments: SeedText[], now = Date.now()): Annotations {
+export function seedWelcomeAnnotations(segments: SeedText[], now = Date.now(), owner: Person = YOU): Annotations {
   const find = (segmentId: number, words: string) => {
     const seg = segments.find((s) => s.id === segmentId);
     if (!seg) return null;
@@ -176,23 +176,52 @@ export function seedWelcomeAnnotations(segments: SeedText[], now = Date.now()): 
     if (a) threads.push({ ...thread, segmentId: a.segmentId, start: a.start, end: a.end, quote: a.quote, timestamp: a.timestamp });
   };
 
+  /* a highlight on every promise Sam and Jordan make, in the order of the call */
   h("wh1", 3, "Four ways in, all on the Home page.", JORDAN, 3 * HOUR);
-  h("wh2", 7, "leave it on Auto-detect, and set a number only if you know exactly how many people were on the call", SAM, 2 * HOUR);
-  h("wh3", 15, "Pick a template once, Meeting notes, Sales call or Interview, and every summary comes out in that shape.", JORDAN, 90 * MIN);
-  h("wh4", 22, "Quick Find searches what was said across every recording", SAM, 40 * MIN);
-  h("wh5", 27, "a two week pilot with the dispatch team and check in on Fridays", JORDAN, 30 * MIN);
+  h("wh2", 5, "Connect your Google or Outlook calendar once and it joins the calls you choose by itself.", SAM, 170 * MIN);
+  h("wh3", 7, "leave it on Auto-detect, and set a number only if you know exactly how many people were on the call", SAM, 2 * HOUR);
+  h("wh4", 10, "the speed runs from half to double", owner, 110 * MIN);
+  h("wh5", 12, "Edit transcript lets you change the word right in the text, and the summary follows", JORDAN, 100 * MIN);
+  h("wh6", 15, "Pick a template once, Meeting notes, Sales call or Interview, and every summary comes out in that shape.", JORDAN, 90 * MIN);
+  h("wh7", 16, "highlight a sentence, leave a comment on it, tag a colleague", SAM, 80 * MIN);
+  h("wh8", 18, "the transcript and the summary appear on a second tab next to the original", owner, 70 * MIN);
+  h("wh9", 20, "Export as PDF, Word, plain text or subtitles.", JORDAN, 60 * MIN);
+  h("wh10", 22, "Quick Find searches what was said across every recording", SAM, 40 * MIN);
+  h("wh11", 24, "After each call a recap email can go out by itself, to everyone invited or only to you.", owner, 35 * MIN);
+  h("wh12", 27, "a two week pilot with the dispatch team and check in on Fridays", JORDAN, 30 * MIN);
 
+  /* the team's talk after the call: a to-do, a question answered, a catch, a decision, and one note of your own */
   t({
-    id: "wt1", by: JORDAN, at: now - 80 * MIN,
-    text: "Carriers folder is up. I'll drop the pilot calls in there as they come.",
-    replies: [{ id: "wt1r1", by: SAM, text: "Add a Week 1 folder inside it, so the Friday export is one click.", at: now - 55 * MIN }],
-  }, 28, "I'll set up the carriers folder today");
+    id: "wt1", by: SAM, at: now - 3 * HOUR,
+    text: "Jordan, send Priya the calendar link before tomorrow's call so we connect it live.",
+    replies: [{ id: "wt1r1", by: JORDAN, text: "Sent. Google and Outlook both work, she picks one.", at: now - 160 * MIN }],
+  }, 5, "Connect your Google or Outlook calendar once");
   t({
     id: "wt2", by: SAM, at: now - 26 * HOUR,
     text: "Priya's full name for the speaker list?",
     replies: [{ id: "wt2r1", by: JORDAN, text: "Priya Nair.", at: now - 25 * HOUR }],
     resolved: { by: SAM, at: now - 25 * HOUR },
   }, 8, "Priya said this");
+  t({
+    id: "wt3", by: JORDAN, at: now - 95 * MIN,
+    text: "The model heard \"lunch\" for \"launch\" here. Worth a quick edit before this goes to Priya's manager.",
+    replies: [],
+  }, 13, "the lunch of our noise-robust model");
+  t({
+    id: "wt4", by: SAM, at: now - 50 * MIN,
+    text: "Her manager reads on the phone. Recap to everyone invited, or only to her?",
+    replies: [{ id: "wt4r1", by: JORDAN, text: "Only to her for the pilot. She forwards what she wants.", at: now - 42 * MIN }],
+  }, 24, "After each call a recap email can go out by itself");
+  t({
+    id: "wt5", by: owner, at: now - 20 * MIN,
+    text: "Pilot on Free, upgrade when the ten-file limit hits. Check the count on Friday.",
+    replies: [],
+  }, 26, "Free covers your first recordings");
+  t({
+    id: "wt6", by: JORDAN, at: now - 80 * MIN,
+    text: "Carriers folder is up. I'll drop the pilot calls in there as they come.",
+    replies: [{ id: "wt6r1", by: SAM, text: "Add a Week 1 folder inside it, so the Friday export is one click.", at: now - 55 * MIN }],
+  }, 28, "I'll set up the carriers folder today");
 
   return { highlights, threads };
 }
