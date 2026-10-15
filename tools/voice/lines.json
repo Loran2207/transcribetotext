@@ -30,7 +30,7 @@
   "Click straight into the text. Every block is a field now. I put the cursor in the first one: type to fix it, like in any document.",
   "Undo, reset, save. Undo steps back one change. Reset to original brings back what the model wrote. Save keeps it for everyone you share with.",
   "Nothing is lost. Timecodes and speakers stay where they are. I leave editing now without saving.",
-  "Three voices, one unnamed. The app heard three people. Sam greets Priya in the first line, so Speaker 2 is her. Next opens the list.",
+  "Three voices, three names. The app heard three people and took their names from the call. Next opens the list.",
   "Rename, add, remove. Click a name to rename it. Remove a voice and its blocks go to someone else.",
   "Rename, add, remove. Tap a name to rename it. Remove a voice and its blocks go to someone else.",
   "Wrong name on one block. Click the name on that block and pick who really said it.",
@@ -108,9 +108,9 @@
   "My Records. Folders live on this page. Next takes you there.",
   "Add Folder. This button makes a new folder. Next opens it.",
   "Name it, press Create Folder. One folder per client or project. It shows up in your folders at once.",
-  "Three voices, one unnamed. Sam greets Priya in the first line, and Speaker 2 answers. Next opens the list.",
-  "Give Speaker 2 a name. Point at Speaker 2 and press the pencil. Type Priya, press Enter.",
-  "Give Speaker 2 a name. Press the pencil next to Speaker 2. Type Priya, press Enter.",
+  "Three voices. Priya only said her first name on the call. Next opens the list so you can give her the full one.",
+  "Priya Nair, in full. Point at Priya and press the pencil. Type Priya Nair, press Enter.",
+  "Priya Nair, in full. Press the pencil next to Priya. Type Priya Nair, press Enter.",
   "Priority processing is on. You know your way around now. From here your files are processed first, even at peak times, with our best model."
  ],
  "welcome": [
@@ -119,7 +119,7 @@
    "text": "Thanks for joining, Priya. Jordan runs operations and I lead the team. This is our first call in Transcribe To Text, so the notes write themselves and you get a feel for how it works."
   },
   {
-   "speaker": "Speaker 2",
+   "speaker": "Priya",
    "text": "Great. I have about ten calls a week with carriers, and nobody has time to type them up. Where do the recordings go?"
   },
   {
@@ -127,7 +127,7 @@
    "text": "Drop the file on the Home page, or paste the Zoom or Meet link and the recorder joins the call for you. Each call comes back as a transcript, a summary and the action items."
   },
   {
-   "speaker": "Speaker 2",
+   "speaker": "Priya",
    "text": "And the summary comes in the same shape every time? My manager reads these on the phone, so one page with the decisions is ideal."
   },
   {
@@ -139,7 +139,7 @@
    "text": "One more thing. The launch is on the fourteenth, so let's keep one folder for everything about it and share it with the whole team."
   },
   {
-   "speaker": "Speaker 2",
+   "speaker": "Priya",
    "text": "Perfect. And please keep the speaker names in the notes, the quotes are worth nothing without who said them."
   },
   {

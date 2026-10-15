@@ -6,12 +6,12 @@ export const MOCK_TRANSCRIPTS: Record<string, ExportSegment[]> = {
   /* mirrors WELCOME_SEGMENTS in transcription-detail-page.tsx */
   welcome: [
     { speaker: "Sam Rivera", timestamp: "0:00", text: "Thanks for joining, Priya. Jordan runs operations and I lead the team. This is our first call in Transcribe To Text, so the notes write themselves and you get a feel for how it works." },
-    { speaker: "Speaker 2", timestamp: "0:12", text: "Great. I have about ten calls a week with carriers, and nobody has time to type them up. Where do the recordings go?" },
+    { speaker: "Priya", timestamp: "0:12", text: "Great. I have about ten calls a week with carriers, and nobody has time to type them up. Where do the recordings go?" },
     { speaker: "Jordan Lee", timestamp: "0:20", text: "Drop the file on the Home page, or paste the Zoom or Meet link and the recorder joins the call for you. Each call comes back as a transcript, a summary and the action items." },
-    { speaker: "Speaker 2", timestamp: "0:31", text: "And the summary comes in the same shape every time? My manager reads these on the phone, so one page with the decisions is ideal." },
+    { speaker: "Priya", timestamp: "0:31", text: "And the summary comes in the same shape every time? My manager reads these on the phone, so one page with the decisions is ideal." },
     { speaker: "Sam Rivera", timestamp: "0:40", text: "That is a template. Pick Meeting notes once and every call comes out as a one-pager. I'll set one up for the team today." },
     { speaker: "Jordan Lee", timestamp: "0:48", text: "One more thing. The lunch is on the fourteenth, so let's keep one folder for everything about it and share it with the whole team." },
-    { speaker: "Speaker 2", timestamp: "0:55", text: "Perfect. And please keep the speaker names in the notes, the quotes are worth nothing without who said them." },
+    { speaker: "Priya", timestamp: "0:55", text: "Perfect. And please keep the speaker names in the notes, the quotes are worth nothing without who said them." },
     { speaker: "Sam Rivera", timestamp: "1:03", text: "Done. A folder for the launch, names stay in, the template today. I'll put the summary of this call in the shared folder tonight." },
   ],
   "2": [

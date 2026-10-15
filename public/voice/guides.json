@@ -29,7 +29,7 @@
 "Click straight into the text. Every block is a field now. I put the cursor in the first one: type to fix it, like in any document.": "g/a57f95688d.mp3",
 "Undo, reset, save. Undo steps back one change. Reset to original brings back what the model wrote. Save keeps it for everyone you share with.": "g/2202a6f416.mp3",
 "Nothing is lost. Timecodes and speakers stay where they are. I leave editing now without saving.": "g/a14f4be1d4.mp3",
-"Three voices, one unnamed. The app heard three people. Sam greets Priya in the first line, so Speaker 2 is her. Next opens the list.": "g/e1aa9e9a3a.mp3",
+"Three voices, three names. The app heard three people and took their names from the call. Next opens the list.": "g/6eb47f9a09.mp3",
 "Rename, add, remove. Click a name to rename it. Remove a voice and its blocks go to someone else.": "g/a257d13bb0.mp3",
 "Rename, add, remove. Tap a name to rename it. Remove a voice and its blocks go to someone else.": "g/c5e091ad37.mp3",
 "Wrong name on one block. Click the name on that block and pick who really said it.": "g/97aefd7e02.mp3",
@@ -107,8 +107,8 @@
 "My Records. Folders live on this page. Next takes you there.": "g/6135179e61.mp3",
 "Add Folder. This button makes a new folder. Next opens it.": "g/9623d1966a.mp3",
 "Name it, press Create Folder. One folder per client or project. It shows up in your folders at once.": "g/c38521e4f6.mp3",
-"Three voices, one unnamed. Sam greets Priya in the first line, and Speaker 2 answers. Next opens the list.": "g/fdf52cdb79.mp3",
-"Give Speaker 2 a name. Point at Speaker 2 and press the pencil. Type Priya, press Enter.": "g/bb3430ff0d.mp3",
-"Give Speaker 2 a name. Press the pencil next to Speaker 2. Type Priya, press Enter.": "g/ed8f34d9ef.mp3",
+"Three voices. Priya only said her first name on the call. Next opens the list so you can give her the full one.": "g/54f52652bd.mp3",
+"Priya Nair, in full. Point at Priya and press the pencil. Type Priya Nair, press Enter.": "g/c2a91da250.mp3",
+"Priya Nair, in full. Press the pencil next to Priya. Type Priya Nair, press Enter.": "g/419b422c5b.mp3",
 "Priority processing is on. You know your way around now. From here your files are processed first, even at peak times, with our best model.": "g/c1160949b1.mp3"
 }

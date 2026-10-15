@@ -189,7 +189,7 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
               <span className="flex min-w-0 flex-1 flex-col gap-[8px]">
                 <span className="text-[13px] leading-[18px] text-foreground/80"><span className="font-semibold text-foreground">{s.title}.</span> {s.read ?? s.body}</span>
                 {STEP_SHOTS[g.id]?.includes(i) && (
-                  <img src={`/academy/steps/${g.id}-${i}.webp`} alt="" loading="lazy" decoding="async" className="aspect-[8/5] w-full select-none rounded-[10px] bg-muted object-cover ring-1 ring-border" />
+                  <img src={`/academy/steps/${g.id}-${i}${phone ? "-m" : ""}.webp`} alt="" loading="lazy" decoding="async" className={cn("w-full select-none rounded-[10px] bg-muted object-cover ring-1 ring-border", phone ? "mx-auto aspect-[3/4] max-w-[300px]" : "aspect-[8/5]")} />
                 )}
               </span>
             </li>

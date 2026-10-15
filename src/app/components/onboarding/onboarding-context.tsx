@@ -35,6 +35,8 @@ function load(): Stored {
   const gid = (n: number) => GUIDES.slice(0, n).map((g) => g.id);
   const sid = (n: number) => SETUP.slice(0, n).flatMap(setupIds);
   if (demo === "fresh") return { ...EMPTY };
+  /* a fresh account that has already met Echo (the hello is over): for showing a tour mid-way */
+  if (demo === "met") return { ...EMPTY, introSeen: true };
   if (demo === "half") return { ...EMPTY, introSeen: true, done: gid(3), seen: gid(4), actions: sid(2) };
   if (demo === "five") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length - 1), seen: gid(GUIDES.length - 1), actions: sid(SETUP.length - 1) };
   if (demo === "done") return { ...EMPTY, introSeen: true, done: gid(GUIDES.length), seen: gid(GUIDES.length), actions: sid(SETUP.length), rewardClaimed: true, hidden: true };
@@ -136,16 +138,16 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const startGuide = useCallback((id: string, opts?: { onRecord?: boolean }) => {
     const found = GUIDES.find((g) => g.id === id) ?? STEP_TOURS.find((g) => g.id === id); if (!found) return;
     const base = opts?.onRecord ? { ...found, steps: found.steps.filter((s) => !s.opensRecord) } : found;
-    /* Echo says hello on the first tour of all, from the Academy or from First steps
-       alike (Kirill, 15.10); an Academy lesson repeats it while no lesson is finished yet */
-    const hello = !stored.introSeen || (!base.forStep && stored.done.length === 0);
+    /* Echo says hello once: on the very first tour, from the Academy or from First steps
+       alike, and never again (Kirill, 15.10) */
+    const hello = !stored.introSeen;
     const guide: Guide = hello ? { ...base, steps: [INTRO_STEP, ...base.steps] } : base;
     setStored((s) => ({ ...s, expanded: false, introSeen: true }));
     /* a toast from the step just finished ("Template applied") would sit over her card */
     toast.dismiss();
     go(guide.steps[0].go);
     setTour({ guide, step: 0 });
-  }, [go, stored.introSeen, stored.done.length]);
+  }, [go, stored.introSeen]);
 
   const endTour = useCallback(() => setTour(null), []);
 

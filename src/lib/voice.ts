@@ -1,5 +1,6 @@
 /* The guide's voice. Every line the guide can say was generated once
-   (tools/voice/gen.py, Microsoft Neural voice through edge-tts) and lives
+   (tools/voice/gen_chatterbox.py, Chatterbox on a GPU, each take checked by
+   Whisper; the welcome dialogue with tools/voice/gen.py) and lives
    under public/voice/g as one MP3 per sentence; public/voice/guides.json maps
    the sentence to its file. speak() plays a line on one shared audio element;
    the orb reads the loudness from an AnalyserNode on that element every

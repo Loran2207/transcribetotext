@@ -379,14 +379,14 @@ const MOCK_SEGMENTS: Segment[] = [
 
 /* The welcome recording of a fresh account: a real sample to work on, not a
    text to read. A planning call about a customer interview series, three
-   voices. The client's voice stays "Speaker 2" (Sam greets the client as Priya) so
-   Name a speaker has a real thing to fix, and block 6 carries the model's
+   voices, all named. Priya came in with her first name only, so Name a speaker has
+   a real thing to fix (her full name, Priya Nair), and block 6 carries the model's
    classic slip, "lunch" for "launch", for Edit the transcript. Its summary,
    outline and comments below belong to this call; the 1:32 length is the
    end of the last block. */
 const WELCOME_SPEAKERS: Speaker[] = [
   { id: "w1", name: "Sam Rivera", color: "#2563eb", initial: "S" },
-  { id: "w2", name: "Speaker 2", color: "#a855f7", initial: "2" },
+  { id: "w2", name: "Priya", color: "#a855f7", initial: "P" },
   { id: "w3", name: "Jordan Lee", color: "#10b981", initial: "J" },
 ];
 const [SAM, CLIENT, JORDAN] = WELCOME_SPEAKERS;
@@ -5141,6 +5141,9 @@ export function TranscriptionDetailPage() {
         />
 
         <UpgradeGateModal open={limitedModalOpen} onOpenChange={setLimitedModalOpen} variant="done" />
+
+        {/* three First steps happen in this file: a quiet row names the next one */}
+        {sampleRecord && !sharedOwner && <WelcomeStepHint />}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 lg:mt-8 flex flex-1 flex-col overflow-hidden max-md:[@media(pointer:coarse)]:mt-1.5">
           <div className="flex items-end justify-between gap-4 border-b border-border px-4 lg:px-8">

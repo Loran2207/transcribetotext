@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 OUT = os.path.join(ROOT, "public", "voice")
 LINES = os.path.join(ROOT, "tools", "voice", "lines.json")
 # the "Multilingual" voices are the newer, more natural generation
-SPEAKERS = {"Sam Rivera": "en-US-AndrewMultilingualNeural", "Jordan Lee": "en-US-BrianMultilingualNeural", "Speaker 2": "en-US-EmmaMultilingualNeural"}
+SPEAKERS = {"Sam Rivera": "en-US-AndrewMultilingualNeural", "Jordan Lee": "en-US-BrianMultilingualNeural", "Priya": "en-US-EmmaMultilingualNeural"}
 GUIDE_VOICE = "en-US-AvaMultilingualNeural"
 BITRATE = 48000  # edge-tts audio-24khz-48kbitrate-mono-mp3
 GAP = 0.6        # silence between lines of the dialogue, in seconds
