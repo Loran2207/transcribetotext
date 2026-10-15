@@ -36,7 +36,8 @@ const GAP = 14;
    the 526px meeting dialog about 210px */
 const MIN_CARD_W = 200;
 
-type Rect = { top: number; left: number; width: number; height: number };
+/* round: the control is a circle (the plus button), so the light is one too */
+type Rect = { top: number; left: number; width: number; height: number; round?: boolean };
 type Side = "top" | "bottom" | "left" | "right";
 const SIDES: Side[] = ["bottom", "top", "right", "left"];
 /* the dark around the light; the same shape in both so motion can ease between them */
@@ -69,7 +70,9 @@ function measure(els: HTMLElement[]): Rect {
     const r = el.getBoundingClientRect();
     top = Math.min(top, r.top); left = Math.min(left, r.left); right = Math.max(right, r.right); bottom = Math.max(bottom, r.bottom);
   }
-  return { top: top - PAD, left: left - PAD, width: right - left + PAD * 2, height: bottom - top + PAD * 2 };
+  const one = els.length === 1 ? els[0] : null;
+  const round = !!one && (() => { const r = one.getBoundingClientRect(); return parseFloat(getComputedStyle(one).borderTopLeftRadius) >= Math.min(r.width, r.height) / 2 - 1; })();
+  return { top: top - PAD, left: left - PAD, width: right - left + PAD * 2, height: bottom - top + PAD * 2, round };
 }
 
 /* A short burst from the bottom of the screen; the whole-guide one is wider and longer. */
@@ -350,11 +353,11 @@ export function OnboardingTour() {
         {rect && (
           <motion.div
             key="light"
-            className="absolute pointer-events-none rounded-[14px] ring-2 ring-primary/70"
+            className={cn("absolute pointer-events-none ring-2 ring-primary/70", rect.round ? "rounded-full" : "rounded-[14px]")}
             initial={reduce ? false : { opacity: 0 }}
             animate={{ opacity: 1, top: rect.top, left: rect.left, width: rect.width, height: rect.height, boxShadow: live ? DIM_HANDOFF : DIM }}
             transition={spring}
-            style={{ borderRadius: RADIUS, boxShadow: live ? DIM_HANDOFF : DIM }}
+            style={{ borderRadius: rect.round ? 9999 : RADIUS, boxShadow: live ? DIM_HANDOFF : DIM }}
           />
         )}
         {/* handed over, the page is live: the dark stays, lighter, and lets clicks through
@@ -430,7 +433,7 @@ export function OnboardingTour() {
           </span>
         </div>
         <p className="text-[15px] font-semibold leading-[20px] text-foreground">{(phone && step.phoneTitle) || spoken.title}</p>
-        <p className="text-[13px] leading-[19px] text-foreground/80">{missing ? (handoff ? "This part is not on the screen right now. Close me and press the step again." : "This part is not on the screen right now. Skip ahead.") : (phone && spoken.phoneBody) || (compact && step.compactBody) || spoken.body}</p>
+        <p className="text-[13px] leading-[19px] text-pretty text-foreground/80">{missing ? (handoff ? "This part is not on the screen right now. Close me and press the step again." : "This part is not on the screen right now. Skip ahead.") : (phone && spoken.phoneBody) || (compact && step.compactBody) || spoken.body}</p>
         <div className="mt-1 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1">
             {tour.guide.steps.map((_, i) => (

@@ -7,7 +7,7 @@ replace public/voice/g/<hash>.mp3 under the same names, so the app does not
 change. The welcome dialogue stays with tools/voice/gen.py (three voices).
 
 Needs a CUDA PyTorch (an RTX 50xx wants torch 2.7+ with cu128), chatterbox-tts,
-openai-whisper and lameenc. Run: python tools/voice/gen_chatterbox.py [--only N]
+openai-whisper and lameenc. Run: python tools/voice/gen_chatterbox.py [--all] [--only N] (without --all only new lines are made)
 """
 import hashlib, io, json, os, re, sys, time
 import numpy as np
@@ -58,6 +58,8 @@ def main():
     index, report = {}, []
     for n, text in enumerate(guides):
         h = hashlib.sha1(text.encode("utf-8")).hexdigest()[:10]
+        if "--all" not in sys.argv and os.path.exists(os.path.join(OUT, "g", f"{h}.mp3")):
+            index[text] = f"g/{h}.mp3"; continue
         best = None
         for take in range(MAX_TAKES):
             torch.manual_seed(1000 + take)

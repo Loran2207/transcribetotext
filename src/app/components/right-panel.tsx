@@ -233,7 +233,7 @@ function FreePlanCard() {
     <div data-tour="plan-card" className="rounded-[14px] overflow-hidden bg-card border border-border shadow-sm">
       {/* Header with plan name */}
       <div className="px-[18px] pt-[16px] pb-[14px]">
-        <span className="text-foreground" style={{ fontWeight: 700, fontSize: "18px", letterSpacing: "-0.3px" }}>You on Free Plan</span>
+        <span className="text-foreground" style={{ fontWeight: 700, fontSize: "18px", letterSpacing: "-0.3px" }}>You're on Free Plan</span>
       </div>
 
       {/* Usage section - files */}

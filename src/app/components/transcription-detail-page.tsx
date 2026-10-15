@@ -2644,9 +2644,13 @@ function PageHeader({
             </span>
           </>
         )}
-        {!chips && <><span className="text-border">{"\u2022"}</span><span>{meta.dateLabel}</span></>}
-        <span className="text-border">{"\u2022"}</span>
-        <span>{meta.durationLabel}</span>
+        {/* the date and the length travel together: on a phone, where the dots before them are
+            hidden, a wrapped line never starts with a lone dot */}
+        {!chips && <span className="text-border max-md:hidden">{"\u2022"}</span>}
+        <span className="inline-flex items-center gap-3">
+          {!chips && <><span>{meta.dateLabel}</span><span className="text-border">{"\u2022"}</span></>}
+          <span>{meta.durationLabel}</span>
+        </span>
       </div>
     </div>
   );
@@ -5213,7 +5217,7 @@ export function TranscriptionDetailPage() {
                   <>
                   <span className="contents max-xl:hidden">{onlyHighlightsCheck}<TranscriptViewChecks /></span>
                   {sharedOwner ? null : (
-                  <Button variant="ghost" size="sm" aria-label="Edit transcript" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
+                  <Button data-tour="record-edit" variant="ghost" size="sm" aria-label="Edit transcript" className="h-7 rounded-full gap-1.5 px-2.5 text-xs text-muted-foreground" onClick={handleToggleEdit}>
                     <PencilIcon className="size-3.5" />
                     <span className="max-lg:hidden">Edit transcript</span>
                   </Button>

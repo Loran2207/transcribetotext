@@ -233,7 +233,7 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   else if (op === "scrollx") { const [sel, px] = arg.split("|"); await p.$eval(sel, (el, x) => { el.scrollLeft = x; }, +px); }
   await p.waitForTimeout(350);
 }
-await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important} [data-vaul-drawer]{transform:none!important;animation:none!important} [data-vaul-drawer]::after{content:none!important;display:none!important} [data-vaul-drawer][data-state=closed],[data-vaul-overlay][data-state=closed]{display:none!important}" });
+await p.addStyleTag({ content: "*{animation-play-state:paused!important;animation-delay:-0.45s!important;transition:none!important;caret-color:transparent!important} .ttt-dim{animation:none!important;opacity:1!important;backdrop-filter:blur(5px)!important} [data-sonner-toaster]{display:none!important} .ttt-modal,[data-slot=drawer-content],[aria-label='New transcription'],.ttt-feature-in{box-shadow:none!important} .ttt-feature-in{animation:none!important} [data-vaul-drawer]{transform:none!important;animation:none!important} [data-vaul-drawer]::after{content:none!important;display:none!important} .ttt-modal-rise,.ttt-modal-sheet,.ttt-modal-sheet-sm{animation:none!important} [data-vaul-drawer][data-state=closed],[data-vaul-overlay][data-state=closed]{display:none!important}" });
 if (!(process.env.STEPS || "").includes("drag=")) await p.mouse.move(2, 2);
 /* a tour light moves to its anchor on a spring: the frame is taken only once it has
    come to rest, or the hole sits where the previous step was (the D2 tablet scar) */
@@ -253,7 +253,9 @@ await p.evaluate(() => {
   const a = root.hasAttribute("data-handoff") ? 0.4 : 0.55;
   /* one SVG: the whole screen in the dim colour with a rounded hole where the light is (even-odd) */
   if (b.width > 0 && b.height > 0) {
-    const r = 14, x = b.left, y = b.top, w = b.width, h = b.height;
+    const x = b.left, y = b.top, w = b.width, h = b.height;
+    /* the hole keeps the light's own corners: 14px, or a circle around a round button */
+    const r = Math.min(w / 2, h / 2, parseFloat(getComputedStyle(light).borderTopLeftRadius) || 14);
     const hole = `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("data-capture-dim", ""); svg.setAttribute("width", String(W)); svg.setAttribute("height", String(H)); svg.setAttribute("viewBox", `0 0 ${W} ${H}`);

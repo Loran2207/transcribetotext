@@ -81,7 +81,7 @@ export function OnboardingCard({ inAcademy = false }: { inAcademy?: boolean } = 
                 <span className="block truncate text-[13px] font-semibold leading-[19.5px] text-white">First steps</span>
                 <span className="mt-[1px] flex items-center gap-[5px] text-[11px] font-medium leading-[16.5px] text-white/80">
                   <img src={GIFT} alt="" aria-hidden className="size-[14px] shrink-0 select-none object-contain" />
-                  <span className="truncate">{total - doneCount} to do. Then your recordings go first in line.</span>
+                  <span className="truncate"><span className="tabular-nums">{doneCount} of {total} done</span><span className="text-white/45"> · </span>Bonus: files go first</span>
                 </span>
               </motion.span>
             )}
