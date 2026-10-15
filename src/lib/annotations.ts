@@ -151,6 +151,52 @@ export function seedAnnotations(segments: SeedText[], now = Date.now(), owner: P
   return { highlights, threads };
 }
 
+/* The welcome recording comes with a few marks on it, as if the team had
+   already read it: the demo file shows highlights, a comment thread and a
+   resolved one. Sam and Jordan are the people on that call. */
+const SAM: Person = { name: "Sam Rivera", color: "#2563eb", initial: "S" };
+const JORDAN: Person = { name: "Jordan Lee", color: "#10b981", initial: "J" };
+
+export function seedWelcomeAnnotations(segments: SeedText[], now = Date.now()): Annotations {
+  const find = (segmentId: number, words: string) => {
+    const seg = segments.find((s) => s.id === segmentId);
+    if (!seg) return null;
+    const start = seg.text.indexOf(words);
+    if (start < 0) return null;
+    return { segmentId, start, end: start + words.length, quote: words, timestamp: seg.timestamp };
+  };
+  const highlights: Highlight[] = [];
+  const threads: Thread[] = [];
+  const h = (id: string, segmentId: number, words: string, by: Person, ago: number) => {
+    const a = find(segmentId, words);
+    if (a) highlights.push({ id, segmentId: a.segmentId, start: a.start, end: a.end, by, at: now - ago, labelId: DEFAULT_LABEL_ID });
+  };
+  const t = (thread: Omit<Thread, keyof Anchor | "quote" | "timestamp">, segmentId: number, words: string) => {
+    const a = find(segmentId, words);
+    if (a) threads.push({ ...thread, segmentId: a.segmentId, start: a.start, end: a.end, quote: a.quote, timestamp: a.timestamp });
+  };
+
+  h("wh1", 3, "Four ways in, all on the Home page.", JORDAN, 3 * HOUR);
+  h("wh2", 7, "leave it on Auto-detect, and set a number only if you know exactly how many people were on the call", SAM, 2 * HOUR);
+  h("wh3", 13, "Pick a template once, Meeting notes, Sales call or Interview, and every summary comes out in that shape.", JORDAN, 90 * MIN);
+  h("wh4", 20, "Quick Find searches what was said across every recording", SAM, 40 * MIN);
+  h("wh5", 25, "a two week pilot with the dispatch team and check in on Fridays", JORDAN, 30 * MIN);
+
+  t({
+    id: "wt1", by: JORDAN, at: now - 80 * MIN,
+    text: "Carriers folder is up. I'll drop the pilot calls in there as they come.",
+    replies: [{ id: "wt1r1", by: SAM, text: "Add a Week 1 folder inside it, so the Friday export is one click.", at: now - 55 * MIN }],
+  }, 26, "I'll set up the carriers folder today");
+  t({
+    id: "wt2", by: SAM, at: now - 26 * HOUR,
+    text: "Priya's full name for the speaker list?",
+    replies: [{ id: "wt2r1", by: JORDAN, text: "Priya Nair.", at: now - 25 * HOUR }],
+    resolved: { by: SAM, at: now - 25 * HOUR },
+  }, 8, "Priya said this");
+
+  return { highlights, threads };
+}
+
 /* Words, never half words: a range grows to the word edges and drops the
    spaces around it. */
 export function snapRange(text: string, start: number, end: number) {

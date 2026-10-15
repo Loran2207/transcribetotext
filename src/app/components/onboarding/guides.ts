@@ -395,7 +395,7 @@ export const STEP_TOURS: Guide[] = [
   ] },
   { ...STEP_META, id: "step-edit", forStep: "edit", title: "Edit the transcript", seconds: 15, steps: [
     OPEN_RECORD_FOR_STEP,
-    { anchor: "record-edit-bar+record-transcript-body|record-more-edit|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "At 0:48 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.", phoneBody: "At 0:48 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.", trigger: "tab-transcript", handoff: true },
+    { anchor: "record-edit-bar+record-transcript-body|record-more-edit|record-edit|record-more", go: RECORD, side: "top", title: "Fix a word", body: "At 1:54 the model wrote \"lunch\" for \"launch\". Press Edit transcript, fix the word and press Save.", phoneBody: "At 1:54 the model wrote \"lunch\" for \"launch\". Open More, press Edit transcript, fix the word and press Save.", trigger: "tab-transcript", handoff: true },
   ] },
   { ...STEP_META, id: "step-folders", forStep: "folders", title: "Create a folder", seconds: 15, steps: [
     { anchor: "nav-records|menu", go: HOME, side: "right", title: "My Records", body: "Folders live on this page. Next takes you there." },

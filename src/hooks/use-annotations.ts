@@ -15,6 +15,7 @@ import {
   coveringMark,
   saveAnnotations,
   seedAnnotations,
+  seedWelcomeAnnotations,
   type Anchor,
   type Annotations,
   type Highlight,
@@ -24,13 +25,14 @@ import {
   type Reply,
   type Thread,
 } from "@/lib/annotations";
+import { WELCOME_RECORD_ID } from "@/lib/fresh-account";
 
 type BlockText = { id: number; text: string; timestamp: string };
 
 const EMPTY: Annotations = { highlights: [], threads: [] };
 
 function initial(record: string, blocks: BlockText[], owner?: Person): Annotations {
-  return loadAnnotations(record) ?? (demoStartsEmpty() ? EMPTY : seedAnnotations(blocks, Date.now(), owner));
+  return loadAnnotations(record) ?? (demoStartsEmpty() ? EMPTY : record === WELCOME_RECORD_ID ? seedWelcomeAnnotations(blocks) : seedAnnotations(blocks, Date.now(), owner));
 }
 
 /* One record's highlights and comment threads, kept in this browser.

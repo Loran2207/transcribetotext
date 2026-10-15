@@ -19,6 +19,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { creditOnboarding } from "./onboarding/onboarding-context";
 import { WelcomeStepHint } from "./onboarding/welcome-hint";
 import { WELCOME_RECORD_ID } from "@/lib/fresh-account";
+import { WELCOME_END, WELCOME_ES, WELCOME_LINES, WELCOME_OUTLINE, WELCOME_SUMMARY, WELCOME_SUMMARY_ES, WELCOME_TEMPLATE_ID } from "@/lib/welcome-script";
 import { SpeakerPicker, SpeakerDialog, NameSpeakersDialog, SpeakersPanel, RemoveSpeakerDialog, SpeakersChip, PencilIcon, type SpeakerChoice, type Quote, type ManagedSpeaker } from "./speaker-picker";
 import { LanguageSelector, SpeakerSection } from "./transcription-modals";
 import { useNotetakerSettings } from "./desktop/notetaker-settings";
@@ -377,30 +378,9 @@ const MOCK_SEGMENTS: Segment[] = [
   { id: 12, speaker: SPEAKERS[2], timestamp: "4:30", text: "Same here. Let's wrap up and get back to work. Thanks everyone." },
 ];
 
-/* The welcome recording of a fresh account: a real sample to work on, not a
-   text to read. A planning call about a customer interview series, three
-   voices, all named. Priya came in with her first name only, so Name a speaker has
-   a real thing to fix (her full name, Priya Nair), and block 6 carries the model's
-   classic slip, "lunch" for "launch", for Edit the transcript. Its summary,
-   outline and comments below belong to this call; the 1:32 length is the
-   end of the last block. */
-const WELCOME_SPEAKERS: Speaker[] = [
-  { id: "w1", name: "Sam Rivera", color: "#2563eb", initial: "S" },
-  { id: "w2", name: "Priya", color: "#a855f7", initial: "P" },
-  { id: "w3", name: "Jordan Lee", color: "#10b981", initial: "J" },
-];
-const [SAM, CLIENT, JORDAN] = WELCOME_SPEAKERS;
-const WELCOME_SEGMENTS: Segment[] = [
-  { id: 1, speaker: SAM, timestamp: "0:00", text: "Thanks for joining, Priya. Jordan runs operations and I lead the team. This is our first call in Transcribe To Text, so the notes write themselves and you get a feel for how it works." },
-  { id: 2, speaker: CLIENT, timestamp: "0:12", text: "Great. I have about ten calls a week with carriers, and nobody has time to type them up. Where do the recordings go?" },
-  { id: 3, speaker: JORDAN, timestamp: "0:20", text: "Drop the file on the Home page, or paste the Zoom or Meet link and the recorder joins the call for you. Each call comes back as a transcript, a summary and the action items." },
-  { id: 4, speaker: CLIENT, timestamp: "0:31", text: "And the summary comes in the same shape every time? My manager reads these on the phone, so one page with the decisions is ideal." },
-  { id: 5, speaker: SAM, timestamp: "0:40", text: "That is a template. Pick Meeting notes once and every call comes out as a one-pager. I'll set one up for the team today." },
-  { id: 6, speaker: JORDAN, timestamp: "0:48", text: "One more thing. The lunch is on the fourteenth, so let's keep one folder for everything about it and share it with the whole team." },
-  { id: 7, speaker: CLIENT, timestamp: "0:55", text: "Perfect. And please keep the speaker names in the notes, the quotes are worth nothing without who said them." },
-  { id: 8, speaker: SAM, timestamp: "1:03", text: "Done. A folder for the launch, names stay in, the template today. I'll put the summary of this call in the shared folder tonight." },
-];
-const WELCOME_END = "1:11";
+/* The welcome recording of a fresh account lives in src/lib/welcome-script.ts:
+   the lines, the outline, the summary and its Spanish. */
+const WELCOME_SEGMENTS: Segment[] = WELCOME_LINES.map((l) => ({ id: l.id, speaker: l.speaker, timestamp: l.timestamp, text: l.text }));
 const WELCOME_DURATION_SECONDS = timestampToSeconds(WELCOME_END);
 
 // Single-speaker (podcast / monologue / dictation) demo content - one voice, no speaker column.
@@ -434,31 +414,6 @@ const MOCK_OUTLINE: OutlineSection[] = [
   { id: "o4", title: "Q2 Planning & User Research", timestamp: "3:05", segmentId: 8, bullets: [{ text: "User research: 40% find notification settings confusing", segmentId: 9 }, { text: "Notification UX to be added to Q2 priorities", segmentId: 10 }] },
   { id: "o5", title: "Wrap-up", timestamp: "4:18", segmentId: 11, bullets: [{ text: "No further concerns raised", segmentId: 11 }] },
 ];
-
-const WELCOME_OUTLINE: OutlineSection[] = [
-  { id: "w-o1", title: "Why this call", timestamp: "0:00", segmentId: 1, bullets: [{ text: "Priya's first call in Transcribe To Text", segmentId: 1 }, { text: "About ten carrier calls a week, nobody types them up", segmentId: 2 }] },
-  { id: "w-o2", title: "How a call becomes notes", timestamp: "0:20", segmentId: 3, bullets: [{ text: "Drop a file or paste the call link", segmentId: 3 }, { text: "A template keeps every summary one page", segmentId: 5 }] },
-  { id: "w-o3", title: "Decisions", timestamp: "0:48", segmentId: 6, bullets: [{ text: "One shared folder for the launch", segmentId: 6 }, { text: "Speaker names stay in the notes", segmentId: 7 }] },
-];
-
-const WELCOME_SUMMARY = `## Key points
-
-- Priya's first call in Transcribe To Text: about ten carrier calls a week, nobody has time to type them up
-- A recording goes in as a file or as a call link; the recorder joins the call by itself
-- Each call comes back as a transcript, a summary and the action items
-
-## Decisions
-
-- Meeting notes template for the whole team, so every summary is one page
-- One shared folder for everything about the launch on the fourteenth
-- Speaker names stay in every summary
-
-## Action items
-
-- Sam sets up the Meeting notes template today
-- Sam puts the summary of this call in the shared folder tonight
-- Jordan creates the launch folder and shares it with the team
-`;
 
 const MOCK_SUMMARY = `## Key Discussion Points
 
@@ -2846,7 +2801,7 @@ export function TranscriptionDetailPage() {
   const [videoDuration, setVideoDuration] = useState(0);
   const [videoPlaybackRate, setVideoPlaybackRate] = useState(1);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
-    selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null,
+    selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? (id === WELCOME_RECORD_ID ? WELCOME_TEMPLATE_ID : null),
   );
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryQuery, setSummaryQuery] = useState("");
@@ -2890,7 +2845,7 @@ export function TranscriptionDetailPage() {
 
   useEffect(() => {
     /* a note just written on the desktop keeps the template it was written with */
-    if (!(desktopShell && routeState?.fromRecordingStop && generatedRef.current)) setActiveTemplateId(selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? null);
+    if (!(desktopShell && routeState?.fromRecordingStop && generatedRef.current)) setActiveTemplateId(selectedJob?.templateId ?? routeStateRecord?.templateId ?? persistedRecord?.templateId ?? (id === WELCOME_RECORD_ID ? WELCOME_TEMPLATE_ID : null));
   }, [id, selectedJob?.templateId, routeStateRecord?.templateId, persistedRecord?.templateId]);
 
   // PRO "Apply template" deep-link: a record opened with a template to apply.
@@ -3754,6 +3709,16 @@ export function TranscriptionDetailPage() {
     } else if (sumFlag === "error") {
       setActiveTab("summary");
       setSummaryError(true);
+    }
+
+    /* the welcome recording comes with its Spanish: the demo file shows every tool in use */
+    if (sampleRecord) {
+      setSelectedTranslationLang("es");
+      setActiveTranslationLang("es");
+      setTranslatedSegments(WELCOME_ES);
+      setTranslatedSummary(WELCOME_SUMMARY_ES);
+      setTranslationTranscriptStatus("done");
+      setTranslationSummaryStatus("done");
     }
 
     // Summary translation partial: summary loading / failed (transcript already translated)

@@ -939,6 +939,7 @@ function InlineFolderEditDialog({ open, folder, onClose, onSave }: { open: boole
    ══════════════════════════════════════════════ */
 
 import { isFreshAccount, WELCOME_RECORD_ID } from "@/lib/fresh-account";
+import { WELCOME_BLURB, WELCOME_LENGTH } from "@/lib/welcome-script";
 
 const tabs = ["Recent", "Starred", "Shared", "Trash"] as const;
 const DEMO_VIDEO_URL = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
@@ -967,7 +968,7 @@ export const records: RecordRow[] = [
 /* The fresh account has exactly one recording: the welcome one, made for the
    guide. It replaces the demo world in place so every consumer of `records`
    sees the same list. */
-export const WELCOME_RECORD: RecordRow = { id: WELCOME_RECORD_ID, name: "Welcome to Transcribe To Text", iconColor: "#2563EB", iconType: "circle", duration: "1 min 11s", dateCreated: "Today", dateGroup: "Today", template: "Meeting Notes", language: "en", source: "mp3", summary: "Planning call for twelve customer interviews. Every call is recorded and sent in a Friday batch, each comes back as a one-page summary with quotes and speaker names. Sam sends the draft template on Tuesday.", tasks: 0, screenshots: 0, time: "Today" };
+export const WELCOME_RECORD: RecordRow = { id: WELCOME_RECORD_ID, name: "Welcome to Transcribe To Text", iconColor: "#2563EB", iconType: "circle", duration: WELCOME_LENGTH, dateCreated: "Today", dateGroup: "Today", template: "Meeting Notes", language: "en", source: "mp3", summary: WELCOME_BLURB, tasks: 0, screenshots: 0, time: "Today" };
 if (isFreshAccount()) records.splice(0, records.length, WELCOME_RECORD);
 
 

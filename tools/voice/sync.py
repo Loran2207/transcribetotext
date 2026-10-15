@@ -1,9 +1,10 @@
 """After gen.py: the welcome recording's times in the app follow its audio.
 
-Rewrites, from public/voice/welcome.json: the eight timestamps of the welcome
-transcript (src/lib/mock-transcripts.ts and the record page), its end time,
-the outline times, the length in the records list, and the time named in the
-edit lesson ("At 0:47 the model wrote ..."). Run: python tools/voice/sync.py
+Rewrites, from public/voice/welcome.json: the timestamps of every welcome
+line and the end time and the length in src/lib/welcome-script.ts, the
+outline times there (each section takes the time of its first line), and
+the time named in the edit lesson ("At 0:48 the model wrote ...").
+Run: python tools/voice/sync.py
 """
 import io, json, os, re
 
@@ -28,28 +29,31 @@ def rewrite(rel, fn):
     io.open(p, "w", encoding="utf-8", newline="\n").write(t)
 
 
-def times_in_block(s, key, close):
-    a = s.index(key); b = s.index(close, a)
-    block = s[a:b]
-    found = re.findall(r'timestamp: "\d+:\d\d"', block)
-    assert len(found) == len(STARTS), (key, len(found))
-    it = iter(STARTS)
-    block = re.sub(r'timestamp: "\d+:\d\d"', lambda m: f'timestamp: "{next(it)}"', block)
-    return s[:a] + block + s[b:]
+def script(s):
+    # L(id, SPEAKER, "m:ss", ...)
+    found = re.findall(r'\n  L\((\d+), [A-Z]+, "\d+:\d\d"', s)
+    assert len(found) == len(STARTS), ("lines", len(found), len(STARTS))
+    by_id = {}
+    for i, n in enumerate(found):
+        by_id[int(n)] = STARTS[i]
+    s = re.sub(r'(\n  L\((\d+), [A-Z]+, )"\d+:\d\d"', lambda m: f'{m.group(1)}"{by_id[int(m.group(2))]}"', s)
+    s = re.sub(r'export const WELCOME_END = "[^"]+";', f'export const WELCOME_END = "{END}";', s, count=1)
+    s = re.sub(r'export const WELCOME_LENGTH = "[^"]+";', f'export const WELCOME_LENGTH = "{LENGTH}";', s, count=1)
+    # outline: the time of the section's first line
+    s = re.sub(r'(title: "[^"]+", timestamp: )"\d+:\d\d"(, segmentId: (\d+))', lambda m: f'{m.group(1)}"{by_id[int(m.group(3))]}"{m.group(2)}', s)
+    slip = int(re.search(r"export const WELCOME_SLIP_LINE = (\d+);", s).group(1))
+    return s, by_id[slip]
 
 
-rewrite("src/lib/mock-transcripts.ts", lambda s: times_in_block(s, "welcome: [", "],"))
+SLIP = {}
 
 
-def page(s):
-    s = times_in_block(s, "const WELCOME_SEGMENTS", "];")
-    s = re.sub(r'const WELCOME_END = "[^"]+";', f'const WELCOME_END = "{END}";', s, count=1)
-    s = re.sub(r'(title: "How a call becomes notes", timestamp: )"\d+:\d\d"', rf'\1"{STARTS[2]}"', s, count=1)
-    s = re.sub(r'(title: "Decisions", timestamp: )"\d+:\d\d"(, segmentId: 6)', rf'\1"{STARTS[5]}"\2', s, count=1)
-    return s
+def script_fn(s):
+    t, slip_at = script(s)
+    SLIP["at"] = slip_at
+    return t
 
 
-rewrite("src/app/components/transcription-detail-page.tsx", page)
-rewrite("src/app/components/records-table.tsx", lambda s: re.sub(r'(name: "Welcome to Transcribe To Text"[^\n]*?duration: )"\d+ min \d+s"', rf'\1"{LENGTH}"', s, count=1))
-rewrite("src/app/components/onboarding/guides.ts", lambda s: re.sub(r"At \d+:\d\d the model wrote", f"At {STARTS[5]} the model wrote", s))
-print("starts", STARTS, "end", END, "length", LENGTH)
+rewrite("src/lib/welcome-script.ts", script_fn)
+rewrite("src/app/components/onboarding/guides.ts", lambda s: re.sub(r"At \d+:\d\d the model wrote", f"At {SLIP['at']} the model wrote", s))
+print("starts", STARTS, "end", END, "length", LENGTH, "slip at", SLIP["at"])
