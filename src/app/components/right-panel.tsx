@@ -404,12 +404,6 @@ export function RightPanel() {
     { day: "03/18", dayLabel: "Wednesday", items: meetings.filter((m) => m.day === "03/18") },
   ];
 
-  /* the panel takes the right edge: the + button moves left of it (bottom-nav) */
-  useEffect(() => {
-    document.documentElement.dataset.rightPanel = "";
-    return () => { delete document.documentElement.dataset.rightPanel; };
-  }, []);
-
   const todayStr = "03/16";
   const todayCount = meetings.filter((m) => m.day === todayStr).length;
 
@@ -418,7 +412,8 @@ export function RightPanel() {
       <div className="h-full flex flex-col overflow-y-auto transition-colors duration-200 bg-background" style={{ width: DEFAULT_WIDTH }}>
         {/* Content */}
         {/* one scroll for the whole panel: the cards push everything below them down, nothing shrinks (Kirill, 26.09) */}
-        <div className="flex flex-col gap-[14px] px-[18px] py-[18px] [&>*]:shrink-0">
+        {/* the + button keeps the bottom-right corner (Kirill, 15.10): room at the end lets the last card scroll clear of it */}
+        <div className="flex flex-col gap-[14px] px-[18px] pt-[18px] pb-[96px] [&>*]:shrink-0">
           {/* Get started: the first card until the six guides are done */}
           <OnboardingCard />
           {/* Widget Cards: on the web the desktop app and the ticket ride one carousel, the card first (Kirill, 12.09) */}
