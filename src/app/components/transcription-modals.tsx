@@ -1549,9 +1549,6 @@ function TranscriptionModeToggle({ mode, onChange, compact = false }: {
 const DEMO_FILE_KEY = "ttt_tour_demo_file";
 function demoFile(): File { return new File([new Uint8Array(64 * 1024)], "Client call.m4a", { type: "audio/mp4" }); }
 function askDemoFile() { try { window.sessionStorage.setItem(DEMO_FILE_KEY, "1"); } catch { /* ignore */ } }
-/* the Academy lesson opens the upload window and asks it to show the settings
-   (language, speakers) before any file is in; the flag is read when the window mounts */
-let previewAsked = false;
 let demoJustLoaded = false;
 function takeDemoFile(): File[] {
   try { if (window.sessionStorage.getItem(DEMO_FILE_KEY)) { window.sessionStorage.removeItem(DEMO_FILE_KEY); demoJustLoaded = true; return [demoFile()]; } } catch { /* ignore */ }
@@ -2123,16 +2120,14 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   const { addJob, templates, userPlan, consumePreloadedFiles, consumeDefaultFolderId, guardFreeLimit } = useTranscriptionModals();
 
   const [files, setFiles] = useState<File[]>(takeDemoFile);
-  /* the lesson: the settings show with no file in, so each one can be pointed at */
-  const [tourPreview, setTourPreview] = useState(() => { const v = previewAsked; previewAsked = false; return v; });
-  useEffect(() => { if (tourPreview) setSettings((s) => ({ ...s, ...DEMO_SPEAKERS })); }, [tourPreview]);
   /* the Academy lesson asks for the sample file while this dialog is already open */
   useEffect(() => {
     if (demoJustLoaded) { demoJustLoaded = false; setSettings((s) => ({ ...s, ...DEMO_SPEAKERS })); }
     const on = (e: Event) => {
       const t = (e as CustomEvent<string>).detail;
       if (t === "upload-demo") { setFiles((prev) => (prev.length ? prev : [demoFile()])); setSettings((s) => ({ ...s, ...DEMO_SPEAKERS })); }
-      if (t === "upload-preview") { setTourPreview(true); setSettings((s) => ({ ...s, ...DEMO_SPEAKERS })); }
+      /* the lesson waiting at the drop zone: a file already in the window counts */
+      if (t === "upload-ask-files") { setFiles((prev) => { if (prev.length) window.dispatchEvent(new CustomEvent("ttt-page", { detail: "upload-files" })); return prev; }); }
       /* the lesson's last button: the sample goes, the person's own file takes its place */
       if (t === "upload-pick") { setFiles((prev) => prev.filter((f) => f.name !== demoFile().name)); fileRef.current?.click(); }
     };
@@ -2267,8 +2262,8 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
           {/* File list + settings - fade in smoothly after first file */}
           <div style={{
             display: "grid",
-            gridTemplateRows: files.length > 0 || tourPreview ? "1fr" : "0fr",
-            opacity: files.length > 0 || tourPreview ? 1 : 0,
+            gridTemplateRows: files.length > 0 ? "1fr" : "0fr",
+            opacity: files.length > 0 ? 1 : 0,
             transition: "grid-template-rows 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease",
           }}>
             <div style={{ overflow: "hidden" }}>
@@ -2349,7 +2344,7 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
               <Button variant="pill-outline" onClick={handleClose} className="h-[36px] px-[18px] transition-colors">
                 <span className="font-medium text-[13px] text-foreground">Cancel</span>
               </Button>
-              <Button onClick={() => { void handleSubmit(); }} disabled={!files.length}
+              <Button data-tour="upload-start" onClick={() => { void handleSubmit(); }} disabled={!files.length}
                 className="h-[36px] px-[18px] rounded-full transition-all disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <span className="font-semibold text-[13px]">
@@ -3355,7 +3350,7 @@ function AllModals() {
   const { openModal, setOpenModal } = useTranscriptionModals();
   const close = () => setOpenModal(null);
   useEffect(() => {
-    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "upload-demo") { askDemoFile(); setOpenModal("upload"); } if (t === "upload-preview") { previewAsked = true; setOpenModal("upload"); } if (t === "upload-open") setOpenModal("upload"); if (t === "record-open") setOpenModal("record"); if (t === "link-open") setOpenModal("link"); if (t === "meeting-open") setOpenModal("meeting"); if (t === "upload-close" || t === "record-close" || t === "link-close" || t === "meeting-close" || t === "close-all") setOpenModal(null); };
+    const on = (e: Event) => { const t = (e as CustomEvent<string>).detail; if (t === "upload-demo") { askDemoFile(); setOpenModal("upload"); } if (t === "upload-open" || t === "upload-ask-files") setOpenModal("upload"); if (t === "record-open") setOpenModal("record"); if (t === "link-open") setOpenModal("link"); if (t === "meeting-open") setOpenModal("meeting"); if (t === "upload-close" || t === "record-close" || t === "link-close" || t === "meeting-close" || t === "close-all") setOpenModal(null); };
     window.addEventListener("ttt-tour", on);
     return () => window.removeEventListener("ttt-tour", on);
   }, [setOpenModal]);

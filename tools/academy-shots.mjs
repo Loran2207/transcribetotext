@@ -82,7 +82,11 @@ for (const g of GUIDES) {
     }
     if (i === g.steps.length - 1) break;
     const next = await p.$("[data-tour-next]");
-    if (!next) break;
+    if (!next) {
+      /* a step that waits for a file: the walk drops one, as a person would */
+      if (await p.$("[data-tour-action]")) { await p.setInputFiles("input[type=file]", { name: "Interview 3.mp3", mimeType: "audio/mpeg", buffer: Buffer.alloc(96 * 1024) }); await p.waitForTimeout(1600); continue; }
+      break;
+    }
     await next.click(); await p.waitForTimeout(1300);
   }
   await ctx.close();

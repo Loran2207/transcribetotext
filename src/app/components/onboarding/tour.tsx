@@ -144,14 +144,13 @@ export function OnboardingTour() {
   const handoff = !!step?.handoff;
   /* a step that waits for the person (connect a calendar): live page, no Next, moves on by itself */
   const [waitDone, setWaitDone] = useState(false);
-  const waiting = step?.waitFor === "calendar" && !waitDone && !calendarConnected();
-  /* a live step of a lesson: the person may act on the page (drop a file), Next stays */
-  const liveStep = !!step?.live && !handoff && !waiting;
-  const live = handoff || waiting || liveStep;
+  /* ... or for a file in the upload window: live page, no Next, the Upload file button on the card */
+  const waiting = (step?.waitFor === "calendar" && !waitDone && !calendarConnected()) || (step?.waitFor === "upload" && !waitDone);
+  const live = handoff || waiting;
   useEffect(() => {
     const on = step?.advanceOn;
     if (!on) return;
-    const h = (e: Event) => { if ((e as CustomEvent<string>).detail === on) nextStep(); };
+    const h = (e: Event) => { if ((e as CustomEvent<string>).detail === on) { setWaitDone(true); nextStep(); } };
     window.addEventListener("ttt-page", h);
     return () => window.removeEventListener("ttt-page", h);
   }, [step, nextStep]);
@@ -461,8 +460,7 @@ export function OnboardingTour() {
               </Button>
             )}
             {/* handed over or waiting, there is nothing to press here: the real action moves it on */}
-            {liveStep && step.action?.kind === "pick" && <Button size="sm" data-tour-action="" onClick={() => window.dispatchEvent(new CustomEvent("ttt-tour", { detail: "upload-pick" }))} className="h-8 px-4 text-[13px] font-semibold pointer-coarse:h-9">{step.action.label}</Button>}
-            {liveStep && <Button variant="ghost" size="sm" data-tour-next="" onClick={nextStep} className="h-8 px-3 text-[13px] font-semibold text-muted-foreground pointer-coarse:h-9">Next<span className="ml-2 rounded-full bg-muted px-[7px] text-[11px] font-semibold tabular-nums leading-[18px]">{tour.step + 1}/{total}</span></Button>}
+            {waiting && step.action?.kind === "pick" && <Button size="sm" data-tour-action="" onClick={() => window.dispatchEvent(new CustomEvent("ttt-tour", { detail: "upload-pick" }))} className="h-8 px-4 text-[13px] font-semibold pointer-coarse:h-9">{step.action.label}</Button>}
             {!live && <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } if (last && step.action?.kind === "pick") { window.dispatchEvent(new CustomEvent("ttt-tour", { detail: "upload-pick" })); nextStep(); return; } nextStep(); }} className="h-8 pl-4 pr-3 text-[13px] font-semibold pointer-coarse:h-9">{last ? (step.action?.label ?? "Done") : <>Next<span className="ml-2 rounded-full bg-primary-foreground/20 px-[7px] text-[11px] font-semibold tabular-nums leading-[18px]">{tour.step + 1}/{total}</span></>}</Button>}
           </div>
         </div>
