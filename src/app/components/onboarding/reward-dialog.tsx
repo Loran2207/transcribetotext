@@ -2,7 +2,7 @@ import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "../ui/dialog";
 import { DialogHero } from "../dialog-hero";
 import { Orb } from "./orb/orb";
-import { GUIDE_PERSON, REWARD } from "./guides";
+import { REWARD } from "./guides";
 import { useOnboarding } from "./onboarding-context";
 
 /* The moment the first steps are done: confetti has just fallen, and this
@@ -25,7 +25,7 @@ export function RewardDialog() {
             <span className="absolute -right-[6px] bottom-[6px] rounded-full ring-[3px] ring-card"><Orb size={44} still /></span>
           </div>
           <DialogTitle className="mt-2 text-[22px] font-bold tracking-[-0.3px] text-foreground">{REWARD.title}</DialogTitle>
-          <DialogDescription className="mt-2 text-[14px] leading-[20px] text-muted-foreground">{GUIDE_PERSON.name}, {GUIDE_PERSON.title}: "{REWARD.body}"</DialogDescription>
+          <DialogDescription className="mt-2 text-[14px] leading-[20px] text-muted-foreground">{REWARD.body}</DialogDescription>
           <Button data-onboarding-claim="" onClick={ob.claimReward} className="mt-5 h-11 w-full text-[14px] font-semibold">Done</Button>
         </div>
       </DialogContent>

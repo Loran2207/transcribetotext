@@ -100,6 +100,8 @@ for (const step of (process.env.STEPS || "").split(";").filter(Boolean)) {
   if (op === "click") await p.click(arg);
   /* jsclick=<sel>: the element's own click(), for a row inside a sheet Playwright cannot scroll to */
   else if (op === "jsclick") await p.$eval(arg, (el) => el.click());
+  /* credit=<step id>: a First step done, the way the app credits it (ttt-onboarding event) */
+  else if (op === "credit") await p.evaluate((id) => window.dispatchEvent(new CustomEvent("ttt-onboarding", { detail: id })), arg);
   else if (op === "wait") await p.waitForTimeout(+arg);
   /* waitfor=<sel>: a state that arrives on its own clock (live words) is waited for, not timed */
   else if (op === "waitfor") await p.locator(arg).first().waitFor({ state: "visible", timeout: 30000 });
