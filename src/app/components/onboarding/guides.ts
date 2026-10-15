@@ -28,7 +28,8 @@ export type TourStep = {
   go: TourTarget;
   side?: "top" | "bottom" | "left" | "right";
   /* the last step may end on a real action instead of "Done" */
-  action?: { label: string; kind: "upload" };
+  /* "upload" opens the upload window; "pick" opens the file picker of the open upload window and leaves it open */
+  action?: { label: string; kind: "upload" | "pick" };
   /* the last step of a First steps tour: the page stays live under Mia's card, the person does the thing right there */
   handoff?: boolean;
   /* the step opens (or closes) Quick Find, typing for the person */
@@ -106,8 +107,10 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       PAGE_HOME,
       { anchor: "home-cards|add-fab", go: HOME, side: "bottom", title: "Four ways in", body: "A file, your voice, a meeting or a link. Each card opens its own window.", phoneBody: "The plus button opens all four: a file, your voice, a meeting or a link.", read: "A file, your voice (Instant speech), a meeting (Meeting Recorder) or a link: each is a card on Home, and on a phone the plus button opens the same four." },
       { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "MP3, MP4, WAV, any recording. Press this card and the upload opens. Next opens it for you.", phoneBody: "MP3, MP4, WAV, any recording. Press the plus, then Audio and video files. Next opens it for you.", read: "Press Audio and video files and the upload window opens. MP3, MP4, WAV, any recording.", trigger: "upload-close" },
-      { anchor: "upload-speakers|upload-dialog", go: HOME, side: "right", title: "Speakers: keep Auto-detect", body: "This is the upload. I put a sample file in so its settings show. Auto-detect counts the voices itself; set a number only when you are sure.", read: "Once a file is in, switch on Speaker identification under it and keep Auto-detect: it counts the voices itself. Set a number only when you know it for sure, a wrong number puts two people in one voice.", trigger: "upload-demo" },
-      { anchor: "upload-drop|upload-dialog", go: HOME, side: "right", title: "Your turn", body: "Press Start transcription with the sample, or drop your own file in its place. I count this lesson done the moment the upload starts.", phoneBody: "Press Start transcription with the sample, or tap to choose your own file. I count this lesson done the moment the upload starts.", read: "Drop a file or choose one, pick a template and a folder if you like, and press Start transcription. The transcript is ready in minutes.", trigger: "upload-demo", handoff: true },
+      { anchor: "upload-drop|upload-dialog", go: HOME, side: "right", title: "The file goes here", body: "Drop a recording here or press browse. I put a sample in so you can see what comes next.", phoneBody: "Tap here to choose a recording. I put a sample in so you can see what comes next.", read: "Drop a recording on the upload window or press browse. MP3, MP4, WAV, any recording.", trigger: "upload-demo" },
+      { anchor: "upload-speakers|upload-dialog", go: HOME, side: "right", title: "Speakers: keep Auto-detect", body: "Under the file. Auto-detect counts the voices itself; set a number only when you are sure.", read: "Under the file, Speaker identification. Keep Auto-detect: it counts the voices itself. Set a number only when you know it for sure, a wrong number puts two people in one voice.", trigger: "upload-demo" },
+      { anchor: "upload-template|upload-folder|upload-dialog", go: HOME, side: "right", title: "Template and folder", body: "Both optional. A template shapes the summary, a folder is where the recording lands.", read: "At the bottom, a template for the summary and a folder for the recording. Both optional, both can be set later.", trigger: "upload-demo" },
+      { anchor: "upload-drop|upload-dialog", go: HOME, side: "right", title: "Your turn", body: "Upload file opens your files. Pick a recording, then press Start transcription. I count the lesson done when the upload starts.", phoneBody: "Upload file opens your files. Pick a recording, then press Start transcription. I count the lesson done when the upload starts.", read: "Press Upload file, pick a recording and press Start transcription. The transcript is ready in minutes.", trigger: "upload-demo", action: { label: "Upload file", kind: "pick" } },
     ],
   },
   {

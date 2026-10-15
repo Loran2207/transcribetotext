@@ -2123,7 +2123,12 @@ function UploadFileModal({ open, onClose }: { open: boolean; onClose: () => void
   /* the Academy lesson asks for the sample file while this dialog is already open */
   useEffect(() => {
     if (demoJustLoaded) { demoJustLoaded = false; setSettings((s) => ({ ...s, ...DEMO_SPEAKERS })); }
-    const on = (e: Event) => { if ((e as CustomEvent<string>).detail === "upload-demo") { setFiles((prev) => (prev.length ? prev : [demoFile()])); setSettings((s) => ({ ...s, ...DEMO_SPEAKERS })); } };
+    const on = (e: Event) => {
+      const t = (e as CustomEvent<string>).detail;
+      if (t === "upload-demo") { setFiles((prev) => (prev.length ? prev : [demoFile()])); setSettings((s) => ({ ...s, ...DEMO_SPEAKERS })); }
+      /* the lesson's last button: the sample goes, the person's own file takes its place */
+      if (t === "upload-pick") { setFiles((prev) => prev.filter((f) => f.name !== demoFile().name)); fileRef.current?.click(); }
+    };
     window.addEventListener("ttt-tour", on);
     return () => window.removeEventListener("ttt-tour", on);
   }, []);

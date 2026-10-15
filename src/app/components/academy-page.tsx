@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Cancel01Icon, Clock01Icon, PlayIcon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft01Icon, ArrowRight01Icon, Cancel01Icon, Clock01Icon, Maximize01Icon, PlayIcon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { cn } from "./ui/utils";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "./ui/sheet";
 import { Drawer, DrawerContent, DrawerDescription, DrawerTitle } from "./ui/drawer";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
 import { useIsPhone } from "./ui/use-mobile";
 import { ScrollFade } from "./scroll-fade";
 import { BannerStage, SceneCover } from "./academy-scene";
@@ -167,9 +168,13 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
     return () => window.removeEventListener("keydown", key);
   }, [openState, onStart]);
   const g = guide ?? last;
+  /* the gallery: a step's picture opened large, the whole screen with the step's words beside it */
+  const [shot, setShot] = useState<number | null>(null);
+  useEffect(() => { if (!openState) setShot(null); }, [openState]);
   if (!g) return null;
   /* the panel is read, not walked: navigation steps stay out and every step shows its reading line */
   const steps = g.steps.filter((s) => s.anchor !== NO_ANCHOR && !s.nav);
+  const shots = STEP_SHOTS[g.id] ?? [];
 
   const body = (
     <div className="flex flex-col">
@@ -188,8 +193,11 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
               <span className="relative z-[1] mt-[1px] flex size-[18px] shrink-0 items-center justify-center rounded-full bg-card text-[10.5px] font-bold tabular-nums text-primary ring-1 ring-primary/25">{i + 1}</span>
               <span className="flex min-w-0 flex-1 flex-col gap-[8px]">
                 <span className="text-[13px] leading-[18px] text-foreground/80"><span className="font-semibold text-foreground">{s.title}.</span> {s.read ?? s.body}</span>
-                {STEP_SHOTS[g.id]?.includes(i) && (
-                  <img src={`/academy/steps/${g.id}-${i}${phone ? "-m" : ""}.webp`} alt="" loading="lazy" decoding="async" className={cn("w-full select-none rounded-[10px] bg-muted object-cover ring-1 ring-border", phone ? "mx-auto aspect-[3/4] max-w-[300px]" : "aspect-[8/5]")} />
+                {shots.includes(i) && (
+                  <button type="button" onClick={() => setShot(i)} aria-label={`See the screen of step ${i + 1} large`} className={cn("group relative block w-full cursor-zoom-in overflow-hidden rounded-[10px] bg-muted ring-1 ring-border transition-shadow hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary", phone && "mx-auto max-w-[300px]")}>
+                    <img src={`/academy/steps/${g.id}-${i}${phone ? "-m" : ""}.webp`} alt="" loading="lazy" decoding="async" className={cn("w-full select-none object-cover", phone ? "aspect-[3/4]" : "aspect-[8/5]")} />
+                    <span aria-hidden className="absolute right-[8px] top-[8px] flex size-7 items-center justify-center rounded-full bg-[#0A1630]/55 text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 [@media(pointer:coarse)]:opacity-100"><Icon icon={Maximize01Icon} size={13} strokeWidth={2.2} /></span>
+                  </button>
                 )}
               </span>
             </li>
@@ -209,8 +217,11 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
   );
   const closeX = <button type="button" onClick={onClose} aria-label="Close" className="absolute right-[12px] top-[12px] z-10 flex size-8 items-center justify-center rounded-full bg-[#0A1630]/55 text-white transition-colors hover:bg-[#0A1630]/75 [@media(pointer:coarse)]:size-9"><Icon icon={Cancel01Icon} size={16} /></button>;
 
+  const gallery = shot !== null && <StepGallery guide={g} steps={steps} shots={shots} index={shot} phone={phone} onIndex={setShot} onClose={() => setShot(null)} />;
+
   if (phone) {
-    return (
+    return (<>
+      {gallery}
       <Drawer open={openState} onOpenChange={(o) => { if (!o) onClose(); }}>
         {/* the whole height of the phone: the cover at the top with the x, the steps scrolling
             under a fade, the one button pinned at the bottom. No handle, no border line. */}
@@ -225,9 +236,10 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
           {footer}
         </DrawerContent>
       </Drawer>
-    );
+    </>);
   }
-  return (
+  return (<>
+    {gallery}
     <Sheet open={openState} onOpenChange={(o) => { if (!o) onClose(); }}>
       <SheetContent side="right" data-academy-panel="" overlayClassName="bg-[#0A1630]/35" className="flex w-[420px] max-w-[92vw] flex-col gap-0 border-l p-0 shadow-[var(--elevation-md)] sm:max-w-[420px] [&>button]:hidden">
         <SheetTitle className="sr-only">{g.title}</SheetTitle>
@@ -240,5 +252,81 @@ function LessonPanel({ guide, done, onClose, onStart }: { guide: Guide | null; d
         {footer}
       </SheetContent>
     </Sheet>
+  </>);
+}
+
+/* ── the gallery: one step's whole screen, large, with its words beside it ──
+   Opened from a picture in the lesson panel. Left and right (or the arrows)
+   walk the steps that have a picture; Escape and the x close it. On a phone
+   the picture sits on top and the words under it. The light stays on the
+   control in the picture, so the words always point at something visible. */
+function StepGallery({ guide, steps, shots, index, phone, onIndex, onClose }: { guide: Guide; steps: Guide["steps"]; shots: number[]; index: number; phone: boolean; onIndex: (i: number) => void; onClose: () => void }) {
+  const at = shots.indexOf(index);
+  const prev = at > 0 ? shots[at - 1] : null;
+  const next = at >= 0 && at < shots.length - 1 ? shots[at + 1] : null;
+  const step = steps[index];
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft" && prev !== null) { e.preventDefault(); onIndex(prev); }
+      if (e.key === "ArrowRight" && next !== null) { e.preventDefault(); onIndex(next); }
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [prev, next, onIndex]);
+  if (!step) return null;
+  const src = `/academy/steps/${guide.id}-${index}${phone ? "-m" : ""}-f.webp`;
+  const words = (
+    <div className="flex min-w-0 flex-col">
+      <p className="text-[12px] font-medium text-muted-foreground">Step {at + 1} of {shots.length}<span className="mx-[6px] text-border">|</span>{guide.title}</p>
+      <h3 className="mt-[6px] text-[17px] font-bold leading-[23px] tracking-[-0.2px] text-foreground">{step.title}</h3>
+      <p className="mt-[8px] text-[13.5px] leading-[20px] text-foreground/80">{step.read ?? step.body}</p>
+    </div>
+  );
+  const arrows = (
+    <div className="flex items-center gap-[8px]">
+      <Button variant="pill-outline" size="icon" aria-label="Previous step" disabled={prev === null} onClick={() => prev !== null && onIndex(prev)} className="size-9"><Icon icon={ArrowLeft01Icon} size={16} /></Button>
+      <Button variant="pill-outline" size="icon" aria-label="Next step" disabled={next === null} onClick={() => next !== null && onIndex(next)} className="size-9"><Icon icon={ArrowRight01Icon} size={16} /></Button>
+    </div>
+  );
+  if (phone) {
+    return (
+      <Drawer open onOpenChange={(o) => { if (!o) onClose(); }}>
+        <DrawerContent data-academy-gallery="" className="!mt-0 h-[calc(100dvh-20px)] !max-h-none overflow-hidden !rounded-t-[18px] !border-0 bg-card [&>div:first-child]:!hidden">
+          <DrawerTitle className="sr-only">{step.title}</DrawerTitle>
+          <DrawerDescription className="sr-only">{step.read ?? step.body}</DrawerDescription>
+          <button type="button" onClick={onClose} aria-label="Close" className="absolute right-[12px] top-[12px] z-10 flex size-9 items-center justify-center rounded-full bg-[#0A1630]/55 text-white"><Icon icon={Cancel01Icon} size={16} /></button>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 flex-1 items-start justify-center bg-muted px-[16px] pt-[16px]">
+              <img key={src} src={src} alt="" decoding="async" className="h-full max-h-full w-auto max-w-full select-none rounded-t-[14px] object-contain object-top ring-1 ring-border" />
+            </div>
+            <div className="shrink-0 px-[20px] pt-[16px] pb-[calc(14px+env(safe-area-inset-bottom))]">
+              {words}
+              <div className="mt-[14px] flex items-center justify-between">
+                {arrows}
+                <Button variant="pill-outline" onClick={onClose} className="h-9 px-[14px] text-[13px] font-semibold">Back to the lesson</Button>
+              </div>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent data-academy-gallery="" className="grid-cols-[minmax(0,1fr)_300px] gap-0 overflow-hidden p-0 sm:max-w-[min(1240px,94vw)]">
+        <DialogTitle className="sr-only">{step.title}</DialogTitle>
+        <DialogDescription className="sr-only">{step.read ?? step.body}</DialogDescription>
+        <div className="flex items-center justify-center bg-muted p-[16px]">
+          <img key={src} src={src} alt="" decoding="async" className="max-h-[calc(100vh-120px)] w-full select-none rounded-[10px] object-contain ring-1 ring-border" />
+        </div>
+        <div className="flex flex-col border-l border-border p-[22px] pt-[48px]">
+          {words}
+          <div className="mt-auto flex items-center justify-between pt-[20px]">
+            {arrows}
+            <span className="text-[12px] text-muted-foreground"><kbd className="rounded-[4px] border border-border px-[5px] text-[10.5px] font-semibold">Left</kbd> <kbd className="rounded-[4px] border border-border px-[5px] text-[10.5px] font-semibold">Right</kbd></span>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

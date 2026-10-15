@@ -124,7 +124,8 @@ export function OnboardingTour() {
   const handedOver = useRef(false);
   useEffect(() => {
     const t = step?.trigger;
-    if (step) handedOver.current = !!step.handoff;
+    /* a step that ends on the file picker keeps the upload window open, like a hand-over */
+    if (step) handedOver.current = !!step.handoff || step.action?.kind === "pick";
     if (t) { triggerUsed.current = true; window.dispatchEvent(new CustomEvent("ttt-tour", { detail: t })); return; }
     /* a First steps tour ends on the real thing, open: it stays for the person */
     if (!step && handedOver.current) { triggerUsed.current = false; handedOver.current = false; return; }
@@ -451,7 +452,7 @@ export function OnboardingTour() {
               </Button>
             )}
             {/* handed over or waiting, there is nothing to press here: the real action moves it on */}
-            {!live && <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } nextStep(); }} className="h-8 pl-4 pr-3 text-[13px] font-semibold pointer-coarse:h-9">{last ? (step.action?.label ?? "Done") : <>Next<span className="ml-2 rounded-full bg-primary-foreground/20 px-[7px] text-[11px] font-semibold tabular-nums leading-[18px]">{tour.step + 1}/{total}</span></>}</Button>}
+            {!live && <Button size="sm" data-tour-next="" onClick={() => { if (last && step.action?.kind === "upload") { nextStep(); setOpenModal("upload"); return; } if (last && step.action?.kind === "pick") { window.dispatchEvent(new CustomEvent("ttt-tour", { detail: "upload-pick" })); nextStep(); return; } nextStep(); }} className="h-8 pl-4 pr-3 text-[13px] font-semibold pointer-coarse:h-9">{last ? (step.action?.label ?? "Done") : <>Next<span className="ml-2 rounded-full bg-primary-foreground/20 px-[7px] text-[11px] font-semibold tabular-nums leading-[18px]">{tour.step + 1}/{total}</span></>}</Button>}
           </div>
         </div>
       </motion.div>}

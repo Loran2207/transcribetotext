@@ -6,7 +6,9 @@ export const STEP_SHOTS: Record<string, number[]> = {
     1,
     2,
     3,
-    4
+    4,
+    5,
+    6
   ],
   "read-transcript": [
     0,
