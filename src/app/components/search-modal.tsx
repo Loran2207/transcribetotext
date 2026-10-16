@@ -254,7 +254,8 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
   const [query, setQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState(isFreshAccount() ? [] : RECENT_SEARCHES);
   const [scope, setScope] = useState<"recordings" | "folders">("recordings");
-  const [titleOnly, setTitleOnly] = useState(false);
+  /* the product searches the names of recordings and shows the summary line; the Title only switch and the Creator filter are not on the platform (16.10) */
+  const titleOnly = false;
 
   /* the search lesson types for the person: `ttt-quick-find` carries a query */
   useEffect(() => {
@@ -268,7 +269,6 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
-  const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set());
   const [datePreset, setDatePreset] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -300,7 +300,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
 
   // Search logic
   const hasQuery = query.trim().length > 0;
-  const hasFilters = selectedFolders.size > 0 || selectedTypes.size > 0 || selectedCreators.size > 0 || datePreset !== null || selectedDate !== null;
+  const hasFilters = selectedFolders.size > 0 || selectedTypes.size > 0 || datePreset !== null || selectedDate !== null;
 
   const recordingResults = hasQuery
     ? MOCK_RESULTS.filter(r => {
@@ -318,7 +318,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
   const resultCount = results.length;
 
   function removeRecent(id: string) { setRecentSearches(prev => prev.filter(r => r.id !== id)); }
-  function clearAllFilters() { setSelectedFolders(new Set()); setSelectedTypes(new Set()); setSelectedCreators(new Set()); setDatePreset(null); setSelectedDate(null); setTitleOnly(false); }
+  function clearAllFilters() { setSelectedFolders(new Set()); setSelectedTypes(new Set()); setDatePreset(null); setSelectedDate(null); }
 
   const FOLDER_PATH = "M13.3333 13.3333C13.687 13.3333 14.0261 13.1929 14.2761 12.9428C14.5262 12.6928 14.6667 12.3536 14.6667 12V5.33333C14.6667 4.97971 14.5262 4.64057 14.2761 4.39052C14.0261 4.14048 13.687 4 13.3333 4H8.06667C7.84368 4.00219 7.6237 3.94841 7.42687 3.84359C7.23004 3.73877 7.06264 3.58625 6.94 3.4L6.4 2.6C6.27859 2.41565 6.11332 2.26432 5.919 2.1596C5.72468 2.05488 5.50741 2.00004 5.28667 2H2.66667C2.31304 2 1.97391 2.14048 1.72386 2.39052C1.47381 2.64057 1.33333 2.97971 1.33333 3.33333V12C1.33333 12.3536 1.47381 12.6928 1.72386 12.9428C1.97391 13.1929 2.31304 13.3333 2.66667 13.3333H13.3333Z";
 
@@ -404,15 +404,6 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
             </div>
           )}
 
-          {/* Title Only toggle */}
-          {scope === "recordings" && (
-            <FilterChip
-              label="Title only"
-              icon={<span className={`font-bold text-[11px] ${titleOnly ? "text-primary" : "text-muted-foreground"}`}>Aa</span>}
-              active={titleOnly}
-              onClick={() => setTitleOnly(!titleOnly)}
-            />
-          )}
 
           {/* Transcription type */}
           {scope === "recordings" && (
@@ -440,28 +431,6 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
             </div>
           )}
 
-          {/* Creator */}
-          {scope === "recordings" && (
-            <div className="relative" onClick={e => e.stopPropagation()}>
-              <FilterChip
-                label="Creator" hasChevron
-                icon={<Icon icon={User} className={`size-[12px] ${selectedCreators.size > 0 ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />}
-                active={selectedCreators.size > 0 || activeDropdown === "creators"} count={selectedCreators.size}
-                onClick={() => setActiveDropdown(activeDropdown === "creators" ? null : "creators")}
-              />
-              {activeDropdown === "creators" && (
-                <FilterDropdown width={200}>
-                  {CREATOR_OPTIONS.map(cr => (
-                    <Button variant="ghost" key={cr.id} onClick={() => toggleSet(setSelectedCreators, cr.id)} className={`flex items-center gap-[8px] w-[calc(100%-8px)] h-[32px] px-[10px] rounded-[8px] mx-[4px] justify-start ${selectedCreators.has(cr.id) ? "bg-primary/5" : ""}`}>
-                      <Icon icon={User} className={`size-[13px] ${selectedCreators.has(cr.id) ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />
-                      <span className="flex-1 text-left font-normal text-[13px] text-foreground">{cr.label}</span>
-                      {selectedCreators.has(cr.id) && <svg className="size-[14px] shrink-0" fill="none" viewBox="0 0 16 16"><path d="M3 8.5L6.5 12L13 4" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                    </Button>
-                  ))}
-                </FilterDropdown>
-              )}
-            </div>
-          )}
 
           {/* Date */}
           <div className="relative" onClick={e => e.stopPropagation()}>
@@ -483,7 +452,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           </div>
 
           {/* Clear all */}
-          {(hasFilters || titleOnly) && (
+          {hasFilters && (
             <Button variant="ghost" size="icon" onClick={clearAllFilters} className="size-[28px] rounded-full shrink-0" title="Clear all filters">
               <Icon icon={X} className="size-[13px] text-destructive" strokeWidth={2} />
             </Button>

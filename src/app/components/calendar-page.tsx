@@ -492,7 +492,8 @@ export function CalendarPage() {
    Connected calendars indicator (tabs row)
    ═══════════════════════════════════════════ */
 
-const INDICATOR_PROVIDERS: CalendarProvider[] = ["google", "outlook"];
+/* the platform connects Google Calendar only (16.10) */
+const INDICATOR_PROVIDERS: CalendarProvider[] = ["google"];
 
 interface ConnectedCalendarsIndicatorProps {
   accounts: CalendarAccount[];

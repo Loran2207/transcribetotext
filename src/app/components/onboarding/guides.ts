@@ -109,7 +109,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       { anchor: "home-cards|add-fab", go: HOME, side: "bottom", title: "Four ways in", body: "A file, your voice, a meeting or a link. Each card opens its own window.", phoneBody: "The plus button opens all four: a file, your voice, a meeting or a link.", read: "A file, your voice (Instant speech), a meeting (Meeting Recorder) or a link: each is a card on Home, and on a phone the plus button opens the same four." },
       { anchor: "home-card-upload|add-fab", go: HOME, side: "bottom", title: "Start with a file", body: "MP3, MP4, WAV, any recording. Press this card and the upload opens. Next opens it for you.", phoneBody: "MP3, MP4, WAV, any recording. Press the plus, then Audio and video files. Next opens it for you.", read: "Press Audio and video files and the upload window opens. MP3, MP4, WAV, any recording.", trigger: "upload-close" },
       { anchor: "upload-drop|upload-dialog", go: HOME, side: "right", title: "The file goes here", body: "Drop a recording here, or press Upload file and pick one. I wait: the next steps show up once the file is in.", phoneBody: "Press Upload file and pick a recording. I wait: the next steps show up once the file is in.", read: "Drop a recording on the upload window or press browse. MP3, MP4, WAV, any recording. The settings appear once the file is in.", trigger: "upload-ask-files", waitFor: "upload", advanceOn: "upload-files", action: { label: "Upload file", kind: "pick" } },
-      { anchor: "upload-language|upload-dialog", go: HOME, side: "right", title: "Transcription language", body: "Detect automatically is right for most calls. Pick a language only when the detection gets it wrong.", read: "Transcription language: Detect automatically is right for most calls. Pick a language only when the detection gets it wrong.", trigger: "upload-open" },
+      { anchor: "upload-language|upload-dialog", go: HOME, side: "right", title: "Transcription language", body: "The language spoken in the recording. English is set; change it when the call was in another language.", read: "Transcription language: the language spoken in the recording. English is set by default; change it when the call was in another language.", trigger: "upload-open" },
       { anchor: "upload-speakers|upload-dialog", go: HOME, side: "right", title: "Speaker identification", body: "Switch it on when more than one person spoke, and keep Auto-detect: it counts the voices itself. Set a number only when you are sure.", read: "Speaker identification: switch it on when more than one person spoke, and keep Auto-detect, it counts the voices itself. Set a number only when you know it for sure, a wrong number puts two people in one voice.", trigger: "upload-open" },
       { anchor: "upload-template|upload-folder|upload-dialog", go: HOME, side: "right", title: "Template and folder", body: "Both optional. A template shapes the summary, a folder is where the recording lands. Both can be set later.", read: "At the bottom, a template for the summary and a folder for the recording. Both optional, both can be set later.", trigger: "upload-open" },
       { anchor: "upload-start|upload-dialog", go: HOME, side: "top", title: "Press Start transcription", body: "That is all. The transcript is ready in minutes, and this lesson is done the moment the upload starts.", read: "Press Start transcription. The transcript is ready in minutes.", handoff: true, trigger: "upload-open" },
@@ -228,7 +228,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     steps: [
       { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Where your calls live", body: "Meetings, in the sidebar. Next takes you there.", nav: true },
       PAGE_MEETINGS,
-      { anchor: "meetings-connect|meetings-accounts|meetings-tabs", go: CALENDAR, side: "bottom", title: "Connect your calendar", body: "Press Connect next to Google or Outlook. The rest of this lesson needs your meetings, so I wait here.", read: "Connect Google or Outlook first, one sign-in. Until then the Meetings page is empty and the recorder cannot see your calls.", connected: { title: "Your calendar is connected", body: "Every meeting from it lands here by itself. Another one connects from the Settings tab." }, trigger: "meetings-upcoming", waitFor: "calendar" },
+      { anchor: "meetings-connect|meetings-accounts|meetings-tabs", go: CALENDAR, side: "bottom", title: "Connect your calendar", body: "Press Connect next to Google Calendar. The rest of this lesson needs your meetings, so I wait here.", read: "Connect Google Calendar first, one sign-in. Until then the Meetings page is empty and the recorder cannot see your calls.", connected: { title: "Your calendar is connected", body: "Every meeting from it lands here by itself. Another account connects from the Settings tab." }, trigger: "meetings-upcoming", waitFor: "calendar" },
       { anchor: "meetings-autorecord-bar|calendar-week|meetings-tabs", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Your meetings are here now. Auto-record picks which ones the recorder joins by itself: all, internal ones only, or the ones you select. The transcript is ready when the call ends.", read: "Auto-record picks which meetings the recorder joins by itself: all, internal ones only, or the ones you select. The transcript is ready when the call ends.", trigger: "meetings-upcoming" },
       { anchor: "calendar-week|meetings-tabs", go: CALENDAR, side: "bottom", title: "Let the bot in", body: "The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in; otherwise nothing is recorded.", read: "The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in, or nothing is recorded.", trigger: "meetings-upcoming" },
       { anchor: "home-card-meeting|add-fab|nav-calendar", go: HOME, side: "bottom", title: "Or record one now", body: "Paste any invite link from the Home page. Same recorder, no calendar needed.", read: "A call that is not on the calendar: paste its invite link on Home. Same recorder, no calendar needed." },
@@ -239,23 +239,10 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     title: "Find anything fast",
     seconds: 25,
     steps: [
-      { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Searches what was said, not only the titles. Ctrl K opens it from anywhere; Next opens it now.", read: "Searches what was said, not only the titles. Ctrl K opens it from anywhere.", quickFind: { open: false, query: "" } },
-      { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A name, a topic, a phrase. I typed one for you.", read: "Type what you remember: a name, a topic, a phrase.", quickFind: { open: true, query: "record" } },
-      { anchor: "quick-find-results", go: HOME, side: "bottom", title: "Every match, with its moment", body: "Each result is a recording where those words were said. Click one to open it right there.", phoneBody: "Each result is a recording where those words were said. Tap one to open it right there.", read: "Each result is a recording where those words were said. Open one and it lands on that moment.", quickFind: { open: true } },
-      { anchor: "quick-find-filters", go: HOME, side: "bottom", title: "Narrow it down", body: "By folder, source, who recorded it or when.", read: "Narrow the results by folder, source, who recorded it or when.", quickFind: { open: true } },
-    ],
-  },
-  {
-    id: "meeting-settings",
-    title: "Tune the meeting recorder",
-    seconds: 30,
-    steps: [
-      { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Where your calls live", body: "Meetings, in the sidebar. Next takes you there.", nav: true },
-      PAGE_MEETINGS,
-      { anchor: "meetings-connect|meetings-accounts|meetings-tabs", go: CALENDAR, side: "bottom", title: "Connect your calendar", body: "The recorder's settings belong to a calendar. Press Connect next to Google or Outlook and I go on.", read: "The settings appear once a calendar is connected.", connected: { title: "Your calendar is connected", body: "Its settings are one tab away." }, trigger: "meetings-upcoming", waitFor: "calendar" },
-      { anchor: "meetings-tabs", go: CALENDAR, side: "bottom", title: "Settings", body: "Everything the recorder does by itself is set on this tab.", read: "A tab on Meetings with everything the recorder does by itself. It appears once a calendar is connected.", connected: { body: "Everything the recorder does by itself is set on this tab." }, trigger: "meetings-settings" },
-      { anchor: "meetings-autorecord|meetings-tabs", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Which meetings the recorder joins on its own: all of them, internal ones only, internal without one-on-ones, or the ones you select.", read: "All meetings, internal ones only, internal without one-on-ones, or the ones you select. The recorder joins those on its own.", trigger: "meetings-settings" },
-      { anchor: "meetings-recap|meetings-tabs", go: CALENDAR, side: "top", title: "After the call", body: "Who gets the recap email and access to the recording: only you, or everyone who was invited.", read: "Who gets the recap email and access to the recording: only you, or everyone invited.", trigger: "meetings-settings" },
+      { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Any recording in a moment. Ctrl K opens it from anywhere; Next opens it now.", read: "Finds any recording in a moment. Ctrl K opens it from anywhere.", quickFind: { open: false, query: "" } },
+      { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A word from the name of the recording. I typed one for you.", read: "Type what you remember: a word from the name of the recording.", quickFind: { open: true, query: "interview" } },
+      { anchor: "quick-find-results", go: HOME, side: "bottom", title: "Every match", body: "Each result is a recording. Click one to open it right there.", phoneBody: "Each result is a recording. Tap one to open it right there.", read: "Each result is a recording. Click one and it opens.", quickFind: { open: true } },
+      { anchor: "quick-find-filters", go: HOME, side: "bottom", title: "Narrow it down", body: "By folder, by type of recording, or by date.", read: "Narrow the results by folder, by type of recording, or by date.", quickFind: { open: true } },
     ],
   },
   {
@@ -306,7 +293,7 @@ export const ACADEMY_SECTIONS: { id: string; tab: string; title: string; subtitl
 
 const GUIDE_META: Record<string, { cover: string; category: string; summary: string }> = {
   "first-record": { cover: "/images/academy3/first-record.jpg", category: "create", summary: "Turn a file, your voice, a meeting or a link into a transcript." },
-  "meetings": { cover: "/images/academy3/meetings.jpg", category: "create", summary: "Connect a calendar and let the recorder join your calls by itself." },
+  "meetings": { cover: "/images/academy3/meetings.jpg", category: "create", summary: "Connect Google Calendar and let the recorder join your calls by itself." },
   "read-transcript": { cover: "/images/academy3/read-transcript.jpg", category: "work", summary: "Read it, play it from any word, set the pace, hide what you do not need." },
   "translate": { cover: "/images/academy3/translate.jpg", category: "work", summary: "The transcript and summary in another language, next to the original." },
   "edit-transcript": { cover: "/images/academy3/edit-transcript.jpg", category: "work", summary: "Fix names and misheard words straight in the text." },
@@ -316,7 +303,6 @@ const GUIDE_META: Record<string, { cover: string; category: string; summary: str
   "share": { cover: "/images/academy3/share.jpg", category: "share", summary: "Invite people, turn on a link, or copy the transcript, summary or link." },
   "folders": { cover: "/images/academy3/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
   "find": { cover: "/images/academy3/find.jpg", category: "organize", summary: "Search what was said, across every recording." },
-  "meeting-settings": { cover: "/images/academy3/meeting-settings.jpg", category: "create", summary: "Which calls the recorder joins, and who gets the recap." },
   "highlights": { cover: "/images/academy3/highlights.jpg", category: "work", summary: "Mark the part that matters, comment on it, share or copy just that." },
   "trash": { cover: "/images/academy3/trash.jpg", category: "organize", summary: "Restore a deleted recording, or remove it for good." },
   "plan": { cover: "/images/academy3/plan.jpg", category: "account", summary: "What Free includes, and how to get more." },
@@ -392,7 +378,7 @@ export const STEP_TOURS: Guide[] = [
   ] },
   { ...STEP_META, id: "step-calendar", forStep: "calendar", title: "Connect your calendar", seconds: 15, steps: [
     { anchor: "nav-calendar|menu", go: HOME, side: "right", title: "Meetings", body: "Your calendar lives here. Next takes you there." },
-    { anchor: "meetings-connect|meetings-accounts|meetings-tabs", go: CALENDAR, side: "bottom", title: "Connect Google or Outlook", body: "Pick one and sign in. Your meetings then show up here by themselves.", connected: { title: "A calendar is already connected", body: "This step is done. Another calendar connects from the Settings tab." }, trigger: "meetings-upcoming", handoff: true },
+    { anchor: "meetings-connect|meetings-accounts|meetings-tabs", go: CALENDAR, side: "bottom", title: "Connect Google Calendar", body: "Press Connect and sign in. Your meetings then show up here by themselves.", connected: { title: "A calendar is already connected", body: "This step is done. Another account connects from the Settings tab." }, trigger: "meetings-upcoming", handoff: true },
   ] },
   { ...STEP_META, id: "step-template", forStep: "template", title: "Apply a template", seconds: 15, steps: [
     OPEN_RECORD_FOR_STEP,

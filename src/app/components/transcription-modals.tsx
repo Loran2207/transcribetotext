@@ -1410,7 +1410,6 @@ function selectedTemplateJobFields(templates: Template[], templateId: string | n
 // ── Languages ──────────────────────────────────────────────
 
 export const LANGUAGES = [
-  { id: "auto", label: "Detect automatically", flag: "🌐" },
   { id: "en", label: "English", flag: "🇺🇸" },
   { id: "ru", label: "Russian", flag: "🇷🇺" },
   { id: "es", label: "Spanish", flag: "🇪🇸" },
@@ -2631,7 +2630,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
   /* the call has no invite link to name it by, so today's date stands in until the note is titled */
   const todayCallName = () => `Call on ${new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
   const [callName, setCallName] = useState(todayCallName);
-  const [langId, setLangId] = useState("auto");
+  const [langId, setLangId] = useState("en");
   const [mode, setMode] = useState<"mono" | "bi">("mono");
   const [langBilingual, setLangBilingual] = useState<string[]>(["auto"]);
   const [botName, setBotName] = useState("TranscribeToText Bot");
@@ -2673,7 +2672,7 @@ function MeetingBotModal({ open, onClose }: { open: boolean; onClose: () => void
 
   function resetForm() {
     setMeetingUrl(""); setMeetingUrlError(""); meetingCounterRef.current += 1;
-    setMeetingName(`Meeting ${meetingCounterRef.current}`); setCallName(todayCallName()); setLangId("auto"); setMode("mono"); setLangBilingual(["auto"]);
+    setMeetingName(`Meeting ${meetingCounterRef.current}`); setCallName(todayCallName()); setLangId("en"); setMode("mono"); setLangBilingual(["auto"]);
     setBotName("TranscribeToText Bot"); setRealTimeTranslation(false); setRealTimeTranslationLang("en");
     setSpeakerEnabled(false); setSpeakerCount(2);
     setSelectedFolderId(null);

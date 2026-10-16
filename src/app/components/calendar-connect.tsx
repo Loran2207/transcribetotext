@@ -15,11 +15,6 @@ const PROVIDERS: ProviderInfo[] = [
     name: PROVIDER_NAMES.google,
     description: "Gmail and Google Workspace accounts",
   },
-  {
-    id: "outlook",
-    name: PROVIDER_NAMES.outlook,
-    description: "Outlook.com and Microsoft 365 accounts",
-  },
 ];
 
 export function GoogleCalendarLogo({ size = 28 }: { size?: number }) {

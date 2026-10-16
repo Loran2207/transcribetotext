@@ -159,7 +159,7 @@ function RadioRow({ id, value, label, description }: RadioRowProps) {
    Calendar section - providers and accounts
    ═══════════════════════════════════════════ */
 
-const PROVIDER_ORDER: CalendarProvider[] = ["google", "outlook"];
+const PROVIDER_ORDER: CalendarProvider[] = ["google"];
 
 interface CalendarSectionProps {
   accounts: CalendarAccount[];

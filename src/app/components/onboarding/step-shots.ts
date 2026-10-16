@@ -80,13 +80,6 @@ export const STEP_SHOTS: Record<string, number[]> = {
     2,
     3
   ],
-  "meeting-settings": [
-    0,
-    1,
-    2,
-    3,
-    4
-  ],
   "highlights": [
     0,
     1,
