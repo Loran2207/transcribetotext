@@ -1,18 +1,154 @@
 [
  {
-  "n": 90,
-  "hash": "5c57e86e8b",
+  "n": 5,
+  "hash": "d8f99cc21e",
   "wer": 0.0,
   "takes": 1,
-  "text": "Drop a file here. Or click to choose one, then press Start transcription. The step is done the moment the upload starts.",
-  "heard": "Drop a file here, or click to choose one, then press Start Transcription. The step is done the moment the upload starts."
+  "text": "The file goes here. Drop a recording here, or press Upload file and pick one. I wait: the next steps show up once the file is in.",
+  "heard": "The file goes here, drop a recording here, or press upload file and pick one. I wait. The next steps show up once the file is in."
  },
  {
-  "n": 91,
-  "hash": "b2121689c3",
+  "n": 6,
+  "hash": "51e0415435",
   "wer": 0.0,
   "takes": 1,
-  "text": "Drop a file here. Or tap to choose one, then press Start transcription. The step is done the moment the upload starts.",
-  "heard": "Drop a file here, or tap to choose one, then press Start Transcription. The step is done the moment the upload starts."
+  "text": "The file goes here. Press Upload file and pick a recording. I wait: the next steps show up once the file is in.",
+  "heard": "The file goes here, press upload file and pick a recording. I wait. The next steps show up once the file is in."
+ },
+ {
+  "n": 7,
+  "hash": "5ce7c7dfb4",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Transcription language. The language spoken in the recording. English is set; change it when the call was in another language.",
+  "heard": "transcription language. The language spoken in the recording. English is set, change it when the call was in another language."
+ },
+ {
+  "n": 8,
+  "hash": "a8edcad272",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Speaker identification. Switch it on when more than one person spoke, and keep Auto-detect: it counts the voices itself. Set a number only when you are sure.",
+  "heard": "Speaker Identification. Switch it on when more than one person spoke, and keep auto-detect, it counts the voices itself. Set a number only when you are sure."
+ },
+ {
+  "n": 10,
+  "hash": "3d52b71316",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Press Start transcription. That is all. The transcript is ready in minutes, and this lesson is done the moment the upload starts.",
+  "heard": "Press Start Transcription. That is all. The transcript is ready in minutes, and this lesson is done the moment the upload starts."
+ },
+ {
+  "n": 12,
+  "hash": "9be917bc4d",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "A recording. The transcript on the left, the tools above it, comments and outline on the right.",
+  "heard": "A recording. The transcript on the left, the tools above it, comments and outline on the right."
+ },
+ {
+  "n": 17,
+  "hash": "5ec6cea318",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Tap a timecode. The player jumps to that moment. While it plays, the words follow the voice.",
+  "heard": "Tap a timecode. The player jumps to that moment. While it plays, the words follow the voice."
+ },
+ {
+  "n": 31,
+  "hash": "be22b93df7",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Tap straight into the text. Every block is a field now. I put the cursor in the first one: type to fix it, like in any document.",
+  "heard": "Tap straight into the text. Every block is a field now. I put the cursor in the first one, type to fix it, like in any document."
+ },
+ {
+  "n": 34,
+  "hash": "27f86b53b3",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Three voices, three names. The app heard three people. Next opens the list, where you check their names.",
+  "heard": "Three voices, three names, the app heard three people. Next opens the list where you check their names."
+ },
+ {
+  "n": 50,
+  "hash": "9025967aba",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "One tap. Several files come as one zip. I close this for you now.",
+  "heard": "One tap. Several files come as one zip. I close this for you now."
+ },
+ {
+  "n": 66,
+  "hash": "dbfd202d87",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Connect your calendar. Press Connect next to Google Calendar. The rest of this lesson needs your meetings, so I wait here.",
+  "heard": "Connect your calendar. Press Connect next to Google Calendar. The rest of this lesson needs your meetings, so I wait here."
+ },
+ {
+  "n": 67,
+  "hash": "0254bcd885",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Your calendar is connected. Every meeting from it lands here by itself. Another account connects from the Settings tab.",
+  "heard": "Your calendar is connected. Every meeting from it lands here by itself. Another account connects from the Settings tab."
+ },
+ {
+  "n": 71,
+  "hash": "7471d30ec3",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Quick Find. Any recording in a moment. Ctrl K opens it from anywhere; Next opens it now.",
+  "heard": "Quick Find. Any recording in a moment. Ctrl K opens it from anywhere, next opens it now."
+ },
+ {
+  "n": 72,
+  "hash": "3066561244",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Type what you remember. A word from the recording you are after. I typed one for you.",
+  "heard": "Type what you remember, a word from the recording you are after. I typed one for you."
+ },
+ {
+  "n": 73,
+  "hash": "e4ea3f65ea",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Every match. Each result is a recording. Click one to open it right there.",
+  "heard": "Every match, each result is a recording. Click one to open it right there."
+ },
+ {
+  "n": 74,
+  "hash": "22aec825a6",
+  "wer": 0.071,
+  "takes": 1,
+  "text": "Every match. Each result is a recording. Tap one to open it right there.",
+  "heard": "Every match each result is a recording top one to open it right there"
+ },
+ {
+  "n": 75,
+  "hash": "8a984bb51c",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Narrow it down. By folder, by type of recording, or by date.",
+  "heard": "narrow it down by folder, by type of recording, or by date."
+ },
+ {
+  "n": 100,
+  "hash": "10543fd0d4",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "Connect Google Calendar. Press Connect and sign in. Your meetings then show up here by themselves.",
+  "heard": "Connect Google Calendar. Press Connect and sign in. Your meetings then show up here by themselves."
+ },
+ {
+  "n": 101,
+  "hash": "1627b43031",
+  "wer": 0.0,
+  "takes": 1,
+  "text": "A calendar is already connected. This step is done. Another account connects from the Settings tab.",
+  "heard": "A calendar is already connected. This step is done. Another account connects from the Settings tab."
  }
 ]
