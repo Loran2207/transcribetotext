@@ -302,7 +302,7 @@ const GUIDE_META: Record<string, { cover: string; category: string; summary: str
   "export": { cover: "/images/academy3/export.jpg", category: "share", summary: "PDF, Word, text or subtitles, with the options you choose." },
   "share": { cover: "/images/academy3/share.jpg", category: "share", summary: "Invite people, turn on a link, or copy the transcript, summary or link." },
   "folders": { cover: "/images/academy3/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
-  "find": { cover: "/images/academy3/find.jpg", category: "organize", summary: "Search what was said, across every recording." },
+  "find": { cover: "/images/academy3/find.jpg", category: "organize", summary: "Find any recording by its name, folder, type or date." },
   "highlights": { cover: "/images/academy3/highlights.jpg", category: "work", summary: "Mark the part that matters, comment on it, share or copy just that." },
   "trash": { cover: "/images/academy3/trash.jpg", category: "organize", summary: "Restore a deleted recording, or remove it for good." },
   "plan": { cover: "/images/academy3/plan.jpg", category: "account", summary: "What Free includes, and how to get more." },

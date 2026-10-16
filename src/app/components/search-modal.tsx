@@ -338,7 +338,6 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
       >
         {/* ─── Search Header ─── */}
         <div className="flex items-center gap-[8px] px-[14px] h-[52px] shrink-0 border-b border-border">
-          <div className="shrink-0 max-md:hidden"><ScopeSelector scope={scope} onChange={setScope} /></div>
           <div data-tour="quick-find-input" className="flex items-center gap-[8px] flex-1 min-w-0" onClick={e => e.stopPropagation()}>
             <Icon icon={Search} className="size-[15px] shrink-0 text-muted-foreground" strokeWidth={1.5} />
             <Input
@@ -361,20 +360,7 @@ export function SearchModal({ open, onClose }: SearchModalProps) {
           </div>
         </div>
 
-        {/* Phone: scope as LINE tabs (matches the app tabs everywhere else) */}
-        <div className="md:hidden flex items-center gap-6 px-[16px] shrink-0 border-b border-border">
-          {(["recordings", "folders"] as const).map((sc) => (
-            <button
-              key={sc}
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setScope(sc); }}
-              className={`relative -mb-px py-[10px] text-[13px] font-medium transition-colors ${scope === sc ? "text-primary" : "text-muted-foreground"}`}
-            >
-              {sc === "recordings" ? "Recordings" : "Folders"}
-              {scope === sc && <span className="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />}
-            </button>
-          ))}
-        </div>
+        {/* the platform searches recordings only: no Recordings/Folders scope switch (16.10) */}
 
         {/* ─── Filter Chips ─── */}
         <div data-tour="quick-find-filters" className="flex items-center gap-[6px] px-[16px] py-[10px] shrink-0 max-md:overflow-x-auto max-md:flex-nowrap max-md:[&::-webkit-scrollbar]:hidden md:flex-wrap border-b border-border">

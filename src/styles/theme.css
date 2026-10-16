@@ -117,8 +117,8 @@
 }
 
 @theme inline {
-  --font-sans: 'Inter Variable', sans-serif;
-  --font-heading: 'Inter Variable', sans-serif;
+  --font-sans: 'Inter Variable', 'Noto Color Emoji', sans-serif;
+  --font-heading: 'Inter Variable', 'Noto Color Emoji', sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
