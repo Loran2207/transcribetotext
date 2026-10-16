@@ -94,7 +94,7 @@ const CALENDAR: TourTarget = { page: "calendar" };
 /* Every lesson opens on the whole page it lives on, so the person sees where
    they are before one control lights up (Kirill, review 55). */
 const PAGE_HOME: TourStep = { anchor: "page-home", go: HOME, side: "bottom", title: "This is Home", body: "Four ways to make a transcript at the top, your recordings below, your plan and First steps on the right.", read: "The ways to make a transcript, your recordings and First steps, all on one page." };
-const PAGE_RECORD: TourStep = { anchor: "page-record", go: RECORD, side: "bottom", title: "A recording", body: "The transcript on the left, the tools above it, notes and outline on the right.", read: "A recording opens with the transcript on the left, the tools above it, comments and outline on the right." };
+const PAGE_RECORD: TourStep = { anchor: "page-record", go: RECORD, side: "bottom", title: "A recording", body: "The transcript on the left, the tools above it, comments and outline on the right.", read: "A recording opens with the transcript on the left, the tools above it, comments and outline on the right." };
 const PAGE_RECORDS: TourStep = { anchor: "page-records", go: RECORDS, side: "bottom", title: "My Records", body: "Every recording you own, in one table. Tabs above, folders in the sidebar.", read: "Every recording you own in one table, with tabs above and folders in the sidebar." };
 const PAGE_TEMPLATES: TourStep = { anchor: "page-templates", go: TEMPLATES, side: "bottom", title: "Templates", body: "Every way a summary can be written, built in and yours.", read: "Every shape a summary can take: the built-in ones and yours." };
 const PAGE_MEETINGS: TourStep = { anchor: "page-meetings", go: CALENDAR, side: "bottom", title: "Meetings", body: "Your calendar with a recorder attached. Upcoming, past, and the calendars you connected.", read: "Your calendar with a recorder attached: upcoming calls, past ones and the calendars you connected.", trigger: "meetings-upcoming" };
@@ -162,7 +162,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     seconds: 30,
     steps: [
       OPEN_RECORD_AGAIN,
-      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Three voices, three names", body: "The app heard three people and took their names from the call. Next opens the list.", read: "The speakers chip under the title says how many voices the app heard and what it calls them.", trigger: "speakers-close" },
+      { anchor: "record-speakers-chip", go: RECORD, side: "bottom", title: "Three voices, three names", body: "The app heard three people. Next opens the list, where you check their names.", read: "The speakers chip under the title says how many voices the app heard and what it calls them.", trigger: "speakers-close" },
       { anchor: "speakers-panel", go: RECORD, side: "right", title: "Rename, add, remove", body: "Click a name to rename it. Remove a voice and its blocks go to someone else.", phoneBody: "Tap a name to rename it. Remove a voice and its blocks go to someone else.", read: "In the list, click a name to rename it. Remove a voice and its blocks go to someone else.", trigger: "speakers-open" },
       { anchor: "record-speaker-name", go: RECORD, side: "right", title: "Wrong name on one block?", body: "Click the name on that block and pick who really said it.", phoneBody: "Tap the name on that block and pick who really said it.", read: "A wrong name on one block: click the name on that block and pick who really said it.", trigger: "speakers-close" },
       { anchor: "record-transcript-body", go: RECORD, side: "top", title: "Two people in one block?", body: "Select the other person's words and pick their name. Only those words move.", read: "Two people in one block: select the other person's words and pick their name. Only those words move." },
@@ -232,7 +232,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
       { anchor: "meetings-autorecord-bar|calendar-week|meetings-tabs", go: CALENDAR, side: "bottom", title: "Auto-record", body: "Your meetings are here now. Auto-record picks which ones the recorder joins by itself: all, internal ones only, or the ones you select. The transcript is ready when the call ends.", read: "Auto-record picks which meetings the recorder joins by itself: all, internal ones only, or the ones you select. The transcript is ready when the call ends.", trigger: "meetings-upcoming" },
       { anchor: "calendar-week|meetings-tabs", go: CALENDAR, side: "bottom", title: "Let the bot in", body: "The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in; otherwise nothing is recorded.", read: "The recorder joins as a guest. When the host keeps a waiting room, someone has to let it in, or nothing is recorded.", trigger: "meetings-upcoming" },
       { anchor: "home-card-meeting|add-fab|nav-calendar", go: HOME, side: "bottom", title: "Or record one now", body: "Paste any invite link from the Home page. Same recorder, no calendar needed.", read: "A call that is not on the calendar: paste its invite link on Home. Same recorder, no calendar needed." },
-          ],
+    ],
   },
   {
     id: "find",
@@ -240,7 +240,7 @@ const RAW_GUIDES: Array<Omit<Guide, "cover" | "category" | "summary">>= [
     seconds: 25,
     steps: [
       { anchor: "quick-find", go: HOME, side: "bottom", title: "Quick Find", body: "Any recording in a moment. Ctrl K opens it from anywhere; Next opens it now.", read: "Finds any recording in a moment. Ctrl K opens it from anywhere.", quickFind: { open: false, query: "" } },
-      { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A word from the name of the recording. I typed one for you.", read: "Type what you remember: a word from the name of the recording.", quickFind: { open: true, query: "interview" } },
+      { anchor: "quick-find-input", go: HOME, side: "bottom", title: "Type what you remember", body: "A word from the recording you are after. I typed one for you.", read: "Type what you remember: a word from the recording you are after.", quickFind: { open: true, query: "interview" } },
       { anchor: "quick-find-results", go: HOME, side: "bottom", title: "Every match", body: "Each result is a recording. Click one to open it right there.", phoneBody: "Each result is a recording. Tap one to open it right there.", read: "Each result is a recording. Click one and it opens.", quickFind: { open: true } },
       { anchor: "quick-find-filters", go: HOME, side: "bottom", title: "Narrow it down", body: "By folder, by type of recording, or by date.", read: "Narrow the results by folder, by type of recording, or by date.", quickFind: { open: true } },
     ],
@@ -303,7 +303,7 @@ const GUIDE_META: Record<string, { cover: string; category: string; summary: str
   "share": { cover: "/images/academy3/share.jpg", category: "share", summary: "Invite people, turn on a link, or copy the transcript, summary or link." },
   "folders": { cover: "/images/academy3/folders.jpg", category: "organize", summary: "Folders, tabs and starred recordings." },
   "find": { cover: "/images/academy3/find.jpg", category: "organize", summary: "Find any recording by its name, folder, type or date." },
-  "highlights": { cover: "/images/academy3/highlights.jpg", category: "work", summary: "Mark the part that matters, comment on it, share or copy just that." },
+  "highlights": { cover: "/images/academy3/highlights.jpg", category: "work", summary: "Mark the part that matters, comment on it, or copy just that." },
   "trash": { cover: "/images/academy3/trash.jpg", category: "organize", summary: "Restore a deleted recording, or remove it for good." },
   "plan": { cover: "/images/academy3/plan.jpg", category: "account", summary: "What Free includes, and how to get more." },
 };

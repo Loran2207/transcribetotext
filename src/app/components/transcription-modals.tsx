@@ -1831,7 +1831,7 @@ function AdvancedSection({ children }: { children: React.ReactNode }) {
 }
 
 const DEFAULT_SETTINGS: SharedSettingsState = {
-  mode: "mono", langPrimary: "auto", langSecondary: "auto", langBilingual: ["auto"],
+  mode: "mono", langPrimary: "en", langSecondary: "en", langBilingual: ["auto"],
   speakerEnabled: false, speakerCount: 2, realtimeTranslation: false, realtimeTranslationLang: "en",
 };
 

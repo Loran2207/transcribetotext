@@ -325,48 +325,7 @@ export function MeetingsSettingsContent({
           </RadioGroup>
         </SettingsCard>
 
-        {/* After-meeting settings */}
-        <SettingsCard tour="meetings-recap">
-          <SettingsCardTitle title="After-meeting settings" />
-
-          <div className="flex flex-col gap-6">
-            <div>
-              <h4 className="text-[13px] font-semibold text-foreground">Meeting recap</h4>
-              <p className="text-[12px] text-muted-foreground mt-0.5 mb-3.5">
-                Send a meeting recap email and allow access to the recording.
-              </p>
-              <RadioGroup
-                value={settings.recap}
-                onValueChange={(v) => updateSetting("recap", v as MeetingSettings["recap"])}
-                className="gap-4"
-              >
-                <RadioRow id="recap_all" value="all" label="All meeting invitees" />
-                <RadioRow
-                  id="recap_internal"
-                  value="internal"
-                  label="Only internal invitees"
-                  description="All invitees are in your workspace or have an @northwindlabs.com email."
-                />
-                <RadioRow id="recap_me" value="me" label="Just me" />
-              </RadioGroup>
-            </div>
-
-            <div className="border-t border-border/50 pt-5">
-              <h4 className="text-[13px] font-semibold text-foreground">Language setting</h4>
-              <p className="text-[12px] text-muted-foreground mt-0.5 mb-3.5">
-                Only applies to the meeting recap.
-              </p>
-              <RadioGroup
-                value={settings.language}
-                onValueChange={(v) => updateSetting("language", v as MeetingSettings["language"])}
-                className="gap-4"
-              >
-                <RadioRow id="lang_auto" value="auto" label="Auto-detect language" />
-                <RadioRow id="lang_default" value="default" label="Set default language" />
-              </RadioGroup>
-            </div>
-          </div>
-        </SettingsCard>
+        {/* the platform has no recap or language settings for meetings (16.10): Calendar and Auto-recording only */}
     </div>
   );
 }

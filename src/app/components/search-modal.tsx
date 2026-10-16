@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { isFreshAccount } from "@/lib/fresh-account";
-import { Search, X, Calendar, FolderOpen, FileText, ChevronLeft, ChevronRight, Clock, Zap, ChevronDown, User } from "@hugeicons/core-free-icons";
+import { Search, X, Calendar, FolderOpen, FileText, ChevronLeft, ChevronRight, Clock, Zap, ChevronDown } from "@hugeicons/core-free-icons";
 import { Icon } from "./ui/icon";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -52,12 +52,6 @@ const DOC_TYPES: { id: string; label: string; source: SourceType }[] = [
   { id: "file", label: "File", source: "file" },
 ];
 
-const CREATOR_OPTIONS = [
-  { id: "kirill", label: "Kirill Kuts" },
-  { id: "maria", label: "Maria Garcia" },
-  { id: "alex", label: "Alex Johnson" },
-  { id: "james", label: "James Chen" },
-];
 
 /* ── Date presets ── */
 const DATE_PRESETS = [
@@ -206,41 +200,6 @@ function DateFilterPanel({ selectedPreset, selectedDate, onSelectPreset, onSelec
 }
 
 /* ── Scope Selector (Recordings / Folders) ── */
-function ScopeSelector({ scope, onChange }: { scope: "recordings" | "folders"; onChange: (s: "recordings" | "folders") => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  return (
-    <div className="relative shrink-0" ref={ref}>
-      <Button variant="outline"
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-[6px] h-9 pl-[12px] pr-[8px] rounded-[12px] shrink-0 border border-input !bg-transparent transition-colors hover:!bg-transparent hover:border-muted-foreground/40"
-      >
-        <span className="font-medium text-[13px] text-foreground">
-          {scope === "recordings" ? "Recordings" : "Folders"}
-        </span>
-        <Icon icon={ChevronDown} className="size-[12px] text-muted-foreground" strokeWidth={2} />
-      </Button>
-      {open && (
-        <div className="absolute top-[calc(100%+4px)] left-0 w-[160px] rounded-[10px] py-[4px] z-20 bg-popover border border-border shadow-md">
-          <Button variant="ghost" onClick={() => { onChange("recordings"); setOpen(false); }} className={`flex items-center gap-[8px] w-full h-[34px] px-[12px] rounded-none justify-start ${scope === "recordings" ? "bg-primary/5" : ""}`}>
-            <Icon icon={FileText} className={`size-[14px] ${scope === "recordings" ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />
-            <span className={`text-[13px] ${scope === "recordings" ? "font-medium text-primary" : "font-normal text-foreground"}`}>Recordings</span>
-          </Button>
-          <Button variant="ghost" onClick={() => { onChange("folders"); setOpen(false); }} className={`flex items-center gap-[8px] w-full h-[34px] px-[12px] rounded-none justify-start ${scope === "folders" ? "bg-primary/5" : ""}`}>
-            <Icon icon={FolderOpen} className={`size-[14px] ${scope === "folders" ? "text-primary" : "text-muted-foreground"}`} strokeWidth={1.5} />
-            <span className={`text-[13px] ${scope === "folders" ? "font-medium text-primary" : "font-normal text-foreground"}`}>Folders</span>
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* ════════════════════════════════════════════════════
    SEARCH MODAL

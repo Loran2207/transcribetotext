@@ -16,7 +16,7 @@ await build({ entryPoints: ["src/lib/welcome-script.ts"], bundle: true, format: 
 const w = await import(pathToFileURL(out2).href);
 const lines = new Set();
 const say = (title, body) => { if (body) lines.add(`${title ? title.replace(/[.!?]$/, "") + ". " : ""}${body}`); };
-const step = (s) => { say(s.title, s.body); if (s.phoneBody) say(s.phoneTitle ?? s.title, s.phoneBody); if (s.compactBody) say(s.title, s.compactBody); if (s.connected) { say(s.connected.title ?? s.title, s.connected.body); if (s.connected.phoneBody) say(s.connected.title ?? s.title, s.connected.phoneBody); } };
+const step = (s) => { say(s.title, s.body); if (s.phoneBody) say(s.phoneTitle ?? s.title, s.phoneBody); else if (s.phoneTitle) say(s.phoneTitle, s.body); if (s.compactBody) say(s.title, s.compactBody); if (s.connected) { say(s.connected.title ?? s.title, s.connected.body); if (s.connected.phoneBody) say(s.connected.title ?? s.title, s.connected.phoneBody); } };
 step(g.INTRO_STEP);
 for (const guide of [...g.GUIDES, ...g.STEP_TOURS]) for (const s of guide.steps) step(s);
 if (g.REWARD) say(g.REWARD.title, g.REWARD.body);
